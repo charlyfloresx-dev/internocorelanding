@@ -1,0 +1,37 @@
+{
+  "id": "tmpl_001",
+  "company_id": "comp_safran_01",
+  "partNumber": "TRB-8890-AIR",
+  "version": "1.2",
+  "status": "Released",
+  "operations": [
+    {
+      "id": "op10",
+      "name": "Ensamble de Turbina Principal",
+      "steps": [
+        {
+          "id": "s1",
+          "title": "Verificación de Sellos Hidráulicos",
+          "instructions": "Asegúrese de que el sello O-Ring esté lubricado con Krytox antes de la inserción. Verifique visualmente que no existan rebabas.",
+          "imageUrl": "https://picsum.photos/seed/turbine1/800/600",
+          "claims": [
+            {
+              "id": "c1",
+              "label": "ID del Sello (Escaneo)",
+              "type": "text",
+              "required": true,
+              "regex": "^[A-Z]{3}-[0-9]{4}$"
+            },
+            {
+              "id": "c2",
+              "label": "Presión de Inserción",
+              "type": "numeric",
+              "required": true,
+              "unit": "psi"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

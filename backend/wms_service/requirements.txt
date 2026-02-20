@@ -1,0 +1,22 @@
+# WMS specific dependencies# Web Framework
+fastapi
+uvicorn[standard]
+
+# Configuración y Validación (Pydantic v2)
+pydantic
+pydantic-settings
+python-dotenv
+
+# Base de Datos y Migraciones
+sqlalchemy
+alembic
+psycopg2-binary
+
+# Seguridad y JWT
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+
+# Utilidades
+python-multipart
+requests

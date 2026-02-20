@@ -1,0 +1,117 @@
+{
+  "id": "tmpl_001",
+  "company_id": "comp_safran_01",
+  "partNumber": "TRB-8890-AIR",
+  "version": "1.2",
+  "status": "Released",
+  "operations": [
+    {
+      "id": "op10",
+      "name": "Ensamble de Turbina Principal",
+      "steps": [
+        {
+          "id": "s1",
+          "title": "Verificación de Sellos Hidráulicos",
+          "instructions": "Asegúrese de que el sello O-Ring esté lubricado con Krytox antes de la inserción. Verifique visualmente que no existan rebabas.",
+          "imageUrl": "https://picsum.photos/seed/turbine1/800/600",
+          "claims": [
+            {
+              "id": "c1",
+              "label": "ID del Sello (Escaneo)",
+              "type": "text",
+              "required": true,
+              "regex": "^[A-Z]{3}-[0-9]{4}$",
+              "placeholder": "AAA-0000"
+            },
+            {
+              "id": "c2",
+              "label": "Presión de Inserción",
+              "type": "numeric",
+              "required": true,
+              "unit": "psi"
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "title": "Ajuste de Torque - Carcasa Superior",
+          "instructions": "Utilice el torquímetro digital calibrado. Siga la secuencia de cruce indicada en el manual técnico.",
+          "imageUrl": "https://picsum.photos/seed/torque/800/600",
+          "claims": [
+            {
+              "id": "c3",
+              "label": "Torque Aplicado",
+              "type": "numeric",
+              "required": true,
+              "unit": "Nm",
+              "min": 45,
+              "max": 55
+            },
+            {
+              "id": "c4",
+              "label": "ID de Herramienta Calibrada",
+              "type": "text",
+              "required": true,
+              "placeholder": "TL-XXXX"
+            }
+          ]
+        },
+        {
+          "id": "s3",
+          "title": "Inspección de Cableado Térmico",
+          "instructions": "Conecte los termopares J-Type. Verifique que no haya cables atrapados en la junta de sellado.",
+          "imageUrl": "https://picsum.photos/seed/wiring/800/600",
+          "claims": [
+            {
+              "id": "c5",
+              "label": "Foto de Conexiones Termopar",
+              "type": "media",
+              "required": true,
+              "description": "Capture una foto clara de los conectores J1 y J2"
+            },
+            {
+              "id": "c6",
+              "label": "Resistencia de Aislamiento",
+              "type": "numeric",
+              "required": true,
+              "unit": "MΩ"
+            }
+          ]
+        },
+        {
+          "id": "s4",
+          "title": "Validación de Balanceo Dinámico",
+          "instructions": "Inicie la prueba de rotación a 500 RPM. El sistema debe estabilizarse por debajo de 0.05 mm/s.",
+          "imageUrl": "https://picsum.photos/seed/vibration/800/600",
+          "claims": [
+            {
+              "id": "c7",
+              "label": "Nivel de Vibración Pico",
+              "type": "numeric",
+              "required": true,
+              "unit": "mm/s"
+            },
+            {
+              "id": "c8",
+              "label": "¿Prueba de Balanceo Exitosa?",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "id": "c9",
+              "label": "Notas de Incidencia",
+              "type": "text",
+              "required": false,
+              "placeholder": "Opcional: Describa cualquier anomalía sonora"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "audit": {
+    "created_by": "admin_eng",
+    "created_at": "2026-01-31T08:00:00Z",
+    "approved_by": "qa_manager_01"
+  }
+}

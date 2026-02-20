@@ -1,0 +1,447 @@
+﻿python : C:\Python314\Lib\site-packages\sqlalchemy
+\sql\schema.py:3624: DeprecationWarning: 
+datetime.datetime.utcnow() is deprecated and 
+scheduled for removal in a future version. Use 
+timezone-aware objects to represent datetimes in 
+UTC: datetime.datetime.now(datetime.UTC).
+At line:1 char:1
++ python 
+tests\infrastructure\test_reactive_ledger.py 2>&1 
+| Out-File - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\P 
+   ython314\Li...(datetime.UTC).:String) [], Rem  
+  oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  return util.wrap_callable(lambda ctx: fn(), fn) 
+ # type: ignore
+EEE
+==================================================
+====================
+ERROR: test_immutability_enforcement (__main__.Tes
+tReactiveLedger.test_immutability_enforcement)
+Verify that confirmed docs cannot be edited.
+--------------------------------------------------
+--------------------
+Traceback (most recent call last):
+  File "C:\API\interno\tests\infrastructure\test_r
+eactive_ledger.py", line 116, in 
+test_immutability_enforcement
+    self.session.commit()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "<string>", line 2, in commit
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 1311, in commit
+    self._prepare_impl()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "<string>", line 2, in _prepare_impl
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 1286, in _prepare_impl
+    self.session.flush()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4331, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4427, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        
+uow.states_for_mapper_hierarchy(self.mapper, 
+False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 68, in save_obj
+    ) in _organize_states_for_save(base_mapper, 
+states, uowtransaction):
+         ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 236, in 
+_organize_states_for_save
+    mapper.dispatch.before_update(mapper, 
+connection, state)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+event\attr.py", line 515, in __call__
+    fn(*args, **kw)
+    ~~^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\events.py", line 892, in wrap
+    fn(*arg, **kw)
+    ~~^^^^^^^^^^^^
+  File "C:\API\interno\backend\wms_service\app\mod
+els\events.py", line 18, in 
+check_document_immutability
+    state = event.inspect(target)
+            ^^^^^^^^^^^^^
+AttributeError: module 'sqlalchemy.event' has no 
+attribute 'inspect'
+
+==================================================
+====================
+ERROR: test_stock_update_on_confirmation (__main__
+.TestReactiveLedger.test_stock_update_on_confirmat
+ion)
+Verify that status DRAFT -> CONFIRMED updates 
+stock.
+--------------------------------------------------
+--------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1967, in 
+_exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, 
+effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.IntegrityError: UNIQUE constraint failed: 
+companies.id
+
+The above exception was the direct cause of the 
+following exception:
+
+Traceback (most recent call last):
+  File "C:\API\interno\tests\infrastructure\test_r
+eactive_ledger.py", line 40, in setUp
+    self.session.flush()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4331, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4427, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        
+uow.states_for_mapper_hierarchy(self.mapper, 
+False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        insert,
+        ^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 1048, in 
+_emit_insert_statements
+    result = connection.execute(
+        statement, multiparams, 
+execution_options=execution_options
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\elements.py", line 527, in 
+_execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1641, in 
+_execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1986, in 
+_exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, 
+cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 2363, in 
+_handle_dbapi_exception
+    raise 
+sqlalchemy_exception.with_traceback(exc_info[2]) 
+from e
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1967, in 
+_exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, 
+effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.IntegrityError: 
+(sqlite3.IntegrityError) UNIQUE constraint 
+failed: companies.id
+[SQL: INSERT INTO companies (name, id, 
+created_at, updated_at, created_by, updated_by) 
+VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('Test Tenant', 'tenant-1', 
+'2026-02-04 18:31:51.028851', None, None, None)]
+(Background on this error at: 
+https://sqlalche.me/e/20/gkpj)
+
+==================================================
+====================
+ERROR: test_weighted_average_cost (__main__.TestRe
+activeLedger.test_weighted_average_cost)
+Verify WAC calculation.
+--------------------------------------------------
+--------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1967, in 
+_exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, 
+effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.IntegrityError: UNIQUE constraint failed: 
+companies.id
+
+The above exception was the direct cause of the 
+following exception:
+
+Traceback (most recent call last):
+  File "C:\API\interno\tests\infrastructure\test_r
+eactive_ledger.py", line 40, in setUp
+    self.session.flush()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4331, in flush
+    self._flush(objects)
+    ~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+util\langhelpers.py", line 224, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\session.py", line 4427, in _flush
+    flush_context.execute()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.mapper,
+        ^^^^^^^^^^^^
+        
+uow.states_for_mapper_hierarchy(self.mapper, 
+False, False),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+        uow,
+        ^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        base_mapper,
+        ^^^^^^^^^^^^
+    ...<3 lines>...
+        insert,
+        ^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+orm\persistence.py", line 1048, in 
+_emit_insert_statements
+    result = connection.execute(
+        statement, multiparams, 
+execution_options=execution_options
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\elements.py", line 527, in 
+_execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1641, in 
+_execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1986, in 
+_exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, 
+cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 2363, in 
+_handle_dbapi_exception
+    raise 
+sqlalchemy_exception.with_traceback(exc_info[2]) 
+from e
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 1967, in 
+_exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, 
+effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.IntegrityError: 
+(sqlite3.IntegrityError) UNIQUE constraint 
+failed: companies.id
+[SQL: INSERT INTO companies (name, id, 
+created_at, updated_at, created_by, updated_by) 
+VALUES (?, ?, ?, ?, ?, ?)]
+[parameters: ('Test Tenant', 'tenant-1', 
+'2026-02-04 18:31:51.033722', None, None, None)]
+(Background on this error at: 
+https://sqlalche.me/e/20/gkpj)
+
+--------------------------------------------------
+--------------------
+Ran 3 tests in 0.049s
+
+FAILED (errors=3)
+<sys>:0: ResourceWarning: unclosed database in 
+<sqlite3.Connection object at 0x000001DBA1C97C40>

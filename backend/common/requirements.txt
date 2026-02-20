@@ -1,0 +1,4 @@
+sqlalchemy==2.0.25
+pydantic==2.5.3
+alembic==1.13.1
+asyncpg==0.29.0

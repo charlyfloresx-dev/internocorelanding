@@ -1,0 +1,228 @@
+// =======================================================================
+// ARCHIVO CONSOLIDADO PARA UNIFICACIÓN EN AI STUDIO
+// Generado a partir de descripciones. Contiene la estructura y lógica
+// para el "Identity Lab" (visual) y el "Admin Panel" (funcional).
+// =======================================================================
+
+
+// --- INICIO IDENTITY LAB (CASCARÓN VISUAL) ---
+
+// -----------------------------------------------------------------------
+// 1. Componente de Mockups (React / JSX)
+// Muestra el logo generado en diferentes contextos.
+// -----------------------------------------------------------------------
+
+const BrandingMockups = ({ logoUrl }) => {
+  return (
+    <div className="p-8 bg-gray-900 industrial-dark">
+      <h2 className="text-2xl font-bold text-gray-200 mb-6">Previsualización de Branding</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+        {/* Mockup de iPhone */}
+        <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
+          <p className="text-center text-gray-400 mb-2">App Móvil</p>
+          <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-800 border-[14px] rounded-[2.5rem] h-[600px] w-[300px]">
+            <div className="h-[32px] w-[3px] bg-gray-800 dark:bg-gray-800 absolute -start-[17px] top-[72px] rounded-s-lg"></div>
+            <div className="h-[46px] w-[3px] bg-gray-800 dark:bg-gray-800 absolute -start-[17px] top-[124px] rounded-s-lg"></div>
+            <div className="h-[46px] w-[3px] bg-gray-800 dark:bg-gray-800 absolute -start-[17px] top-[178px] rounded-s-lg"></div>
+            <div className="h-[64px] w-[3px] bg-gray-800 dark:bg-gray-800 absolute -end-[17px] top-[142px] rounded-e-lg"></div>
+            <div className="rounded-[2rem] overflow-hidden w-full h-full bg-gray-900">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo en iPhone" className="w-full h-full object-contain p-10" />
+              ) : (
+                <div className="flex justify-center items-center h-full text-gray-500">Esperando logo...</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mockup de Pared de Planta */}
+        <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
+          <p className="text-center text-gray-400 mb-2">Planta Industrial</p>
+          <div className="relative w-full h-[580px] bg-cover bg-center rounded-md flex justify-center items-center" style={{ backgroundImage: "url('https://source.unsplash.com/random/800x600?concrete,wall')" }}>
+            <div className="absolute inset-0 bg-black opacity-30"></div>
+            <div className="relative w-48 h-48 bg-white/10 backdrop-blur-sm flex justify-center items-center">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo en pared" className="w-40 h-40 object-contain" />
+              ) : (
+                 <div className="text-white">Logo</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+// -----------------------------------------------------------------------
+// 2. Clases y Configuración de Tailwind CSS
+// Define la paleta de colores para el "Industrial Dark Mode" y gradientes.
+// (Esto iría en `tailwind.config.js` y `global.css`)
+// -----------------------------------------------------------------------
+
+/* En tailwind.config.js */
+/*
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        'industrial-dark': '#1A1D24',
+        'industrial-gray': {
+          DEFAULT: '#2A2F3A',
+          light: '#3B4252',
+          dark: '#1F232B'
+        },
+        'accent-orange': '#F56565',
+      },
+      backgroundImage: {
+        'industrial-gradient': 'linear-gradient(145deg, #1A1D24, #2A2F3A)',
+      }
+    }
+  }
+}
+*/
+
+/* En global.css */
+/*
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.industrial-dark {
+  @apply bg-industrial-dark text-gray-300;
+}
+*/
+
+// -----------------------------------------------------------------------
+// 3. Lógica de API de Gemini para Generación de Branding (JavaScript)
+// Función para enviar un prompt y recibir la URL de un logo.
+// -----------------------------------------------------------------------
+
+async function generateBrandingFromPrompt(prompt, apiKey) {
+  const GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent";
+  
+  // Simulación de la estructura de la petición a la API de Gemini
+  const requestBody = {
+    "contents": [{
+      "parts": [
+        {"text": `Genera un logo minimalista para una compañía con la siguiente descripción: '${prompt}'. El logo debe ser cuadrado, con fondo transparente, en formato PNG.`}
+      ]
+    }],
+    "generationConfig": {
+      "temperature": 0.4,
+      "topK": 32,
+      "topP": 1,
+      "maxOutputTokens": 4096,
+      "stopSequences": []
+    }
+  };
+
+  try {
+    // ---- Llamada real a la API (comentada para el ejemplo) ----
+    /*
+    const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Aquí se procesaría la respuesta para extraer la URL de la imagen.
+    const imageUrl = data.candidates[0].content.parts[0].fileData.uri;
+    */
+    
+    // ---- Simulación de respuesta para el ejemplo ----
+    console.log("Enviando prompt a Gemini (simulado):", prompt);
+    const mockImageUrl = `https://dummyimage.com/400x400/1A1D24/fff.png&text=${prompt.substring(0, 10)}`;
+    
+    return {
+      success: true,
+      imageUrl: mockImageUrl,
+    };
+
+  } catch (error) {
+    console.error("Error al generar branding con Gemini:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+
+// --- INICIO ADMIN PANEL (CONTENIDO FUNCIONAL) ---
+
+// -----------------------------------------------------------------------
+// 1. Estructura de Tabla de Usuarios y Selector de Roles (React / JSX)
+// Componente para listar usuarios y permitir la edición de su rol.
+// -----------------------------------------------------------------------
+
+import React, { useState } from 'react';
+
+const UsersTable = () => {
+  const [users, setUsers] = useState([
+    { id: 1, name: 'Carlos Flores', email: 'carlos.flores@example.com', role: 'Admin' },
+    { id: 2, name: 'Sofia Rodriguez', email: 'sofia.r@example.com', role: 'Editor' },
+    { id: 3, name: 'Luis Gomez', email: 'luis.gomez@example.com', role: 'Viewer' },
+    { id: 4, name: 'Ana Torres', email: 'ana.torres@example.com', role: 'Editor' },
+  ]);
+
+  const handleRoleChange = (userId, newRole) => {
+    setUsers(users.map(user => 
+      user.id === userId ? { ...user, role: newRole } : user
+    ));
+    console.log(`Usuario ${userId} ahora tiene el rol: ${newRole} (simulado)`);
+    // Aquí iría la llamada a la API para actualizar el rol en el backend.
+  };
+
+  const RoleSelector = ({ userId, currentRole }) => {
+    return (
+      <select 
+        value={currentRole} 
+        onChange={(e) => handleRoleChange(userId, e.target.value)}
+        className="bg-industrial-gray-light text-white rounded-md p-2 border-none"
+      >
+        <option value="Admin">Admin</option>
+        <option value="Editor">Editor</option>
+        <option value="Viewer">Viewer</option>
+      </select>
+    );
+  };
+
+  return (
+    <div className="p-8 bg-gray-900 industrial-dark rounded-lg">
+      <h2 className="text-xl font-bold text-gray-200 mb-4">Panel de Administración de Usuarios</h2>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm text-gray-300">
+          <thead className="bg-industrial-gray-dark">
+            <tr>
+              <th scope="col" className="px-6 py-4 font-medium">Nombre</th>
+              <th scope="col" className="px-6 py-4 font-medium">Email</th>
+              <th scope="col" className="px-6 py-4 font-medium">Rol</th>
+              <th scope="col" className="px-6 py-4 font-medium text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className="border-b border-industrial-gray">
+                <td className="px-6 py-4">{user.name}</td>
+                <td className="px-6 py-4">{user.email}</td>
+                <td className="px-6 py-4">
+                  <RoleSelector userId={user.id} currentRole={user.role} />
+                </td>
+                <td className="px-6 py-4 text-center">
+                   <button className="text-accent-orange hover:underline">Eliminar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};

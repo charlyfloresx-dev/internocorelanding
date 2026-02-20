@@ -1,0 +1,42 @@
+{
+    "status": "success",
+    "data": {
+        "selection_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4Y2Y3NWMwOS00MDU2LTQyODYtOGQzYy0yY2MwZDI0YzY0MTUiLCJleHAiOjE3NzExODU3MTcsImp0aSI6IjIxYmJhNmJlLWY5NjYtNGM0NC1hMjY0LTZkYmNiZGEwNjZhOCIsInR5cGUiOiJzZWxlY3Rpb25fdG9rZW4ifQ.4fKxft8NAeXzh4mEWBim7LmJg7GITNPSaKFtqJZDIvc",
+        "user_id": "8cf75c09-4056-4286-8d3c-2cc0d24c6415",
+        "companies": [
+            {
+                "company_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+                "company_name": "InternoCorp Enterprise",
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": false
+            },
+            {
+                "company_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+                "company_name": "Interno Logistics",
+                "logo": null,
+                "role_names": [
+                    "operator"
+                ],
+                "is_new": false
+            },
+            {
+                "company_id": "74528f80-0001-4b1e-a5b3-d2a84c1f9e12",
+                "company_name": "Nueva Planta Demo",
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": true
+            }
+        ],
+        "isNew": true
+    },
+    "message": "Login successful, selection token issued.",
+    "meta": {
+        "trace_id": "485b26a2-0334-4c84-949c-59255b941d21",
+        "latency": "0.1992s"
+    }
+}

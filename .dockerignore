@@ -1,0 +1,15 @@
+# Dependencias local (OBLIGATORIO)
+**/node_modules
+**/dist
+**/.angular
+
+# Git
+.git
+.gitignore
+
+# Docker logs y otros
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+.dockerignore
+npm-debug.log

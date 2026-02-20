@@ -1,0 +1,29 @@
+# Usar una imagen oficial de Python delgada como imagen base
+FROM python:3.11-slim
+
+# Evitar que Python escriba archivos .pyc
+ENV PYTHONDONTWRITEBYTECODE 1
+# Asegurar que la salida de Python no se almacene en búfer
+ENV PYTHONUNBUFFERED 1
+
+# Crear un directorio de trabajo
+WORKDIR /app
+
+# Crear un usuario no-root para ejecutar la aplicación
+RUN addgroup --system app && adduser --system --group app
+
+# Copiar los requisitos e instalarlos
+# Esto se hace en un paso separado para aprovechar el cache de Docker
+COPY ./requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+# Copiar el resto del código de la aplicación
+COPY . /app
+
+# Cambiar al usuario no-root
+USER app
+
+# Comando por defecto para ejecutar la aplicación (puede ser sobreescrito)
+# Se expone el puerto 8000, estándar para FastAPI
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

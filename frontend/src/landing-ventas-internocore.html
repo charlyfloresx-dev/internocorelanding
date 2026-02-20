@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternoCore - El Sistema Nervioso de su Planta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-300">
+
+    <!-- Header -->
+    <header class="absolute top-0 left-0 w-full z-10 p-6">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-layer-group text-2xl text-sky-400"></i>
+                <span class="text-xl font-bold text-white">InternoCore</span>
+            </div>
+            <a href="https://app.internocore.com" class="hidden md:inline-block px-5 py-2 text-sm font-medium text-white bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors">
+                Acceso Clientes
+            </a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="relative min-h-screen flex items-center justify-center overflow-hidden p-6">
+        <div class="absolute inset-0 bg-grid-slate-800/40 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
+        <div class="relative z-10 text-center max-w-4xl mx-auto">
+            <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 leading-tight tracking-tighter mb-6">
+                InternoCore: El Sistema Nervioso de su Planta
+            </h1>
+            <p class="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+                Unifique producción, inventario, calidad y mantenimiento en una única plataforma inteligente diseñada para la industria 4.0.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://demo.internocore.com" class="w-full sm:w-auto px-8 py-4 text-lg font-bold text-white bg-sky-600 rounded-lg shadow-lg shadow-sky-900/40 hover:bg-sky-500 transition-all transform hover:scale-105">
+                    Probar Demo Gratis
+                </a>
+                <a href="https://app.internocore.com" class="w-full sm:w-auto md:hidden px-8 py-4 text-lg font-medium text-slate-300 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors">
+                    Acceso Clientes
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-slate-950">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white">Una Plataforma, Control Total</h2>
+                <p class="text-slate-400 mt-2">Módulos diseñados para resolver los desafíos de la manufactura moderna.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+                <!-- Card 1: ShopFloor -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 transform transition-all duration-300 hover:-translate-y-2 hover:border-sky-500/50 hover:shadow-2xl hover:shadow-sky-900/30">
+                    <div class="w-16 h-16 rounded-lg bg-slate-800 flex items-center justify-center mb-6 border border-slate-700">
+                        <i class="fa-solid fa-chart-line text-3xl text-sky-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">ShopFloor Control</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Monitoreo en tiempo real de OEE, paros no programados y eficiencia. Conecte sus máquinas y tome decisiones basadas en datos.
+                    </p>
+                </div>
+
+                <!-- Card 2: WMS -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 transform transition-all duration-300 hover:-translate-y-2 hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-900/30">
+                    <div class="w-16 h-16 rounded-lg bg-slate-800 flex items-center justify-center mb-6 border border-slate-700">
+                        <i class="fa-solid fa-boxes-stacked text-3xl text-amber-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">WMS Integrado</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Gestión de logística y almacenes. Trazabilidad completa desde la materia prima hasta el producto terminado.
+                    </p>
+                </div>
+
+                <!-- Card 3: Quality -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 transform transition-all duration-300 hover:-translate-y-2 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-900/30">
+                    <div class="w-16 h-16 rounded-lg bg-slate-800 flex items-center justify-center mb-6 border border-slate-700">
+                        <i class="fa-solid fa-shield-halved text-3xl text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Gestión de Calidad</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Asegure el cumplimiento de normativas como FDA y AS9100 con inspecciones digitales, control de no conformidades y CAPAs.
+                    </p>
+                </div>
+
+                <!-- Card 4: Maintenance -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 transform transition-all duration-300 hover:-translate-y-2 hover:border-violet-500/50 hover:shadow-2xl hover:shadow-violet-900/30">
+                    <div class="w-16 h-16 rounded-lg bg-slate-800 flex items-center justify-center mb-6 border border-slate-700">
+                        <i class="fa-solid fa-screwdriver-wrench text-3xl text-violet-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Mantenimiento (CMMS)</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        Planifique mantenimientos preventivos, gestione órdenes de trabajo correctivas y optimice la vida útil de sus activos.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800/50">
+        <div class="container mx-auto px-6 py-8 text-center text-slate-500">
+            <p>&copy; 2026 InternoCore. Todos los derechos reservados.</p>
+            <p class="text-xs mt-2">Diseñado para la industria del futuro.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Script para el fondo de grid animado
+        document.addEventListener('DOMContentLoaded', () => {
+            const grid = document.querySelector('.bg-grid-slate-800\\/40');
+            if (grid) {
+                grid.style.backgroundSize = "70px 70px";
+                grid.style.backgroundImage = `
+                    linear-gradient(to right, rgba(30, 41, 59, 0.5) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(30, 41, 59, 0.5) 1px, transparent 1px)
+                `;
+            }
+        });
+    </script>
+
+</body>
+</html>

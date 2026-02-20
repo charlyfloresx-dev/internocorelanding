@@ -1,0 +1,13 @@
+{
+    "status": "success",
+    "data": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlX25hbWVzIjpbImFkbWluIl0sImlzX25ldyI6ZmFsc2UsInN1YiI6IjVhM2YyOWRhLTc3YmQtNGU0YS05MjA5LTExNzM2MGE0MWFlYSIsImNvbXBhbnlfaWQiOiJlYjhmN2UyYy0zZjRhLTRiNWMtOGQ3ZS0xZjJhM2I0YzVkNmUiLCJleHAiOjE3NzEyNjQ5OTgsImp0aSI6ImZkZGUxZjEzLTFhYTktNGI3Yy1iMzc2LTg4ODlkZTdiNGVlMCIsInR5cGUiOiJhY2Nlc3NfdG9rZW4ifQ.YzPvOSc8c7pKeHrnNsfmS7l5ycf5SQsiZjRBZ0dKkNE",
+        "token_type": "bearer",
+        "company_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e"
+    },
+    "message": "Company selected, access token issued.",
+    "meta": {
+        "trace_id": "9fd7072e-b94f-4492-afca-b259b5452e2f",
+        "latency": "0.0115s"
+    }
+}

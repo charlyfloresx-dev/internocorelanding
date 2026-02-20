@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    
+    "moduleResolution": "node", 
+    "allowImportingTsExtensions": false, 
+    
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+    
+    "noEmit": false, 
+    
+    "allowJs": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@core/*": ["src/app/core/*"],
+      "@services/*": ["src/app/core/services/*"],
+      "@shared/*": ["src/app/shared/*"],
+      "@models/*": ["src/app/core/models/*"],
+      "@env/*": ["src/environments/*"],
+      "common/*": ["../common/*"] 
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "../common/**/*.ts" 
+  ],
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

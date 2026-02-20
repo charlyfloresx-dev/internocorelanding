@@ -1,0 +1,101 @@
+{
+
+    "status": "success",
+
+    "data": {
+
+        "selection_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzE0NDgyNDQsInN1YiI6IjNlYTY3NGJiLWVmNzEtNGQ2Mi1iYTliLWJkMzc5MmRhODhiZSIsInR5cGUiOiJzZWxlY3Rpb24ifQ.UESXlr2ctO_q4jYThequ0I4X6aC0RaUGgn0iD53djKA",
+
+        "companies": [
+
+            {
+
+                "company_id": "74528f80-0001-4b1e-a5b3-d2a84c1f9e12",
+
+                "company_name": "Nueva Planta Demo",
+
+                "logo": null,
+
+                "is_new": true
+
+            },
+
+            {
+
+                "company_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+
+                "company_name": "Interno Logistics",
+
+                "logo": null,
+
+                "is_new": false
+
+            },
+
+            {
+
+                "company_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+
+                "company_name": "InternoCorp Enterprise",
+
+                "logo": null,
+
+                "is_new": false
+
+            }
+
+        ]
+
+    },
+
+    "message": "Login successful. Please select a company.",
+
+    "meta": {
+
+        "trace_id": "9761c69c-baa8-47ec-a03d-14f983969cd8",
+
+        "latency": "0.3549s"
+
+    }
+
+},{
+
+    "status": "success",
+
+    "data": {
+
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzE0NTE1NTYsInN1YiI6IjNlYTY3NGJiLWVmNzEtNGQ2Mi1iYTliLWJkMzc5MmRhODhiZSIsImNvbXBhbnlfaWQiOiJlYjhmN2UyYy0zZjRhLTRiNWMtOGQ3ZS0xZjJhM2I0YzVkNmUiLCJyb2xlX25hbWVzIjpbImFkbWluIl0sInNjb3BlcyI6WyJjYXRhbG9nOmFkbWluIiwiaW52ZW50b3J5OmFkbWluIiwicHJvZHVjdGlvbl9tZXM6YWRtaW4iXX0.bfY-FDSiw7bB-p-UhRMMYVZB7UyhwNCRP_nc48OEOLI",
+
+        "token_type": "bearer",
+
+        "company_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+
+        "roles": [
+
+            "admin"
+
+        ],
+
+        "scopes": [
+
+            "catalog:admin",
+
+            "inventory:admin",
+
+            "production_mes:admin"
+
+        ]
+
+    },
+
+    "message": "Access token generated successfully.",
+
+    "meta": {
+
+        "trace_id": "e64d89ab-d837-4299-92b3-644b4b1b9c2f",
+
+        "latency": "0.0344s"
+
+    }
+
+}

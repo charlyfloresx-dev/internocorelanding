@@ -1,0 +1,15 @@
+{
+    "Version": "2012-10-17",
+    "Statement": {
+        "Sid": "AllowCloudFront",
+        "Effect": "Allow",
+        "Principal": { "Service": "cloudfront.amazonaws.com" },
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::internocore-static-files-3709/*",
+        "Condition": {
+            "StringEquals": {
+                "AWS:SourceArn": "arn:aws:cloudfront::584094645491:distribution/E3IMB3PV6PRKNG"
+            }
+        }
+    }
+}

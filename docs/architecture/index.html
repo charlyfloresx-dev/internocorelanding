@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternoCore - Arquitectura Modular para la Industria 4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e2e8f0; /* slate-200 */
+        }
+        .gradient-btn {
+            background-image: linear-gradient(to right, #2563eb, #0891b2);
+            transition: all 0.3s ease;
+        }
+        .gradient-btn:hover {
+            box-shadow: 0 0 20px #2563eb80;
+            transform: translateY(-2px);
+        }
+        .card {
+            background-color: #0a0a0a;
+            border: 1px solid #1e293b; /* slate-800 */
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #2563eb;
+        }
+        .tech-icon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: #94a3b8; /* slate-400 */
+            transition: color 0.3s ease;
+        }
+        .tech-icon-container:hover {
+            color: #e2e8f0; /* slate-200 */
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="py-4 px-4 sm:px-6 lg:px-8">
+        <nav class="flex items-center justify-between max-w-7xl mx-auto">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="blocks" class="text-blue-500"></i>
+                <span class="text-xl font-bold text-white">InternoCore</span>
+            </div>
+            
+            <button class="gradient-btn text-white font-semibold py-2 px-5 rounded-lg text-sm" onclick="irADemo()" class="btn-primary">Solicitar Demo</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="overflow-x-hidden">
+        
+        <!-- Hero Section -->
+        <section class="text-center py-16 sm:py-20 lg:py-32 px-4">
+            <h1 class="text-3xl sm:text-4xl lg:text-6xl font-black text-white leading-tight max-w-4xl mx-auto">
+                Arquitectura Modular para la Industria 4.0
+            </h1>
+            <p class="mt-6 text-base sm:text-lg lg:text-xl text-slate-300 max-w-3xl mx-auto">
+                De la planta de producción a la nube. Soluciones de trazabilidad, logística y control de calidad validadas en sectores aeroespacial, médico y electrónico.
+            </p>
+            <div class="mt-10">
+                
+                <button class="gradient-btn text-white font-bold py-3 px-6 sm:px-8 rounded-lg text-base sm:text-lg" onclick="irADemo()">Solicitar Demo</button>
+            </div>
+        </section>
+
+        <!-- Modules Section -->
+        <section id="modules" class="py-20 lg:py-24 bg-[#111111]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-white">Un Ecosistema Integrado</h2>
+                    <p class="mt-4 text-slate-400 max-w-2xl mx-auto">Cada módulo resuelve un desafío crítico de la industria, funcionando de manera autónoma o en conjunto para una sinergia total.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Nexo WMS -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="warehouse" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno WMS</h3>
+                        <p class="mt-2 text-slate-400">Control de inventarios multi-almacén, gestión de ubicaciones, picking, packing y logística de materiales de alta precisión.</p>
+                    </div>
+
+                    <!-- Nexo ShopFloor -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="line-chart" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno ShopFloor</h3>
+                        <p class="mt-2 text-slate-400">Métricas en tiempo real (OEE, FPY), monitoreo hora-por-hora y dashboards de producción para la toma de decisiones ágil.</p>
+                    </div>
+                    
+                    <!-- Nexo Quality -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="shield-check" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno Quality</h3>
+                        <p class="mt-2 text-slate-400">Trazabilidad total de componentes (genealogía de producto) y gestión de cumplimiento normativo (FDA, AS9100).</p>
+                    </div>
+
+                    <!-- Nexo Medical -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="heart-pulse" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno Medical</h3>
+                        <p class="mt-2 text-slate-400">Gestión especializada para manufactura de dispositivos médicos, incluyendo DHR (Device History Record) electrónico.</p>
+                    </div>
+
+                    <!-- Nexo HR/Kiosko -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="user-square" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno HR/Kiosko</h3>
+                        <p class="mt-2 text-slate-400">Portal del empleado para consultas de nómina, solicitud de permisos, y comunicación interna directa en planta.</p>
+                    </div>
+
+                    <!-- Nexo Maintenance -->
+                    <div class="card p-8 rounded-xl">
+                        <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-slate-800 mb-6">
+                            <i data-lucide="wrench" class="text-blue-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Interno Maintenance</h3>
+                        <p class="mt-2 text-slate-400">Gestión de tickets de mantenimiento (correctivo y preventivo), control de activos y planificación de paros programados.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Social Proof / Experience Section -->
+        <section class="py-20 lg:py-24">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <i data-lucide="factory" class="text-blue-500 mx-auto" size="48"></i>
+                <h2 class="mt-6 text-2xl lg:text-3xl font-bold text-white">Experiencia Integrada en Operaciones Críticas</h2>
+                <blockquote class="mt-6 text-lg text-slate-300 border-l-4 border-blue-500 pl-6 text-left italic">
+                    "Sistemas que gestionan operaciones de alta complejidad en sectores de Electrónica Global, Manufactura Aeroespacial y Dispositivos Médicos."
+                </blockquote>
+                <p class="mt-8 text-md text-slate-400">
+                    Con <span class="text-white font-bold">más de 10 años diseñando arquitecturas</span> que eliminan el papel en el piso de producción y optimizan la cadena de suministro, transformamos la complejidad en una ventaja competitiva.
+                </p>
+            </div>
+        </section>
+
+        <!-- Tech Stack Section -->
+        <section id="tech-stack" class="py-20 lg:py-24 bg-[#111111]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl lg:text-4xl font-bold text-white">Construido sobre Tecnología Robusta y Escalable</h2>
+                    <p class="mt-4 text-slate-400 max-w-2xl mx-auto">Utilizamos un stack tecnológico moderno para garantizar rendimiento, seguridad y flexibilidad.</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-12 max-w-4xl mx-auto mb-16">
+                    <div class="tech-icon-container">
+                        <i data-lucide="code"></i>
+                        <span>FastAPI (Python)</span>
+                    </div>
+                    <div class="tech-icon-container">
+                        <i data-lucide="atom"></i>
+                        <span>React / Flutter</span>
+                    </div>
+                    <div class="tech-icon-container">
+                        <i data-lucide="database"></i>
+                        <span>PostgreSQL</span>
+                    </div>
+                    <div class="tech-icon-container">
+                        <i data-lucide="container"></i>
+                        <span>Docker</span>
+                    </div>
+                    <div class="tech-icon-container col-span-2 lg:col-span-1 flex justify-center">
+                        <i data-lucide="cloud"></i>
+                        <span>AWS</span>
+                    </div>
+                </div>
+
+                <div class="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                    <div class="flex items-start space-x-3">
+                         <i data-lucide="lock" class="text-green-500 flex-shrink-0 mt-1"></i>
+                         <div>
+                            <h4 class="font-bold text-white">Seguridad por Diseño</h4>
+                            <p class="text-slate-400 text-sm">Arquitectura que cumple con los más altos estándares de seguridad desde su concepción.</p>
+                         </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <i data-lucide="users" class="text-green-500 flex-shrink-0 mt-1"></i>
+                         <div>
+                            <h4 class="font-bold text-white">Arquitectura Multi-tenant</h4>
+                            <p class="text-slate-400 text-sm">Infraestructura optimizada para servir a múltiples clientes de forma segura y aislada.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 lg:py-24">
+            <div class="max-w-3xl mx-auto text-center px-4">
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">Transforme su Operación Hoy</h2>
+                <p class="mt-4 text-base sm:text-lg text-slate-300">Descubra cómo InternoCore puede optimizar sus procesos, reducir costos y aumentar la visibilidad en toda su cadena de valor.</p>
+                <div class="mt-10">
+                    <button class="gradient-btn text-white font-bold py-3 px-6 sm:px-8 rounded-lg text-base sm:text-lg" onclick="irADemo()" class="btn-primary">Agendar una Demo Personalizada</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#111111] border-t border-slate-800 py-8">
+        <div class="max-w-7xl mx-auto text-center text-slate-500 px-4">
+            <p>&copy; 2026 InternoCore. Todos los derechos reservados.</p>
+            <p class="text-sm mt-2">Diseñado para la industria, por expertos de la industria.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    <script>
+        function irADemo() {
+            // Aquí podrías capturar datos del formulario antes de redirigir
+            const nombre = document.getElementById('nombre')?.value || 'Invitado';
+            
+            // Redirige al nuevo frontend que construiremos (usando tu URL de CloudFront)
+            // Pasamos el nombre por la URL para que el Panel le dé la bienvenida
+            window.location.href = `https://d2m14uxf7tlfyw.cloudfront.net/admin?user=${encodeURIComponent(nombre)}`;
+        }
+    </script>
+</body>
+</html>

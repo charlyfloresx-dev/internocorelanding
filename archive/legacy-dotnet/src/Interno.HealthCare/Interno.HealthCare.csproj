@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+      <ProjectReference Include="..\Interno.Domain\Interno.Domain.csproj" />
+      <ProjectReference Include="..\Interno.HumanResource\Interno.HumanResource.csproj" />
+      <ProjectReference Include="..\Interno.Inventory\Interno.Inventory.csproj" />
+  </ItemGroup>
+
+</Project>

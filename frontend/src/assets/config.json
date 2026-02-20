@@ -1,0 +1,6 @@
+{
+  "apiUrl": "http://localhost:8000/api",
+  "environment": "production",
+  "enableLogging": true,
+  "version": "1.0.0"
+}

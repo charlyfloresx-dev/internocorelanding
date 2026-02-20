@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternoCore | Documentación Técnica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        .sidebar-link:hover { background-color: #f3f4f6; border-left: 4px solid #3b82f6; }
+        .decision-card:hover { transform: translateY(-2px); transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="flex min-h-screen">
+        <aside class="w-64 bg-white border-r hidden md:block sticky top-0 h-screen">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-blue-600">InternoCore</h1>
+                <p class="text-xs text-gray-400 font-mono">v2.1 Architecture</p>
+            </div>
+            <nav class="mt-4">
+                <a href="#vision" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-eye mr-3"></i>Visión General</a>
+                <a href="#decisiones" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-gavel mr-3"></i>Historial de Decisiones</a>
+                <a href="#configuracion" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-cogs mr-3"></i>Configuración Local</a>
+                <a href="#herramientas" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-tools mr-3"></i>Stack Tecnológico</a>
+                <a href="#tesis" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-book mr-3"></i>Notas para Tesis</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 p-8 md:p-12 overflow-y-auto">
+            
+            <section id="vision" class="mb-16">
+                <h2 class="text-4xl font-extrabold mb-6">Visión de Arquitectura</h2>
+                <div class="bg-blue-600 text-white p-8 rounded-2xl shadow-lg">
+                    <p class="text-lg leading-relaxed">
+                        InternoCore es un sistema MES (Manufacturing Execution System) diseñado bajo el paradigma de <strong>Microservicios Multi-tenant</strong>. El objetivo es centralizar la gestión industrial permitiendo que múltiples fábricas operen sobre el mismo núcleo pero con total aislamiento de datos.
+                    </p>
+                </div>
+            </section>
+
+            <section id="decisiones" class="mb-16">
+                <h3 class="text-3xl font-bold mb-8 flex items-center">
+                    <i class="fas fa-history text-blue-500 mr-4"></i>Historial de Toma de Decisiones (ADR)
+                </h3>
+                <div class="grid grid-cols-1 gap-6">
+                    
+                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <h4 class="text-xl font-bold">ADR-001: Shared Domain Kernel</h4>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
+                        </div>
+                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Duplicidad de lógica de roles y estados en microservicios separados.</p>
+                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Creación de la carpeta <code>/common</code>. Todos los microservicios heredan modelos, enums y seguridad de este núcleo.</p>
+                    </div>
+
+                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-green-500 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <h4 class="text-xl font-bold">ADR-002: Motor de Persistencia PostgreSQL</h4>
+                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
+                        </div>
+                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Necesidad de indexado eficiente para UUIDs en entornos multi-tenant.</p>
+                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Migración de MySQL a PostgreSQL 15 debido a su manejo nativo del tipo de dato UUID y robustez en transacciones concurrentes.</p>
+                    </div>
+
+                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-purple-500 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <h4 class="text-xl font-bold">ADR-003: Seguridad Basada en Suscripción</h4>
+                            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
+                        </div>
+                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Control de accesos dinámico basado en pagos.</p>
+                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Middleware universal en <code>security.py</code> que intercepta cada request y valida si la empresa tiene una suscripción <code>active</code> o <code>trial</code>.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <section id="configuracion" class="mb-16">
+                <h3 class="text-3xl font-bold mb-8">Configuración del Entorno Local</h3>
+                <div class="bg-gray-900 rounded-xl p-6 text-gray-300 font-mono text-sm shadow-2xl">
+                    <p class="text-blue-400 mb-2"># Paso 1: Levantar infraestructura</p>
+                    <p class="mb-4">docker-compose up --build -d</p>
+                    <p class="text-blue-400 mb-2"># Paso 2: Ejecutar migraciones de base de datos</p>
+                    <p class="mb-4">docker-compose exec auth-service alembic -c auth_service/alembic.ini upgrade head</p>
+                    <p class="text-blue-400 mb-2"># Paso 3: Provisionamiento IA (Tenant Admin)</p>
+                    <p>docker-compose exec auth-service python auth_service/app/provision_tenant.py</p>
+                </div>
+            </section>
+
+            <section id="herramientas" class="mb-16">
+                <h3 class="text-3xl font-bold mb-8">Stack Tecnológico</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
+                        <i class="fab fa-python text-3xl text-yellow-500 mb-2"></i>
+                        <p class="text-sm font-bold">FastAPI</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
+                        <i class="fas fa-database text-3xl text-blue-500 mb-2"></i>
+                        <p class="text-sm font-bold">PostgreSQL 15</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
+                        <i class="fab fa-docker text-3xl text-blue-400 mb-2"></i>
+                        <p class="text-sm font-bold">Docker & Compose</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
+                        <i class="fab fa-aws text-3xl text-orange-500 mb-2"></i>
+                        <p class="text-sm font-bold">AWS S3 (Ready)</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tesis" class="bg-yellow-50 border-2 border-yellow-200 p-8 rounded-2xl">
+                <h3 class="text-2xl font-bold text-yellow-800 mb-4">Resumen para Documentación de Tesis</h3>
+                <ul class="list-disc list-inside space-y-3 text-yellow-900 italic">
+                    <li>Implementación de <strong>Clean Architecture</strong> para separar dominio de infraestructura.</li>
+                    <li>Uso de <strong>Agnostic UUIDs</strong> para garantizar la portabilidad entre motores de base de datos.</li>
+                    <li>Automatización de DevOps mediante herramientas de <strong>Model Context Protocol (MCP)</strong>.</li>
+                    <li>Seguridad perimetral multi-tenant con validación de <strong>Claims de Suscripción</strong> en JWT.</li>
+                </ul>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="bg-white border-t py-6 text-center text-gray-400 text-xs">
+        &copy; 2026 InternoCore MES Project. Generado para documentación de Tesis de Ingeniería.
+    </footer>
+
+</body>
+</html>

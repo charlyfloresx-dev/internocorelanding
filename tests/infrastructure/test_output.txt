@@ -1,0 +1,85 @@
+﻿python : E
+At line:1 char:1
++ python 
+tests\infrastructure\test_reactive_ledger.py 2>&1 
+| Out-File - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo          : NotSpecified: (E:St 
+   ring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+==================================================
+====================
+ERROR: setUpClass (__main__.TestReactiveLedger)
+--------------------------------------------------
+--------------------
+Traceback (most recent call last):
+  File "C:\API\interno\tests\infrastructure\test_r
+eactive_ledger.py", line 23, in setUpClass
+    Base.metadata.create_all(cls.engine)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\schema.py", line 5928, in create_all
+    bind._run_ddl_visitor(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        ddl.SchemaGenerator, self, 
+checkfirst=checkfirst, tables=tables
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 3260, in _run_ddl_visitor
+    conn._run_ddl_visitor(visitorcallable, 
+element, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+engine\base.py", line 2467, in _run_ddl_visitor
+    ).traverse_single(element)
+      ~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\visitors.py", line 661, in traverse_single
+    return meth(obj, **kw)
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\ddl.py", line 962, in visit_metadata
+    collection = sort_tables_and_constraints(
+        [t for t in tables if 
+self._can_create_table(t)]
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\ddl.py", line 1394, in 
+sort_tables_and_constraints
+    dependent_on = fkc.referred_table
+                   ^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\schema.py", line 4799, in referred_table
+    return self.elements[0].column.table
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+util\langhelpers.py", line 1226, in __get__
+    obj.__dict__[self.__name__] = result = 
+self.fget(obj)
+                                           
+~~~~~~~~~^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\schema.py", line 3199, in column
+    return self._resolve_column()
+           ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy\
+sql\schema.py", line 3222, in _resolve_column
+    raise exc.NoReferencedTableError(
+    ...<5 lines>...
+    )
+sqlalchemy.exc.NoReferencedTableError: Foreign 
+key associated with column 
+'warehouses.company_id' could not find table 
+'companies' with which to generate a foreign key 
+to target column 'id'
+
+--------------------------------------------------
+--------------------
+Ran 0 tests in 0.025s
+
+FAILED (errors=1)

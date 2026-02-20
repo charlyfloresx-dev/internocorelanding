@@ -1,0 +1,57 @@
+
+<!-- FATAL ERROR OVERLAY -->
+@if (errorService.hasError()) {
+  <div class="fixed inset-0 z-[10000] bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+     <div class="w-full max-w-2xl bg-slate-900 border border-red-900/50 rounded-2xl shadow-2xl overflow-hidden relative">
+        
+        <!-- Header Error -->
+        <div class="p-8 pb-4">
+           <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20 mb-4">
+             <i class="fa-solid fa-bug text-3xl text-red-500"></i>
+           </div>
+           <h2 class="text-2xl font-bold text-white mb-2">Error de Ejecución Detectado</h2>
+           <p class="text-slate-400 text-sm mb-4">
+             Se ha interrumpido el proceso debido a un dato inválido en el almacenamiento.
+           </p>
+           <div class="font-mono text-red-400 text-xs bg-black/30 px-3 py-2 rounded mb-6 text-left break-all">
+             {{ errorService.errorMessage() || 'Error no especificado' }}
+           </div>
+        </div>
+
+        <!-- BITÁCORA DE DIAGNÓSTICO (El 'Log' solicitado) -->
+        <div class="bg-black/40 border-t border-slate-800 p-6 text-left">
+           <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+             <i class="fa-solid fa-terminal text-sky-500"></i> Bitácora de Recuperación
+           </h4>
+           <div class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+              @for (log of diagService.logs(); track log.timestamp) {
+                <div class="flex items-start gap-3 text-[11px] font-mono border-b border-slate-800/50 pb-2">
+                   <span class="text-slate-600 shrink-0">[{{ log.timestamp.split('T')[1].split('.')[0] }}]</span>
+                   <span class="text-sky-400 shrink-0">{{ log.action }}</span>
+                   <div class="flex-1">
+                      <span [class]="log.status === 'failed' ? 'text-red-500' : 'text-green-500'">
+                        {{ log.status === 'success' ? '✔' : log.status === 'failed' ? '✘' : '...' }}
+                      </span>
+                      <span class="text-slate-400 ml-2">{{ log.details }}</span>
+                   </div>
+                </div>
+              }
+           </div>
+        </div>
+
+        <div class="p-6 bg-slate-900/80">
+           <button (click)="errorService.reset()" 
+                   class="w-full py-4 px-6 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold shadow-lg shadow-red-900/30 transition-all active:scale-95 flex items-center justify-center gap-3">
+              <i class="fa-solid fa-broom"></i> Forzar Limpieza y Reiniciar
+           </button>
+           <p class="text-[10px] text-slate-600 mt-4 italic">Al hacer clic se eliminarán los datos corruptos detectados en el log.</p>
+        </div>
+     </div>
+  </div>
+}
+
+<!-- Global Toast Container -->
+<app-toast-container></app-toast-container>
+
+<!-- Root Router Outlet -->
+<router-outlet></router-outlet>

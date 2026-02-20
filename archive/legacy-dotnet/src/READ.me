@@ -1,0 +1,25 @@
+
+dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+
+dotnet add package Microsoft.VisualStudio.Web.CodeGeneration.Design
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet tool install --global dotnet-aspnet-codegenerator
+dotnet aspnet-codegenerator controller -name TodoItemsController -async -api -m TodoItem -dc TodoContext -outDir Controllers
+
+
+//dotnet add package Microsoft.AspNetCore.Mvc.DataAnnotations --version 2.2.0 -> Interno.Domain
+
+
+//dotnet add package Microsoft.EntityFrameworkCore --version 3.1.5 ->Interno.HumanResource
+//dotnet add package Pomelo.EntityFrameworkCore.MySql --version 3.1.1
+//dotnet add package Microsoft.AspNetCore.Mvc.NewtonsoftJson --version 3.1.5
+//dotnet add package ExcelDataReader --version 3.6.0
+//dotnet add package ExcelDataReader.DataSet --version 3.6.0
+
+//dotnet aspnet-codegenerator controller -name EmployeeController -api -m Employee -dc HRContext -outDir Controllers
+//dotnet aspnet-codegenerator controller -name WorkOrderController -api -m WorkOrder -outDir Controllers --dataContext ProductionContext
+
+
+<ItemGroup>
+    <ProjectReference Include="..\Interno.Domain\Interno.Domain.csproj" />
+</ItemGroup>

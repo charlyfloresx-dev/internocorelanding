@@ -1,0 +1,7 @@
+{
+  "name": "Interno Core MES",
+  "description": "Modular MES Platform featuring RBAC, Multi-tenant Context, and Standardized API Contracts.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

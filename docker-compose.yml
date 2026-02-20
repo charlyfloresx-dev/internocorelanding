@@ -1,0 +1,110 @@
+services:
+  # --- BASE DE DATOS ---
+  postgres-db:
+    image: postgres:15
+    container_name: interno-db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dbname
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    networks:
+      - interno-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d dbname" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- AUTH SERVICE (Identidad y Empresas) ---
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth_service/Dockerfile
+    container_name: auth-service-api
+    image: interno-backend-auth-service:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend/auth_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- MASTER DATA SERVICE (Catálogo y Productos) ---
+  master-data-service:
+    build:
+      context: ./backend
+      dockerfile: master_data_service/Dockerfile
+    container_name: master-data-service-api
+    image: interno-backend-master-data-service:latest
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./backend/master_data_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- WMS SERVICE (Inventario y Almacenes) ---  
+  wms-service:
+    build:
+      context: ./backend
+      dockerfile: wms_service/Dockerfile
+    container_name: wms-service-api
+    image: interno-backend-wms-service:latest
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./backend/wms_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- FRONTEND ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: interno-frontend
+    image: interno-frontend:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      auth-service:
+        condition: service_started
+      master-data-service:
+        condition: service_started
+      wms-service:
+        condition: service_started
+    networks:
+      - interno-network
+
+networks:
+  interno-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

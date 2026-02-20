@@ -1,0 +1,63 @@
+-- Verifica el Login
+$loginUrl = "http://localhost:8000/api/v1/auth/login"
+$body = @{
+    email    = "admin@interno.com"
+    password = "admin123456"
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-RestMethod -Uri $loginUrl -Method Post -Body $body -ContentType "application/json"
+    $data = $response.data
+
+    Write-Host "`n🔑 Selection Token Obtenido:" -ForegroundColor Green
+    Write-Host $data.selection_token -ForegroundColor Cyan
+    Write-Host "`n🏢 Resumen de Empresas y Permisos:" -ForegroundColor Yellow
+    
+    foreach ($co in $data.companies) {
+        $permisos = if ($co.role_names -contains "admin") { "TODO (Full Access)" } else { "Restringido (Inventory Only)" }
+        $estado = if ($co.is_new) { "⚠️ PENDIENTE DE CONFIGURACIÓN" } else { "✅ Activa" }
+        Write-Host "- $($co.company_name) -> $permisos | $estado"
+    }
+}
+catch {
+    Write-Host "❌ Error: No se pudo conectar con el contenedor auth-service-api" -ForegroundColor Red
+}
+
+
+-- Ver companies ID
+$loginUrl = "http://localhost:8000/api/v1/auth/login"
+$body = @{
+    email    = "admin@interno.com"
+    password = "admin123456"
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-RestMethod -Uri $loginUrl -Method Post -Body $body -ContentType "application/json"
+    
+    Write-Host "`n🏢 LISTADO DE EMPRESAS PARA PRUEBAS (IDs):" -ForegroundColor Yellow
+    Write-Host "--------------------------------------------------------------------------------"
+    
+    foreach ($co in $response.data.companies) {
+        Write-Host "Nombre: " -NoNewline; Write-Host "$($co.company_name)" -ForegroundColor White
+        Write-Host "ID:     " -NoNewline; Write-Host "$($co.company_id)" -ForegroundColor Cyan
+        Write-Host "Roles:  $($co.role_names -join ', ')"
+        Write-Host "--------------------------------------------------------------------------------"
+    }
+}
+catch {
+    Write-Host "❌ Error al conectar con el servicio local." -ForegroundColor Red
+}
+
+
+-- Valida la Empresas
+# Reemplaza el token y el ID de la empresa que quieras probar
+$selectionToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NDRjZDJlOC0xZjRkLTQ4MDQtYjRmOC1jMTRmNTJjMjcxYWMiLCJleHAiOjE3Njk3MTE5MzJ9.ZLaFOoMv9GIEwtHCztjwU0qqDH-30H6r56sKTxriIKo"
+$companyId = "edf5e9b7-cd1c-4c34-b760-4180db403ffe" # Por ejemplo, el de Interno Logistics
+
+$selectUrl = "http://localhost:8000/api/v1/auth/select-company"
+$headers = @{ "Authorization" = "Bearer $selectionToken" }
+$bodySelect = @{ company_id = $companyId } | ConvertTo-Json
+
+$finalResponse = Invoke-RestMethod -Uri $selectUrl -Method Post -Body $bodySelect -ContentType "application/json" -Headers $headers
+Write-Host "JWT Final de Sesión:" -ForegroundColor Green
+$finalResponse.data.access_token

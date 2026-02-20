@@ -1,0 +1,212 @@
+
+<div class="p-6 space-y-6 animate-fade-in-up pb-24 relative min-h-screen">
+  
+  <!-- KPI Cards Row -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    @for (kpi of dataService.kpis(); track kpi.label) {
+      <div class="bg-slate-800 rounded-xl p-5 shadow-lg border border-slate-700/50 relative overflow-hidden group hover:border-slate-600 transition-all duration-300">
+        
+        <div class="flex justify-between items-start">
+          <div class="flex flex-col gap-1">
+             <!-- Label -->
+             <span class="text-slate-400 font-semibold text-xs uppercase tracking-wider">{{ kpi.label }}</span>
+             
+             <!-- Value -->
+             <div class="text-3xl font-bold text-white tracking-tight mt-2">{{ kpi.value }}</div>
+             
+             <!-- Trend -->
+             <div [class]="'text-xs font-bold mt-2 ' + kpi.trendColor">
+                {{ kpi.trend }}
+             </div>
+          </div>
+
+          <!-- Icon Container (Right Side) -->
+          <div class="w-12 h-12 rounded-full flex items-center justify-center bg-slate-950 border border-slate-800 shadow-inner group-hover:scale-105 transition-transform duration-300">
+             <i [class]="kpi.icon + ' text-xl ' + kpi.iconColor"></i>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- NEW STRATEGIC CHARTS ROW -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <!-- Left: OEE Trend Chart -->
+    <div class="bg-slate-800 rounded-xl shadow-xl border border-slate-700 p-6 min-h-[350px]">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-arrow-trend-up text-sky-500"></i> Tendencia General OEE
+          </h3>
+          <p class="text-slate-400 text-xs mt-1">Eficiencia Global de los últimos 7 días</p>
+        </div>
+        
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-green-500 font-bold border border-green-500/30 px-2 py-0.5 rounded bg-green-500/10">Meta: 85%</span>
+        </div>
+      </div>
+      <app-trend-chart [data]="dataService.trendData()"></app-trend-chart>
+    </div>
+
+    <!-- Right: Downtime Pareto -->
+    <div class="bg-slate-800 rounded-xl shadow-xl border border-slate-700 p-6 min-h-[350px]">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-red-500"></i> Pareto de Recursos (Paros)
+          </h3>
+          <p class="text-slate-400 text-xs mt-1">Minutos de tiempo muerto acumulado por Línea/Máquina</p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+             <span class="w-3 h-3 bg-sky-500 rounded-sm"></span> Minutos
+          </div>
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+             <span class="w-3 h-0.5 bg-red-500"></span> % Acum
+          </div>
+        </div>
+      </div>
+      <app-pareto-chart [data]="dataService.paretoData()"></app-pareto-chart>
+    </div>
+
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    
+    <!-- Left: Hourly Chart -->
+    <div class="xl:col-span-2 bg-slate-800 rounded-xl shadow-xl border border-slate-700 p-6 min-h-[400px]">
+      <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white">Producción Hora por Hora</h3>
+          <p class="text-slate-400 text-xs mt-1">Desempeño del turno actual vs Meta</p>
+        </div>
+        
+        <!-- Custom Legend -->
+        <div class="flex items-center gap-3 hidden sm:flex">
+           <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase">
+             <span class="w-2.5 h-2.5 rounded-sm bg-green-500"></span> Real (OK)
+           </div>
+           <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase">
+             <span class="w-2.5 h-2.5 rounded-sm bg-yellow-500"></span> Real (Warn)
+           </div>
+           <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase">
+             <span class="w-2.5 h-2.5 rounded-sm bg-red-500"></span> Real (Crit)
+           </div>
+           <div class="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase">
+             <span class="w-3 h-0.5 bg-slate-400"></span> Meta
+           </div>
+        </div>
+      </div>
+      
+      <!-- D3 Chart Component -->
+      <app-hourly-chart [data]="dataService.hourlyProduction()"></app-hourly-chart>
+    </div>
+
+    <!-- Right: Active Orders List -->
+    <div class="bg-slate-800 rounded-xl shadow-xl border border-slate-700 p-6 flex flex-col h-full max-h-[500px] xl:max-h-none">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-700 pb-4">
+        <h3 class="text-lg font-bold text-white">Órdenes Activas</h3>
+      </div>
+
+      <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+        @for (order of dataService.activeOrders(); track order.id) {
+          <div class="p-4 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-slate-500 transition-colors group">
+            
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <div class="text-white font-bold text-sm group-hover:text-sky-400 transition-colors">{{ order.orderNumber }}</div>
+                <div class="text-xs text-slate-500">Línea: {{ order.lineId }} &bull; {{ order.sku }}</div>
+              </div>
+              <div [class]="'text-[10px] font-bold px-2 py-0.5 rounded border uppercase ' + getStatusClass(order.status)">
+                 {{ order.progress }}%
+              </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+              <div [class]="'h-full rounded-full ' + getProgressColor(order.status)" 
+                   [style.width.%]="order.progress"></div>
+            </div>
+
+            <div class="flex justify-between items-center mt-2">
+               <span class="text-[10px] text-slate-500 font-mono">{{ order.cost | currency }}</span>
+               <span [class]="'text-[10px] font-bold ' + getStatusTextClass(order.status)">
+                 {{ order.status }}
+               </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Table: Detailed View (Optional) -->
+  <div class="bg-slate-800 rounded-xl shadow-xl border border-slate-700 overflow-hidden">
+    <div class="p-5 border-b border-slate-700 flex items-center justify-between bg-slate-800">
+      <h3 class="text-lg font-bold text-white">Detalle de Órdenes</h3>
+      <div class="flex gap-2">
+        <button class="w-8 h-8 rounded bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-600 transition-colors"><i class="fa-solid fa-filter"></i></button>
+        <button class="w-8 h-8 rounded bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-600 transition-colors"><i class="fa-solid fa-download"></i></button>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="bg-slate-900/50 text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-700">
+          <tr>
+            <th class="px-6 py-3">Orden #</th>
+            <th class="px-6 py-3">Producto</th>
+            <th class="px-6 py-3">Cantidad</th>
+            <th class="px-6 py-3">Costo</th>
+            <th class="px-6 py-3">Progreso</th>
+            <th class="px-6 py-3">Entrega</th>
+            <th class="px-6 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700">
+          @for (order of dataService.activeOrders(); track order.id) {
+            <tr class="hover:bg-slate-700/50 transition-colors group">
+              <td class="px-6 py-4 font-mono font-bold text-white">{{ order.orderNumber }}</td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-500 font-bold text-xs">{{ order.lineId.substring(4) }}</div>
+                  <div>
+                    <div class="text-white font-medium">{{ order.productName }}</div>
+                    <div class="text-xs text-slate-500">SKU: {{ order.sku }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 font-mono">{{ order.quantityTarget | number }}</td>
+              <td class="px-6 py-4 font-mono text-slate-400">{{ order.cost | currency }}</td>
+              <td class="px-6 py-4">
+                 <div class="w-full max-w-[140px] flex items-center gap-2">
+                   <div class="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                     <div [class]="'h-full rounded-full ' + getProgressColor(order.status)" [style.width.%]="order.progress"></div>
+                   </div>
+                   <span class="text-[10px] font-bold text-slate-500">{{ order.progress }}%</span>
+                 </div>
+              </td>
+              <td class="px-6 py-4 text-slate-400">{{ order.dueDate | date:'shortDate' }}</td>
+              <td class="px-6 py-4 text-right">
+                <a href="#" class="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase hover:underline">Ver</a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FLOATING ACTION BUTTON FOR DOWNTIME -->
+  <button (click)="openDowntimeModal()"
+          class="fixed bottom-8 right-8 w-16 h-16 bg-red-600 hover:bg-red-500 rounded-full shadow-2xl shadow-red-900/50 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-300 group">
+    <i class="fa-solid fa-triangle-exclamation text-2xl animate-pulse"></i>
+  </button>
+</div>
+
+<!-- DOWNTIME MODAL -->
+@if (isDowntimeModalOpen()) {
+  <app-downtime-register-modal (close)="closeDowntimeModal()"></app-downtime-register-modal>
+}

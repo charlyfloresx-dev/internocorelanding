@@ -1,0 +1,206 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.11.7, pytest-7.4.0, pluggy-1.0.0
+rootdir: C:\API\interno
+plugins: anyio-4.2.0, cov-6.1.1
+collected 3 items
+
+tests\test_ledger_flow.py FFF                                            [100%]
+
+================================== FAILURES ===================================
+________________________ test_ledger_flow_confirmation ________________________
+
+session = <sqlalchemy.orm.session.Session object at 0x0000022D9C86F6D0>
+
+    def test_ledger_flow_confirmation(session):
+        """
+        Escenario A: Confirmaci≤n de Documento.
+        Verifica que el Snapshot se actualice con stock y CPP correcto.
+        """
+        company_id = "tenant-a"
+        # Setup Tenant & Warehouse
+        session.add(Company(id=company_id, name="Company A"))
+        wh = Warehouse(id="wh-a", company_id=company_id, code="WH-01", name="Main Warehouse")
+        session.add(wh)
+        session.flush()
+    
+        # Step 1: Create Document in DRAFT
+        doc = InventoryDocument(
+            id="doc-a", company_id=company_id, folio="ENT-001",
+            warehouse_id="wh-a", concept_id="concept-in", status=InventoryDocumentStatus.DRAFT
+        )
+        session.add(doc)
+    
+        # Step 2: Add Movements
+>       mov1 = InventoryMovement(
+            id="mov-1", company_id=company_id, document=doc,
+            product_id="prod-1", warehouse_id="wh-a", quantity=10.0, unit_cost=100.0
+        )
+
+tests\test_ledger_flow.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<string>:4: in __init__
+    ???
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:566: in _initialize_instance
+    with util.safe_reraise():
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:564: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <wms_service.app.models.inventory_movement.InventoryMovement object at 0x0000022D9C8EB550>
+kwargs = {'company_id': 'tenant-a', 'document': <wms_service.app.models.inventory_document.InventoryDocument object at 0x0000022D9C8EAD50>, 'id': 'mov-1', 'product_id': 'prod-1', ...}
+cls_ = <class 'wms_service.app.models.inventory_movement.InventoryMovement'>
+k = 'warehouse_id'
+
+    def _declarative_constructor(self: Any, **kwargs: Any) -> None:
+        """A simple constructor that allows initialization from kwargs.
+    
+        Sets attributes on the constructed instance using the names and
+        values in ``kwargs``.
+    
+        Only keys that are present as
+        attributes of the instance's class are allowed. These could be,
+        for example, any mapped columns or relationships.
+        """
+        cls_ = type(self)
+        for k in kwargs:
+            if not hasattr(cls_, k):
+>               raise TypeError(
+                    "%r is an invalid keyword argument for %s" % (k, cls_.__name__)
+                )
+E               TypeError: 'warehouse_id' is an invalid keyword argument for InventoryMovement
+
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\decl_base.py:2142: TypeError
+______________________ test_ledger_immutability_locking _______________________
+
+session = <sqlalchemy.orm.session.Session object at 0x0000022D9C96C310>
+
+    def test_ledger_immutability_locking(session):
+        """
+        Escenario B: Inmutabilidad.
+        Valida que no se puedan editar movimientos de documentos confirmados.
+        """
+        company_id = "tenant-imm"
+        session.add(Company(id=company_id, name="Company IMM"))
+        wh = Warehouse(id="wh-imm", company_id=company_id, code="WH-IMM", name="Imm Warehouse")
+        session.add(wh)
+    
+        doc = InventoryDocument(
+            id="doc-imm", company_id=company_id, folio="FIX-001",
+            warehouse_id="wh-imm", concept_id="concept-in", status=InventoryDocumentStatus.CONFIRMED
+        )
+>       mov = InventoryMovement(
+            id="mov-imm", company_id=company_id, document=doc,
+            product_id="prod-imm", warehouse_id="wh-imm", quantity=10.0, unit_cost=100.0
+        )
+
+tests\test_ledger_flow.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<string>:4: in __init__
+    ???
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:566: in _initialize_instance
+    with util.safe_reraise():
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:564: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <wms_service.app.models.inventory_movement.InventoryMovement object at 0x0000022D9C97C390>
+kwargs = {'company_id': 'tenant-imm', 'document': <wms_service.app.models.inventory_document.InventoryDocument object at 0x0000022D9C97C290>, 'id': 'mov-imm', 'product_id': 'prod-imm', ...}
+cls_ = <class 'wms_service.app.models.inventory_movement.InventoryMovement'>
+k = 'warehouse_id'
+
+    def _declarative_constructor(self: Any, **kwargs: Any) -> None:
+        """A simple constructor that allows initialization from kwargs.
+    
+        Sets attributes on the constructed instance using the names and
+        values in ``kwargs``.
+    
+        Only keys that are present as
+        attributes of the instance's class are allowed. These could be,
+        for example, any mapped columns or relationships.
+        """
+        cls_ = type(self)
+        for k in kwargs:
+            if not hasattr(cls_, k):
+>               raise TypeError(
+                    "%r is an invalid keyword argument for %s" % (k, cls_.__name__)
+                )
+E               TypeError: 'warehouse_id' is an invalid keyword argument for InventoryMovement
+
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\decl_base.py:2142: TypeError
+_____________________ test_ledger_multi_tenant_isolation ______________________
+
+session = <sqlalchemy.orm.session.Session object at 0x0000022D9C86F610>
+
+    def test_ledger_multi_tenant_isolation(session):
+        """
+        Escenario C: Aislamiento Multi-tenant.
+        Verifica que el stock de la Company_A sea invisible para Company_B.
+        """
+        # Company A Setup
+        id_a = "tenant-a-iso"
+        session.add(Company(id=id_a, name="Company A"))
+        wh_a = Warehouse(id="wh-a-iso", company_id=id_a, code="W01", name="Wh A")
+        session.add(wh_a)
+    
+        # Company B Setup
+        id_b = "tenant-b-iso"
+        session.add(Company(id=id_b, name="Company B"))
+        wh_b = Warehouse(id="wh-b-iso", company_id=id_b, code="W01", name="Wh B")
+        session.add(wh_b)
+        session.flush()
+    
+        # Document for Company A
+        doc_a = InventoryDocument(
+            id="doc-a-iso", company_id=id_a, folio="E1", warehouse_id="wh-a-iso",
+            concept_id="in", status=InventoryDocumentStatus.CONFIRMED
+        )
+>       mov_a = InventoryMovement(
+            company_id=id_a, document=doc_a, product_id="P1", warehouse_id="wh-a-iso",
+            quantity=50.0, unit_cost=10.0
+        )
+
+tests\test_ledger_flow.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<string>:4: in __init__
+    ???
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:566: in _initialize_instance
+    with util.safe_reraise():
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\state.py:564: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <wms_service.app.models.inventory_movement.InventoryMovement object at 0x0000022D9C96F150>
+kwargs = {'company_id': 'tenant-a-iso', 'document': <wms_service.app.models.inventory_document.InventoryDocument object at 0x0000022D9C86F150>, 'product_id': 'P1', 'quantity': 50.0, ...}
+cls_ = <class 'wms_service.app.models.inventory_movement.InventoryMovement'>
+k = 'warehouse_id'
+
+    def _declarative_constructor(self: Any, **kwargs: Any) -> None:
+        """A simple constructor that allows initialization from kwargs.
+    
+        Sets attributes on the constructed instance using the names and
+        values in ``kwargs``.
+    
+        Only keys that are present as
+        attributes of the instance's class are allowed. These could be,
+        for example, any mapped columns or relationships.
+        """
+        cls_ = type(self)
+        for k in kwargs:
+            if not hasattr(cls_, k):
+>               raise TypeError(
+                    "%r is an invalid keyword argument for %s" % (k, cls_.__name__)
+                )
+E               TypeError: 'warehouse_id' is an invalid keyword argument for InventoryMovement
+
+C:\Users\flore\anaconda3\Lib\site-packages\sqlalchemy\orm\decl_base.py:2142: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_ledger_flow.py::test_ledger_flow_confirmation - TypeError: ...
+FAILED tests/test_ledger_flow.py::test_ledger_immutability_locking - TypeErro...
+FAILED tests/test_ledger_flow.py::test_ledger_multi_tenant_isolation - TypeEr...
+============================== 3 failed in 0.64s ==============================

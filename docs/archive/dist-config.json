@@ -1,0 +1,23 @@
+{
+    "CallerReference": "internocore-v2",
+    "Aliases": { "Quantity": 0 },
+    "DefaultRootObject": "index.html",
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "S3-Origin",
+                "DomainName": "internocore-static-files-3709.s3.us-east-2.amazonaws.com",
+                "S3OriginConfig": { "OriginAccessIdentity": "" },
+                "OriginAccessControlId": "E2BIZMIE10VI63"
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "S3-Origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    },
+    "Comment": "Distribucion Segura InternoCore",
+    "Enabled": true
+}

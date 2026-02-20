@@ -1,0 +1,55 @@
+# Stage 1: Builder
+FROM python:3.11-slim-buster as builder
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalamos dependencias
+COPY auth_service/requirements.txt .
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# Stage 2: Runner
+FROM python:3.11-slim-buster as runner
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV FASTAPI_ENV production
+# IMPORTANTE: Definir el PYTHONPATH para que encuentre 'common' y 'app'
+ENV PYTHONPATH=/app
+
+WORKDIR /app
+
+RUN addgroup --system app && adduser --system --group app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- LA CLAVE ESTÁ AQUÍ ---
+# Copiamos las librerías Y los binarios (donde vive uvicorn)
+COPY --from=builder /usr/local/lib/python3.11/site-packages/ /usr/local/lib/python3.11/site-packages/
+COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+# Copiamos el código
+COPY auth_service/app ./app
+COPY auth_service/alembic ./alembic
+COPY auth_service/scripts ./scripts
+COPY common ./common
+# Copiamos el seed a la raíz de /app para que el script de PS lo encuentre
+COPY auth_service/seed_db.py ./seed_db.py
+
+RUN chown -R app:app /app
+USER app
+
+EXPOSE 8000
+
+# Usar python -m uvicorn es la forma más segura de evitar el error de PATH
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

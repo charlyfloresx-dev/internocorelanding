@@ -1,0 +1,105 @@
+version: '3.8'
+
+# =====================================================================
+# NOTA: Este archivo es para despliegues On-Premise o como base
+# para una orquestación más avanzada (ej. Kubernetes).
+# En un entorno Cloud real (AWS), los servicios como la base de
+# datos (RDS) y el almacenamiento (S3) serían externos.
+# =====================================================================
+
+services:
+  # ==================================
+  # Base de Datos (MySQL - Opción On-Premise por defecto)
+  # ==================================
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql_db_prod
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    networks:
+      - interno-net
+    restart: always
+
+  # ==================================
+  # Almacenamiento S3-Compatible (MinIO - On-Premise)
+  # ==================================
+  minio:
+    image: minio/minio:latest
+    container_name: minio_prod
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - minio_data_prod:/data
+    networks:
+      - interno-net
+    command: server /data --console-address ":9001"
+    restart: always
+
+  # ==================================
+  # Servicio de Autenticación
+  # ==================================
+  auth-service:
+    build:
+      context: ../backend
+      dockerfile: auth_service/Dockerfile.prod
+    container_name: auth_service_prod
+    env_file:
+      - ../.env
+    # En producción no se montan volúmenes de código.
+    # Los puertos no deberían exponerse directamente, sino a través
+    # de un reverse proxy (Nginx, Traefik) o un Load Balancer.
+    ports:
+      - "8001:8000"
+    depends_on:
+      - mysql-db # o postgres-db si se usa en la nube
+    networks:
+      - interno-net
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==================================
+  # Servicio de Almacén (Warehouse)
+  # ==================================
+  # warehouse-service:
+  #   build:
+  #     context: ../services/warehouse-service
+  #     dockerfile: ../docker/Dockerfile.base
+  #   container_name: warehouse_service_prod
+  #   env_file:
+  #     - ../.env
+  #   ports:
+  #     - "8002:8000"
+  #   depends_on:
+  #     - mysql-db
+  #     - auth-service
+  #   networks:
+  #     - interno-net
+  #   restart: always
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+# ==================================
+# Redes y Volúmenes
+# ==================================
+networks:
+  interno-net:
+    driver: bridge
+
+volumes:
+  mysql_data_prod:
+    driver: local
+  minio_data_prod:
+    driver: local

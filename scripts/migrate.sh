@@ -1,0 +1,1 @@
+# This file is deprecated. The scripts folder has been moved to backend/auth_service/scripts.

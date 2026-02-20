@@ -1,0 +1,22 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+
+# Base de Datos y Migraciones
+sqlalchemy
+asyncpg
+alembic
+
+# Validación y Configuración
+pydantic
+pydantic-settings
+python-dotenv
+
+# Autenticación y Seguridad
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Utilidades
+requests
+httpx

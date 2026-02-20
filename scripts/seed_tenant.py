@@ -1,0 +1,1 @@
+# This file is deprecated. Its functionality has been merged into scripts/seed_data.py, which is now located at backend/auth_service/scripts/seed_data.py.
