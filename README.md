@@ -5,7 +5,7 @@ Plataforma empresarial multi-módulo de última generación, diseñada con arqui
 ## 📡 Estatus del Sistema
 > **Estado Actual:** 🟢 **Interno Production Ready (Licensing & Auth)**
 > 
-> El **Motor de Licencias Dinámicas** (Subscription Service + Auth Handshake + Common Guards) está plenamente operativo en el entorno interno. Todos los servicios protegidos por el ADN `common` validan automáticamente derechos de acceso y restricciones de solo lectura.
+> El **Motor de Licencias Dinámicas** (Subscription Service + Auth Handshake + Common Guards) y el **Code Knowledge Graph** (v1.0) están ya operativos. El sistema posee ahora auto-conciencia de sus dependencias multitenant.
 
 ## 🏛️ Arquitectura
 InternoCore se rige por los principios de **Clean Architecture** y **CQRS**, asegurando un desacoplamiento total entre dominios.

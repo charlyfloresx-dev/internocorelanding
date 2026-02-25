@@ -22,6 +22,7 @@ Estos archivos representan la verdad actual del proyecto y deben ser consultados
 ### Archivos Históricos (`docs/archive/`)
 *   `Profile.txt`: Contexto de negocio original.
 *   `INTERNAL_CLEANUP_LOG.md`: Registro de limpieza y normalización.
+*   `code_graph.json`: Grafo de Conocimiento de Código (Phase 1).
 
 ---
 

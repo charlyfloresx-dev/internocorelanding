@@ -60,8 +60,9 @@ import { ConceptType, DocumentStatus } from '@models/api.types';
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/50 text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-700">
               <tr>
-                <th class="px-6 py-4">Folio / Fecha</th>
-                <th class="px-6 py-4">Concepto</th>
+                <th class="px-6 py-4">Folio (Comercial)</th>
+                <th class="px-6 py-4">Secuencia (Auditoría)</th>
+                <th class="px-6 py-4">Concepto / Fecha</th>
                 <th class="px-6 py-4">Almacén</th>
                 <th class="px-6 py-4">Socio Comercial</th>
                 <th class="px-6 py-4 text-right">Total</th>
@@ -76,19 +77,22 @@ import { ConceptType, DocumentStatus } from '@models/api.types';
               }
 
               @for (doc of filteredDocuments(); track doc.id) {
-                <tr class="hover:bg-slate-700/50 transition-colors group cursor-pointer">
+                <tr [routerLink]="['/inventory/documents', doc.id]" class="hover:bg-slate-700/50 transition-colors group cursor-pointer">
                   <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                      <span class="font-bold text-white text-base">{{ doc.folio }}</span>
-                      <span class="text-xs text-slate-500">{{ doc.deliveryDate | date:'shortDate' }}</span>
-                    </div>
+                    <span class="font-bold text-white text-base">{{ doc.folio }}</span>
+                  </td>
+                  <td class="px-6 py-4 text-slate-400 font-mono text-xs">
+                    #{{ doc.sequence_number | number:'3.0' }}
                   </td>
                   <td class="px-6 py-4">
                      <div class="flex items-center gap-2">
                        <div [class]="getConceptIconClass(doc.conceptType)" class="w-6 h-6 rounded flex items-center justify-center text-xs">
                           <i [class]="getConceptIcon(doc.conceptType)"></i>
                        </div>
-                       <span class="text-white">{{ doc.conceptName }}</span>
+                       <div class="flex flex-col">
+                         <span class="text-white font-medium">{{ doc.conceptName }}</span>
+                         <span class="text-[10px] text-slate-500">{{ doc.deliveryDate | date:'short' }}</span>
+                       </div>
                      </div>
                      @if (doc.reference) {
                        <div class="text-[10px] text-slate-500 mt-1">Ref: {{ doc.reference }}</div>
@@ -101,7 +105,7 @@ import { ConceptType, DocumentStatus } from '@models/api.types';
                     {{ doc.partnershipName || '-' }}
                   </td>
                   <td class="px-6 py-4 font-mono text-white text-right">
-                    {{ doc.total | currency }}
+                    {{ doc.total_amount | currency }}
                   </td>
                   <td class="px-6 py-4 text-center">
                     <span [class]="getStatusClass(doc.status)">{{ doc.status }}</span>
@@ -137,7 +141,7 @@ export class InventoryDocumentsListComponent implements OnInit {
   ngOnInit() {
     this.service.loadDocuments();
   }
-  
+
   setFilter(filter: 'all' | 'entry' | 'output'): void {
     this.filter.set(filter);
   }
@@ -147,13 +151,13 @@ export class InventoryDocumentsListComponent implements OnInit {
   }
 
   getConceptIconClass(type: ConceptType | undefined): string {
-    return type === ConceptType.Entry 
-      ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+    return type === ConceptType.Entry
+      ? 'bg-green-500/10 text-green-500 border border-green-500/20'
       : 'bg-red-500/10 text-red-500 border border-red-500/20';
   }
 
   getStatusClass(status: DocumentStatus): string {
-    switch(status) {
+    switch (status) {
       case DocumentStatus.Confirmed: return 'text-[10px] font-bold uppercase bg-green-500/10 text-green-500 px-2 py-1 rounded border border-green-500/20';
       case DocumentStatus.Draft: return 'text-[10px] font-bold uppercase bg-slate-500/10 text-slate-400 px-2 py-1 rounded border border-slate-500/20';
       case DocumentStatus.Canceled: return 'text-[10px] font-bold uppercase bg-red-500/10 text-red-500 px-2 py-1 rounded border border-red-500/20';

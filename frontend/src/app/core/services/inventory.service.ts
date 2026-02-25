@@ -2,7 +2,7 @@ import { Injectable, signal, inject, computed } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
 import { ApiSimulationService } from './api-simulation.service';
-import { InventoryItemDto, CreateInventoryItemCommand, AdjustStockCommand, Warehouse, ProductCategory, Partnership, Concept, CreateDocumentCommand } from '@models/api.types';
+import { InventoryItemDto, CreateInventoryItemCommand, AdjustStockCommand, Warehouse, ProductCategory, Partnership, Concept, CreateDocumentCommand, InventoryDocument } from '@models/api.types';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +13,8 @@ export class InventoryService {
 
   // State Signals
   items = signal<InventoryItemDto[]>([]);
-  documents = signal<any[]>([]);
+  documents = signal<InventoryDocument[]>([]);
+  currentDocument = signal<InventoryDocument | null>(null);
   warehouses = signal<Warehouse[]>([]);
   warehouseTypes = signal<any[]>([]);
   warehouseGroups = signal<any[]>([]);
@@ -21,6 +22,7 @@ export class InventoryService {
   partnerships = signal<Partnership[]>([]);
   concepts = signal<Concept[]>([]);
   loading = signal<boolean>(false);
+  folioPreview = signal<string>('');
 
   // Get current company ID from AuthService for multitenancy
   public activeCompanyId = computed(() => this.auth.activeCompanyId());
@@ -57,10 +59,33 @@ export class InventoryService {
     }
   }
 
+  async loadDocument(id: string) {
+    const currentCompanyId = this.activeCompanyId();
+    if (!currentCompanyId) return;
+    try {
+      // Simulation or real API
+      const res = await lastValueFrom(this.api.getDocument(currentCompanyId, id));
+      this.currentDocument.set(res.data);
+    } catch (error) {
+      console.error("Error loading document", error);
+    }
+  }
+
   // REPARACIÓN: Método que pide warehouse-list.component.ts
   async loadWarehouseCatalogs() {
     // Por ahora vacío para que compile el componente
     console.log('Cargando catálogos de almacén...');
+  }
+
+  async loadFolioPreview(conceptId: string) {
+    const currentCompanyId = this.activeCompanyId();
+    if (!currentCompanyId || !conceptId) return;
+    try {
+      const res = await lastValueFrom(this.api.getNextFolioPreview(currentCompanyId, conceptId));
+      this.folioPreview.set(res.data.nextFolio);
+    } catch (error) {
+      console.error("Error loading folio preview", error);
+    }
   }
 
   async loadCatalogs() {
@@ -68,26 +93,26 @@ export class InventoryService {
     if (!currentCompanyId) return;
 
     try {
-        const [whRes, catRes, partnerRes, conceptRes] = await Promise.all([
-            lastValueFrom(this.api.getWarehouses(currentCompanyId)),
-            lastValueFrom(this.api.getProductCategories()),
-            lastValueFrom(this.api.getPartnerships()),
-            lastValueFrom(this.api.getConcepts())
-        ]);
+      const [whRes, catRes, partnerRes, conceptRes] = await Promise.all([
+        lastValueFrom(this.api.getWarehouses(currentCompanyId)),
+        lastValueFrom(this.api.getProductCategories()),
+        lastValueFrom(this.api.getPartnerships()),
+        lastValueFrom(this.api.getConcepts())
+      ]);
 
-        this.warehouses.set(whRes.data);
-        this.categories.set(catRes.data);
-        this.partnerships.set(partnerRes.data);
-        this.concepts.set(conceptRes.data);
-    } catch(error) {
-        console.error("Failed to load catalogs", error);
+      this.warehouses.set(whRes.data);
+      this.categories.set(catRes.data);
+      this.partnerships.set(partnerRes.data);
+      this.concepts.set(conceptRes.data);
+    } catch (error) {
+      console.error("Failed to load catalogs", error);
     }
   }
 
   async createItem(cmd: CreateInventoryItemCommand): Promise<boolean> {
     const currentCompanyId = this.activeCompanyId();
     if (!currentCompanyId) return false;
-    
+
     try {
       const res = await lastValueFrom(this.api.createInventoryItem(currentCompanyId, cmd));
       this.items.update(current => [...current, res.data]);
@@ -103,8 +128,8 @@ export class InventoryService {
 
     try {
       await lastValueFrom(this.api.adjustStock(currentCompanyId, cmd));
-      this.items.update(items => items.map(item => 
-        item.id === cmd.itemId 
+      this.items.update(items => items.map(item =>
+        item.id === cmd.itemId
           ? { ...item, stockQuantity: item.stockQuantity + cmd.quantityChange }
           : item
       ));

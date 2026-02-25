@@ -6,7 +6,9 @@ class CreateInventoryDocumentCommand(BaseModel):
     folio: str
     warehouse_id: str
     concept_id: str
-    
+    target_company_id: Optional[str] = None
+    target_warehouse_id: Optional[str] = None
+
 class AddMovementCommand(BaseModel):
     document_id: str
     product_id: str

@@ -1,0 +1,3634 @@
+{
+    "nodes": [
+        {
+            "id": "backend\\auth_service\\responses.py:ApiResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "ApiResponse",
+                "file": "backend\\auth_service\\responses.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\auth_handler.py:AuthHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "AuthHandler",
+                "file": "backend\\auth_service\\app\\auth_handler.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\dependencies.py:MockSettings",
+            "type": "Generic",
+            "metadata": {
+                "name": "MockSettings",
+                "file": "backend\\auth_service\\app\\dependencies.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\dependencies.py:SecurityContext",
+            "type": "Generic",
+            "metadata": {
+                "name": "SecurityContext",
+                "file": "backend\\auth_service\\app\\dependencies.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\deps.py:TokenPayload",
+            "type": "Generic",
+            "metadata": {
+                "name": "TokenPayload",
+                "file": "backend\\auth_service\\app\\deps.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\deps.py:SecurityContext",
+            "type": "Generic",
+            "metadata": {
+                "name": "SecurityContext",
+                "file": "backend\\auth_service\\app\\deps.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\deps.py:SelectionTokenPayload",
+            "type": "Generic",
+            "metadata": {
+                "name": "SelectionTokenPayload",
+                "file": "backend\\auth_service\\app\\deps.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\commands\\complete_onboarding_command.py:CompleteOnboardingCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "CompleteOnboardingCommand",
+                "file": "backend\\auth_service\\app\\commands\\complete_onboarding_command.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "ICommand"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\commands\\complete_onboarding_command.py:CompleteOnboardingCommandHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "CompleteOnboardingCommandHandler",
+                "file": "backend\\auth_service\\app\\commands\\complete_onboarding_command.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\commands\\select_company_command.py:SelectCompanyCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "SelectCompanyCommand",
+                "file": "backend\\auth_service\\app\\commands\\select_company_command.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "ICommand"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\commands\\select_company_command.py:SelectCompanyCommandHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "SelectCompanyCommandHandler",
+                "file": "backend\\auth_service\\app\\commands\\select_company_command.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\core\\config.py:Settings",
+            "type": "Generic",
+            "metadata": {
+                "name": "Settings",
+                "file": "backend\\auth_service\\app\\core\\config.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseSettings"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\core\\config.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\auth_service\\app\\core\\config.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\core\\middleware.py:TenantSecurityMiddleware",
+            "type": "Generic",
+            "metadata": {
+                "name": "TenantSecurityMiddleware",
+                "file": "backend\\auth_service\\app\\core\\middleware.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseHTTPMiddleware"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\core\\middleware.py:BlacklistMiddleware",
+            "type": "Generic",
+            "metadata": {
+                "name": "BlacklistMiddleware",
+                "file": "backend\\auth_service\\app\\core\\middleware.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseHTTPMiddleware"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\infrastructure\\clients\\subscription_client.py:SubscriptionClient",
+            "type": "Generic",
+            "metadata": {
+                "name": "SubscriptionClient",
+                "file": "backend\\auth_service\\app\\infrastructure\\clients\\subscription_client.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\base.py:CustomBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "CustomBase",
+                "file": "backend\\auth_service\\app\\models\\base.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\base.py:Base",
+            "type": "Generic",
+            "metadata": {
+                "name": "Base",
+                "file": "backend\\auth_service\\app\\models\\base.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "DeclarativeBase",
+                    "CustomBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\company_stub.py:Company",
+            "type": "Generic",
+            "metadata": {
+                "name": "Company",
+                "file": "backend\\auth_service\\app\\models\\company_stub.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\permission.py:Permission",
+            "type": "Generic",
+            "metadata": {
+                "name": "Permission",
+                "file": "backend\\auth_service\\app\\models\\permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\role.py:Role",
+            "type": "Generic",
+            "metadata": {
+                "name": "Role",
+                "file": "backend\\auth_service\\app\\models\\role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\role_permission.py:RolePermission",
+            "type": "Generic",
+            "metadata": {
+                "name": "RolePermission",
+                "file": "backend\\auth_service\\app\\models\\role_permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\user.py:User",
+            "type": "Generic",
+            "metadata": {
+                "name": "User",
+                "file": "backend\\auth_service\\app\\models\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\models\\user_company_role.py:UserCompanyRole",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCompanyRole",
+                "file": "backend\\auth_service\\app\\models\\user_company_role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\queries\\login_query.py:LoginQuery",
+            "type": "Query",
+            "metadata": {
+                "name": "LoginQuery",
+                "file": "backend\\auth_service\\app\\queries\\login_query.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\queries\\login_query.py:LoginQueryHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "LoginQueryHandler",
+                "file": "backend\\auth_service\\app\\queries\\login_query.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\audited_schemas.py:CompanyAccess",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyAccess",
+                "file": "backend\\auth_service\\app\\schemas\\audited_schemas.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\audited_schemas.py:LoginResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "LoginResponse",
+                "file": "backend\\auth_service\\app\\schemas\\audited_schemas.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\audited_schemas.py:UserUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\audited_schemas.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\audited_schemas.py:TenantRegistration",
+            "type": "Generic",
+            "metadata": {
+                "name": "TenantRegistration",
+                "file": "backend\\auth_service\\app\\schemas\\audited_schemas.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\audited_schemas.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\auth_service\\app\\schemas\\audited_schemas.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:LoginRequest",
+            "type": "Generic",
+            "metadata": {
+                "name": "LoginRequest",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:SelectCompanyRequest",
+            "type": "Generic",
+            "metadata": {
+                "name": "SelectCompanyRequest",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:CompanySelection",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanySelection",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:LoginResponseData",
+            "type": "Generic",
+            "metadata": {
+                "name": "LoginResponseData",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:CompanyAccessDto",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyAccessDto",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:AccessTokenResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "AccessTokenResponse",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:Token",
+            "type": "Generic",
+            "metadata": {
+                "name": "Token",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\auth.py:TokenPayload",
+            "type": "Generic",
+            "metadata": {
+                "name": "TokenPayload",
+                "file": "backend\\auth_service\\app\\schemas\\auth.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\company.py:CompanyBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyBase",
+                "file": "backend\\auth_service\\app\\schemas\\company.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\company.py:CompanyCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyCreate",
+                "file": "backend\\auth_service\\app\\schemas\\company.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "CompanyBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\company.py:CompanyUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\company.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "CompanyBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\company.py:CompanyResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyResponse",
+                "file": "backend\\auth_service\\app\\schemas\\company.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "CompanyBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\permission.py:PermissionBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "PermissionBase",
+                "file": "backend\\auth_service\\app\\schemas\\permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\permission.py:PermissionCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "PermissionCreate",
+                "file": "backend\\auth_service\\app\\schemas\\permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "PermissionBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\permission.py:PermissionResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "PermissionResponse",
+                "file": "backend\\auth_service\\app\\schemas\\permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "PermissionBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\permission.py:PermissionUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "PermissionUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\permission.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "PermissionBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\role.py:RoleBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "RoleBase",
+                "file": "backend\\auth_service\\app\\schemas\\role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\role.py:RoleCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "RoleCreate",
+                "file": "backend\\auth_service\\app\\schemas\\role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "RoleBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\role.py:RoleResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "RoleResponse",
+                "file": "backend\\auth_service\\app\\schemas\\role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "RoleBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\role.py:RoleUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "RoleUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "RoleBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\token_schema.py:CompanyAccessDto",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyAccessDto",
+                "file": "backend\\auth_service\\app\\schemas\\token_schema.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\token_schema.py:LoginResponseData",
+            "type": "Generic",
+            "metadata": {
+                "name": "LoginResponseData",
+                "file": "backend\\auth_service\\app\\schemas\\token_schema.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user.py:UserBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserBase",
+                "file": "backend\\auth_service\\app\\schemas\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user.py:UserCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCreate",
+                "file": "backend\\auth_service\\app\\schemas\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "UserBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user.py:UserUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user.py:UserResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserResponse",
+                "file": "backend\\auth_service\\app\\schemas\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "UserBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user.py:UserMeResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserMeResponse",
+                "file": "backend\\auth_service\\app\\schemas\\user.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user_company_role.py:UserCompanyRoleBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCompanyRoleBase",
+                "file": "backend\\auth_service\\app\\schemas\\user_company_role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user_company_role.py:UserCompanyRoleCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCompanyRoleCreate",
+                "file": "backend\\auth_service\\app\\schemas\\user_company_role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "UserCompanyRoleBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user_company_role.py:UserCompanyRoleResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCompanyRoleResponse",
+                "file": "backend\\auth_service\\app\\schemas\\user_company_role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "UserCompanyRoleBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\schemas\\user_company_role.py:UserCompanyRoleUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserCompanyRoleUpdate",
+                "file": "backend\\auth_service\\app\\schemas\\user_company_role.py",
+                "microservice": "auth_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\app\\services\\auth_service.py:AuthService",
+            "type": "Generic",
+            "metadata": {
+                "name": "AuthService",
+                "file": "backend\\auth_service\\app\\services\\auth_service.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\auth_service\\tests\\conftest.py:RedisMock",
+            "type": "Generic",
+            "metadata": {
+                "name": "RedisMock",
+                "file": "backend\\auth_service\\tests\\conftest.py",
+                "microservice": "auth_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\abstractions.py:IDomainEvent",
+            "type": "Generic",
+            "metadata": {
+                "name": "IDomainEvent",
+                "file": "backend\\common\\abstractions.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\abstractions.py:Entity",
+            "type": "Generic",
+            "metadata": {
+                "name": "Entity",
+                "file": "backend\\common\\abstractions.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\abstractions.py:IAggregateRoot",
+            "type": "Generic",
+            "metadata": {
+                "name": "IAggregateRoot",
+                "file": "backend\\common\\abstractions.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\abstractions.py:AuditableEntity",
+            "type": "Generic",
+            "metadata": {
+                "name": "AuditableEntity",
+                "file": "backend\\common\\abstractions.py",
+                "microservice": "common",
+                "bases": [
+                    "Entity"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\cqrs.py:ICommand",
+            "type": "Command",
+            "metadata": {
+                "name": "ICommand",
+                "file": "backend\\common\\cqrs.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\cqrs.py:IQuery",
+            "type": "Query",
+            "metadata": {
+                "name": "IQuery",
+                "file": "backend\\common\\cqrs.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\cqrs.py:ICommandHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "ICommandHandler",
+                "file": "backend\\common\\cqrs.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\cqrs.py:IQueryHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "IQueryHandler",
+                "file": "backend\\common\\cqrs.py",
+                "microservice": "common",
+                "bases": [
+                    "ABC"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:UserStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserStatus",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:CompanyStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyStatus",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:ProductStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductStatus",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:VersionStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "VersionStatus",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:ProductType",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductType",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:CurrencyType",
+            "type": "Generic",
+            "metadata": {
+                "name": "CurrencyType",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:AddressType",
+            "type": "Generic",
+            "metadata": {
+                "name": "AddressType",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:PriorityLevel",
+            "type": "Generic",
+            "metadata": {
+                "name": "PriorityLevel",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\enums.py:StatusType",
+            "type": "Generic",
+            "metadata": {
+                "name": "StatusType",
+                "file": "backend\\common\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:DomainException",
+            "type": "Generic",
+            "metadata": {
+                "name": "DomainException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "Exception"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:NotFoundException",
+            "type": "Generic",
+            "metadata": {
+                "name": "NotFoundException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "DomainException"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:UnauthorizedException",
+            "type": "Generic",
+            "metadata": {
+                "name": "UnauthorizedException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "DomainException"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "Generic",
+            "metadata": {
+                "name": "BusinessRuleException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "DomainException"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:ValidationException",
+            "type": "Generic",
+            "metadata": {
+                "name": "ValidationException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "DomainException"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\exceptions.py:ConflictException",
+            "type": "Generic",
+            "metadata": {
+                "name": "ConflictException",
+                "file": "backend\\common\\exceptions.py",
+                "microservice": "common",
+                "bases": [
+                    "DomainException"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\messaging.py:EventPublisher",
+            "type": "Generic",
+            "metadata": {
+                "name": "EventPublisher",
+                "file": "backend\\common\\messaging.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\middleware.py:InternoCoreGlobalMiddleware",
+            "type": "Generic",
+            "metadata": {
+                "name": "InternoCoreGlobalMiddleware",
+                "file": "backend\\common\\middleware.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseHTTPMiddleware"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\mixins.py:MoneyMixin",
+            "type": "Generic",
+            "metadata": {
+                "name": "MoneyMixin",
+                "file": "backend\\common\\mixins.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\mixins.py:AddressMixin",
+            "type": "Generic",
+            "metadata": {
+                "name": "AddressMixin",
+                "file": "backend\\common\\mixins.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\repository.py:BaseRepository",
+            "type": "Generic",
+            "metadata": {
+                "name": "BaseRepository",
+                "file": "backend\\common\\repository.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\responses.py:ApiMeta",
+            "type": "Generic",
+            "metadata": {
+                "name": "ApiMeta",
+                "file": "backend\\common\\responses.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\responses.py:ApiResponse",
+            "type": "Generic",
+            "metadata": {
+                "name": "ApiResponse",
+                "file": "backend\\common\\responses.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\value_objects.py:Money",
+            "type": "Generic",
+            "metadata": {
+                "name": "Money",
+                "file": "backend\\common\\value_objects.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\value_objects.py:UOM",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOM",
+                "file": "backend\\common\\value_objects.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\entities.py:Base",
+            "type": "Generic",
+            "metadata": {
+                "name": "Base",
+                "file": "backend\\common\\domain\\entities.py",
+                "microservice": "common",
+                "bases": [
+                    "DeclarativeBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\entities.py:BaseDomainEntity",
+            "type": "Generic",
+            "metadata": {
+                "name": "BaseDomainEntity",
+                "file": "backend\\common\\domain\\entities.py",
+                "microservice": "common",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\entities.py:AuditBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "AuditBase",
+                "file": "backend\\common\\domain\\entities.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseDomainEntity"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\entities.py:MultiTenantBase",
+            "type": "Entity",
+            "metadata": {
+                "name": "MultiTenantBase",
+                "file": "backend\\common\\domain\\entities.py",
+                "microservice": "common",
+                "bases": [
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:UserStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserStatus",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:CompanyStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "CompanyStatus",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:ProductStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductStatus",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:VersionStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "VersionStatus",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:ProductType",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductType",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:CurrencyType",
+            "type": "Generic",
+            "metadata": {
+                "name": "CurrencyType",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:AddressType",
+            "type": "Generic",
+            "metadata": {
+                "name": "AddressType",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:PriorityLevel",
+            "type": "Generic",
+            "metadata": {
+                "name": "PriorityLevel",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\enums.py:StatusType",
+            "type": "Generic",
+            "metadata": {
+                "name": "StatusType",
+                "file": "backend\\common\\domain\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\value_objects.py:Money",
+            "type": "Generic",
+            "metadata": {
+                "name": "Money",
+                "file": "backend\\common\\domain\\value_objects.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\value_objects.py:UOM",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOM",
+                "file": "backend\\common\\domain\\value_objects.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\domain\\value_objects.py:Address",
+            "type": "Generic",
+            "metadata": {
+                "name": "Address",
+                "file": "backend\\common\\domain\\value_objects.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\audit_log.py:AuditLog",
+            "type": "Generic",
+            "metadata": {
+                "name": "AuditLog",
+                "file": "backend\\common\\models\\audit_log.py",
+                "microservice": "common",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\base.py:BaseRepository",
+            "type": "Generic",
+            "metadata": {
+                "name": "BaseRepository",
+                "file": "backend\\common\\models\\base.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\company.py:Company",
+            "type": "Entity",
+            "metadata": {
+                "name": "Company",
+                "file": "backend\\common\\models\\company.py",
+                "microservice": "common",
+                "bases": [
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\enums.py:ProductStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductStatus",
+                "file": "backend\\common\\models\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "IntEnum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\enums.py:VersionStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "VersionStatus",
+                "file": "backend\\common\\models\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "IntEnum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\enums.py:ProductType",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductType",
+                "file": "backend\\common\\models\\enums.py",
+                "microservice": "common",
+                "bases": [
+                    "IntEnum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\models\\user_context.py:UserContext",
+            "type": "Generic",
+            "metadata": {
+                "name": "UserContext",
+                "file": "backend\\common\\models\\user_context.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\security\\auth_payload.py:TokenPayload",
+            "type": "Generic",
+            "metadata": {
+                "name": "TokenPayload",
+                "file": "backend\\common\\security\\auth_payload.py",
+                "microservice": "common",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\common\\security\\subscription_guard.py:SubscriptionGuard",
+            "type": "Generic",
+            "metadata": {
+                "name": "SubscriptionGuard",
+                "file": "backend\\common\\security\\subscription_guard.py",
+                "microservice": "common",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\api\\v1\\endpoints\\enums.py:EnumItem",
+            "type": "Generic",
+            "metadata": {
+                "name": "EnumItem",
+                "file": "backend\\master_data_service\\app\\api\\v1\\endpoints\\enums.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\category.py:ProductCategory",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductCategory",
+                "file": "backend\\master_data_service\\app\\models\\category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\product.py:Product",
+            "type": "Entity",
+            "metadata": {
+                "name": "Product",
+                "file": "backend\\master_data_service\\app\\models\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\product.py:ProductVersion",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductVersion",
+                "file": "backend\\master_data_service\\app\\models\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\product_brand.py:ProductBrand",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductBrand",
+                "file": "backend\\master_data_service\\app\\models\\product_brand.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\product_category.py:ProductCategory",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductCategory",
+                "file": "backend\\master_data_service\\app\\models\\product_category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\models\\uom.py:UOM",
+            "type": "Entity",
+            "metadata": {
+                "name": "UOM",
+                "file": "backend\\master_data_service\\app\\models\\uom.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product.py:ProductBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductBase",
+                "file": "backend\\master_data_service\\app\\schemas\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product.py:ProductCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductCreate",
+                "file": "backend\\master_data_service\\app\\schemas\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "ProductBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product.py:ProductRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductRead",
+                "file": "backend\\master_data_service\\app\\schemas\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "ProductBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product.py:ProductReadWithVersions",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductReadWithVersions",
+                "file": "backend\\master_data_service\\app\\schemas\\product.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "ProductRead"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\master_data_service\\app\\schemas\\product.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "BrandBase",
+                "file": "backend\\master_data_service\\app\\schemas\\product_brand.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "BrandCreate",
+                "file": "backend\\master_data_service\\app\\schemas\\product_brand.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BrandBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "BrandUpdate",
+                "file": "backend\\master_data_service\\app\\schemas\\product_brand.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BrandBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "BrandRead",
+                "file": "backend\\master_data_service\\app\\schemas\\product_brand.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BrandBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "CategoryBase",
+                "file": "backend\\master_data_service\\app\\schemas\\product_category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "CategoryCreate",
+                "file": "backend\\master_data_service\\app\\schemas\\product_category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "CategoryBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "CategoryUpdate",
+                "file": "backend\\master_data_service\\app\\schemas\\product_category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "CategoryBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "CategoryRead",
+                "file": "backend\\master_data_service\\app\\schemas\\product_category.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "CategoryBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\uom.py:UOMBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOMBase",
+                "file": "backend\\master_data_service\\app\\schemas\\uom.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\uom.py:UOMCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOMCreate",
+                "file": "backend\\master_data_service\\app\\schemas\\uom.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "UOMBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\uom.py:UOMUpdate",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOMUpdate",
+                "file": "backend\\master_data_service\\app\\schemas\\uom.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "UOMBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\schemas\\uom.py:UOMRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOMRead",
+                "file": "backend\\master_data_service\\app\\schemas\\uom.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "UOMBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\services\\product_brand_service.py:ProductBrandService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductBrandService",
+                "file": "backend\\master_data_service\\app\\services\\product_brand_service.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\services\\product_category_service.py:ProductCategoryService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductCategoryService",
+                "file": "backend\\master_data_service\\app\\services\\product_category_service.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductService",
+                "file": "backend\\master_data_service\\app\\services\\product_service.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\services\\sync_service.py:SyncService",
+            "type": "Generic",
+            "metadata": {
+                "name": "SyncService",
+                "file": "backend\\master_data_service\\app\\services\\sync_service.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\app\\services\\uom_service.py:UOMService",
+            "type": "Generic",
+            "metadata": {
+                "name": "UOMService",
+                "file": "backend\\master_data_service\\app\\services\\uom_service.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\scripts\\test_cqrs_filter.py:MockProduct",
+            "type": "Generic",
+            "metadata": {
+                "name": "MockProduct",
+                "file": "backend\\master_data_service\\scripts\\test_cqrs_filter.py",
+                "microservice": "master_data_service",
+                "bases": [
+                    "Base"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\scripts\\test_cqrs_filter.py:MockDbSession",
+            "type": "Generic",
+            "metadata": {
+                "name": "MockDbSession",
+                "file": "backend\\master_data_service\\scripts\\test_cqrs_filter.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\scripts\\test_cqrs_filter.py:MockResult",
+            "type": "Generic",
+            "metadata": {
+                "name": "MockResult",
+                "file": "backend\\master_data_service\\scripts\\test_cqrs_filter.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\master_data_service\\tests\\debug_pytest.py:TracebackPlugin",
+            "type": "Generic",
+            "metadata": {
+                "name": "TracebackPlugin",
+                "file": "backend\\master_data_service\\tests\\debug_pytest.py",
+                "microservice": "master_data_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py:DowntimeRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "DowntimeRead",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py:DowntimeAdminClose",
+            "type": "Generic",
+            "metadata": {
+                "name": "DowntimeAdminClose",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\downtime.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py:LaborRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "LaborRead",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py:LaborClockIn",
+            "type": "Generic",
+            "metadata": {
+                "name": "LaborClockIn",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py:LaborClockOut",
+            "type": "Generic",
+            "metadata": {
+                "name": "LaborClockOut",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\labor.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\scan.py:ScanRequest",
+            "type": "Generic",
+            "metadata": {
+                "name": "ScanRequest",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\scan.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\sync.py:SyncEntry",
+            "type": "Generic",
+            "metadata": {
+                "name": "SyncEntry",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\sync.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\sync.py:SyncRequest",
+            "type": "Generic",
+            "metadata": {
+                "name": "SyncRequest",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\sync.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py:WorkOrderRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "WorkOrderRead",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py:WorkOrderCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "WorkOrderCreate",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\mes_service\\app\\api\\v1\\endpoints\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\core\\config.py:Settings",
+            "type": "Generic",
+            "metadata": {
+                "name": "Settings",
+                "file": "backend\\mes_service\\app\\core\\config.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "BaseSettings"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\infrastructure\\wms_client.py:WMSClient",
+            "type": "Generic",
+            "metadata": {
+                "name": "WMSClient",
+                "file": "backend\\mes_service\\app\\infrastructure\\wms_client.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\downtime.py:DowntimeReason",
+            "type": "Entity",
+            "metadata": {
+                "name": "DowntimeReason",
+                "file": "backend\\mes_service\\app\\models\\downtime.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\downtime.py:Downtime",
+            "type": "Entity",
+            "metadata": {
+                "name": "Downtime",
+                "file": "backend\\mes_service\\app\\models\\downtime.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\kpi.py:Goal",
+            "type": "Entity",
+            "metadata": {
+                "name": "Goal",
+                "file": "backend\\mes_service\\app\\models\\kpi.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\kpi.py:HourByHour",
+            "type": "Entity",
+            "metadata": {
+                "name": "HourByHour",
+                "file": "backend\\mes_service\\app\\models\\kpi.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\labor.py:LaborType",
+            "type": "Entity",
+            "metadata": {
+                "name": "LaborType",
+                "file": "backend\\mes_service\\app\\models\\labor.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\labor.py:Labor",
+            "type": "Entity",
+            "metadata": {
+                "name": "Labor",
+                "file": "backend\\mes_service\\app\\models\\labor.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\ledger.py:ManufacturingLedger",
+            "type": "Entity",
+            "metadata": {
+                "name": "ManufacturingLedger",
+                "file": "backend\\mes_service\\app\\models\\ledger.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\ledger.py:Tracking",
+            "type": "Entity",
+            "metadata": {
+                "name": "Tracking",
+                "file": "backend\\mes_service\\app\\models\\ledger.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\resource.py:Facility",
+            "type": "Entity",
+            "metadata": {
+                "name": "Facility",
+                "file": "backend\\mes_service\\app\\models\\resource.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\resource.py:ProductionArea",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductionArea",
+                "file": "backend\\mes_service\\app\\models\\resource.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\resource.py:Resource",
+            "type": "Entity",
+            "metadata": {
+                "name": "Resource",
+                "file": "backend\\mes_service\\app\\models\\resource.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\resource.py:ResourceResult",
+            "type": "Entity",
+            "metadata": {
+                "name": "ResourceResult",
+                "file": "backend\\mes_service\\app\\models\\resource.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\shift.py:Shift",
+            "type": "Entity",
+            "metadata": {
+                "name": "Shift",
+                "file": "backend\\mes_service\\app\\models\\shift.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\work_order.py:Rout",
+            "type": "Entity",
+            "metadata": {
+                "name": "Rout",
+                "file": "backend\\mes_service\\app\\models\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\work_order.py:OperationTime",
+            "type": "Entity",
+            "metadata": {
+                "name": "OperationTime",
+                "file": "backend\\mes_service\\app\\models\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\models\\work_order.py:WorkOrder",
+            "type": "Entity",
+            "metadata": {
+                "name": "WorkOrder",
+                "file": "backend\\mes_service\\app\\models\\work_order.py",
+                "microservice": "mes_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\services\\event_publisher.py:EventPublisher",
+            "type": "Generic",
+            "metadata": {
+                "name": "EventPublisher",
+                "file": "backend\\mes_service\\app\\services\\event_publisher.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "type": "Generic",
+            "metadata": {
+                "name": "KPIService",
+                "file": "backend\\mes_service\\app\\services\\kpi_service.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\services\\parser_service.py:ParserService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ParserService",
+                "file": "backend\\mes_service\\app\\services\\parser_service.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ScannerService",
+                "file": "backend\\mes_service\\app\\services\\scanner_service.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\mes_service\\app\\services\\shift_service.py:ShiftService",
+            "type": "Generic",
+            "metadata": {
+                "name": "ShiftService",
+                "file": "backend\\mes_service\\app\\services\\shift_service.py",
+                "microservice": "mes_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\scripts\\generate_code_graph.py:CodeGraphGenerator",
+            "type": "Generic",
+            "metadata": {
+                "name": "CodeGraphGenerator",
+                "file": "backend\\scripts\\generate_code_graph.py",
+                "microservice": "scripts",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\core\\config.py:Settings",
+            "type": "Generic",
+            "metadata": {
+                "name": "Settings",
+                "file": "backend\\subscription_service\\app\\core\\config.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "BaseSettings"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\core\\config.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\subscription_service\\app\\core\\config.py",
+                "microservice": "subscription_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\core\\enums.py:SubscriptionStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "SubscriptionStatus",
+                "file": "backend\\subscription_service\\app\\core\\enums.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\core\\enums.py:ModuleCode",
+            "type": "Generic",
+            "metadata": {
+                "name": "ModuleCode",
+                "file": "backend\\subscription_service\\app\\core\\enums.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "str",
+                    "Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\models\\subscription.py:Module",
+            "type": "Entity",
+            "metadata": {
+                "name": "Module",
+                "file": "backend\\subscription_service\\app\\models\\subscription.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\models\\subscription.py:Plan",
+            "type": "Entity",
+            "metadata": {
+                "name": "Plan",
+                "file": "backend\\subscription_service\\app\\models\\subscription.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\models\\subscription.py:Subscription",
+            "type": "Entity",
+            "metadata": {
+                "name": "Subscription",
+                "file": "backend\\subscription_service\\app\\models\\subscription.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\models\\subscription.py:Entitlement",
+            "type": "Entity",
+            "metadata": {
+                "name": "Entitlement",
+                "file": "backend\\subscription_service\\app\\models\\subscription.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\models\\subscription.py:AuditSubscriptionLog",
+            "type": "Entity",
+            "metadata": {
+                "name": "AuditSubscriptionLog",
+                "file": "backend\\subscription_service\\app\\models\\subscription.py",
+                "microservice": "subscription_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\services\\audit.py:AuditService",
+            "type": "Generic",
+            "metadata": {
+                "name": "AuditService",
+                "file": "backend\\subscription_service\\app\\services\\audit.py",
+                "microservice": "subscription_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "StartTrialCommand",
+                "file": "backend\\subscription_service\\app\\services\\commands.py",
+                "microservice": "subscription_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\services\\license.py:LicenseService",
+            "type": "Generic",
+            "metadata": {
+                "name": "LicenseService",
+                "file": "backend\\subscription_service\\app\\services\\license.py",
+                "microservice": "subscription_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\subscription_service\\app\\services\\queries.py:GetEntitlementsQuery",
+            "type": "Query",
+            "metadata": {
+                "name": "GetEntitlementsQuery",
+                "file": "backend\\subscription_service\\app\\services\\queries.py",
+                "microservice": "subscription_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\tests\\test_common.py:TempModel",
+            "type": "Entity",
+            "metadata": {
+                "name": "TempModel",
+                "file": "backend\\tests\\test_common.py",
+                "microservice": "tests",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryMovementBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementBase",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryMovementCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementCreate",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryMovementBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryMovementRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementRead",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryMovementBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryDocumentBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentBase",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryDocumentCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentCreate",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryDocumentBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:InventoryDocumentRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentRead",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryDocumentBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\schemas.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\wms_service\\schemas.py",
+                "microservice": "wms_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\commands.py:CreateInventoryDocumentCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "CreateInventoryDocumentCommand",
+                "file": "backend\\wms_service\\app\\application\\commands.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\commands.py:AddMovementCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "AddMovementCommand",
+                "file": "backend\\wms_service\\app\\application\\commands.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\commands.py:ConfirmDocumentCommand",
+            "type": "Command",
+            "metadata": {
+                "name": "ConfirmDocumentCommand",
+                "file": "backend\\wms_service\\app\\application\\commands.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\handlers.py:BaseHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "BaseHandler",
+                "file": "backend\\wms_service\\app\\application\\handlers.py",
+                "microservice": "wms_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\handlers.py:CreateInventoryDocumentHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "CreateInventoryDocumentHandler",
+                "file": "backend\\wms_service\\app\\application\\handlers.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseHandler"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\handlers.py:AddMovementHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "AddMovementHandler",
+                "file": "backend\\wms_service\\app\\application\\handlers.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseHandler"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\application\\handlers.py:ConfirmDocumentHandler",
+            "type": "Handler",
+            "metadata": {
+                "name": "ConfirmDocumentHandler",
+                "file": "backend\\wms_service\\app\\application\\handlers.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseHandler"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\core\\config.py:Settings",
+            "type": "Generic",
+            "metadata": {
+                "name": "Settings",
+                "file": "backend\\wms_service\\app\\core\\config.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseSettings"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\core\\logging_config.py:JsonFormatter",
+            "type": "Generic",
+            "metadata": {
+                "name": "JsonFormatter",
+                "file": "backend\\wms_service\\app\\core\\logging_config.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "logging.Formatter"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\concept.py:ConceptType",
+            "type": "Generic",
+            "metadata": {
+                "name": "ConceptType",
+                "file": "backend\\wms_service\\app\\models\\concept.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "str",
+                    "enum.Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\concept.py:Concept",
+            "type": "Entity",
+            "metadata": {
+                "name": "Concept",
+                "file": "backend\\wms_service\\app\\models\\concept.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\document_series.py:DocumentSeries",
+            "type": "Entity",
+            "metadata": {
+                "name": "DocumentSeries",
+                "file": "backend\\wms_service\\app\\models\\document_series.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\inventory_document.py:DocumentStatus",
+            "type": "Generic",
+            "metadata": {
+                "name": "DocumentStatus",
+                "file": "backend\\wms_service\\app\\models\\inventory_document.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "str",
+                    "enum.Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\inventory_document.py:InventoryDocument",
+            "type": "Entity",
+            "metadata": {
+                "name": "InventoryDocument",
+                "file": "backend\\wms_service\\app\\models\\inventory_document.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\inventory_movement.py:InventoryMovement",
+            "type": "Entity",
+            "metadata": {
+                "name": "InventoryMovement",
+                "file": "backend\\wms_service\\app\\models\\inventory_movement.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\inventory_snapshot.py:InventorySnapshot",
+            "type": "Entity",
+            "metadata": {
+                "name": "InventorySnapshot",
+                "file": "backend\\wms_service\\app\\models\\inventory_snapshot.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\item.py:Item",
+            "type": "Entity",
+            "metadata": {
+                "name": "Item",
+                "file": "backend\\wms_service\\app\\models\\item.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\product.py:Product",
+            "type": "Entity",
+            "metadata": {
+                "name": "Product",
+                "file": "backend\\wms_service\\app\\models\\product.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\product_price.py:PriceType",
+            "type": "Generic",
+            "metadata": {
+                "name": "PriceType",
+                "file": "backend\\wms_service\\app\\models\\product_price.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "str",
+                    "enum.Enum"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\product_price.py:ProductPrice",
+            "type": "Entity",
+            "metadata": {
+                "name": "ProductPrice",
+                "file": "backend\\wms_service\\app\\models\\product_price.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\warehouse.py:WarehouseType",
+            "type": "Entity",
+            "metadata": {
+                "name": "WarehouseType",
+                "file": "backend\\wms_service\\app\\models\\warehouse.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\warehouse.py:WarehouseGroup",
+            "type": "Entity",
+            "metadata": {
+                "name": "WarehouseGroup",
+                "file": "backend\\wms_service\\app\\models\\warehouse.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\models\\warehouse.py:Warehouse",
+            "type": "Entity",
+            "metadata": {
+                "name": "Warehouse",
+                "file": "backend\\wms_service\\app\\models\\warehouse.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "MultiTenantBase",
+                    "Base"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:ProductVersionSyncData",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductVersionSyncData",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:ProductSyncData",
+            "type": "Generic",
+            "metadata": {
+                "name": "ProductSyncData",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:MasterDataSyncPayload",
+            "type": "Generic",
+            "metadata": {
+                "name": "MasterDataSyncPayload",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:SyncResult",
+            "type": "Generic",
+            "metadata": {
+                "name": "SyncResult",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryMovementBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementBase",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryMovementCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementCreate",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryMovementBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryMovementRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryMovementRead",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryMovementBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryDocumentBase",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentBase",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryDocumentCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentCreate",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryDocumentBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventoryDocumentRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryDocumentRead",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "InventoryDocumentBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:InventorySnapshotRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventorySnapshotRead",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:WarehouseCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "WarehouseCreate",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:WarehouseRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "WarehouseRead",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "WarehouseCreate"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:ConceptCreate",
+            "type": "Generic",
+            "metadata": {
+                "name": "ConceptCreate",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "BaseModel"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:ConceptRead",
+            "type": "Generic",
+            "metadata": {
+                "name": "ConceptRead",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [
+                    "ConceptCreate"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\schemas\\inventory.py:Config",
+            "type": "Generic",
+            "metadata": {
+                "name": "Config",
+                "file": "backend\\wms_service\\app\\schemas\\inventory.py",
+                "microservice": "wms_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "backend\\wms_service\\app\\services\\inventory_service.py:InventoryService",
+            "type": "Generic",
+            "metadata": {
+                "name": "InventoryService",
+                "file": "backend\\wms_service\\app\\services\\inventory_service.py",
+                "microservice": "wms_service",
+                "bases": [],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "docs\\archive\\run_wms_dev.py:Company",
+            "type": "Entity",
+            "metadata": {
+                "name": "Company",
+                "file": "docs\\archive\\run_wms_dev.py",
+                "microservice": "common",
+                "bases": [
+                    "Base",
+                    "BaseEntity",
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "docs\\archive\\verify_adn.py:TestProduct",
+            "type": "Entity",
+            "metadata": {
+                "name": "TestProduct",
+                "file": "docs\\archive\\verify_adn.py",
+                "microservice": "common",
+                "bases": [
+                    "Base",
+                    "BaseEntity",
+                    "AuditBase",
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "tests\\infrastructure\\test_adn_sync.py:TestProduct",
+            "type": "Entity",
+            "metadata": {
+                "name": "TestProduct",
+                "file": "tests\\infrastructure\\test_adn_sync.py",
+                "microservice": "common",
+                "bases": [
+                    "Base",
+                    "BaseEntity",
+                    "AuditBase",
+                    "MultiTenantBase"
+                ],
+                "is_multitenant": true
+            }
+        },
+        {
+            "id": "tests\\infrastructure\\test_reactive_ledger.py:Company",
+            "type": "Entity",
+            "metadata": {
+                "name": "Company",
+                "file": "tests\\infrastructure\\test_reactive_ledger.py",
+                "microservice": "common",
+                "bases": [
+                    "Base",
+                    "BaseEntity",
+                    "AuditBase"
+                ],
+                "is_multitenant": false
+            }
+        },
+        {
+            "id": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "type": "Generic",
+            "metadata": {
+                "name": "TestReactiveLedger",
+                "file": "tests\\infrastructure\\test_reactive_ledger.py",
+                "microservice": "common",
+                "bases": [
+                    "unittest.TestCase"
+                ],
+                "is_multitenant": false
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": "backend\\auth_service\\app\\queries\\login_query.py:LoginQueryHandler",
+            "target": "backend\\auth_service\\app\\models\\user.py:User",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\auth_service\\app\\queries\\login_query.py:LoginQueryHandler",
+            "target": "backend\\auth_service\\app\\models\\user_company_role.py:UserCompanyRole",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\auth_service\\app\\services\\auth_service.py:AuthService",
+            "target": "backend\\auth_service\\app\\models\\user.py:User",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\auth_service\\app\\services\\auth_service.py:AuthService",
+            "target": "backend\\auth_service\\app\\models\\user_company_role.py:UserCompanyRole",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\common\\middleware.py:InternoCoreGlobalMiddleware",
+            "target": "backend\\auth_service\\responses.py:ApiResponse",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\common\\security\\subscription_guard.py:SubscriptionGuard",
+            "target": "backend\\auth_service\\app\\deps.py:TokenPayload",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\common\\security\\subscription_guard.py:SubscriptionGuard",
+            "target": "backend\\auth_service\\app\\schemas\\auth.py:TokenPayload",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\common\\security\\subscription_guard.py:SubscriptionGuard",
+            "target": "backend\\common\\security\\auth_payload.py:TokenPayload",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_brand_service.py:ProductBrandService",
+            "target": "backend\\master_data_service\\app\\models\\product_brand.py:ProductBrand",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_brand_service.py:ProductBrandService",
+            "target": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandCreate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_brand_service.py:ProductBrandService",
+            "target": "backend\\master_data_service\\app\\schemas\\product_brand.py:BrandUpdate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_category_service.py:ProductCategoryService",
+            "target": "backend\\master_data_service\\app\\models\\category.py:ProductCategory",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_category_service.py:ProductCategoryService",
+            "target": "backend\\master_data_service\\app\\models\\product_category.py:ProductCategory",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_category_service.py:ProductCategoryService",
+            "target": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryCreate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_category_service.py:ProductCategoryService",
+            "target": "backend\\master_data_service\\app\\schemas\\product_category.py:CategoryUpdate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\master_data_service\\app\\models\\product.py:Product",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\exceptions.py:NotFoundException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\master_data_service\\app\\schemas\\product.py:ProductCreate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\master_data_service\\app\\models\\product.py:ProductVersion",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\enums.py:ProductStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\domain\\enums.py:ProductStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\models\\enums.py:ProductStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\enums.py:VersionStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\domain\\enums.py:VersionStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\product_service.py:ProductService",
+            "target": "backend\\common\\models\\enums.py:VersionStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\sync_service.py:SyncService",
+            "target": "backend\\master_data_service\\app\\models\\product.py:Product",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\uom_service.py:UOMService",
+            "target": "backend\\common\\value_objects.py:UOM",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\uom_service.py:UOMService",
+            "target": "backend\\common\\domain\\value_objects.py:UOM",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\uom_service.py:UOMService",
+            "target": "backend\\master_data_service\\app\\models\\uom.py:UOM",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\master_data_service\\app\\services\\uom_service.py:UOMService",
+            "target": "backend\\master_data_service\\app\\schemas\\uom.py:UOMCreate",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\common\\exceptions.py:NotFoundException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\mes_service\\app\\models\\resource.py:ResourceResult",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\mes_service\\app\\models\\downtime.py:Downtime",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\mes_service\\app\\models\\ledger.py:ManufacturingLedger",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\mes_service\\app\\models\\labor.py:Labor",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\kpi_service.py:KPIService",
+            "target": "backend\\mes_service\\app\\models\\kpi.py:Goal",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\mes_service\\app\\services\\parser_service.py:ParserService",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\mes_service\\app\\infrastructure\\wms_client.py:WMSClient",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\mes_service\\app\\models\\ledger.py:ManufacturingLedger",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\mes_service\\app\\models\\labor.py:Labor",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\scanner_service.py:ScannerService",
+            "target": "backend\\mes_service\\app\\models\\resource.py:ResourceResult",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\shift_service.py:ShiftService",
+            "target": "backend\\mes_service\\app\\models\\shift.py:Shift",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\mes_service\\app\\services\\shift_service.py:ShiftService",
+            "target": "backend\\mes_service\\app\\models\\resource.py:Resource",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\audit.py:AuditService",
+            "target": "backend\\subscription_service\\app\\models\\subscription.py:AuditSubscriptionLog",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "target": "backend\\subscription_service\\app\\models\\subscription.py:Subscription",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "target": "backend\\subscription_service\\app\\models\\subscription.py:Entitlement",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "target": "backend\\subscription_service\\app\\core\\enums.py:SubscriptionStatus",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "target": "backend\\subscription_service\\app\\services\\audit.py:AuditService",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\commands.py:StartTrialCommand",
+            "target": "backend\\subscription_service\\app\\models\\subscription.py:Plan",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\subscription_service\\app\\services\\queries.py:GetEntitlementsQuery",
+            "target": "backend\\subscription_service\\app\\models\\subscription.py:Entitlement",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:CreateInventoryDocumentHandler",
+            "target": "backend\\wms_service\\app\\application\\commands.py:CreateInventoryDocumentCommand",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:CreateInventoryDocumentHandler",
+            "target": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:AddMovementHandler",
+            "target": "backend\\wms_service\\app\\application\\commands.py:AddMovementCommand",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:AddMovementHandler",
+            "target": "backend\\common\\exceptions.py:NotFoundException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:AddMovementHandler",
+            "target": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:ConfirmDocumentHandler",
+            "target": "backend\\wms_service\\app\\application\\commands.py:ConfirmDocumentCommand",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\application\\handlers.py:ConfirmDocumentHandler",
+            "target": "backend\\common\\exceptions.py:NotFoundException",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\services\\inventory_service.py:InventoryService",
+            "target": "backend\\wms_service\\app\\schemas\\inventory.py:SyncResult",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\services\\inventory_service.py:InventoryService",
+            "target": "backend\\wms_service\\app\\schemas\\inventory.py:MasterDataSyncPayload",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "backend\\wms_service\\app\\services\\inventory_service.py:InventoryService",
+            "target": "backend\\wms_service\\app\\models\\item.py:Item",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\wms_service\\app\\models\\warehouse.py:Warehouse",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\auth_service\\app\\models\\base.py:Base",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\common\\domain\\entities.py:Base",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\wms_service\\app\\models\\inventory_document.py:InventoryDocument",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\wms_service\\app\\models\\inventory_movement.py:InventoryMovement",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\wms_service\\app\\models\\inventory_snapshot.py:InventorySnapshot",
+            "type": "DEPENDS_ON"
+        },
+        {
+            "source": "tests\\infrastructure\\test_reactive_ledger.py:TestReactiveLedger",
+            "target": "backend\\common\\exceptions.py:BusinessRuleException",
+            "type": "DEPENDS_ON"
+        }
+    ]
+}

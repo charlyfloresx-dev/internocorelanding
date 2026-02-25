@@ -2,11 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, of, delay } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { DiagnosticLogService } from './diagnostic-log.service';
-import { 
+import {
   ApiResponse, LoginResponse, SessionContext, Company, User, Role, Permission, UserCompanyAccess,
-  InventoryItemDto, ProductionDashboardDto, WorkOrderDto, ProductionStatDto, DowntimeLogDto, Warehouse, 
-  Issue, TrendPointDto, ParetoItemDto, Partnership, Concept, PartnershipType, PartnershipStatus, 
-  ConceptType, InventoryDocument, ProjectState, CreateWorkOrderCommand, CreateDowntimeCommand, 
+  InventoryItemDto, ProductionDashboardDto, WorkOrderDto, ProductionStatDto, DowntimeLogDto, Warehouse,
+  Issue, TrendPointDto, ParetoItemDto, Partnership, Concept, PartnershipType, PartnershipStatus,
+  ConceptType, InventoryDocument, ProjectState, CreateWorkOrderCommand, CreateDowntimeCommand,
   CreateInventoryItemCommand, AdjustStockCommand, CreateDocumentCommand, DocumentStatus, SelectCompanyResponse
 } from '@models/api.types';
 
@@ -16,7 +16,7 @@ import {
 export class ApiSimulationService {
   private diag = inject(DiagnosticLogService);
   private http = inject(HttpClient);
-  
+
   private permissions: Permission[] = [
     { id: 'p1', name: 'dashboard', category: 'General', description: 'Ver Dashboard' },
     { id: 'p2', name: 'production', category: 'Production', description: 'Módulo de Producción' },
@@ -32,74 +32,76 @@ export class ApiSimulationService {
 
   // DEFINICIÓN DE ROLES ESTRÍCTOS
   private roles = {
-    enterprise: { 
-      id: 'r_ent', 
-      name: 'Admin Enterprise', 
-      description: 'Acceso Total a todos los módulos', 
+    enterprise: {
+      id: 'r_ent',
+      name: 'Admin Enterprise',
+      description: 'Acceso Total a todos los módulos',
       permissions: this.permissions // Tiene los 10 permisos
     },
-    standard: { 
-      id: 'r_std', 
-      name: 'Operador de Inventario', 
-      description: 'Solo puede ver Inventarios', 
+    standard: {
+      id: 'r_std',
+      name: 'Operador de Inventario',
+      description: 'Solo puede ver Inventarios',
       // Filtrar para que solo tenga permisos relacionados con inventario
-      permissions: this.permissions.filter(p => p.category === 'Inventory') 
+      permissions: this.permissions.filter(p => p.category === 'Inventory')
     },
-    onboarding: { 
-      id: 'r_new', 
-      name: 'Configurador', 
-      description: 'Fase de Onboarding', 
-      permissions: [] 
+    onboarding: {
+      id: 'r_new',
+      name: 'Configurador',
+      description: 'Fase de Onboarding',
+      permissions: []
     }
   };
 
   private companies: Company[] = [
-    { 
-      id: '0c176b7e-d2d8-4da0-83e4-94150e967d82', 
-      name: 'Interno Logistics', 
-      registrationNumber: 'FR-889900', 
-      contactEmail: 'admin@interno.com', 
-      status: 'Active', 
-      logo: 'https://ui-avatars.com/api/?name=IC+Logistics&background=f59e0b&color=fff', 
-      plan: 'Enterprise', 
-      is_new: false 
+    {
+      id: '0c176b7e-d2d8-4da0-83e4-94150e967d82',
+      name: 'Interno Logistics',
+      registrationNumber: 'FR-889900',
+      contactEmail: 'admin@interno.com',
+      status: 'Active',
+      logo: 'https://ui-avatars.com/api/?name=IC+Logistics&background=f59e0b&color=fff',
+      plan: 'Enterprise',
+      is_new: false
     },
-    { 
-      id: '0cb7bcff-3475-40e4-aacf-fd4ef4ad76d9', 
-      name: 'Nueva Planta Demo', 
-      registrationNumber: 'DE-445566', 
-      contactEmail: 'ops@demo.com', 
-      status: 'Pending', 
-      logo: 'https://ui-avatars.com/api/?name=NP&background=64748b&color=fff', 
-      plan: 'Standard', 
-      is_new: true 
+    {
+      id: '0cb7bcff-3475-40e4-aacf-fd4ef4ad76d9',
+      name: 'Nueva Planta Demo',
+      registrationNumber: 'DE-445566',
+      contactEmail: 'ops@demo.com',
+      status: 'Pending',
+      logo: 'https://ui-avatars.com/api/?name=NP&background=64748b&color=fff',
+      plan: 'Standard',
+      is_new: true
     },
-    { 
-      id: 'a79f7800-0a53-421e-b5a9-7b45da85dec1', 
-      name: 'InternoCorp Enterprise', 
-      registrationNumber: 'MX-000000', 
-      contactEmail: 'setup@internoc.com', 
-      status: 'Active', 
-      logo: 'https://ui-avatars.com/api/?name=IC+Enterprise&background=0ea5e9&color=fff', 
-      plan: 'Professional', 
-      is_new: false 
+    {
+      id: 'a79f7800-0a53-421e-b5a9-7b45da85dec1',
+      name: 'InternoCorp Enterprise',
+      registrationNumber: 'MX-000000',
+      contactEmail: 'setup@internoc.com',
+      status: 'Active',
+      logo: 'https://ui-avatars.com/api/?name=IC+Enterprise&background=0ea5e9&color=fff',
+      plan: 'Professional',
+      is_new: false
     }
   ];
 
   private warehouses: Warehouse[] = [
-    { id: 'WH-01', code: 'WH-01', name: 'Almacén Central', description: 'CD Principal', typeId: 1, typeName: 'General', groupId: 30, groupName: 'PT', location: 'Planta A', capacity: 5000, unitCode: 'PLT', isActive: true }
+    { id: '1', code: 'WH-01', name: 'Almacén Central', description: 'CD Principal', typeName: 'General', groupName: 'PT', isActive: true, sequence_number: 1 }
   ];
 
   private inventory: InventoryItemDto[] = [
-    { id: 'inv-001', companyId: '0c176b7e-d2d8-4da0-83e4-94150e967d82', productId: 'prod-001', name: 'Bomba Hidráulica X2', description: 'High pressure pump', sku: 'SKU-A101-B', price: { amount: 1200.50, currency: 'USD' }, stockQuantity: 45, reservedQuantity: 5, warehouseId: 'WH-01', warehouseName: 'Almacén Central', location: 'A-12-04', categoryId: '1', categoryName: 'Hidráulica', isActive: true }
+    { id: 'inv-001', companyId: '1', productId: 'p1', name: 'Bomba Hidráulica X2', description: 'High pressure pump', sku: 'SKU-A101-B', price: { amount: 1200.50, currency: 'USD' }, stockQuantity: 45, reservedQuantity: 5, warehouseId: '1', warehouseName: 'Almacén Central', location: 'A-12-04', categoryId: '1', categoryName: 'Hidráulica', isActive: true }
   ];
 
-  private documents: InventoryDocument[] = [];
+  private documents: InventoryDocument[] = [
+    { id: 'doc-1', folio: 'WH1-ENT-2026-001', sequence_number: 1, deliveryDate: new Date().toISOString(), conceptId: '1', conceptName: 'Entrada por Compra', conceptType: ConceptType.Entry, warehouseId: '1', warehouseName: 'Almacén Central', reference: 'FAC-990', description: 'Carga inicial demo', total_amount: 1540.50, status: DocumentStatus.Confirmed, movements: [] }
+  ];
   private downtimeLogs: DowntimeLogDto[] = [];
-  private partnerships: Partnership[] = [{ id: 1, code: 'SUP-001', name: 'AceroMex S.A.', type: PartnershipType.Supplier, status: PartnershipStatus.Gold }];
-  private workOrders: WorkOrderDto[] = [{ id: 'wo-1', orderNumber: 'WO-1001', lineId: 'ENS-01', productId: 'prod-001', productName: 'Bomba Hidráulica X2', sku: 'SKU-A101-B', quantityTarget: 1000, quantityProduced: 450, progress: 45, status: 'Running', scheduledDate: new Date().toISOString(), cost: { amount: 15400.50, currency: 'USD' }, dueDate: new Date(Date.now() + 86400000 * 5).toISOString() }];
+  private partnerships: Partnership[] = [{ id: '1', code: 'SUP-001', name: 'AceroMex S.A.', type: PartnershipType.Supplier, status: PartnershipStatus.Gold }];
+  private workOrders: WorkOrderDto[] = [{ id: 'wo-1', orderNumber: 'WO-1001', lineId: 'ENS-01', productId: 'p1', productName: 'Bomba Hidráulica X2', sku: 'SKU-A101-B', quantityTarget: 1000, quantityProduced: 450, progress: 45, status: 'Running', scheduledDate: new Date().toISOString(), cost: { amount: 15400.50, currency: 'USD' }, dueDate: new Date(Date.now() + 86400000 * 5).toISOString() }];
   private issues: Issue[] = [{ id: 'i1', name: 'Falla Mecánica', category: 'Mantenimiento' }, { id: 'i2', name: 'Falta de Material', category: 'Logística' }];
-  private concepts: Concept[] = [{ id: 1, name: 'Entrada por Compra', type: ConceptType.Entry, affectStock: true, isSystem: true }];
+  private concepts: Concept[] = [{ id: '1', name: 'Entrada por Compra', type: ConceptType.Entry, affectStock: true, isSystem: true }];
 
   constructor() {
     this.restoreFromLocalStorage();
@@ -147,19 +149,19 @@ export class ApiSimulationService {
 
   login(u: string): Observable<ApiResponse<LoginResponse>> {
     const user: User = { id: '1', email: u, firstName: 'User', lastName: 'Interno', avatar: 'https://i.pravatar.cc/150?u=' + u, status: 'Active' };
-    
+
     // Mapeo automático de roles basado en el plan de la empresa
     const accesses: UserCompanyAccess[] = this.companies.map(c => {
       let role = this.roles.enterprise;
       if (c.plan === 'Standard') role = this.roles.standard;
       if (c.is_new) role = this.roles.onboarding;
-      
+
       return { company: c, role: role };
     });
 
-    return of({ 
-      status: 'success' as const, 
-      data: { 
+    return of({
+      status: 'success' as const,
+      data: {
         selection_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlZTdkNzM4Ni03YjFkLTQ3ZTktYTk5MS01NDYzMzA2NmY4NzUiLCJleHAiOjE3NzAzOTg1OTN9.jv1qRTQLe85lZPcGqU4vxfZWIY_rUKFizc4aoXM6ItI',
         user_id: user.id,
         companies: this.companies.map(c => ({
@@ -171,8 +173,8 @@ export class ApiSimulationService {
         })),
         is_new: false
       },
-      message: 'Autenticación Exitosa', 
-      meta: {} 
+      message: 'Autenticación Exitosa',
+      meta: {}
     }).pipe(delay(500));
   }
 
@@ -206,36 +208,44 @@ export class ApiSimulationService {
       { label: 'Otros', value: 15, cumulative: 100 }
     ];
 
-    return of({ 
-      status: 'success' as const, 
-      data: { 
-        oee: 88, 
-        downtimeMinutes: 12, 
-        activeOrdersCount: this.workOrders.length, 
-        averageEfficiency: 92, 
-        hourlyStats: this.generateStats(), 
-        activeOrders: this.workOrders, 
-        recentDowntime: this.downtimeLogs, 
-        weeklyTrend: trendData, 
-        downtimePareto: paretoData 
-      }, 
-      message: '', 
-      meta: {} 
+    return of({
+      status: 'success' as const,
+      data: {
+        oee: 88,
+        downtimeMinutes: 12,
+        activeOrdersCount: this.workOrders.length,
+        averageEfficiency: 92,
+        hourlyStats: this.generateStats(),
+        activeOrders: this.workOrders,
+        recentDowntime: this.downtimeLogs,
+        weeklyTrend: trendData,
+        downtimePareto: paretoData
+      },
+      message: '',
+      meta: {}
     });
   }
 
   private generateStats(): ProductionStatDto[] {
-    return Array.from({length: 8}, (_, i) => ({ hour: `${8+i}:00`, actual: 80 + i, goal: 100, status: 'good' }));
+    return Array.from({ length: 8 }, (_, i) => ({ hour: `${8 + i}:00`, actual: 80 + i, goal: 100, status: 'good' }));
   }
 
   getWorkOrders(id: any): Observable<ApiResponse<WorkOrderDto[]>> { return of({ status: 'success' as const, data: this.workOrders, message: '', meta: {} }); }
   getInventoryItems(id: any): Observable<ApiResponse<InventoryItemDto[]>> { return of({ status: 'success' as const, data: this.inventory, message: '', meta: {} }); }
   getDocuments(id: any): Observable<ApiResponse<InventoryDocument[]>> { return of({ status: 'success' as const, data: this.documents, message: '', meta: {} }); }
+  getDocument(companyId: string, id: string): Observable<ApiResponse<InventoryDocument>> {
+    const doc = this.documents.find(d => d.id === id);
+    if (doc) return of({ status: 'success' as const, data: doc, message: '', meta: {} });
+    return of({ status: 'error' as const, data: null as any, message: 'Not found', meta: {} });
+  }
+  getNextFolioPreview(companyId: string, conceptId: string): Observable<ApiResponse<{ nextFolio: string }>> {
+    return of({ status: 'success' as const, data: { nextFolio: `PREV-${conceptId}-00${this.documents.length + 1}` }, message: '', meta: {} });
+  }
   getWarehouses(id: any): Observable<ApiResponse<Warehouse[]>> { return of({ status: 'success' as const, data: this.warehouses, message: '', meta: {} }); }
   getPartnerships(): Observable<ApiResponse<Partnership[]>> { return of({ status: 'success' as const, data: this.partnerships, message: '', meta: {} }); }
   getConcepts(): Observable<ApiResponse<Concept[]>> { return of({ status: 'success' as const, data: this.concepts, message: '', meta: {} }); }
   getIssues(): Observable<ApiResponse<Issue[]>> { return of({ status: 'success' as const, data: this.issues, message: '', meta: {} }); }
-  getProductCategories(): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [{id: '1', name: 'General'}], message: '', meta: {} }); }
+  getProductCategories(): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [{ id: '1', name: 'General' }], message: '', meta: {} }); }
   getWarehouseTypes(): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [], message: '', meta: {} }); }
   getWarehouseGroups(): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [], message: '', meta: {} }); }
   searchEmployees(q: string): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [], message: '', meta: {} }); }
@@ -244,7 +254,7 @@ export class ApiSimulationService {
     // Por ahora solo simula que se completó el onboarding
     return of({ status: 'success' as const, data: { company_id: companyId, is_new: false }, message: 'Onboarding completado', meta: {} }).pipe(delay(500));
   }
-  
+
   createWorkOrder(companyId: any, cmd: CreateWorkOrderCommand): Observable<ApiResponse<WorkOrderDto>> {
     const product = this.inventory.find(i => i.productId === cmd.productId);
     const newOrder: WorkOrderDto = { id: 'wo-' + Math.random(), orderNumber: 'WO-' + (1000 + this.workOrders.length), lineId: 'ENS-01', productId: cmd.productId, productName: product?.name || 'Nuevo', sku: product?.sku || 'SKU', quantityTarget: cmd.quantity, quantityProduced: 0, progress: 0, status: 'Pending', scheduledDate: cmd.scheduledDate, cost: cmd.estimatedCost, dueDate: cmd.scheduledDate };
@@ -271,7 +281,7 @@ export class ApiSimulationService {
   }
 
   createDocument(companyId: any, cmd: CreateDocumentCommand): Observable<ApiResponse<InventoryDocument>> {
-    const newDoc: InventoryDocument = { id: 'doc-' + Math.random(), folio: 'INV-001', deliveryDate: cmd.deliveryDate, conceptId: cmd.conceptId, conceptName: 'Movimiento', conceptType: ConceptType.Entry, warehouseId: cmd.warehouseId, warehouseName: 'Almacén', reference: cmd.reference, description: cmd.description, total: 0, status: DocumentStatus.Confirmed, movements: cmd.movements };
+    const newDoc: InventoryDocument = { id: 'doc-' + Math.random(), folio: 'INV-001', sequence_number: this.documents.length + 1, deliveryDate: cmd.deliveryDate, conceptId: cmd.conceptId.toString(), conceptName: 'Movimiento', conceptType: ConceptType.Entry, warehouseId: cmd.warehouseId, warehouseName: 'Almacén', reference: cmd.reference, description: cmd.description, total_amount: 0, status: DocumentStatus.Confirmed, movements: cmd.movements };
     this.documents.push(newDoc);
     return of({ status: 'success' as const, data: newDoc, message: 'Generado', meta: {} }).pipe(delay(300));
   }

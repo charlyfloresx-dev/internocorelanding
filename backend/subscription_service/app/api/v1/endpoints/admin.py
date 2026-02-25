@@ -3,10 +3,18 @@ from pydantic import BaseModel
 from typing import List
 import os
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.infrastructure.database import SessionLocal
+from app.services.license import LicenseService
+
 router = APIRouter()
 
 # El secreto maestro para bypass de seguridad estándar en God Mode
 ADMIN_MASTER_KEY = os.getenv("ADMIN_MASTER_KEY", "change-this-critical-secret")
+
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
 
 async def verify_admin_master_key(x_admin_key: str = Header(..., alias="X-Admin-Master-Key")):
     """
@@ -18,12 +26,16 @@ async def verify_admin_master_key(x_admin_key: str = Header(..., alias="X-Admin-
             detail="Acceso Denegado: Admin Master Key inválida."
         )
 
-@router.post("/tenants/{company_id}/upgrade", dependencies=[Depends(verify_admin_master_key)])
-async def upgrade_tenant(company_id: str, plan_id: str):
+@router.post("/tenants/{company_id}/force-status", dependencies=[Depends(verify_admin_master_key)])
+async def force_subscription_status(
+    company_id: str, 
+    new_status: str,
+    db: AsyncSession = Depends(get_db)
+):
     """
-    [GOD MODE] Fuerza el upgrade de un plan para una empresa específica.
+    [GOD MODE] Fuerza un cambio de estado de suscripción sin validaciones de negocio.
     """
-    return {"message": f"Tenant {company_id} upgraded to {plan_id} manually."}
+    return {"message": f"Tenant {company_id} status manually set to {new_status}."}
 
 @router.post("/tenants/{company_id}/override-grace", dependencies=[Depends(verify_admin_master_key)])
 async def override_grace_period(company_id: str, days: int = 7):

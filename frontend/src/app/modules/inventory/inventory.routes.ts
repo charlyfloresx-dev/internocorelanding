@@ -12,6 +12,10 @@ export const INVENTORY_ROUTES: Routes = [
     component: InventoryDocumentEditorComponent
   },
   {
+    path: 'documents/:id',
+    component: InventoryDocumentEditorComponent
+  },
+  {
     path: '**',
     redirectTo: ''
   }

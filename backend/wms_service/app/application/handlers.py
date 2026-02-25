@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime
 from common.exceptions import BusinessRuleException, NotFoundException
-from wms_service.app.models import InventoryDocument, InventoryMovement, InventorySnapshot, InventoryDocumentStatus
+from wms_service.app.models import InventoryDocument, InventoryMovement, InventorySnapshot, DocumentStatus
 # Updated import for Clean Architecture location
 from wms_service.app.application.commands import CreateInventoryDocumentCommand, AddMovementCommand, ConfirmDocumentCommand
 
@@ -27,7 +27,9 @@ class CreateInventoryDocumentHandler(BaseHandler):
             folio=command.folio,
             warehouse_id=command.warehouse_id,
             concept_id=command.concept_id,
-            status=InventoryDocumentStatus.DRAFT,
+            target_company_id=command.target_company_id,
+            target_warehouse_id=command.target_warehouse_id,
+            status=DocumentStatus.DRAFT,
             created_at=datetime.utcnow(),
             created_by="system" # TODO: Extract user from context
         )
@@ -47,7 +49,7 @@ class AddMovementHandler(BaseHandler):
             raise NotFoundException(f"Document {command.document_id} not found.")
 
         # 2. Immutability Check
-        if doc.status == InventoryDocumentStatus.CONFIRMED:
+        if doc.status == DocumentStatus.CONFIRMED:
             raise BusinessRuleException("Cannot add movements to a CONFIRMED document.")
 
         # 3. Validation: Warehouse Match
@@ -87,10 +89,14 @@ class ConfirmDocumentHandler(BaseHandler):
             if not doc:
                  raise NotFoundException(f"Document {command.document_id} not found.")
 
-            if doc.status == InventoryDocumentStatus.CONFIRMED:
+            if doc.status == DocumentStatus.CONFIRMED:
                  return doc
 
-            # 2. Process Movements & Update Snapshots
+            # 2. Fetch Concept to check for Transfer trigger
+            from wms_service.app.models.concept import Concept, ConceptType
+            concept = self.session.query(Concept).filter_by(id=doc.concept_id).first()
+
+            # 3. Process Movements & Update Snapshots
             movements = self.session.query(InventoryMovement).filter_by(
                 document_id=doc.id, 
                 company_id=company_id
@@ -99,12 +105,57 @@ class ConfirmDocumentHandler(BaseHandler):
             for mov in movements:
                 self._update_snapshot(mov, company_id)
 
-            # 3. Change Status
-            doc.status = InventoryDocumentStatus.CONFIRMED
+            # 4. Change Status
+            doc.status = DocumentStatus.CONFIRMED
             doc.updated_at = datetime.utcnow()
             self.session.add(doc)
+
+            # 5. [INTER-COMPANY] Create Mirror Document if TRANSFER
+            if concept and concept.concept_type == ConceptType.TRANSFER and doc.target_company_id:
+                self._create_mirror_entry_document(doc, movements)
             
         return doc
+
+    def _create_mirror_entry_document(self, source_doc: InventoryDocument, movements: List[InventoryMovement]):
+        """
+        Creates a DRAFT Entry document in the target company.
+        """
+        # Find a suitable 'Entry' concept for the target company
+        from wms_service.app.models.concept import Concept, ConceptType
+        target_concept = self.session.query(Concept).filter_by(
+            company_id=source_doc.target_company_id,
+            concept_type=ConceptType.ENTRY
+        ).first()
+
+        if not target_concept:
+             # Fallback or Exception: Inter-company target must have an Entry concept
+             return
+
+        mirror_doc = InventoryDocument(
+            company_id=source_doc.target_company_id,
+            folio=f"MIRROR-{source_doc.folio}",
+            warehouse_id=source_doc.target_warehouse_id,
+            concept_id=target_concept.id,
+            status=InventoryDocumentStatus.DRAFT,
+            reference=source_doc.folio,
+            observations=f"Mirror of Transfer from Company {source_doc.company_id}",
+            created_at=datetime.utcnow()
+        )
+        self.session.add(mirror_doc)
+        self.session.flush()
+
+        for i, mov in enumerate(movements):
+            mirror_mov = InventoryMovement(
+                company_id=source_doc.target_company_id,
+                document_id=mirror_doc.id,
+                sequence_number=i + 1,
+                product_id=mov.product_id,
+                warehouse_id=source_doc.target_warehouse_id,
+                quantity=mov.quantity,
+                unit_cost=mov.unit_cost, # Cost parity
+                created_at=datetime.utcnow()
+            )
+            self.session.add(mirror_mov)
 
     def _update_snapshot(self, mov: InventoryMovement, company_id: str):
         from decimal import Decimal

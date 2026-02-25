@@ -233,14 +233,15 @@ export interface Warehouse {
   code: string;
   name: string;
   description: string;
-  typeId: number;
-  typeName: string;
-  groupId: number;
-  groupName: string;
-  location: string;
-  capacity: number;
-  unitCode: string;
+  typeId?: string;
+  typeName?: string;
+  groupId?: string;
+  groupName?: string;
+  location?: string;
+  capacity?: number;
+  unitCode?: string;
   isActive: boolean;
+  sequence_number?: number; // Added for audit
 }
 
 export enum PartnershipType {
@@ -256,7 +257,7 @@ export enum PartnershipStatus {
 }
 
 export interface Partnership {
-  id: number;
+  id: string;
   code: string;
   name: string;
   type: PartnershipType;
@@ -269,12 +270,14 @@ export interface ProductCategory {
 }
 
 export enum ConceptType {
-  Entry = 1,
-  Output = 2
+  Entry = 'Entry',
+  Output = 'Output',
+  Adjustment = 'Adjustment',
+  Transfer = 'Transfer'
 }
 
 export interface Concept {
-  id: number;
+  id: string;
   name: string;
   type: ConceptType;
   affectStock: boolean;
@@ -300,25 +303,26 @@ export enum DocumentStatus {
 export interface InventoryDocument {
   id: string;
   folio: string;
+  sequence_number: number; // For audit traceability
   deliveryDate: string;
-  conceptId: number;
+  conceptId: string;
   conceptName: string;
   conceptType: ConceptType;
   warehouseId: string;
   warehouseName: string;
-  partnershipId?: number;
+  partnershipId?: string;
   partnershipName?: string;
   reference: string;
   description: string;
-  total: number;
+  total_amount: number; // Renamed for parity
   status: DocumentStatus;
   movements: any[];
 }
 
 export interface CreateDocumentCommand {
-  conceptId: number;
+  conceptId: string;
   warehouseId: string;
-  partnershipId?: number;
+  partnershipId?: string;
   deliveryDate: string;
   reference: string;
   description: string;

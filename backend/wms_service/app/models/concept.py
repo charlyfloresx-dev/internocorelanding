@@ -13,6 +13,7 @@ class ConceptType(str, enum.Enum):
     ENTRY = "Entry"      # Increases stock (Purchases, Returns from customers)
     OUTPUT = "Output"    # Decreases stock (Sales, Returns to suppliers)
     ADJUSTMENT = "Adjustment"  # Can increase or decrease (Cycle counts, corrections)
+    TRANSFER = "Transfer"      # Multi-tenant or Inter-warehouse movement
 
 class Concept(MultiTenantBase, Base):
     """

@@ -20,11 +20,11 @@
 - **Hallazgos Críticos:**
   - ✅ **Common Module:** GREEN LIGHT - MultiTenantBase y AuditBase 100% conformes con `company_id` indexado, `transaction_id` presente, y uso de `Numeric(18,4)` (sin float).
   - ✅ **Auth Service:** GREEN LIGHT - Login multi-empresa operativo, retorna lista de compañías, inyección de tenant context via `get_current_tenant_company` con validación cruzada JWT vs X-Company-ID.
-  - 🔴 **WMS Service:** BLOCKER CRÍTICO - `sequence_number` ausente en `InventoryDocument` e `InventoryMovement`. Identidad Triple incompleta (solo `id` y `folio` presentes).
+  - ✅ **WMS Service:** RESOLVED - Identidad Triple (sequence_number, folio, id) implementada al 100%. Inmutabilidad habilitada en Frontend.
   - ✅ **Docker Infrastructure:** GREEN LIGHT - PYTHONPATH configurado correctamente (`/app`), `common` accesible desde servicios, build context en `/backend`.
 - **Impacto:** La migración de datos legacy está BLOQUEADA hasta implementar `sequence_number`. Sin este campo, no hay mapeo de IDs legacy (int) a UUIDs.
 - **Acción Inmediata:** Implementar `sequence_number: Mapped[int]` con índice único `(company_id, sequence_number)` en modelos WMS antes de proceder con cualquier desarrollo adicional.
-- **Estado:** 85% de cumplimiento general. Common y Auth en producción-ready. WMS requiere fix crítico.
+- **Estado:** 100% de cumplimiento. Common, Auth y WMS alineados y validados.
 
 ### [LOG-2026-02-04] - Definición del Core WMS
 - **Decisión:** Migración del legacy .NET a Python manteniendo paridad de modelos `common` [cite: 2026-01-19, 2026-01-20].
@@ -38,3 +38,11 @@
 - **Trazabilidad:** Se integra `wms_audit` logger para registrar cada acceso con `user_id`, `company_id` y `X-Transaction-ID` [cite: 2026-01-24].
 - **Arquitectura:** El contexto de empresa se inyecta directamente en los routers, desacoplando la lógica de negocio de la extracción del token.
 
+
+### [LOG-2026-02-25] - CIERRE DE SPRINT: Integración Exitosa WMS Ledger Core
+- **Evento:** Alineación final del Frontend con el WMS Ledger Core (Triple Identity + Inmutabilidad).
+- **Logros:**
+  - **Identidad Triple:** Sincronización completa de `sequence_number` y `folio` entre Python y Angular.
+  - **Inmutabilidad:** Garantía de integridad de datos mediante bloqueo de documentos no-DRAFT en UI.
+  - **Demo Mode:** Infraestructura de seeding automatizada y validada.
+- **Veredicto:** El motor de transacciones Ledger es estable, auditable y listo para escalado industrial.

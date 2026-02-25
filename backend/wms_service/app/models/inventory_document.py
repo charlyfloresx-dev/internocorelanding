@@ -14,6 +14,7 @@ from common.models import Base, MultiTenantBase
 if TYPE_CHECKING:
     from .warehouse import Warehouse
     from .inventory_movement import InventoryMovement
+    from .concept import Concept
 
 class DocumentStatus(str, enum.Enum):
     DRAFT = "DRAFT"
@@ -40,6 +41,11 @@ class InventoryDocument(MultiTenantBase, Base):
 
     # --- 🔗 RELACIONES ---
     warehouse_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("warehouses.id"), index=True)
+    concept_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("concepts.id"), index=True)
+
+    # --- 🌍 INTER-COMPANY ---
+    target_company_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
+    target_warehouse_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), nullable=True)
 
     # --- 💰 FINANZAS ---
     sub_total: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0000"))
