@@ -83,6 +83,28 @@ services:
     networks:
       - interno-network
 
+  # --- TICKETS SERVICE (Incidencias y Soporte) ---
+  tickets-service:
+    build:
+      context: ./backend
+      dockerfile: tickets_service/Dockerfile
+    container_name: tickets-service-api
+    image: interno-backend-tickets-service:latest
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./backend/tickets_service:/app/tickets_service
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - SECRET_KEY=changeme
+      - PYTHONPATH=/app:/app/tickets_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
   # --- FRONTEND ---
   frontend:
     build:
