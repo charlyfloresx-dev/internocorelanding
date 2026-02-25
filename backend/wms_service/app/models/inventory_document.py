@@ -4,12 +4,12 @@ from decimal import Decimal
 from typing import List, Optional, TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Enum
+from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 # Solo importamos el nivel más alto de la jerarquía
-from common.models import MultiTenantBase 
+from common.models import Base, MultiTenantBase 
 
 if TYPE_CHECKING:
     from .warehouse import Warehouse
@@ -21,7 +21,7 @@ class DocumentStatus(str, enum.Enum):
     CANCELLED = "CANCELLED"
 
 # Al heredar de MultiTenantBase, ya tienes ID, CreatedAt, UpdatedAt y CompanyId
-class InventoryDocument(MultiTenantBase):
+class InventoryDocument(MultiTenantBase, Base):
     __tablename__ = "inventory_documents"
 
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
@@ -51,4 +51,9 @@ class InventoryDocument(MultiTenantBase):
         "InventoryMovement", 
         back_populates="document", 
         cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        # 🔒 Unique constraint: El número de secuencia debe ser único por compañía
+        UniqueConstraint('company_id', 'sequence_number', name='uq_document_company_sequence'),
     )

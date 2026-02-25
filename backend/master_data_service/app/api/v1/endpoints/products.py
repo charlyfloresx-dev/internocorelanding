@@ -6,6 +6,7 @@ import uuid
 from app.schemas.product import ProductCreate, ProductReadWithVersions, ProductRead
 from app.services.product_service import ProductService
 from app.dependencies import get_db, get_current_user
+from common.models.user_context import UserContext
 from common.responses import ApiResponse
 from common.exceptions import DomainException
 
@@ -17,7 +18,7 @@ router = APIRouter()
 async def create_product(
     product_in: ProductCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user)
 ):
     """ Crear un nuevo producto con su versión inicial. """
     try:
@@ -30,7 +31,7 @@ async def create_product(
 @router.get("/", response_model=ApiResponse[List[ProductRead]])
 async def get_products(
     db: AsyncSession = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user)
 ):
     """ Listar productos de la compañía actual. """
     service = ProductService(db)
@@ -41,7 +42,7 @@ async def get_products(
 async def get_product(
     product_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user)
 ):
     """ Obtener detalle de un producto específico. """
     service = ProductService(db)
@@ -58,7 +59,7 @@ async def create_product_version(
     product_id: uuid.UUID,
     version_in: Any, # Debería ser un schema ProductVersionCreate
     db: AsyncSession = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user)
 ):
     """ Crear una nueva versión técnica para un producto existente. """
     service = ProductService(db)

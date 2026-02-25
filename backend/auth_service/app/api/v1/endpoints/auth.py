@@ -10,15 +10,11 @@ from app.services.auth_service import AuthService
 from app.core import security
 from app.core.database import get_db
 from common.responses import ApiResponse
+from app.schemas.auth import LoginRequest, AccessTokenResponse, SelectCompanyRequest, LoginResponseData
 
 router = APIRouter()
 
-# DTO para el contrato de respuesta
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-@router.post("/login", response_model=ApiResponse)
+@router.post("/login", response_model=ApiResponse[LoginResponseData])
 async def login(
     credentials: LoginRequest,
     db: AsyncSession = Depends(get_db)
@@ -35,22 +31,12 @@ async def login(
     
     return ApiResponse(
         status="success",
-        data={
-            "selection_token": selection_token,
-            "companies": companies
-        },
+        data=LoginResponseData(
+            selection_token=selection_token,
+            companies=companies
+        ),
         message="Login successful. Please select a company."
     )
-
-class AccessTokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    company_id: uuid.UUID
-    roles: List[str]
-    scopes: List[str]
-
-class SelectCompanyRequest(BaseModel):
-    company_id: uuid.UUID
 
 @router.post(
     "/select-company",
@@ -78,6 +64,13 @@ async def select_company(
     # 3. Retornar la respuesta completa, cumpliendo el DTO
     return ApiResponse(
         status="success",
-        data=AccessTokenResponse(access_token=access_token, company_id=company_id, roles=roles, scopes=scopes),
+        data=AccessTokenResponse(
+            access_token=access_token, 
+            user_id=user_id,      # <--- ESTO ES LO QUE FALTABA
+            company_id=company_id, 
+            roles=roles, 
+            scopes=scopes,
+            permissions=scopes     # Usamos scopes como permisos para el DTO
+        ),
         message="Access token generated successfully."
     )

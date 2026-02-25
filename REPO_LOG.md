@@ -500,3 +500,86 @@
 - **Archivos afectados:**
   - `frontend/src/app/core/models/master-data.types.ts` (creado)
   - `frontend/src/app/modules/catalog/product-list.component.ts` (actualizado)
+
+### FASE 18.12 – Hotfix Build de Producción
+- **Estado:** ✅ Completed
+- **Error corregido:** TS2306 (Module not found) y TS2339 (Property data not found).
+- **Causa:** Doble envoltura de datos en el componente y falta de exportaciones en el archivo de tipos.
+- **Solución:** Sincronización de interfaces con el contrato OpenAPI y refactorización del subscribe en el ProductListComponent.
+
+### FASE 18.13 – Centralización de UserContext en Common
+- **Estado:** ✅ Completed
+- **Acciones realizadas:**
+  - Creación de `backend/common/models/user_context.py` como SSOT para la identidad del usuario.
+  - Refactorización de `master_data_service` para usar `UserContext` en lugar de diccionarios `Any`.
+  - Actualización de routers (`products`, `brands`, `uoms`, `categories`) para usar tipado fuerte `current_user: UserContext`.
+- **Beneficio:** Mayor seguridad de tipos y prevención de errores de acceso a atributos en tiempo de ejecución.
+
+### FASE 18.14 – Aislamiento Multi-tenant Automático (CQRS)
+- **Estado:** ✅ Completed
+- **Acciones realizadas:**
+  - **Unificación de Repositorio:** `backend/common/repository.py` ahora implementa la inyección automática de `company_id` y auditoría (`created_by`, `updated_by`) utilizando `ContextVar`.
+  - **Limpieza de Redundancia:** Eliminación de `backend/master_data_service/app/base.py` y `scripts/product_repository.py` para centralizar la lógica en `common`.
+  - **Validación de Aislamiento:** Ejecución exitosa de `test_cqrs_filter.py`. Se confirmó que las consultas inyectan automáticamente el filtro `WHERE company_id = ...` cuando hay contexto, y lo omiten cuando no (modo Admin/System).
+  - **Simplificación de Servicios:** Los servicios de dominio ya no necesitan recibir `company_id` explícitamente para operaciones de repositorio estándar.
+- **Archivos afectados:**
+  - `backend/common/repository.py` (Refactorizado)
+  - `backend/master_data_service/scripts/test_cqrs_filter.py` (Actualizado)
+
+### FASE 18.15 – Política de Seguridad Zero Trust (Multitenant)
+- **Estado:** ✅ Established
+- **Acciones realizadas:**
+  - Se establece la política de 'Zero Trust' para IDs de empresa: la identidad se extrae únicamente de tokens verificados.
+  - El `BaseRepository` ignora cualquier `company_id` proveniente de payloads o query params para operaciones de filtrado de seguridad, confiando exclusivamente en el `UserContext` inyectado por el middleware tras la validación criptográfica del JWT.
+  - Esta regla es mandatoria para todos los nuevos microservicios y repositorios.
+---
+
+### [2026-02-25] - Subscription Service Implementation
+- **Phase 0:** Purged legacy billing_service and updated MANIFEST.md to port 8002.
+- **Phase 1-2:** Implemented subscription_service scaffolding and domain models (Modules, Plans, Subscriptions, Entitlements).
+- **Phase 3:** Implemented CQRS patterns for handling trials and entitlements.
+- **Phase 4:** Created database seeding script and SERVICE_LOG.md.
+- **Technical Detail:** Dockerfile configured for build context /backend with port 8002.
+
+---
+
+### [2026-02-25] - Integration: Auth & Subscription Handshake
+- **Auth Service:** Now consumes subscription_service (port 8002) during company selection.
+- **JWT Enrichment:** Final tokens now contain modules, subscription_status, and readonly flags.
+- **Resilience:** Implemented fallback access logic to ensure platform stability during service downtime.
+- **Architecture:** Communication established via Docker internal network using service names.
+
+---
+
+### [2026-02-25] - Enterprise-Ready Auditing & Traceability
+- **Audit SSOT:** subscription_service now logs all license changes with JSONB diffs (before/after).
+- **Correlation:** Implemented cross-service tracing using correlation_id in JWT and internal logs.
+- **Security Enforcement:** Auth service now blocks EXPIRED tenants (402) and forces readonly for PAST_DUE (Grace Period).
+- **Documentation:** READMEs and Service Logs updated to reflect the new Enterprise-Ready standard.
+
+---
+
+### [2026-02-25] - Cross-Service Security Guard (Zero Trust)
+- **Common Security:** Centralized TokenPayload and SubscriptionGuard in backend/common/security.
+- **Pilot Implementation:** wms_service now performs real JWT validation and uses the guard to enforce inventory entitlements.
+- **Read-Only Enforcement:** Cross-service protection for PAST_DUE subscriptions (blocking write methods).
+- **Standardization:** Updated common README with mandatory security patterns for new services.
+
+---
+
+### [2026-02-25] - Technical Closure & Governance Sync
+- **Zero Trust Security:** Finalized integration and Cross-Service Guards.
+- **Identity Evolution:** TokenPayload enriched with Role-Based Access Control (RBAC) claims.
+- **God Mode:** Skeletal implementation of Admin Layer in subscription_service protected by Master Key.
+- **Traceability:** Enhanced error messages with correlation trace_id for frontend debugging.
+- **Roadmap:** Starting phase for RBAC expansion and Master Data strict multitenant isolation.
+
+---
+
+### [2026-02-25] - Arquitectura de Seguridad Din�mica Completada
+- **Validaci�n:** Se ha confirmado el funcionamiento del \SubscriptionGuard\ en \common\ y el handshake entre \uth_service\ y \subscription_service\.
+- **Hito:** Blindaje transversal de microservicios con l�gica de 'Solo Lectura' y validaci�n de m�dulos (Entitlements).
+- **Prioridades Inmediatas:**
+    1. Implementaci�n de roles (OWNER/ADMIN/OPERATOR) en el flujo de identidad.
+    2. Refactorizaci�n de \master_data_service\ para multitenancy estricto.
+    3. Sincronizaci�n de 'Route Guards' y 'Component Protectors' en el Frontend.

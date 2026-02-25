@@ -6,23 +6,21 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine # <--- NECESARIO
 from alembic import context
 
-# 1. Configuración de PATHs para Docker
-# Usamos rutas relativas para que funcione tanto en local como en Docker
-current_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) # backend/master_data_service
-sys.path.insert(0, current_path)
-sys.path.insert(0, os.path.join(current_path, '..')) # backend/ (para encontrar common)
+# 1. Configuración de PATHs
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # 2. IMPORTACIÓN DE LA BASE Y MODELOS
-from app.db.db import Base
+from common.domain.entities import MultiTenantBase
 # Importar modelos para que Alembic los detecte
 from app.models.uom import UOM
 from app.models.product_category import ProductCategory
 from app.models.product_brand import ProductBrand
-target_metadata = Base.metadata
+target_metadata = MultiTenantBase.metadata
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")

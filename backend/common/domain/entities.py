@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import DateTime, Boolean, Integer, UUID
+from sqlalchemy import DateTime, Boolean, Integer, UUID, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, declared_attr
 
 class Base(DeclarativeBase):
@@ -37,11 +37,14 @@ class AuditBase(BaseDomainEntity):
     __abstract__ = True
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
     )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), 
-        onupdate=lambda: datetime.now(timezone.utc), 
+        onupdate=func.now(), 
         nullable=True
     )
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)

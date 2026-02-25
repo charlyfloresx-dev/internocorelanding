@@ -1,19 +1,22 @@
 import { Injectable, signal, inject, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { User, SessionContext, UserCompanyAccess, ApiResponse, LoginResponse, SelectCompanyResponse } from '@models/api.types';
 import { NavigationService } from './navigation.service';
 import { tap, catchError } from 'rxjs/operators';
+import { SystemHealthService } from './system-health.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8001/api';
+  private apiUrl = environment.authUrl;
   private http = inject(HttpClient);
   private router = inject(Router);
   private navService = inject(NavigationService);
+  private health = inject(SystemHealthService);
 
   // === SIGNALS ===
   currentUser = signal<User | null>(null);
@@ -57,7 +60,8 @@ export class AuthService {
         this.availableAccesses.set(JSON.parse(savedAccesses || '[]'));
 
         // Zero Trust: Validar token con backend
-        await lastValueFrom(this.http.get(`${this.apiUrl}/v1/auth/me`));
+        await lastValueFrom(this.http.get(`${this.apiUrl}/auth/me`));
+        this.health.updateStatus('auth', true);
 
         this.authStep.set('authenticated');
         return true;
@@ -65,6 +69,7 @@ export class AuthService {
     } catch (e) {
       console.warn('[AuthService] Validación de sesión fallida:', e);
     }
+    // No marcamos auth: false aquí porque puede ser solo expiración de token, no caída del servicio
     this.logoutQuiet();
     return false;
   }
@@ -98,10 +103,11 @@ export class AuthService {
    */
   login(credentials: { email?: string; password?: string }) {
     this.isLoading.set(true);
-    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/v1/auth/login`, credentials)
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/login`, credentials)
       .pipe(
         tap({
           next: (response: ApiResponse<LoginResponse>) => {
+            this.health.updateStatus('auth', true);
             // CORRECCIÓN: La respuesta viene envuelta en ApiResponse { status, data, ... }
             const data = response.data;
 
@@ -163,6 +169,7 @@ export class AuthService {
           },
           error: (err) => {
             console.error('Login Failed:', err);
+            if (err.status === 0) this.health.updateStatus('auth', false);
             this.isLoading.set(false);
           }
         })
@@ -186,21 +193,22 @@ export class AuthService {
 
     console.log('[AuthService] 📤 Enviando select-company request', { companyId, hasToken: !!selectionToken });
 
-    // === ENVIAR SELECTION TOKEN EN HEADER ===
-    const headers = {
-      'Authorization': `Bearer ${selectionToken}`,
+    // CORRECCIÓN DE AUDITORÍA: Enviar solo el X-Selection-Token en un header limpio
+    // para evitar conflictos con el interceptor. El payload ya usa snake_case.
+    const headers = new HttpHeaders({
       'X-Selection-Token': selectionToken,
-      'X-Company-Id': companyId
-    };
+      'Content-Type': 'application/json'
+    });
 
     this.http.post<ApiResponse<SelectCompanyResponse>>(
-      `${this.apiUrl}/v1/auth/select-company`,
+      `${this.apiUrl}/auth/select-company`,
       { company_id: companyId },
       { headers }
     ).pipe(
       catchError(err => {
         if (err.status === 401) {
           console.warn('[AuthService] ⚠️ 401 Unauthorized en selectCompany. Limpiando sesión.');
+          // 401 significa que el servicio responde, así que auth está true
           localStorage.clear();
           this.router.navigate(['/login']);
         }
@@ -208,6 +216,7 @@ export class AuthService {
       })
     ).subscribe({
       next: (response: ApiResponse<SelectCompanyResponse>) => {
+        this.health.updateStatus('auth', true);
         // CORRECCIÓN: La respuesta viene envuelta en ApiResponse { status, data, ... }
         const data = response.data as any; // Cast para acceder a propiedades dinámicas (scopes)
         const access = this.availableAccesses().find(a => String(a.company.id) === String(companyId));
@@ -276,6 +285,7 @@ export class AuthService {
       },
       error: (err) => {
         console.error('[AuthService] ❌ select-company FAILED', err);
+        if (err.status === 0) this.health.updateStatus('auth', false);
         this.isLoading.set(false);
 
         // === ERROR HANDLING ===

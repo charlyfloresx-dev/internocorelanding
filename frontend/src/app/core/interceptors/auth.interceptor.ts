@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '@services/auth.service';
+import { environment } from '../../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
@@ -41,12 +42,26 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // 🛡️ KILL SWITCH: 401 (Unauthorized) o 0 (Network Error/Server Down)
-      if (error.status === 401 || error.status === 0) {
-        console.error('⛔ Acceso denegado o error de red crítico. Cerrando sesión.');
-        // Usamos logoutQuiet o logout según la implementación del servicio, 
-        // asumiendo logout() para limpieza total
-        authService.logout(); 
+      // CORRECCIÓN DE AUDITORÍA: Si la selección de empresa falla con 400 (Bad Request),
+      // no se debe hacer logout. Se debe dejar que el componente que hizo la llamada
+      // maneje el error y muestre un mensaje al usuario, evitando el "rebote".
+      if (req.url.includes('/auth/select-company') && error.status === 400) {
+        return throwError(() => error);
+      }
+
+      // 🛡️ RESILIENCIA DE DATOS: Aislamiento de fallos en microservicios
+      // Si falla Master Data o WMS (500 o 0), NO cerrar sesión.
+      const isDataService = req.url.includes(environment.masterDataUrl) || req.url.includes(environment.wmsUrl);
+      
+      if (isDataService && (error.status === 0 || error.status === 500)) {
+        console.warn(`[Service Unavailable]: ${req.url}`);
+        return throwError(() => error);
+      }
+
+      // 🛡️ KILL SWITCH: Solo cerrar sesión si es un fallo de identidad (401)
+      if (error.status === 401) {
+        console.error('⛔ Acceso denegado (Token inválido o expirado). Cerrando sesión.');
+        authService.logout();
         router.navigate(['/login']);
       }
       return throwError(() => error);

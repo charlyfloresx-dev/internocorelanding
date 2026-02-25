@@ -31,7 +31,7 @@ Estos archivos representan la verdad actual del proyecto y deben ser consultados
 *   `backend/master_data_service/`: Microservicio de Datos Maestros (Productos, UOM, Categorías).
 *   `backend/wms_service/`: Microservicio de Warehouse Management System.
 *   `backend/mes_service/`: Microservicio de Manufacturing Execution System.
-*   `backend/billing_service/`: Microservicio de Facturación, Notas de Crédito y Pagos.
+*   `backend/subscription_service/`: Microservicio de Suscripciones, Entitlements y Licenciamiento.
 
 ## 📂 SERVICE DOCUMENTATION MAP (Anti-Hallucination)
 *Regla Estricta:* Antes de modificar un servicio, se debe consultar su bitácora específica.
@@ -40,17 +40,39 @@ Estos archivos representan la verdad actual del proyecto y deben ser consultados
 - **Contexto Técnico:** `backend/auth_service/CONTEXTO.md`
 - **Bitácora de Cambios:** `backend/auth_service/SERVICE_LOG.md`
 - **Historial de Versiones:** `backend/auth_service/CHANGELOG.md`
+- **Pendiente:** Inyección de claim `role` y `warehouse_access` en JWT.
 - **Estado Frontend:** ✅ **Estable (Final T2 Flow).** `auth.service.ts` y `auth.interceptor.ts`.
 
 ### 📦 Master Data Service
 - **Contexto Técnico:** `backend/master_data_service/docs/CONTEXTO.md`
 - **Estatus de Auditoría:** `ARCHITECTURAL_LOG.md#Phase19`
 
-### 💳 Billing Service
-- **Contexto Técnico:** `backend/billing_service/docs/CONTEXTO.md`
-- **Bitácora de Cambios:** `backend/billing_service/SERVICE_LOG.md`
-- **Modelos:** `Invoice`, `InvoiceItem`, `CreditNote`, `PaymentTerm`, `Payment`
-- **Puerto:** `8001`
+### 💳 Subscription Service
+- **Contexto Técnico:** `backend/subscription_service/README.md`
+- **Bitácora de Cambios:** `backend/subscription_service/SERVICE_LOG.md`
+- **Fase Activa:** Implementación de God Mode (Admin API con `ADMIN_MASTER_KEY`).
+- **Modelos:** `Module`, `Plan`, `Subscription`, `Entitlement`, `AuditSubscriptionLog`
+- **Puerto:** `8002`
+
+---
+
+## 🏛️ PLAN MAESTRO DE GOBERNANZA (Roadmap Activo)
+
+### 1. Evolución de Identidad & RBAC
+- **Token Schema:** El payload en `common` ahora incluye `role` (OWNER, ADMIN, OPERATOR) y el array `accessible_warehouses`.
+- **RBAC:** Implementación obligatoria de control de acceso por sucursal en WMS y futuros servicios.
+
+### 2. Capa Administrativa (God Mode)
+- **Centralización:** `subscription_service` actúa como el panel de control para gestión manual de Tenants.
+- **Seguridad:** Uso de `X-Admin-Master-Key` para operaciones críticas de soporte y override.
+
+### 3. Frontend Architecture
+- **Guards:** Implementación de `Route Guards` y `Component Protectors` consumiendo los claims `modules` y `readonly`.
+- **UI Reactiva:** Menús y botones deben ocultarse/deshabilitarse dinámicamente según la suscripción.
+
+### 4. Auditoría Estricta
+- **Master Data:** Tarea prioritaria de refactorización para compatibilidad 100% con `SubscriptionGuard`.
+- **Traceability:** Uso mandatorio de `correlation_id` en todas las respuestas `ApiResponse`.
 
 ---
 

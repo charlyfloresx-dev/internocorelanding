@@ -31,6 +31,7 @@ class AuthService:
             select(UserCompanyRole)
             .where(UserCompanyRole.user_id == user_id)
             .options(selectinload(UserCompanyRole.company))
+            .options(selectinload(UserCompanyRole.role))
         )
         result = await db.execute(stmt)
         ucr_list = result.scalars().all()
@@ -42,7 +43,8 @@ class AuthService:
                     "company_id": ucr.company.id,
                     "company_name": ucr.company.name,
                     "logo": ucr.company.logo,
-                    "is_new": ucr.is_new
+                    "is_new": ucr.is_new,
+                    "role_names": [ucr.role.name] if ucr.role else []
                 })
         return companies
 

@@ -30,7 +30,7 @@ RUN addgroup --system app && adduser --system --group app && \
 
 USER app
 
-EXPOSE 8005
+EXPOSE 8002
 
 # 5. Ejecución: Migraciones -> API
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8005"]
+CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8002"]

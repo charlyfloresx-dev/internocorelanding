@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from app.schemas.product_category import CategoryRead, CategoryCreate, CategoryUpdate
 from app.services.product_category_service import ProductCategoryService
 from common.responses import ApiResponse
-from app.dependencies import get_current_user_payload
+from app.dependencies import get_current_user
+from common.models.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()
@@ -16,9 +17,9 @@ router = APIRouter()
 @router.get("/", response_model=ApiResponse[List[CategoryRead]], summary="Listar Categorías")
 async def list_categories(
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     categories = await ProductCategoryService.get_categories(db, company_id=company_id)
     return ApiResponse(status="success", data=categories, message="Categorías recuperadas")
 
@@ -26,9 +27,9 @@ async def list_categories(
 async def create_category(
     category_in: CategoryCreate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     try:
         category = await ProductCategoryService.create_category(db, category_in=category_in, company_id=company_id)
     except IntegrityError:
@@ -41,9 +42,9 @@ async def create_category(
 async def get_category(
     category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     category = await ProductCategoryService.get_category_by_id(db, category_id=category_id, company_id=company_id)
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
@@ -54,9 +55,9 @@ async def update_category(
     category_id: uuid.UUID,
     category_in: CategoryUpdate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     category = await ProductCategoryService.get_category_by_id(db, category_id=category_id, company_id=company_id)
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
@@ -77,9 +78,9 @@ async def update_category(
 async def delete_category(
     category_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     category = await ProductCategoryService.get_category_by_id(db, category_id=category_id, company_id=company_id)
     if not category or category.company_id is None: # Protect globals
         raise HTTPException(status_code=404, detail="Categoría no encontrada o es global")

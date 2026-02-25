@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from app.schemas.product_brand import BrandRead, BrandCreate, BrandUpdate
 from app.services.product_brand_service import ProductBrandService
 from common.responses import ApiResponse
-from app.dependencies import get_current_user_payload
+from app.dependencies import get_current_user
+from common.models.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()
@@ -16,9 +17,9 @@ router = APIRouter()
 @router.get("/", response_model=ApiResponse[List[BrandRead]], summary="Listar Marcas")
 async def list_brands(
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     brands = await ProductBrandService.get_brands(db, company_id=company_id)
     return ApiResponse(status="success", data=brands, message="Marcas recuperadas")
 
@@ -26,9 +27,9 @@ async def list_brands(
 async def create_brand(
     brand_in: BrandCreate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     try:
         brand = await ProductBrandService.create_brand(db, brand_in=brand_in, company_id=company_id)
     except IntegrityError:
@@ -41,9 +42,9 @@ async def create_brand(
 async def get_brand(
     brand_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     brand = await ProductBrandService.get_brand_by_id(db, brand_id=brand_id, company_id=company_id)
     if not brand:
         raise HTTPException(status_code=404, detail="Marca no encontrada")
@@ -54,9 +55,9 @@ async def update_brand(
     brand_id: uuid.UUID,
     brand_in: BrandUpdate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     brand = await ProductBrandService.get_brand_by_id(db, brand_id=brand_id, company_id=company_id)
     if not brand:
         raise HTTPException(status_code=404, detail="Marca no encontrada")
@@ -76,9 +77,9 @@ async def update_brand(
 async def delete_brand(
     brand_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     brand = await ProductBrandService.get_brand_by_id(db, brand_id=brand_id, company_id=company_id)
     if not brand or brand.company_id is None:
         raise HTTPException(status_code=404, detail="Marca no encontrada o es global")

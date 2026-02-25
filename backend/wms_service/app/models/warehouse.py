@@ -4,25 +4,25 @@ from sqlalchemy import String, Boolean, Numeric, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from common.models import MultiTenantBase
+from common.models import Base, MultiTenantBase
 
 if TYPE_CHECKING:
     from .inventory_document import InventoryDocument
     from .inventory_snapshot import InventorySnapshot
 
-class WarehouseType(MultiTenantBase):
+class WarehouseType(MultiTenantBase, Base):
     __tablename__ = "warehouse_types"
     
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-class WarehouseGroup(MultiTenantBase):
+class WarehouseGroup(MultiTenantBase, Base):
     __tablename__ = "warehouse_groups"
     
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-class Warehouse(MultiTenantBase):
+class Warehouse(MultiTenantBase, Base):
     """
     Traducido del legacy Warehouse.cs.
     Gestión de bodegas físicas y lógicas.

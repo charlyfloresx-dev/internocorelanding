@@ -3,9 +3,9 @@ from decimal import Decimal
 from sqlalchemy import String, Boolean, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from common.models import MultiTenantBase
+from common.models import Base, MultiTenantBase
 
-class Product(MultiTenantBase):
+class Product(MultiTenantBase, Base):
     """
     Traducido del legacy Item.cs.
     Representa un artículo almacenable con propiedades de planeación y logística.

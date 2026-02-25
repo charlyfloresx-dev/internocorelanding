@@ -7,14 +7,14 @@ from sqlalchemy import String, Boolean, Numeric, Enum, ForeignKey, DateTime, fun
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from common.models import MultiTenantBase
+from common.models import Base, MultiTenantBase
 
 class PriceType(str, enum.Enum):
     LIST = "LIST"
     COST = "COST"
     TRANSFER = "TRANSFER"
 
-class ProductPrice(MultiTenantBase):
+class ProductPrice(MultiTenantBase, Base):
     __tablename__ = "product_prices"
 
     product_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), index=True)

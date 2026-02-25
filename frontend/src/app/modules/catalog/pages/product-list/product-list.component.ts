@@ -1,8 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MasterDataService } from '../../../../core/services/master-data.service';
-import { ProductRead } from '../../models/catalog.types';
-import { catchError, finalize, of } from 'rxjs';
+import { ProductRead } from '../../../../core/models/master-data.types';
+import { catchError, of } from 'rxjs';
 
 @Component({
   selector: 'app-product-list',
@@ -18,7 +18,7 @@ import { catchError, finalize, of } from 'rxjs';
       </header>
 
       <main class="bg-white rounded-lg shadow p-6 flex-1 border border-gray-200">
-        @if (loading()) {
+        @if (masterDataService.loading()) {
           <p class="text-gray-500 italic">Cargando productos desde Master Data Service...</p>
         } @else if (error()) {
           <p class="text-red-500 font-semibold">Error: {{ error() }}</p>
@@ -53,23 +53,19 @@ import { catchError, finalize, of } from 'rxjs';
   `
 })
 export class ProductListComponent implements OnInit {
-  private masterDataService = inject(MasterDataService);
+  masterDataService = inject(MasterDataService);
 
   products = signal<ProductRead[]>([]);
-  loading = signal<boolean>(true);
   error = signal<string | null>(null);
 
   ngOnInit(): void {
     this.masterDataService.getProducts().pipe(
       catchError(err => {
         this.error.set('No se pudo conectar con el servicio de Master Data. Verifique que el puerto 8003 esté disponible.');
-        return of(null);
-      }),
-      finalize(() => this.loading.set(false))
-    ).subscribe(response => {
-      if (response && response.data) {
-        this.products.set(response.data);
-      }
+        return of([]);
+      })
+    ).subscribe(products => {
+      this.products.set(products);
     });
   }
 }

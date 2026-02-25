@@ -63,6 +63,12 @@ class Settings(BaseSettings):
         "HS256"
     )
 
+    # --- Subscription Service Integration ---
+    SUBSCRIPTION_SERVICE_URL: str = os.getenv(
+        "SUBSCRIPTION_SERVICE_URL",
+        "http://subscription_service:8002"
+    )
+
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
     # --- CORS ---

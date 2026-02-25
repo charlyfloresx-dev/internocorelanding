@@ -20,9 +20,16 @@ def get_password_hash(password: str) -> str:
 hash_password = get_password_hash 
 
 def create_final_access_token(
-    subject: uuid.UUID, company_id: uuid.UUID, roles: List[str], scopes: List[str]
+    subject: uuid.UUID, 
+    company_id: uuid.UUID, 
+    roles: List[str], 
+    scopes: List[str],
+    modules: List[str] = ["auth_core", "inventory_core"],
+    status: str = "TRIAL",
+    readonly: bool = False,
+    correlation_id: Optional[str] = None
 ) -> str:
-    """Crea el JWT final que incluye roles y scopes."""
+    """Crea el JWT final que incluye roles, scopes, módulos habilitados, estado de suscripción y correlation_id."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {
         "exp": expire,
@@ -30,9 +37,32 @@ def create_final_access_token(
         "company_id": str(company_id),
         "role_names": roles,
         "scopes": scopes,
+        "modules": modules,
+        "status": status,
+        "readonly": readonly,
+        "correlation_id": correlation_id
     }
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def create_access_token(
+    subject: str,
+    company_id: str,
+    data: dict
+) -> str:
+    """
+    Función de compatibilidad para generar el token final enriquecido.
+    """
+    return create_final_access_token(
+        subject=uuid.UUID(subject),
+        company_id=uuid.UUID(company_id),
+        roles=data.get("role_names", []),
+        scopes=data.get("scopes", []),
+        modules=data.get("modules", ["auth_core", "inventory_core"]),
+        status=data.get("status", "TRIAL"),
+        readonly=data.get("readonly", False),
+        correlation_id=data.get("correlation_id")
+    )
 
 def decode_token(token: str) -> Optional[dict]:
     try:

@@ -7,6 +7,9 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class SelectCompanyRequest(BaseModel):
+    company_id: UUID
+
 class CompanySelection(BaseModel):
     """Estructura de cada empresa en la lista de selección."""
     # CORRECCIÓN: Tipo UUID en lugar de str
@@ -16,6 +19,12 @@ class CompanySelection(BaseModel):
     role_names: List[str]
     is_new: bool = False # Esencial para el flujo de bienvenida de la demo [cite: 2026-01-27]
 
+    model_config = ConfigDict(from_attributes=True)
+
+class LoginResponseData(BaseModel):
+    selection_token: str
+    companies: List[CompanySelection]
+    
     model_config = ConfigDict(from_attributes=True)
 
 class CompanyAccessDto(BaseModel):
@@ -38,8 +47,10 @@ class AccessTokenResponse(BaseModel):
     # CORRECCIÓN: Tipo UUID
     user_id: UUID
     company_id: UUID
-    roles: List[str]
-    permissions: List[str]
+    roles: List[str] = [] 
+    permissions: List[str] = []
+
+    scopes: List[str] = [] # Added scopes to match endpoint usage
     
     model_config = ConfigDict(from_attributes=True)
 

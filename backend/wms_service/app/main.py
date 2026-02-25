@@ -2,7 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.endpoints import inventory
 
-app = FastAPI(title="WMS Service", version="1.0.0")
+app = FastAPI(
+    title="WMS Service", 
+    version="1.0.0",
+    openapi_version="3.0.2",
+    docs_url="/docs",
+    openapi_url="/api/v1/openapi.json"
+)
 
 # Habilitar CORS para permitir peticiones desde el frontend
 app.add_middleware(

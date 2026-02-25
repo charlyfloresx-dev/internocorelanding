@@ -12,7 +12,10 @@ from common.exceptions import DomainException
 app = FastAPI(
     title="Master Data Service",
     version="1.0.0",
-    description="Single Source of Truth for Products, UOMs, and Business Partners."
+    description="Single Source of Truth for Products, UOMs, and Business Partners.",
+    openapi_version="3.0.2",
+    docs_url="/docs",
+    openapi_url="/api/v1/openapi.json"
 )
 
 # Leer orígenes permitidos desde variable de entorno (CSV)
@@ -21,10 +24,11 @@ origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 # 1. Configuración de Seguridad (CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-Company-Id", "Authorization"],
+    expose_headers=["*"],
 )
 
 # Handler para excepciones de dominio (Clean Architecture)

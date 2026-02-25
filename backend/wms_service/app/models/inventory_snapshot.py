@@ -3,9 +3,9 @@ from sqlalchemy import Numeric, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from common.models import MultiTenantBase
+from common.models import Base, MultiTenantBase
 
-class InventorySnapshot(MultiTenantBase):
+class InventorySnapshot(MultiTenantBase, Base):
     """
     Representa el stock actual valorizado.
     Fuente única de verdad para existencias y costo promedio (CPP).

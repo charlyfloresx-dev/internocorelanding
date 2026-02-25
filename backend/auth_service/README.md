@@ -14,7 +14,21 @@ Este servicio es el núcleo de seguridad y gestión de identidad de **InternoCor
 
 ### Fase 2: Contextualización (Empresa)
 * **Endpoint:** `POST /api/v1/auth/select-company`
-* **Output (`ApiResponse`):** `access_token` (8 horas) con claims de `company_id` y `permissions`.
+* **Output (`ApiResponse`):** `access_token` enriquecido con `modules`, `status` y `readonly`.
+
+---
+
+## 🛰️ Integración con Subscription Service
+El `auth_service` actúa como cliente del `subscription_service` (Puerto 8002) durante la Fase 2 del Handshake.
+
+### Resiliencia y Fallback
+Para garantizar la continuidad operativa, el sistema implementa un modo de **Fallo Seguro**:
+- **Si el servicio de suscripciones no responde:** Se otorga acceso restringido con los módulos `['auth_core', 'inventory_core']` y la bandera `readonly: true`.
+- **Trazabilidad:** Cada handshake genera un `correlation_id` único que se viaja en el JWT y vincula los logs de ambos servicios.
+
+### Reglas de Negocio en Token Final
+- **Status EXPIRED:** Deniega la emisión del token (402 Payment Required).
+- **Status PAST_DUE:** Permite el acceso pero fuerza `readonly: true` (Modo Lectura por periodo de gracia).
 
 ---
 

@@ -1,61 +1,57 @@
 import asyncio
 import uuid
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
-import os
-import sys
-
-# Asegurar que el path incluya la raíz para importar 'common' y 'app'
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from datetime import datetime, timezone
+from sqlalchemy import text
+from app.db.db import AsyncSessionLocal
 from app.models.uom import UOM
-from common.domain.entities import MultiTenantBase
 
-# URL de base de datos desde entorno (conecto a master_data_db)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@postgres-db:5432/master_data_db")
-
-async def seed_data():
-    print("🚀 Iniciando Seed de Master Data...")
+async def seed_master_data():
+    print("🚀 [SEED] Iniciando carga de datos maestros...")
     
-    engine = create_async_engine(DATABASE_URL, echo=False)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    # ID de empresa para modo DEMO / Pruebas
+    demo_company_id = uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")
+    user_id = uuid.UUID("66627167-32d9-4d20-991a-bf3f51cdb18d")
 
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         try:
-            # 1. Crear tablas si no existen (alternativa a alembic para el seed)
-            async with engine.begin() as conn:
-                await conn.run_sync(MultiTenantBase.metadata.create_all)
+            # 1. Limpieza (Asegúrate de que el nombre coincide con el __tablename__ de tu modelo UOM)
+            # Si tu modelo dice __tablename__ = 'uoms', usa uoms.
+            await session.execute(text("TRUNCATE TABLE uoms RESTART IDENTITY CASCADE;"))
             
-            # 2. Definir datos de UOM Globales
-            uoms_to_seed = [
-                UOM(code="KG", name="Kilogramo", plural="Kilogramos", translation_key="uom_kg", company_id=None),
-                UOM(code="UN", name="Unidad", plural="Unidades", translation_key="uom_un", company_id=None),
-                UOM(code="LB", name="Libra", plural="Libras", translation_key="uom_lb", company_id=None),
-                UOM(code="M", name="Metro", plural="Metros", translation_key="uom_m", company_id=None),
-            ]
-
-            # 3. Insertar datos evitando duplicados (UniqueConstraint code+company_id)
-            for uom in uoms_to_seed:
-                result = await session.execute(
-                    select(UOM).where(UOM.code == uom.code, UOM.company_id == None)
+            # 2. Datos de Unidades de Medida
+            uoms = [
+                UOM(
+                    id=uuid.uuid4(),
+                    company_id=demo_company_id,
+                    code="UN",
+                    name="Unidad",
+                    plural="Unidades",
+                    is_active=True,
+                    created_at=datetime.now(timezone.utc),
+                    created_by=user_id,
+                    version_id=1
+                ),
+                UOM(
+                    id=uuid.uuid4(),
+                    company_id=demo_company_id,
+                    code="KG",
+                    name="Kilogramo",
+                    plural="Kilogramos",
+                    is_active=True,
+                    created_at=datetime.now(timezone.utc),
+                    created_by=user_id,
+                    version_id=1
                 )
-                existing = result.scalars().first()
-                
-                if not existing:
-                    session.add(uom)
-                    print(f"✅ UOM {uom.code} agregada.")
-                else:
-                    print(f"ℹ️ UOM {uom.code} ya existe.")
-
+            ]
+            
+            session.add_all(uoms)
             await session.commit()
-            print("🎉 Seed de Master Data finalizado exitosamente.")
-
+            print("✅ Seed finalizado: UOMs (UN, KG) cargadas correctamente.")
+            
         except Exception as e:
             await session.rollback()
-            print(f"❌ Error durante el seed: {e}")
-        finally:
-            await engine.dispose()
+            print(f"❌ Error en seed: {e}")
+            raise e
 
 if __name__ == "__main__":
-    asyncio.run(seed_data())
+    asyncio.run(seed_master_data())

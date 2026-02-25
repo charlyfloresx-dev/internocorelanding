@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.models import Base
+from app.models.base import Base
 
 class RolePermission(Base):
     __tablename__ = "role_permissions"

@@ -1,51 +1,70 @@
-import os
-import sys
+import asyncio
 import asyncio
 from logging.config import fileConfig
+import sys
+import os
 
 from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
 from alembic import context
 
-# 1. Asegurar que Python encuentre la carpeta 'app'
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
+# 1. Configurar el Path para encontrar 'app' y 'common'
+sys.path.append("/app")
+sys.path.append("/app/auth_service")
 
-from app.core.config import settings
-# Importamos Base y todos los modelos para que Alembic los detecte
-from app.models import Base, User, Company, Role, Permission, RolePermission, UserCompanyRole
+# 2. Importar Configuración y Modelos
+from app.core.config import settings # type: ignore
+# Al importar 'Base' desde el paquete 'app.models', el __init__.py se encarga
+# de cargar todos los modelos y registrarlos en la metadata.
+from app.models import Base # type: ignore
 
-# Interpret config file for Python logging
+# 3. Configuración de Alembic
 config = context.config
-if config.config_file_name is not None:
-    try:
-        fileConfig(config.config_file_name)
-    except Exception as e:
-        print(f"⚠️ Warning: No se pudo cargar la config de logging: {e}")
+
+# Interpretar el archivo de configuración de log
+# if config.config_file_name is not None:
+#     # Comentado para evitar el KeyError: 'formatters' y usar el logging por defecto.
+#     fileConfig(config.config_file_name)
+# Sobrescribir la URL de la base de datos con la variable de entorno
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 
-def do_run_migrations(connection):
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        connection=connection, 
+        url=url,
         target_metadata=target_metadata,
-        # 'typing.' para Mapped[List[str]] y 'postgresql.' para JSONB
-        user_module_prefix="typing.",
-        include_object=None,
-        render_as_batch=False  # En Postgres no es necesario batch
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
+
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(connection=connection, target_metadata=target_metadata)
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
 async def run_migrations_online() -> None:
-    """Modo Online: Conecta a la base de datos usando el driver asíncrono."""
-    url = settings.DATABASE_URL
+    """Run migrations in 'online' mode."""
+    configuration = config.get_section(config.config_ini_section)
+    if configuration is None:
+        configuration = {}
     
-    # Inyectar asyncpg si no está presente (AWS/Local compatibility)
-    if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    
-    connectable = create_async_engine(
-        url,
+    # Asegurar que usamos la URL correcta
+    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+
+    connectable = async_engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
@@ -54,22 +73,6 @@ async def run_migrations_online() -> None:
 
     await connectable.dispose()
 
-def run_migrations_offline() -> None:
-    """Modo Offline."""
-    url = settings.DATABASE_URL
-    if url.startswith("postgresql://"):
-        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        user_module_prefix="typing."
-    )
-
-    with context.begin_transaction():
-        context.run_migrations()
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from app.schemas.uom import UOMRead, UOMCreate, UOMUpdate
 from app.services.uom_service import UOMService
 from common.responses import ApiResponse
-from app.dependencies import get_current_user_payload
+from app.dependencies import get_current_user
+from common.models.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()
@@ -17,12 +18,12 @@ router = APIRouter()
 @router.get("/", response_model=ApiResponse[List[UOMRead]], summary="Listar Unidades de Medida")
 async def list_uoms(
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
     """
     Devuelve una lista de todas las Unidades de Medida (UM) para la compañía actual.
     """
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     uoms = await UOMService.get_uoms_by_company(db, company_id=company_id)
     return ApiResponse(
         status="success",
@@ -34,9 +35,9 @@ async def list_uoms(
 async def create_uom(
     uom_in: UOMCreate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     try:
         uom = await UOMService.create_uom(db, uom_in=uom_in, company_id=company_id)
     except IntegrityError:
@@ -56,9 +57,9 @@ async def create_uom(
 async def get_uom(
     uom_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
     if not uom:
         raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")
@@ -74,9 +75,9 @@ async def update_uom(
     uom_id: uuid.UUID,
     uom_in: UOMUpdate,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
     if not uom:
         raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")
@@ -100,9 +101,9 @@ async def update_uom(
 async def delete_uom(
     uom_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    payload: dict = Depends(get_current_user_payload),
+    current_user: UserContext = Depends(get_current_user),
 ):
-    company_id = uuid.UUID(payload.get("company_id"))
+    company_id = current_user.company_id
     uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
     if not uom:
         raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")

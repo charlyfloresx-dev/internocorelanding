@@ -4,7 +4,8 @@ from typing import List, Optional
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
+from common.security.auth_payload import TokenPayload
 
 # Asumimos que la configuración se importa desde un módulo central
 # from app.core.config import settings
@@ -22,14 +23,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 # --- Schemas de Seguridad ---
 
-class TokenPayload(BaseModel):
-    """
-    Define el payload esperado dentro del JWT.
-    'sub' es el estándar para el ID de usuario.
-    """
-    sub: uuid.UUID
-    company_id: uuid.UUID
-    scopes: List[str] = []
+# TokenPayload is now imported from common.security.auth_payload
 
 class SecurityContext(BaseModel):
     """
