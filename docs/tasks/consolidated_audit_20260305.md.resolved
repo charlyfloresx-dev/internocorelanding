@@ -1,0 +1,49 @@
+# Consolidated Tasks - 2026-03-05
+
+## 🏁 Completed Today
+
+### 🌐 Frontend & Security
+- [x] **Global Interceptors**: Implemented [api.interceptor.ts](file:///c:/API/interno/frontend/src/app/core/interceptors/api.interceptor.ts) and refactored [auth.interceptor.ts](file:///c:/API/interno/frontend/src/app/core/interceptors/auth.interceptor.ts).
+- [x] **Multi-Tenancy**: Implemented [multi-tenant.interceptor.ts](file:///c:/API/interno/frontend/src/app/core/interceptors/multi-tenant.interceptor.ts) for automated `X-Company-Id` injection.
+- [x] **Handshake Logic**: Updated [handshake.guard.ts](file:///c:/API/interno/frontend/src/app/core/guards/handshake.guard.ts) for strict tenant selection.
+
+### 🏭 MES Service (Operational Pulse)
+- [x] **Core Models**: [WorkOrder](file:///c:/API/interno/backend/mes_service/app/models/work_order.py#8-23), [Resource](file:///c:/API/interno/backend/mes_service/app/models/resource.py#7-17), [StandardTime](file:///c:/API/interno/backend/mes_service/app/models/standard_time.py#7-16), [ProductionRun](file:///c:/API/interno/backend/mes_service/app/models/production_run.py#8-28), [DowntimeEvent](file:///c:/API/interno/backend/mes_service/app/models/downtime_event.py#7-19), [LaborAllocation](file:///c:/API/interno/backend/mes_service/app/models/labor_allocation.py#7-13).
+- [x] **Mathematical Engine**: [ManufacturingMath](file:///c:/API/interno/backend/mes_service/app/core/services/manufacturing_math.py#1-55) service for OEE (Availability, Efficiency, Quality), LMPU, and TakTime.
+- [x] **Efficiency Metrics**: [RunMetricsSnapshot](file:///c:/API/interno/backend/mes_service/app/models/run_metrics_snapshot.py#6-19) for immutable KPI storage.
+- [x] **Transactional Pulse**: 
+    - [x] [ScheduleProductionCommand](file:///c:/API/interno/backend/mes_service/app/core/commands/schedule_production.py#8-53): Shift/Resource allocation.
+    - [x] [ReportHourlyProductionCommand](file:///c:/API/interno/backend/mes_service/app/core/commands/report_hourly_production.py#12-87): Atomic reporting with concurrency protection.
+    - [x] [CloseProductionRunCommand](file:///C:/API/interno/backend/mes_service/app/core/commands/close_production_run.py#13-80): Final KPI calculation.
+- [x] **Quality**: [ScrapEntry](file:///c:/API/interno/backend/mes_service/app/models/scrap_entry.py#6-17) model and Quality factor integration in OEE.
+
+### 🔄 Service Integration (Resilient Backflushing)
+- [x] **Event Emission**: MES now emits [ProductionReported](file:///c:/API/interno/backend/inventory_service/app/events/consumers/production_consumer.py#14-135) events.
+- [x] **Inventory Consumer**: [ProductionReportedConsumer](file:///c:/API/interno/backend/inventory_service/app/events/consumers/production_consumer.py#14-135) implemented.
+- [x] **Deferred Backflushing**: Implemented "Shadow Deduction" (allowing negative stock) and `BackflushErrorLog` to ensure manufacturing reports never block.
+- [x] **BOM Support**: Created [BOM](file:///c:/API/interno/archive/legacy-dotnet/src/Interno.Inventory/Models/Catalog/BOM.cs#5-31) model for material explosion.
+- [x] **Monitoring**: Notification trigger for `InventoryAlertGenerated`.
+- [x] **Reconciliation Worker (Phase 14)**: Background process with **Exponential Backoff** and **Circuit Breaker** (Manual Review) to resolve backflushing errors.
+- [x] **BOM Management (Phase 15)**: Full CRUD API for Bill of Materials with legacy .NET depth levels and UOM support.
+- [x] **Industrial Stock Control**: Added Safety Stock and Reorder Points to the persistence layer.
+- [x] **Notification Reliability**: Persistent **Idempotency Guard** and real **Email/Push** provider logic.
+- [x] **Transactional Traceability**: [MovementConcept](file:///c:/API/interno/backend/inventory_service/app/models/concept.py#11-26) implementation for categorized auditing.
+- [x] **Stale Monitoring**: [TransitAgeWorker](file:///c:/API/interno/backend/inventory_service/app/core/workers/transit_worker.py#10-49) for automated >24h in-transit alerts.
+- [x] **LMPU Benchmarking**: Improvement % calculation vs historical targets.
+- [x] **DevOps Readiness**: Automated ECR deployment scripts for microservices.
+
+---
+
+## 🔍 Audit: Pending Points / Technical Debt
+
+### 🏭 Manufacturing & Inventory
+- [ ] **OperatorSkills**: Advanced skill-based labor allocation logic (planned).
+
+### 📢 Communications & Infrastructure
+- [x] **Notification Providers**: Implementation of Email and Push providers (simulation logic).
+- [x] **Idempotency Guard**: Event deduplication (Persistent ProcessedEvent table).
+- [x] **Transit-Age Worker**: Automation for stale stock alerts.
+- [x] **CI/CD & DevOps (Assets)**: ECR push scripts developed.
+
+### 🧪 Quality Assurance
+- [ ] **E2E Integration Tests**: Playwright/Cypress tests for the full "Report -> Backflush -> Alert" flow.

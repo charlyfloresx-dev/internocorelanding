@@ -1,25 +1,29 @@
 import uuid
+from typing import Optional, TYPE_CHECKING
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func
+from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from common.models.base_models import MultiTenantBase
+
+if TYPE_CHECKING:
+    from .production_run import ProductionRun
 
 class ManufacturingLedger(MultiTenantBase):
     """El libro mayor de piezas (Manufacturing Ledger)."""
     __tablename__ = "mes_manufacturing_ledger"
 
-    resource_result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_resource_results.id"), nullable=False)
+    production_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_production_runs.id"), nullable=False)
     sku: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     qty: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=1.0)
     transaction_type: Mapped[str] = mapped_column(String(20), default="SCAN") # SCAN, ADJ, SCRAP
     external_folio: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    sequence_number: Mapped[int] = mapped_column(Integer, nullable=True) # Secuencia por turno/recurso
+    sequence_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Secuencia por turno/recurso
     local_txn_id: Mapped[Optional[uuid.UUID]] = mapped_column(unique=True, index=True, nullable=True)
     is_synced: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relaciones
-    production_result: Mapped["ResourceResult"] = relationship(back_populates="ledger_entries")
+    production_run: Mapped["ProductionRun"] = relationship(back_populates="ledger_entries")
 
 class Tracking(MultiTenantBase):
     """Trazabilidad granular (PO/MO/CO/WO) por pieza."""

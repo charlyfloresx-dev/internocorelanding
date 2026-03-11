@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { InventoryService } from '../../core/services/inventory.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-general-dashboard',
@@ -42,14 +43,31 @@ import { InventoryService } from '../../core/services/inventory.service';
           <div class="text-xs text-slate-500 mt-2">Módulo en construcción</div>
         </div>
       </div>
+
+      <!-- BANNER DE RESCATE (God Mode active intervention) -->
+      <div *ngIf="isRescueModeActive()" class="bg-amber-900/20 border border-amber-500/50 p-4 rounded-xl flex items-center gap-4 animate-pulse">
+        <div class="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center text-white">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h4 class="text-amber-500 font-bold text-sm">Rescate Técnico Activo</h4>
+          <p class="text-amber-200/70 text-xs">Su empresa cuenta con acceso extendido por soporte técnico.</p>
+        </div>
+      </div>
     </div>
   `
 })
 export class GeneralDashboardComponent implements OnInit {
   private inventoryService = inject(InventoryService);
+  private authService = inject(AuthService);
 
   totalItems = computed(() => this.inventoryService.items().length);
   lowStockItems = computed(() => this.inventoryService.items().filter(i => i.stockQuantity < 10).length);
+
+  isRescueModeActive = computed(() => {
+    const permissions = this.authService.currentContext()?.permissions || [];
+    return permissions.includes('system.rescue.active');
+  });
 
   ngOnInit() {
     this.inventoryService.loadItems();

@@ -1,0 +1,71 @@
+﻿python : Traceback (most recent call last):
+At line:1 char:1
++ python 
+backend\inventory_service\scripts\seed.py > 
+inv_seed_error_3.t ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Tra 
+   ceback (most recent call last)::String) [],   
+  RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Python314\Lib\site-packages\sqlalchemy
+\sql\schema.py", line 226, in _init_items
+    spwd = item._set_parent_with_dispatch
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'UUID' has no 
+attribute '_set_parent_with_dispatch'
+
+The above exception was the direct cause of the 
+following exception:
+
+Traceback (most recent call last):
+  File "C:\API\interno\backend\inventory_service\
+scripts\seed.py", line 22, in <module>
+    from app.models.concept import 
+MovementConcept, ConceptType
+  File "C:\API\interno\backend\inventory_service\
+app\models\concept.py", line 11, in <module>
+    class MovementConcept(MultiTenantBase, 
+AuditBase):
+    ...<13 lines>...
+            return 
+f"<MovementConcept(name='{self.name}', 
+type={self.type})>"
+  File "C:\API\interno\backend\inventory_service\
+app\models\concept.py", line 18, in 
+MovementConcept
+    id: Mapped[uuid.UUID] = 
+mapped_column(uuid.UUID, primary_key=True, 
+default=uuid.uuid4)
+                            ~~~~~~~~~~~~~^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy
+\orm\_orm_constructors.py", line 355, in 
+mapped_column
+    return MappedColumn(
+        __name_pos,
+    ...<35 lines>...
+        **kw,
+    )
+  File "C:\Python314\Lib\site-packages\sqlalchemy
+\orm\properties.py", line 585, in __init__
+    self.column = cast("Column[_T]", 
+Column(*arg, **kw))
+                                     
+~~~~~~^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy
+\sql\schema.py", line 2167, in __init__
+    self._init_items(*cast(_typing_Sequence[Schem
+aItem], l_args))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\site-packages\sqlalchemy
+\sql\schema.py", line 228, in _init_items
+    raise exc.ArgumentError(
+    ...<2 lines>...
+    ) from err
+sqlalchemy.exc.ArgumentError: 'SchemaItem' 
+object, such as a 'Column' or a 'Constraint' 
+expected, got <class 'uuid.UUID'>

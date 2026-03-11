@@ -41,13 +41,13 @@ dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 # Imports de base de datos y modelos
-from app.core.database import engine
-from app.models import Base, User 
-from seed_auth import seed
+from app.core.database import engine, AsyncSessionLocal
+from app.models import Base, User
 
 # Estructura del sistema Interno Core
 from common.responses import ApiResponse
 from app.api.v1.api import api_router
+from app.api.v2.api import api_router as v2_api_router
 from app.core.config import settings
 
 # Middlewares
@@ -79,14 +79,13 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
         logger.info("✅ Esquema sincronizado.")
 
-    logger.info("Verificando si se necesita el seed inicial...")
-    async with AsyncSession(engine) as session:
+    logger.info("Verificando existencia de usuarios...")
+    async with AsyncSessionLocal() as session:
         result = await session.execute(select(User))
         if not result.scalars().first():
-            logger.info("🌱 Base de datos vacía. Ejecutando seed...")
-            await seed()
+            logger.warning("⚠️ Base de datos vacía. Se recomienda ejecutar scripts/seed.py manualmente si el CMD falló.")
         else:
-            logger.info("ℹ️ Base de datos ya poblada. Saltando seed.")
+            logger.info("ℹ️ Base de datos ya poblada.")
 
     yield
     logger.info("🛑 Apagando InternoCore Auth-Service...")
@@ -123,6 +122,7 @@ app.add_middleware(TenantSecurityMiddleware)
 
 # --- RUTAS ---
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(v2_api_router, prefix="/api/v2")
 
 # --- MANEJO DE ERRORES ---
 @app.exception_handler(StarletteHTTPException)

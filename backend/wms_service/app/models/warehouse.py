@@ -46,7 +46,27 @@ class Warehouse(MultiTenantBase, Base):
     warehouse_group: Mapped[Optional["WarehouseGroup"]] = relationship()
     documents: Mapped[List["InventoryDocument"]] = relationship("InventoryDocument", back_populates="warehouse", lazy="select")
     snapshots: Mapped[List["InventorySnapshot"]] = relationship("InventorySnapshot", back_populates="warehouse", lazy="select")
+    zones: Mapped[List["Zone"]] = relationship("Zone", back_populates="warehouse", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("company_id", "code", name="uq_warehouse_company_code"),
+    )
+
+class Zone(MultiTenantBase, Base):
+    """
+    Representa una zona lógica dentro de un almacén (p.e. Recepción, Almacenamiento, Calidad).
+    """
+    __tablename__ = "warehouse_zones"
+
+    code: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=False)
+    
+    # Relationships
+    warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="zones")
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "warehouse_id", "code", name="uq_zone_warehouse_code"),
     )

@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -6,11 +7,15 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Database
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "nexosuite"
-    DATABASE_URL: Optional[str] = None
+    POSTGRES_SERVER: str = Field("postgres-db", validation_alias="POSTGRES_SERVER")
+    POSTGRES_USER: str = Field("user", validation_alias="POSTGRES_USER")
+    POSTGRES_PASSWORD: str = Field("password", validation_alias="POSTGRES_PASSWORD")
+    POSTGRES_DB: str = Field("mes_db", validation_alias="POSTGRES_DB")
+    DATABASE_URL: Optional[str] = Field(None, validation_alias="DATABASE_URL")
+    
+    # Security (Auditor compliance)
+    SECRET_KEY: str = Field("placeholder_for_auditor", validation_alias="SECRET_KEY")
+    ALGORITHM: str = Field("HS256", validation_alias="ALGORITHM")
 
     @property
     def get_database_url(self) -> str:

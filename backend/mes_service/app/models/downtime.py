@@ -1,15 +1,18 @@
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from common.models.base_models import MultiTenantBase
+
+if TYPE_CHECKING:
+    from .production_run import ProductionRun
 
 class DowntimeReason(MultiTenantBase):
     """Catálogo de razones de paro (Issues)."""
     __tablename__ = "mes_downtime_reasons"
 
-    code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    code: Mapped[str] = mapped_column(String(20), index=True)
     name: Mapped[str] = mapped_column(String(100))
     category: Mapped[str] = mapped_column(String(50)) # Mantenimiento, Calidad, etc.
 
@@ -18,7 +21,7 @@ class Downtime(MultiTenantBase):
     __tablename__ = "mes_downtimes"
 
     guid: Mapped[uuid.UUID] = mapped_column(default=uuid.uuid4, unique=True)
-    resource_result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_resource_results.id"), nullable=False)
+    production_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_production_runs.id"), nullable=False)
     reason_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("mes_downtime_reasons.id"), nullable=True)
     
     request_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True) # Quién reportó el paro
@@ -40,7 +43,7 @@ class Downtime(MultiTenantBase):
     last_escalation_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relaciones
-    production_result: Mapped["ResourceResult"] = relationship(back_populates="downtimes")
+    production_run: Mapped["ProductionRun"] = relationship(back_populates="downtimes")
     reason: Mapped[Optional["DowntimeReason"]] = relationship()
 
     @property

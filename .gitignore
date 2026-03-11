@@ -99,6 +99,7 @@ mock_*.json
 wms_api_test.db
 postgres_data/
 pgdata/
+.gemini/antigravity/brain/
 
 # --- AWS / Terraform ---
 .terraform/

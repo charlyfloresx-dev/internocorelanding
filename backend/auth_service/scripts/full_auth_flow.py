@@ -3,7 +3,7 @@ import json
 import jwt
 
 BASE_URL = "http://localhost:8001/api/v1/auth"
-CREDENTIALS = {"email": "admin@interno.com", "password": "admin123456"}
+CREDENTIALS = {"email": "charly@interno.com", "password": "charly123"}
 
 def run_full_flow():
     print("\n🚀 INICIANDO FLUJO DE AUDENTICACIÓN COMPLETO (AUDITORÍA DE ROLES)")
@@ -17,9 +17,11 @@ def run_full_flow():
         login_data = r_login.json()["data"]
         
         sel_token = login_data["selection_token"]
-        target_company = login_data["companies"][0]
+        target_company = next((c for c in login_data["companies"] if "Tijuana" in c["company_name"]), login_data["companies"][0])
         
         print(f"✅ Login exitoso. Selection Token listo.")
+        print("\n📄 [JSON DE LOGIN COMPLETO]:")
+        print(json.dumps(r_login.json(), indent=4, ensure_ascii=False))
     except Exception as e:
         print(f"❌ Error en Paso 1: {e}")
         return
@@ -60,6 +62,7 @@ def run_full_flow():
         print("🔒 DATOS DENTRO DEL JWT (Cifrado):")
         print(f"   - Role Names: {decoded.get('role_names', '⚠️ No encontrado')}")
         print(f"   - Scopes:     {decoded.get('scopes', '⚠️ No encontrado')}")
+        print(f"   - Group ID:   {decoded.get('group_id', '⚠️ No encontrado')}")
         print("="*40)
 
         # Imprimimos el JSON completo por si quieres ver los metadatos

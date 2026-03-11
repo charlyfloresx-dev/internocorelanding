@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@theme {
+--color-ic-dark: #020810;
+--color-ic-slate: #0B1420;
+--color-ic-cyan: #00E5FF;
+--color-primary: #00E5FF;
+}
+
+@layer base {
+.dark {
+--color-surface-bg: var(--color-ic-dark);
+--color-surface-card: var(--color-ic-slate);
+--color-surface-text: #F8FAFC;
+--color-surface-border: rgba(0, 229, 255, 0.1);
+}
+body {
+@apply bg-surface-bg text-surface-text font-sans antialiased;
+}
+}
+
+@layer components {
+.industrial-card {
+@apply bg-surface-card border border-surface-border rounded-xl relative overflow-hidden;
+}
+}

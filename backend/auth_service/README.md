@@ -1,82 +1,28 @@
-markdown
-# 🔐 Auth Service (Identity & Tenancy)
+# 🔐 Auth Service (Port 8000)
 
-Este servicio es el núcleo de seguridad y gestión de identidad de **InternoCore**. Implementa un modelo de aislamiento de datos estricto basado en el ADN del proyecto.
+El **Auth Service** es el núcleo de identidad de **Interno Core**. Es el único servicio con autoridad para firmar tokens JWT y gestionar el ciclo de vida de la autenticación multi-tenant.
 
----
+## 🛡️ Seguridad Zero-Trust
+Interno Core sigue una arquitectura **Zero-Trust**. Bajo este esquema:
+- **Firma Centralizada**: El Auth Service firma los tokens utilizando una clave compartida (`INT_SECRET_KEY`) o par de llaves.
+- **Validación Criptográfica**: Los demás microservicios no consultan la base de datos de Auth; validan el JWT en cada petición para confirmar la identidad.
+- **Aislamiento de Contexto**: La identidad reside exclusivamente en el header `Authorization: Bearer <token>`.
 
-## 🔄 Flujo de Autenticación de Dos Tiempos (Handshake)
+## 🔄 Protocolo de Identidad (Handshake T1 / T2)
+Para garantizar el aislamiento entre empresas, se utiliza un flujo de dos fases:
 
-### Fase 1: Discovery (Identidad)
-* **Endpoint:** `POST /api/v1/auth/login`
-* **Output (`ApiResponse`):** `selection_token` y array de `companies`.
-* **Flag `is_new`:** Ubicado dentro de cada objeto en `companies`. Determina la necesidad de Onboarding.
+1. **Paso 1 (Login - T1):** El usuario envía credenciales a `/login`. Si son válidas, recibe un `selection_token` (T1) de solo lectura y la lista de empresas a las que tiene acceso.
+2. **Paso 2 (Selección - T2):** El usuario envía el T1 al endpoint `/select-company`. El servicio valida la suscripción y emite el `access_token` (T2) definitivo con el contexto de la empresa seleccionada.
 
-### Fase 2: Contextualización (Empresa)
-* **Endpoint:** `POST /api/v1/auth/select-company`
-* **Output (`ApiResponse`):** `access_token` enriquecido con `modules`, `status` y `readonly`.
+## 📖 Diccionario de Claims (JWT Payload)
+El payload final del JWT está estandarizado para todo el ecosistema:
+- `sub`: UUID único del usuario.
+- `company_id`: UUID de la empresa activa.
+- `group_id`: UUID del cluster corporativo (Holding).
+- `roles`: Array de roles (ej. `["ADMIN", "OPERATOR"]`).
+- `modules`: Módulos habilitados por suscripción (ej. `["wms", "mes"]`).
+- `readonly`: Booleano que bloquea escrituras si hay impagos.
+- `trace_id`: ID para trazabilidad distribuida (`X-Trace-Id`).
 
----
-
-## 🛰️ Integración con Subscription Service
-El `auth_service` actúa como cliente del `subscription_service` (Puerto 8002) durante la Fase 2 del Handshake.
-
-### Resiliencia y Fallback
-Para garantizar la continuidad operativa, el sistema implementa un modo de **Fallo Seguro**:
-- **Si el servicio de suscripciones no responde:** Se otorga acceso restringido con los módulos `['auth_core', 'inventory_core']` y la bandera `readonly: true`.
-- **Trazabilidad:** Cada handshake genera un `correlation_id` único que se viaja en el JWT y vincula los logs de ambos servicios.
-
-### Reglas de Negocio en Token Final
-- **Status EXPIRED:** Deniega la emisión del token (402 Payment Required).
-- **Status PAST_DUE:** Permite el acceso pero fuerza `readonly: true` (Modo Lectura por periodo de gracia).
-
----
-
-## 🛡️ Seguridad y Multi-Tenancy
-
-### Cabecera Obligatoria: `X-Company-ID`
-El middleware de seguridad valida que el ID en la cabecera coincida con el del `access_token`. Cualquier discrepancia resulta en `403 Forbidden`.
-
-
-
----
-
-## 📅 Roadmap de Fases (Estatus del Proyecto)
-
-### ✅ FASES COMPLETADAS
-1. **Core Auth & Handshake:** Backend listo para emitir tokens de dos niveles.
-2. **Standard Response:** Implementación del middleware `InternoCoreGlobalMiddleware` para el formato unificado JSON.
-3. **Data Mirroring:** Sincronización de entidades `BaseEntity` y `MultiTenantBase` con el ADN .NET.
-
-### ⏳ FASES PENDIENTES (Prioridad Alta)
-
-#### 1. Control de Flujo UI (Frontend Guard)
-* **Estado:** Pendiente.
-* **Objetivo:** Implementar la guardia de navegación que evalúe el flag `is_new`. Si es `true`, debe bloquear el acceso al `/dashboard` y forzar la redirección a `/onboarding`.
-* **Regla:** El usuario no puede salir del onboarding hasta que el backend actualice su estatus de "new" a "active".
-
-#### 2. Autorización por Permisos (RBAC)
-* **Estado:** Pendiente.
-* **Objetivo:** Configurar el `NavigationService` en Angular para que consuma el array `permissions` del `access_token`. 
-* **Regla:** Los módulos (WMS, MES, QMS) deben ocultarse dinámicamente si el permiso correspondiente no está presente en el token.
-
-#### 3. Despliegue e Infraestructura AWS
-* **Estado:** Programado (Mañana).
-* **Objetivo:**
-    - Configurar **ECR** para las imágenes de Docker del `auth-service`.
-    - Implementar **S3 + CloudFront** para el hosting del frontend.
-    - Asegurar que el sistema funcione bajo la misma lógica tanto **On-Premise** como en **AWS VPC**.
-
-
-
----
-
-## 🔍 Guía para el Agente (Auditoría)
-Al trabajar en fases pendientes, el agente debe verificar:
-1. ¿El cambio respeta el aislamiento de datos (Multi-tenancy)?
-2. ¿Se mantiene el formato de respuesta `ApiResponse`?
-3. ¿Las nuevas rutas de Angular están protegidas por el `AuthGuard`?
-
-## 🛡️ Auditoría de Integridad
-Para verificar la salud de los datos y el cumplimiento de normas multi-tenant:
-`docker compose exec auth-service python -m app.scripts.integrity_scan`
+## 🏢 Jerarquía y Clusters
+Mediante el `group_id`, el sistema soporta estructuras de holdings. Esto permite que empresas del mismo grupo (ej. "Corporativo Norte") compartan catálogos de Master Data y realicen transferencias de inventario inter-company validadas por cluster.

@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED 1
 
 # --- CONFIGURACIÓN DE RUTAS ---
 # PYTHONPATH incluye /app (raíz del servicio) y /app/common (ADN compartido)
-ENV PYTHONPATH=/app:/app/common
+ENV PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -34,9 +34,7 @@ COPY wms_service/alembic /app/alembic
 COPY wms_service/alembic.ini /app/alembic.ini
 
 # --- CORRECCIÓN DE LA SEED ---
-# Creamos el directorio scripts y copiamos el archivo allí para que coincida con el volumen
-RUN mkdir -p /app/scripts
-COPY wms_service/scripts/seed_wms.py /app/scripts/seed_wms.py
+COPY wms_service/scripts /app/scripts
 
 # 4. Ajuste de permisos para seguridad
 RUN addgroup --system app && adduser --system --group app && \
@@ -47,5 +45,4 @@ USER app
 EXPOSE 8000
 
 # 5. Ejecución: Migraciones -> Semillas -> Inicio de API
-# Paso 5 corregido
-CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed_wms.py --company-id ce300bca-413e-4211-a517-b7ac527eb237 && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

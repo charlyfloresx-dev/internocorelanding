@@ -1,0 +1,33 @@
+# Metronic v9 Design System Context (Powered by KTUI)
+
+## Front-end Standard
+- **UI Framework:** Metronic v9 (Tailwind Edition).
+- **Angular Version:** 17+ (Standalone, Signals, Control Flow).
+- **CSS:** Tailwind CSS v4 con componentes de Keenthemes (`.card`, `.btn`, `.input`).
+- **Icons:** KeenIcons (`<i class="ki-filled ki-..."></i>`).
+- **Logic:** Los componentes de edición deben respetar el flag `is_locked` o `status != DRAFT`.
+
+## Core UI Components (Tailwind Custom Classes)
+...
+- **Cards:** Siempre usar `.card` con sus hijos `.card-header`, `.card-body` y `.card-footer`. Soporte para `.card-p-{n}` (padding) y `.card-stretch` (height: 100%).
+- **Buttons:** Usar `.btn` combinado con variantes como `.btn-primary`, `.btn-success`, `.btn-light`, o `.btn-clear`. Soporta `.btn-outline` (bordered), `.btn-active-{variant}` y tamaños `.btn-sm`, `.btn-xs`.
+- **Inputs:** Clases `.input`, `.select`, `.textarea` para formularios. Soporta `.input-group`.
+- **Badges:** Usar `.badge` con modificadores como `.badge-outline`, `.badge-pill` y variantes de color.
+- **Tables:** Usar `.table` con `.table-align-middle`, `.table-border-dashed`, o `.table-fixed`.
+
+## Iconografía (KeenIcons)
+- **Filled:** `<i class="ki-filled ki-[icon-name]"></i>`.
+- **Outline:** `<i class="ki-outline ki-[icon-name]"></i>`.
+- **Duotone:** `<i class="ki-duotone ki-[icon-name]"></i>` (requiere spans internos `.path1`, `.path2`, etc.).
+
+## Layout & Navigation
+- **Wrapper:** El contenido principal debe estar envuelto en `<div class="container-fixed">...</div>`.
+- **Navegación:** Usar `.tabs`, `.tab-link`, `.tab-pane`, `.breadcrumb`, y `.pagination`.
+
+## Estética & Technical Foundation (KTUI)
+- **Color Engine:** Basado en OKLCH (`--primary: oklch(62.3% 0.214 259.815)`).
+- **Theme:** Configuración vía `@theme inline` en CSS para mapear variables `--color-*`.
+- **Dark Mode:** Activación vía variante personalizada `@custom-variant dark (&:is(.dark *));`.
+- **Borders/Shadows:** `shadow-sm` estándar para UI, `rounded-xl` o `rounded-2xl` para contenedores.
+- **Import:** Los estilos base se importan desde `ktui/styles.css`.
+- **Usage Reference:** [GitHub - keenthemes/ktui](https://github.com/keenthemes/ktui) y [KTUI Website](https://ktui.io).

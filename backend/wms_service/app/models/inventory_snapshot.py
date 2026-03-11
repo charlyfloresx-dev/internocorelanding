@@ -1,23 +1,30 @@
 from decimal import Decimal
 from sqlalchemy import Numeric, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import TYPE_CHECKING, Optional
 
 from common.models import Base, MultiTenantBase
+
+if TYPE_CHECKING:
+    from .warehouse import Warehouse
 
 class InventorySnapshot(MultiTenantBase, Base):
     """
     Representa el stock actual valorizado.
-    Fuente única de verdad para existencias y costo promedio (CPP).
+    Fuente \u00fanica de verdad para existencias y costo promedio (CPP).
     """
     __tablename__ = "inventory_snapshots"
 
     product_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), index=True)
     warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), index=True)
     
-    quantity_on_hand: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0)
-    average_cost: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0)
+    quantity_on_hand: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0"))
+    average_cost: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0"))
     
+    # Relationships
+    warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="snapshots")
+
     # Bloqueo Optimista
     version_id: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 

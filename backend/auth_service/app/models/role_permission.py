@@ -1,9 +1,9 @@
 import uuid
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.models.base import Base
+from common.models import MultiTenantBase
 
-class RolePermission(Base):
+class RolePermission(MultiTenantBase):
     __tablename__ = "role_permissions"
 
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), primary_key=True)

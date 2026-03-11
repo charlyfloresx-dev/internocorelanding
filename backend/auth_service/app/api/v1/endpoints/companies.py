@@ -1,9 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 
-from app.core.database import get_db
+from app.dependencies import get_db
 from app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from common.responses import ApiResponse
 from app.models import Company

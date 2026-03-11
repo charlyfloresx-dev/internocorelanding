@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MasterDataService } from '../../../../core/services/master-data.service';
-import { ProductRead } from '../../../../core/models/master-data.types';
+import { ProductRead, ApiResponse } from '../../../../core/models/master-data.types';
 import { catchError, of } from 'rxjs';
 
 @Component({
@@ -36,7 +36,16 @@ import { catchError, of } from 'rxjs';
                 @for (product of products(); track product.id) {
                   <tr>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ product.sku }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div class="flex items-center gap-2">
+                        {{ product.name }}
+                        @if (product.is_global_in_group) {
+                          <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-200 uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-earth-americas"></i> Grupal
+                          </span>
+                        }
+                      </div>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                       <span [ngClass]="product.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
                         {{ product.is_active ? 'Activo' : 'Inactivo' }}
@@ -62,10 +71,10 @@ export class ProductListComponent implements OnInit {
     this.masterDataService.getProducts().pipe(
       catchError(err => {
         this.error.set('No se pudo conectar con el servicio de Master Data. Verifique que el puerto 8003 esté disponible.');
-        return of([]);
+        return of({ status: 'error', data: [], message: 'Error de conexión', meta: {} } as ApiResponse<ProductRead[]>);
       })
-    ).subscribe(products => {
-      this.products.set(products);
+    ).subscribe((response: ApiResponse<ProductRead[]>) => {
+      this.products.set(response.data ?? []);
     });
   }
 }

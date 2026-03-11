@@ -2,8 +2,8 @@ import uuid
 from typing import Generic, TypeVar, Optional, List, Type, Any
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from common.models.base_models import BaseEntity
-from common.middleware import request_context
+from common.models import BaseEntity
+from common.context import request_context
 
 T = TypeVar("T", bound=BaseEntity)
 
@@ -25,26 +25,39 @@ class BaseRepository(Generic[T]):
         """Recupera el contexto del usuario actual desde el middleware."""
         return request_context.get()
 
-    def _apply_tenant_filter(self, query):
-        """Aplica el filtro de compañía automáticamente si existe contexto y el modelo lo soporta."""
+    def _apply_tenant_filter(self, query, bypass_tenant: bool = False):
+        """
+        Aplica el filtro de compañía automáticamente si existe contexto.
+        Secure by Default: Solo se omite si bypass_tenant=True.
+        """
+        if bypass_tenant:
+            return query
+            
         context = self._get_context()
         if context and context.company_id and hasattr(self.model, "company_id"):
-            return query.where(self.model.company_id == context.company_id)
+            # PERMITE ver tanto registros de la compañía como registros globales (NULL)
+            from sqlalchemy import or_
+            return query.where(
+                or_(
+                    self.model.company_id == context.company_id,
+                    self.model.company_id == None
+                )
+            )
         return query
 
-    async def get(self, id: uuid.UUID) -> Optional[T]:
-        """Obtiene un registro por ID asegurando el contexto de tenant."""
+    async def get(self, id: uuid.UUID, bypass_tenant: bool = False) -> Optional[T]:
+        """Obtiene un registro por ID asegurando el contexto de tenant (salvo bypass)."""
         query = select(self.model).where(self.model.id == id)
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
             
-        query = self._apply_tenant_filter(query)
+        query = self._apply_tenant_filter(query, bypass_tenant=bypass_tenant)
         
         result = await self.db.execute(query)
         return result.scalars().first()
 
-    async def get_by_email(self, email: str) -> Optional[T]:
-        """Busca por email dentro del tenant."""
+    async def get_by_email(self, email: str, bypass_tenant: bool = False) -> Optional[T]:
+        """Busca por email dentro del tenant (salvo bypass)."""
         if not hasattr(self.model, "email"):
             return None
             
@@ -52,13 +65,13 @@ class BaseRepository(Generic[T]):
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
             
-        query = self._apply_tenant_filter(query)
+        query = self._apply_tenant_filter(query, bypass_tenant=bypass_tenant)
         
         result = await self.db.execute(query)
         return result.scalars().first()
 
-    async def get_by_name(self, name: str) -> Optional[T]:
-        """Busca por nombre."""
+    async def get_by_name(self, name: str, bypass_tenant: bool = False) -> Optional[T]:
+        """Busca por nombre (salvo bypass)."""
         if not hasattr(self.model, "name"):
             return None
             
@@ -66,18 +79,18 @@ class BaseRepository(Generic[T]):
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
             
-        query = self._apply_tenant_filter(query)
+        query = self._apply_tenant_filter(query, bypass_tenant=bypass_tenant)
         
         result = await self.db.execute(query)
         return result.scalars().first()
 
-    async def list(self, skip: int = 0, limit: int = 100) -> List[T]:
-        """Lista registros activos aplicando el tenant filter automático."""
+    async def list(self, skip: int = 0, limit: int = 100, bypass_tenant: bool = False) -> List[T]:
+        """Lista registros activos aplicando el tenant filter automático (salvo bypass)."""
         query = select(self.model)
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
             
-        query = self._apply_tenant_filter(query)
+        query = self._apply_tenant_filter(query, bypass_tenant=bypass_tenant)
         query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)

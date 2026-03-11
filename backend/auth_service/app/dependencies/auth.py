@@ -1,72 +1,186 @@
-from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import OAuth2PasswordBearer
-from typing import Optional, Dict, Any
-
+import uuid
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token # Corrected import
-from app.core.database import get_db # Corrected import
-from app.services import AuthService # Corrected import
-from app.schemas import AccessTokenResponse # Corrected import
+from fastapi import Depends, HTTPException, status, Header
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from pydantic import BaseModel, ValidationError, ConfigDict
 
-# OAuth2PasswordBearer is usually for username/password login, but can be adapted for token extraction
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login") 
+from .database import get_db
+from app.core.config import settings
+from app.models.user import User
+from common.exceptions import UnauthorizedException, NotFoundException
+from common.security.auth_payload import TokenPayload
 
-async def get_current_user_payload(
-    token: str = Depends(oauth2_scheme),
-    x_company_id: Optional[str] = Header(None, alias="X-Company-ID")
-) -> Dict[str, Any]:
+# Esquema de seguridad para obtener el token desde el header Authorization
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+# --- Schemas de Seguridad ---
+
+
+
+class SecurityContext(BaseModel):
     """
-    Decodes the JWT token and validates the company_id from the header.
-    Returns the decoded token payload if valid.
+    Objeto inyectado en los endpoints protegidos con el contexto del tenant y usuario.
     """
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    payload = decode_token(token)
-    if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    user_id: uuid.UUID
+    company_id: uuid.UUID
+    scopes: List[str]
 
-    # Validate company_id from token against X-Company-ID header
-    token_company_id = payload.get("company_id")
+class SelectionTokenPayload(BaseModel):
+    """
+    Payload for the temporary selection token.
+    """
+    sub: uuid.UUID
+    type: str
+    model_config = ConfigDict(extra="ignore")
+
+# --- Dependencias de Seguridad ---
+
+async def get_current_user_payload(token: str = Depends(oauth2_scheme)) -> TokenPayload:
+    """
+    Decodifica y valida el access_token, retornando el payload si es válido.
+    Esta es la primera capa de validación (firma y expiración del token).
+    TODO: Immediate Revocation Expulsion logic. Once God Mode supports "EXPIRED" state, 
+    integrate a Redis cache check here to immediately reject tokens for internally blacklisted company_ids.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        # El payload del token se valida contra el schema Pydantic
+        token_data = TokenPayload(**payload)
+    except (JWTError, ValidationError):
+        raise credentials_exception
     
-    if x_company_id is None:
+    return token_data
+
+async def get_current_tenant_context(
+    x_company_id: Optional[str] = Header(None, alias="X-Company-ID"),
+    payload: TokenPayload = Depends(get_current_user_payload)
+) -> SecurityContext:
+    """
+    Implementa la "Doble Validación" de multitenencia.
+    1. Valida que el header X-Company-ID exista.
+    2. Compara el X-Company-ID del header con el company_id del JWT.
+    3. Si todo es correcto, retorna el contexto de seguridad.
+    """
+    if not x_company_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Company-ID header is required"
+            detail="X-Company-ID header is missing",
         )
-    
+
     try:
-        x_company_id_int = int(x_company_id)
+        header_company_id = uuid.UUID(x_company_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Company-ID header must be an integer"
+            detail="Invalid X-Company-ID format. Must be a valid UUID.",
         )
 
-    if token_company_id != x_company_id_int:
+    if header_company_id != payload.company_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Company ID in token does not match X-Company-ID header"
+            detail="Tenant Mismatch: Header company does not match token.",
         )
-    
-    return payload
 
-# You can also create a dependency that returns the full user object if needed
-# async def get_current_active_user(
-#     current_user_payload: Dict[str, Any] = Depends(get_current_user_payload),
-#     db: AsyncSession = Depends(get_db)
-# ) -> User:
-#     user_id = current_user_payload.get("user_id") # Assuming 'user_id' is in payload
-#     user = await AuthService.get_user_by_id(db, user_id)
-#     if not user:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-#     return user
+    return SecurityContext(
+        user_id=payload.sub,
+        company_id=payload.company_id,
+        scopes=payload.scopes
+    )
+
+def require_scope(required_scopes: List[str]):
+    """
+    Factory de dependencias para validar scopes.
+    Crea una dependencia que verifica si el usuario tiene todos los scopes requeridos.
+    """
+    def _require_scope(
+        context: SecurityContext = Depends(get_current_tenant_context)
+    ) -> SecurityContext:
+        user_scopes = set(context.scopes)
+        for scope in required_scopes:
+            if scope not in user_scopes:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Not enough permissions. Requires scope: '{scope}'",
+                )
+        return context
+    
+    return _require_scope
+
+async def get_selection_payload(
+    x_selection_token: Optional[str] = Header(None, alias="X-Selection-Token"),
+    authorization: Optional[str] = Header(None)
+) -> SelectionTokenPayload:
+    """
+    Decodifica y valida un 'selection_token', retornando el payload si es válido.
+    Prioriza el Header X-Selection-Token sobre el estándar Authorization.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate selection token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    # Prioridad de extracción: Header custom -> Header estándar
+    token = x_selection_token
+    if not token and authorization:
+        if authorization.startswith("Bearer "):
+            token = authorization.replace("Bearer ", "")
+        else:
+            token = authorization
+
+    if not token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+            options={"verify_iat": False}
+        )
+        token_data = SelectionTokenPayload(**payload)
+        if token_data.type != "selection":
+            raise credentials_exception
+    except (JWTError, ValidationError):
+        raise credentials_exception
+    
+    return token_data
+
+async def get_current_user_model(
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme)
+) -> User:
+    """
+    Valida el token JWT y recupera el objeto User de la base de datos.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise UnauthorizedException(message="Invalid token payload")
+    except JWTError:
+        raise UnauthorizedException(message="Could not validate credentials")
+    
+    user = await db.get(User, user_id)
+    if not user:
+        raise NotFoundException(entity="User", entity_id=user_id)
+    
+    return user
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user_model),
+) -> User:
+    """
+    Verifica que el usuario esté activo.
+    """
+    if not current_user.is_active:
+        raise UnauthorizedException(message="Inactive user")
+    return current_user

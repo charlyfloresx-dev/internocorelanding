@@ -27,3 +27,7 @@ Registro de decisiones y evolución de la arquitectura de Interno Core.
 ### Phase 21: Final Security Audit
 - **Status:** ⏳ Pending
 - **Description:** Auditoría de filtrado automático por `company_id` en repositorios y aislamiento de DTOs.
+
+### Phase 10.5 & 10.6: Notification Resilience & Templating
+- **Status:** ✅ Completed
+- **Description:** Centralization of notification delivery logic using a Factory pattern for providers. Implementation of a Jinja2 templating system for standardized, multi-tenant HTML communication. Integrated Resend as the primary email carrier.

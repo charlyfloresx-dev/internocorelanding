@@ -1,15 +1,31 @@
 import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.models.subscription import Entitlement
+from typing import List, Any
+from app.domain.repositories.subscription_repository import ISubscriptionRepository
+from app.core.enums import ModuleCode
+
 
 class GetEntitlementsQuery:
-    @staticmethod
-    async def execute(db: AsyncSession, company_id: uuid.UUID):
-        # Query optimizada para el SSOT de accesos
-        result = await db.execute(
-            select(Entitlement.module_code)
-            .where(Entitlement.company_id == company_id)
-            .where(Entitlement.is_enabled == True)
-        )
-        return [row[0] for row in result.all()]
+    def __init__(self, repo: ISubscriptionRepository):
+        self.repo = repo
+
+    async def execute(self, company_id: uuid.UUID):
+        entitlements = await self.repo.get_entitlements_by_company(company_id)
+        modules = [e.module_code for e in entitlements if e.is_enabled]
+        return {
+            "modules": modules,
+            "can_invite": True
+        }
+
+
+class GetModulePermissionsQuery:
+    def __init__(self, repo: ISubscriptionRepository):
+        self.repo = repo
+
+    async def execute(self, company_id: uuid.UUID):
+        entitlements = await self.repo.get_entitlements_by_company(company_id)
+
+        return {
+            "can_use_wms": any(e.module_code == ModuleCode.WMS_CORE and e.is_enabled for e in entitlements),
+            "can_use_mes": any(e.module_code == ModuleCode.MES_CORE and e.is_enabled for e in entitlements),
+            "can_use_tickets": any(e.module_code == ModuleCode.TICKETS_CORE and e.is_enabled for e in entitlements),
+        }

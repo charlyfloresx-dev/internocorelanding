@@ -1,16 +1,20 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, Integer, BigInteger
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgresUUID
 
 from common.models import MultiTenantBase, AuditBase
 from app.core.enums import SubscriptionStatus, ModuleCode
 
-class Module(AuditBase):
+class Module(MultiTenantBase):
     """Catálogo global de módulos disponibles en el sistema."""
     __tablename__ = "modules"
+
+    @declared_attr
+    def company_id(cls) -> Mapped[Optional[uuid.UUID]]:
+        return mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
 
     code: Mapped[ModuleCode] = mapped_column(String(50), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
@@ -18,18 +22,26 @@ class Module(AuditBase):
     is_core: Mapped[bool] = mapped_column(Boolean, default=False)
     translation_key: Mapped[Optional[str]] = mapped_column(String(100))
 
-class Plan(AuditBase):
+class Plan(MultiTenantBase):
     """Definición de paquetes de suscripción (Basic, Pro, etc.)."""
     __tablename__ = "plans"
 
+    @declared_attr
+    def company_id(cls) -> Mapped[Optional[uuid.UUID]]:
+        return mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
+
     name: Mapped[str] = mapped_column(String(100), unique=True)
+
     description: Mapped[Optional[str]] = mapped_column(String(255))
     price: Mapped[float] = mapped_column(default=0.0)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     trial_days: Mapped[int] = mapped_column(Integer, default=14)
     
+    # Storage Governance
+    storage_limit: Mapped[int] = mapped_column(BigInteger, default=5368709120) # 5GB Default
+    allow_overage: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Relación con módulos incluidos en el plan
-    # (Podríamos usar una tabla intermedia si un plan tiene muchos módulos)
     modules: Mapped[List[str]] = mapped_column(JSONB, default=list)
 
 class Subscription(MultiTenantBase):
@@ -44,6 +56,15 @@ class Subscription(MultiTenantBase):
     end_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     grace_period_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     
+    # Resource Usage
+    current_storage_usage: Mapped[int] = mapped_column(BigInteger, default=0)
+    readonly: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Stripe Integration (Phase 18)
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255), index=True, nullable=True)
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(String(255), index=True, nullable=True)
+    current_period_end: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Relación con el plan
     plan = relationship("Plan")
 

@@ -64,6 +64,14 @@ class InventoryMovement(MultiTenantBase, Base):
         nullable=True, 
         index=True
     )
+
+    location_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("locations.id"),
+        nullable=True,
+        index=True,
+        comment="ID de la ubicación física (Bin) en el WMS"
+    )
     
     affected_stock: Mapped[bool] = mapped_column(
         Boolean, 

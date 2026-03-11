@@ -7,7 +7,8 @@ import {
   InventoryItemDto, ProductionDashboardDto, WorkOrderDto, ProductionStatDto, DowntimeLogDto, Warehouse,
   Issue, TrendPointDto, ParetoItemDto, Partnership, Concept, PartnershipType, PartnershipStatus,
   ConceptType, InventoryDocument, ProjectState, CreateWorkOrderCommand, CreateDowntimeCommand,
-  CreateInventoryItemCommand, AdjustStockCommand, CreateDocumentCommand, DocumentStatus, SelectCompanyResponse
+  CreateInventoryItemCommand, AdjustStockCommand, CreateDocumentCommand, DocumentStatus, SelectCompanyResponse,
+  RoleResponse, InvitationCreate, InvitationResponse, UserRoleAssignment
 } from '@models/api.types';
 
 @Injectable({
@@ -62,7 +63,9 @@ export class ApiSimulationService {
       status: 'Active',
       logo: 'https://ui-avatars.com/api/?name=IC+Logistics&background=f59e0b&color=fff',
       plan: 'Enterprise',
-      is_new: false
+      is_new: false,
+      group_id: 'eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e',
+      group_name: 'InternoCorp Group'
     },
     {
       id: '0cb7bcff-3475-40e4-aacf-fd4ef4ad76d9',
@@ -72,7 +75,9 @@ export class ApiSimulationService {
       status: 'Pending',
       logo: 'https://ui-avatars.com/api/?name=NP&background=64748b&color=fff',
       plan: 'Standard',
-      is_new: true
+      is_new: true,
+      group_id: 'eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e',
+      group_name: 'InternoCorp Group'
     },
     {
       id: 'a79f7800-0a53-421e-b5a9-7b45da85dec1',
@@ -82,7 +87,9 @@ export class ApiSimulationService {
       status: 'Active',
       logo: 'https://ui-avatars.com/api/?name=IC+Enterprise&background=0ea5e9&color=fff',
       plan: 'Professional',
-      is_new: false
+      is_new: false,
+      group_id: 'eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e',
+      group_name: 'InternoCorp Group'
     }
   ];
 
@@ -169,7 +176,9 @@ export class ApiSimulationService {
           company_name: c.name,
           logo: c.logo,
           role_names: [this.roles.enterprise.name],
-          is_new: c.is_new || false
+          is_new: c.is_new || false,
+          group_id: c.group_id || 'eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e',
+          group_name: c.group_name || 'InternoCorp Group'
         })),
         is_new: false
       },
@@ -250,8 +259,6 @@ export class ApiSimulationService {
   getWarehouseGroups(): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [], message: '', meta: {} }); }
   searchEmployees(q: string): Observable<ApiResponse<any[]>> { return of({ status: 'success' as const, data: [], message: '', meta: {} }); }
   completeOnboarding(companyId: string, state: any): Observable<ApiResponse<any>> {
-    // SIMULADO POR AHORA: En el futuro hará HTTP real cuando definamos el modelo de la empresa
-    // Por ahora solo simula que se completó el onboarding
     return of({ status: 'success' as const, data: { company_id: companyId, is_new: false }, message: 'Onboarding completado', meta: {} }).pipe(delay(500));
   }
 
@@ -284,5 +291,48 @@ export class ApiSimulationService {
     const newDoc: InventoryDocument = { id: 'doc-' + Math.random(), folio: 'INV-001', sequence_number: this.documents.length + 1, deliveryDate: cmd.deliveryDate, conceptId: cmd.conceptId.toString(), conceptName: 'Movimiento', conceptType: ConceptType.Entry, warehouseId: cmd.warehouseId, warehouseName: 'Almacén', reference: cmd.reference, description: cmd.description, total_amount: 0, status: DocumentStatus.Confirmed, movements: cmd.movements };
     this.documents.push(newDoc);
     return of({ status: 'success' as const, data: newDoc, message: 'Generado', meta: {} }).pipe(delay(300));
+  }
+
+  // === ADMIN V2 MOCKS ===
+  private v2Roles: RoleResponse[] = [
+    { id: 'eb8f7e2c-3f4a-11ee-be56-0242ac120002', name: 'Administrador Global' },
+    { id: 'eb8f7e2c-3f4a-11ee-be56-0242ac120003', name: 'Gerente de Planta' },
+    { id: 'eb8f7e2c-3f4a-11ee-be56-0242ac120004', name: 'Operador Logístico' }
+  ];
+
+  getRolesV2(): Observable<ApiResponse<RoleResponse[]>> {
+    return of({
+      status: 'success' as const,
+      data: this.v2Roles,
+      message: 'Roles fetched successfully',
+      meta: {}
+    }).pipe(delay(400));
+  }
+
+  inviteUserV2(payload: InvitationCreate): Observable<ApiResponse<InvitationResponse>> {
+    const inv: InvitationResponse = {
+      id: Math.random().toString(36).substring(2, 15),
+      code: Math.random().toString(36).substring(2, 10).toUpperCase(),
+      email: payload.email,
+      role_id: payload.role_id,
+      company_id: 'eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e',
+      expires_at: new Date(Date.now() + 86400000 * 3).toISOString(),
+      is_used: false
+    };
+    return of({
+      status: 'success' as const,
+      data: inv,
+      message: 'Invitation generated',
+      meta: {}
+    }).pipe(delay(600));
+  }
+
+  assignRoleV2(payload: UserRoleAssignment): Observable<ApiResponse<void>> {
+    return of({
+      status: 'success' as const,
+      data: undefined,
+      message: 'Role assigned successfully',
+      meta: {}
+    }).pipe(delay(500));
   }
 }

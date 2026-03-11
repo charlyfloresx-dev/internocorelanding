@@ -33,6 +33,8 @@ services:
       - ./backend/auth_service:/app
       - ./backend/common:/app/common
     environment:
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - PYTHONPATH=/app
     depends_on:
@@ -54,6 +56,8 @@ services:
       - ./backend/master_data_service:/app
       - ./backend/common:/app/common
     environment:
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
+      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
       - PYTHONPATH=/app
     depends_on:
@@ -62,7 +66,54 @@ services:
     networks:
       - interno-network
 
-  # --- WMS SERVICE (Inventario y Almacenes) ---  
+  # --- SUBSCRIPTION SERVICE (Licenciamiento y God Mode) ---
+  subscription-service:
+    build:
+      context: ./backend
+      dockerfile: subscription_service/Dockerfile
+    container_name: subscription-service-api
+    image: interno-backend-subscription-service:latest
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./backend/subscription_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/subscription_db
+      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- INVENTORY SERVICE (Core de Inventarios y Kardex) ---
+  inventory-service:
+    build:
+      context: ./backend
+      dockerfile: inventory_service/Dockerfile
+    container_name: inventory-service-api
+    image: interno-backend-inventory-service:latest
+    ports:
+      - "8006:8000"
+    volumes:
+      - ./backend/inventory_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
+      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/inventory_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- WMS SERVICE (Almacenes y Logística Física) ---  
   wms-service:
     build:
       context: ./backend
@@ -70,11 +121,13 @@ services:
     container_name: wms-service-api
     image: interno-backend-wms-service:latest
     ports:
-      - "8002:8000"
+      - "8007:8000"
     volumes:
       - ./backend/wms_service:/app
       - ./backend/common:/app/common
     environment:
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
+      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
       - PYTHONPATH=/app
     depends_on:
@@ -97,8 +150,36 @@ services:
       - ./backend/common:/app/common
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
       - SECRET_KEY=changeme
+      - INT_SECRET_KEY=changeme
       - PYTHONPATH=/app:/app/tickets_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- MES SERVICE (Producción y Órdenes) ---
+  mes-service:
+    build:
+      context: ./backend
+      dockerfile: mes_service/Dockerfile
+    container_name: mes-service-api
+    image: interno-backend-mes-service:latest
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./backend/mes_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
+      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
+      - POSTGRES_SERVER=postgres-db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mes_db
+      - PYTHONPATH=/app:/app/mes_service
     depends_on:
       postgres-db:
         condition: service_healthy

@@ -9,7 +9,7 @@ from app.schemas.product_brand import BrandRead, BrandCreate, BrandUpdate
 from app.services.product_brand_service import ProductBrandService
 from common.responses import ApiResponse
 from app.dependencies import get_current_user
-from common.models.user_context import UserContext
+from common.domain.entities.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()

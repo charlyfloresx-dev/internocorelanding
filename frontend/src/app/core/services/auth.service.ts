@@ -1,9 +1,9 @@
 import { Injectable, signal, inject, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { lastValueFrom } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { User, SessionContext, UserCompanyAccess, ApiResponse, LoginResponse, SelectCompanyResponse } from '@models/api.types';
+import { User, SessionContext, UserCompanyAccess, ApiResponse, LoginResponse, SelectCompanyResponse, RegisterCompanyPayload, RegisterResponse, CompleteRegistrationPayload, ForgotPasswordPayload, ResetPasswordPayload } from '@models/api.types';
 import { NavigationService } from './navigation.service';
 import { tap, catchError } from 'rxjs/operators';
 import { SystemHealthService } from './system-health.service';
@@ -102,6 +102,7 @@ export class AuthService {
    * No marca como 'authenticated', solo como 'handshake'
    */
   login(credentials: { email?: string; password?: string }) {
+    console.group('Auth Handshake Trace');
     this.isLoading.set(true);
     return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/login`, credentials)
       .pipe(
@@ -118,19 +119,21 @@ export class AuthService {
             }
 
             console.log('[AuthService] 📥 Respuesta recibida:', { has_token: !!data.selection_token, companies: data.companies?.length });
+            console.log(`%c[AuthService] 1. Status del selection_token: ${data.selection_token ? 'RECIBIDO' : 'AUSENTE'}`, 'color: #22d3ee');
 
             // === GUARDAR PRIMERO: T1 TOKEN ===
             sessionStorage.setItem('selection_token', data.selection_token);
             this.selectionToken.set(data.selection_token);
 
             // === USER PROFILE ===
-            // Backend v2.1 devuelve user_id
+            // Per Swagger v2.1.0, user_id is not provided at this stage.
+            // A partial profile is created. The full profile will be available after T2.
             this.currentUser.set({
-              id: data.user_id,
+              id: 'temp-user', // ID will be confirmed after selectCompany
               email: credentials.email || '',
               firstName: credentials.email?.split('@')[0] || 'User',
               lastName: '',
-              avatar: `https://ui-avatars.com/api/?name=${data.user_id}`,
+              avatar: `https://ui-avatars.com/api/?name=${credentials.email?.charAt(0)}`,
               status: 'Active'
             });
 
@@ -142,6 +145,8 @@ export class AuthService {
                 name: c.company_name,
                 logo: c.logo,
                 is_new: c.is_new || false, // Normalized to snake_case
+                group_id: c.group_id,
+                group_name: c.group_name,
                 registrationNumber: '',
                 contactEmail: '',
                 status: 'Active',
@@ -157,23 +162,169 @@ export class AuthService {
 
             this.availableAccesses.set(formattedAccesses);
 
-            // === STATE TRANSITION ===
-            // Cambiar a 'handshake': Usuario autenticado pero sin acceso a dashboard aún
-            // El LoginComponent renderizará tenant-selection cuando detecte authStep === 'handshake'
-            this.authStep.set('handshake');
-            this.isLoading.set(false);
-
-            console.log('[AuthService] ✅ Login exitoso. Estado = "handshake". Selector debe renderizarse en LoginComponent.');
+            // === STATE TRANSITION & AUTO-SELECT LOGIC ===
+            if (formattedAccesses.length === 1) {
+              console.log('[AuthService] 🚀 Una sola empresa detectada. Iniciando selección automática...');
+              this.selectCompany(formattedAccesses[0].company.id);
+            } else {
+              this.authStep.set('handshake');
+              this.isLoading.set(false);
+              console.log('[AuthService] ✅ Login exitoso. Estado = "handshake". Selector debe renderizarse en LoginComponent.');
+            }
             console.log('[AuthService] selection_token guardado:', sessionStorage.getItem('selection_token') ? '✅ SÍ' : '❌ NO');
             console.log('[AuthService] availableAccesses:', this.availableAccesses().length, 'empresas');
           },
           error: (err) => {
             console.error('Login Failed:', err);
             if (err.status === 0) this.health.updateStatus('auth', false);
+            console.groupEnd(); // Cerrar grupo en caso de error
             this.isLoading.set(false);
           }
         })
       );
+  }
+
+  /**
+   * Registra una nueva empresa y su usuario administrador, y luego inicia sesión directamente.
+   * Corresponde a: POST /v2/public/register-company
+   */
+  registerCompany(payload: RegisterCompanyPayload) {
+    this.isLoading.set(true);
+    return this.http.post<ApiResponse<RegisterResponse>>(
+      `${this.apiUrl}/v2/public/register-company`,
+      payload
+    ).pipe(
+      tap({
+        next: (response: ApiResponse<RegisterResponse>) => {
+          this.health.updateStatus('auth', true);
+          const data = response.data;
+
+          if (!data || !data.access_token || !data.company_id || !data.user_id) {
+            console.error('[AuthService] ❌ Datos de registro incompletos:', response);
+            this.isLoading.set(false);
+            throw new Error('Datos de registro incompletos.');
+          }
+
+          const permissionNames = data.role.permissions.map((p: any) => p.name || p);
+
+          // 1. Establecer el usuario actual
+          this.currentUser.set({
+            id: data.user_id,
+            email: payload.admin_email, // Usar el email proporcionado en el registro
+            firstName: payload.admin_email.split('@')[0] || 'Admin',
+            lastName: '',
+            avatar: `https://ui-avatars.com/api/?name=${data.user_id}`,
+            status: 'Active'
+          });
+
+          // 2. Establecer los accesos disponibles (solo la empresa recién creada)
+          const newCompanyAccess: UserCompanyAccess = {
+            company: { ...data.company, id: data.company_id }, // Asegurar que el ID de la compañía coincida
+            role: data.role
+          };
+          this.availableAccesses.set([newCompanyAccess]);
+
+          // 3. Establecer el contexto de la sesión
+          const context: SessionContext = {
+            access_token: data.access_token,
+            companyId: data.company_id,
+            role: data.role,
+            permissions: permissionNames,
+            group_id: data.company.group_id || '',
+            group_name: data.company.group_name || ''
+          };
+          this.currentContext.set(context);
+
+          // 4. Persistir la sesión
+          localStorage.setItem('interno_auth_ctx', JSON.stringify(context));
+          localStorage.setItem('interno_auth_user', JSON.stringify(this.currentUser()));
+          localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
+
+          // 5. Transición de estado
+          this.authStep.set('authenticated');
+          this.isLoading.set(false);
+          this.navService.generateMenu(permissionNames); // Generar menú con los permisos del nuevo rol
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('Register Company Failed:', err);
+          if (err.status === 0) this.health.updateStatus('auth', false);
+          this.isLoading.set(false);
+          throw err; // Re-throw para que el componente pueda manejarlo
+        }
+      })
+    );
+  }
+
+  /**
+   * Completa el registro de un usuario invitado y realiza auto-login.
+   * Corresponde a: POST /v2/public/complete-registration
+   */
+  completeRegistration(payload: CompleteRegistrationPayload) {
+    this.isLoading.set(true);
+    // Asumimos que el backend devuelve el mismo tipo de respuesta que registerCompany para el auto-login
+    return this.http.post<ApiResponse<RegisterResponse>>(
+      `${this.apiUrl}/v2/public/complete-registration`,
+      payload
+    ).pipe(
+      tap({
+        next: (response: ApiResponse<RegisterResponse>) => {
+          this.health.updateStatus('auth', true);
+          const data = response.data;
+
+          if (!data || !data.access_token || !data.company_id || !data.user_id) {
+            console.error('[AuthService] ❌ Datos de registro (invitación) incompletos:', response);
+            this.isLoading.set(false);
+            throw new Error('Datos de registro (invitación) incompletos.');
+          }
+
+          const permissionNames = data.role.permissions.map((p: any) => p.name || p);
+
+          // 1. Establecer el usuario actual
+          this.currentUser.set({
+            id: data.user_id,
+            email: 'invited.user@interno.com', // El backend debería proveer el email
+            firstName: payload.full_name.split(' ')[0],
+            lastName: payload.full_name.split(' ').slice(1).join(' '),
+            avatar: `https://ui-avatars.com/api/?name=${data.user_id}`,
+            status: 'Active'
+          });
+
+          // 2. Establecer los accesos disponibles
+          const newCompanyAccess: UserCompanyAccess = {
+            company: { ...data.company, id: data.company_id },
+            role: data.role
+          };
+          this.availableAccesses.set([newCompanyAccess]);
+
+          // 3. Establecer el contexto de la sesión
+          const context: SessionContext = {
+            access_token: data.access_token,
+            companyId: data.company_id,
+            role: data.role,
+            permissions: permissionNames,
+            group_id: data.company.group_id || '',
+            group_name: data.company.group_name || ''
+          };
+          this.currentContext.set(context);
+
+          // 4. Persistir la sesión
+          localStorage.setItem('interno_auth_ctx', JSON.stringify(context));
+          localStorage.setItem('interno_auth_user', JSON.stringify(this.currentUser()));
+          localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
+
+          // 5. Transición de estado
+          this.authStep.set('authenticated');
+          this.isLoading.set(false);
+          this.navService.generateMenu(permissionNames);
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('Complete Registration Failed:', err);
+          if (err.status === 0) this.health.updateStatus('auth', false);
+          this.isLoading.set(false);
+          throw err;
+        }
+      })
+    );
   }
 
   /**
@@ -192,11 +343,12 @@ export class AuthService {
     }
 
     console.log('[AuthService] 📤 Enviando select-company request', { companyId, hasToken: !!selectionToken });
+    console.log(`%c[AuthService] 2. Headers enviados en T2: Authorization: Bearer ${selectionToken ? '***' : 'null'}`, 'color: #22d3ee');
 
-    // CORRECCIÓN DE AUDITORÍA: Enviar solo el X-Selection-Token en un header limpio
-    // para evitar conflictos con el interceptor. El payload ya usa snake_case.
+    // Per Swagger v2.1.0, the select-company endpoint is secured with OAuth2PasswordBearer.
+    // The selection_token must be sent as a Bearer token.
     const headers = new HttpHeaders({
-      'X-Selection-Token': selectionToken,
+      'Authorization': `Bearer ${selectionToken}`,
       'Content-Type': 'application/json'
     });
 
@@ -208,6 +360,7 @@ export class AuthService {
       catchError(err => {
         if (err.status === 401) {
           console.warn('[AuthService] ⚠️ 401 Unauthorized en selectCompany. Limpiando sesión.');
+          console.groupEnd();
           // 401 significa que el servicio responde, así que auth está true
           localStorage.clear();
           this.router.navigate(['/login']);
@@ -228,8 +381,15 @@ export class AuthService {
 
         // === PERMISSIONS LOGIC ===
         // Prioridad: Scopes (Backend v1.1) > Roles (Legacy) > Local Permissions
-        const scopes = data?.scopes || [];
-        const effectivePermissions = scopes.length > 0 ? scopes : (data?.roles || access?.role.permissions.map(p => p.name) || []);
+        let effectivePermissions: string[] = [];
+        if (data?.scopes && data.scopes.length > 0) {
+          effectivePermissions = data.scopes;
+        } else if (data?.roles) {
+          effectivePermissions = data.roles.map((p: any) => p.name || p);
+        } else if (access?.role?.permissions) {
+          effectivePermissions = access.role.permissions.map((p: any) => p.name);
+        }
+        console.log(`%c[AuthService] 3. Confirmación de JWT final: ${data.access_token ? 'RECIBIDO' : 'FALLIDO'}`, 'color: #22d3ee');
 
         console.log('[AuthService] 🔐 Permisos efectivos calculados (Scopes/Roles):', effectivePermissions);
 
@@ -238,7 +398,9 @@ export class AuthService {
           access_token: data.access_token,
           companyId: data.company_id, // Usar ID confirmado por backend
           role: access?.role || { id: '0', name: 'user', description: '', permissions: [] },
-          permissions: effectivePermissions
+          permissions: effectivePermissions,
+          group_id: access?.company.group_id || '',
+          group_name: access?.company.group_name || ''
         };
 
         // 1. FORCE SYNC SAVE: Guardar inmediatamente en disco para evitar Race Condition con AuthGuard
@@ -252,12 +414,13 @@ export class AuthService {
         }
         localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
 
+
         // 3. UPDATE SIGNALS & STATE TRANSITION
         this.currentContext.set(context);
         // Ahora sí: usuario completamente autenticado
         this.authStep.set('authenticated');
         this.isLoading.set(false);
-        
+
         // 4. UPDATE NAVIGATION: Regenerar menú con los nuevos permisos
         console.log('[AuthService] 🔄 Invocando regeneración de menú...');
         this.navService.generateMenu(effectivePermissions);
@@ -281,12 +444,14 @@ export class AuthService {
             console.log('[AuthService] 🚀 Empresa existente. Navegando a /dashboard');
             this.router.navigate(['/dashboard']);
           }
+          console.groupEnd();
         }, 150);
       },
       error: (err) => {
         console.error('[AuthService] ❌ select-company FAILED', err);
         if (err.status === 0) this.health.updateStatus('auth', false);
         this.isLoading.set(false);
+        console.groupEnd();
 
         // === ERROR HANDLING ===
         if (err.status === 401) {
@@ -297,6 +462,63 @@ export class AuthService {
       }
     });
   }
+
+  /**
+   * Notifies the backend that the initial setup for a company is complete.
+   * Corresponds to: PATCH /auth/complete-onboarding
+   */
+  completeOnboarding(): Observable<ApiResponse<void>> {
+    return this.http.patch<ApiResponse<void>>(`${this.apiUrl}/auth/complete-onboarding`, {});
+  }
+
+  /**
+   * Updates the 'is_new' status for the currently active company in the local state.
+   * This should be called only after a successful onboarding completion.
+   * @param isNew The new status to set.
+   */
+  updateCompanyIsNewStatus(isNew: boolean) {
+    const companyId = this.selectedCompanyId();
+    if (!companyId) {
+      console.warn('[AuthService] Cannot update is_new status without a selected company.');
+      return;
+    }
+
+    this.availableAccesses.update(accesses => {
+      return accesses.map(access => {
+        if (String(access.company.id) === String(companyId)) {
+          // Create new objects for immutability to ensure signal propagation
+          const updatedCompany = { ...access.company, is_new: isNew };
+          return { ...access, company: updatedCompany };
+        }
+        return access;
+      });
+    });
+
+    // Also update the current context if it's holding onto a stale company object
+    const access = this.availableAccesses().find(a => String(a.company.id) === String(companyId));
+    if (this.currentContext() && access) {
+      this.currentContext.update(ctx => ctx ? ({ ...ctx, role: access.role }) : null);
+    }
+
+    console.log(`[AuthService] 🔄 Local state for company ${companyId} updated: is_new = ${isNew}`);
+  }
+
+  /**
+   * Solicita el reseteo de contraseña para un email.
+   * Corresponde a: POST /v1/auth/forgot-password
+   */
+  forgotPassword(payload: ForgotPasswordPayload): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/auth/forgot-password`, payload);
+  }
+
+  /**
+   * Establece una nueva contraseña usando un token.
+   * Corresponde a: POST /v1/auth/reset-password
+   */
+  resetPassword(payload: ResetPasswordPayload): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/auth/reset-password`, payload);
+  }
+
 
   /**
    * Vuelve al estado 'handshake' para cambiar de empresa
@@ -318,6 +540,11 @@ export class AuthService {
     // El selection_token sigue válido y está en sessionStorage
     // La corrección en `selectCompany` asegura que este token no se borre.
     const currentToken = sessionStorage.getItem('selection_token');
+    if (!currentToken) {
+      console.error('[AuthService] ❌ CRITICAL: No selection_token found in sessionStorage during switchCompany. Logging out.');
+      this.logout();
+      return;
+    }
     console.log('[AuthService] selection_token persistido:', currentToken ? '✅ SÍ' : '❌ NO');
 
     // === MANTENER EMPRESAS DISPONIBLES ===

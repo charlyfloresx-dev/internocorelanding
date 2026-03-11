@@ -35,4 +35,4 @@ EXPOSE 8000
 
 # 5. Ejecución: Estandarizada como el Auth Service
 # (Ajustado para usar seed_master_data.py dentro de scripts)
-CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed_master_data.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

@@ -3,7 +3,9 @@ from enum import Enum
 class SubscriptionStatus(str, Enum):
     TRIAL = "TRIAL"
     ACTIVE = "ACTIVE"
+    PAST_DUE = "PAST_DUE"
     EXPIRED = "EXPIRED"
+    CANCELED = "CANCELED"
 
 class ModuleCode(str, Enum):
     AUTH_CORE = "AUTH_CORE"

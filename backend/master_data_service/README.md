@@ -1,46 +1,19 @@
-# 📦 Microservicio: Master Data Service
+# 🗂️ Master Data Service (Port 8003)
 
-**Autor:** Backend Architect / DevOps
-**Fecha:** 2026-02-12
+El **Master Data Service** actúa como la Única Fuente de Verdad (SSOT) para las entidades maestras que consumen los demás módulos (Ventas, Compras, Inventarios).
 
-## 1. Propósito del Microservicio
+## 🎯 Responsabilidad
+Gestión centralizada de:
+- **Productos**: Definición base, SKU e identificación.
+- **Unidades de Medida (UOM)**: Estándares de conversión y empaque.
+- **Categorías y Marcas**: Clasificación jerárquica del catálogo.
 
-Este componente actúa como la **Single Source of Truth (SSOT)** de la plataforma, centralizando la definición de todas las entidades maestras. Su objetivo principal es asegurar la integridad referencial y técnica entre los diferentes módulos (como WMS y MES), garantizando que un producto o unidad de medida sea idéntico en todo el ecosistema.
+## 🏛️ Arquitectura de Datos
+- **Catálogos Híbridos**: Permite registros globales (`company_id IS NULL`) creados por el sistema y registros privados por tenant (`company_id = UUID`).
+- **Optimistic Locking**: Implementado mediante `version_id` en todos los modelos para evitar colisiones en actualizaciones concurrentes.
+- **Inmutabilidad de Auditoría**: Todo registro persiste `created_at`, `updated_at`, `created_by` (UUID) y `transaction_id`.
 
-## 2. Entidades Principales (Catálogos)
-El servicio gestiona los diccionarios centrales del sistema:
-
-- **Productos / SKUs:** Incluye definiciones técnicas, nombres, códigos de barras, pesos y dimensiones.
-- **Unidades de Medida (UOM):** Gestiona el catálogo de unidades (KG, LB, UN) y sus factores de conversión (ej. pallets a cajas).
-- **Categorías / Familias:** Clasificación jerárquica de productos.
-- **Business Partners:** Directorio central de clientes y proveedores.
-- **Conceptos Globales:** Monedas, impuestos y términos de pago.
-
-## 3. Especificaciones Técnicas y de Integración
-
-- **Arquitectura:** Implementado con FastAPI y SQLAlchemy 2.0 (Async), siguiendo los principios de Clean Architecture (Domain, Application, Infrastructure, API).
-
-### Multitenancy Estricto
-Todas las tablas heredan de `MultiTenantBase`, lo que obliga a filtrar cada consulta por `company_id` para garantizar el aislamiento total entre empresas.
-
-### Versionamiento Paralelo
-Soporta múltiples versiones de un producto activas simultáneamente. La clave lógica es la combinación de `(product_id, version_number)`.
-
-### Patrón Sidecar (Sincronización Event-Driven)
-- Al actualizar un dato maestro, el servicio publica un evento (ej. `product.updated`) vía RabbitMQ.
-- Otros servicios (como el WMS) escuchan el evento y actualizan sus réplicas locales para mantener la alta disponibilidad.
-
-## 4. Relación con el Ecosistema
-- **Upstream:** Provee datos esenciales a servicios como el WMS (para inventarios) y el MES (para producción/BOM).
-- **Dependencias:** Consume servicios del Auth Service para validar tokens JWT y obtener el contexto de la compañía.
-
-## 5. Estado de Implementación (Auditoría)
-- ✅ **Schemas:** Soporte completo para creación anidada (Producto + Versión).
-- ✅ **Service Layer:** Manejo de transacciones atómicas y captura de `IntegrityError` (SKU duplicado).
-- ✅ **Seguridad:** CORS configurado vía `ALLOWED_ORIGINS` y endpoints protegidos.
-- ✅ **Modelos:** Implementados `Product`, `ProductVersion`, `ProductCategory`, `UM`.
-- ✅ **Eventos:** Publicación asíncrona de `master_data.product.created`.
-
-## 🛡️ Auditoría de Integridad
-Para ejecutar el escaneo de violaciones de datos (Null Company IDs, Invalid Enums):
-`docker compose exec master-data-service python -m app.scripts.integrity_scan`
+## 🛡️ Seguridad y Gobernanza
+- **Zero Trust Tenancy**: El `company_id` se extrae exclusivamente de tokens verificados.
+- **Identidad del Sistema**: Los registros de infraestructura utilizan el `SYSTEM_USER_ID`: `00000000-0000-0000-0000-000000000000`.
+- **Integración**: Los servicios externos (ej. Inventarios) deben consumir estos datos vía API (Puerto 8003) o consultas de solo lectura si comparten el clúster de base de datos.

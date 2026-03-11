@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from app.db.db import engine
-from common.domain.entities import MultiTenantBase
+from common.models import MultiTenantBase
 
 # IMPORTANTE: Importar todos los modelos para que SQLAlchemy los registre en la metadata
 from app.models.uom import UOM

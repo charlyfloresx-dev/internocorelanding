@@ -9,11 +9,10 @@ from app.schemas.uom import UOMRead, UOMCreate, UOMUpdate
 from app.services.uom_service import UOMService
 from common.responses import ApiResponse
 from app.dependencies import get_current_user
-from common.models.user_context import UserContext
+from common.domain.entities.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()
-
 
 @router.get("/", response_model=ApiResponse[List[UOMRead]], summary="Listar Unidades de Medida")
 async def list_uoms(

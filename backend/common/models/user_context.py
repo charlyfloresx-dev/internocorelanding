@@ -1,6 +1,10 @@
-from pydantic import BaseModel, UUID4
+import uuid
+from pydantic import BaseModel
 from typing import Optional
 
 class UserContext(BaseModel):
-    user_id: str
-    company_id: UUID4
+    user_id: Optional[str] = None
+    company_id: Optional[uuid.UUID] = None
+    group_id: Optional[uuid.UUID] = None
+    trace_id: Optional[str] = None
+    token: Optional[str] = None

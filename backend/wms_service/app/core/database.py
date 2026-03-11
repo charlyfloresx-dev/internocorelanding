@@ -16,7 +16,7 @@ def get_corrected_url(url: str) -> str:
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     return url
 
-Base.metadata.clear()
+# Base.metadata.clear() ya no es necesario y puede causar problemas de registro
 
 engine = create_async_engine(
     get_corrected_url(DATABASE_URL),

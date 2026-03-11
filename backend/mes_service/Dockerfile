@@ -1,28 +1,37 @@
-FROM python:3.12-slim
+FROM python:3.11-slim-bullseye
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH=/app:/app/mes_service
 
 WORKDIR /app
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# 1. Instalación de dependencias del sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev gcc && rm -rf /var/lib/apt/lists/*
 
-# Copiar requerimientos e instalar
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 2. Instalación de dependencias Python
+COPY common/requirements.txt /app/common/requirements.txt
+COPY mes_service/requirements.txt /app/requirements.txt
 
-# Copiar la carpeta common (el build context debe ser /backend)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/common/requirements.txt && \
+    pip install --no-cache-dir -r /app/requirements.txt
+
+# 3. Copia de la estructura del servicio
 COPY common /app/common
+COPY mes_service/app /app/app
+COPY mes_service/scripts /app/scripts
+COPY mes_service/alembic /app/alembic
+COPY mes_service/alembic.ini /app/alembic.ini
 
-# Copiar el microservicio
-COPY mes_service /app/mes_service
+# 4. Ajuste de permisos
+RUN addgroup --system app && adduser --system --group app && \
+    chown -R app:app /app
 
-# Configurar el PYTHONPATH para que encuentre 'app' y 'common'
-ENV PYTHONPATH=/app:/app/mes_service
+USER app
 
-# Puerto del servicio
-EXPOSE 8003
+EXPOSE 8000
 
-# Comando para ejecutar el servicio
-CMD ["uvicorn", "mes_service.app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+# 5. Ejecución: Estandarizada
+CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

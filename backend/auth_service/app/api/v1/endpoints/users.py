@@ -4,10 +4,8 @@ from sqlalchemy.future import select
 from uuid import UUID
 from typing import List, Optional
 
-# 1. Imports de Core
-from app.core.security import get_password_hash  # <--- OJO: Verifica si se llama hash_password o get_password_hash en tu security.py
-from app.core.database import get_db 
-from app.deps import get_current_tenant_context, SecurityContext
+from app.dependencies import get_db, get_current_tenant_context, SecurityContext
+from app.core.security import get_password_hash
 
 # 2. Modelos Reales (Separados por archivo como definimos en el ADN)
 from app.models.user import User 

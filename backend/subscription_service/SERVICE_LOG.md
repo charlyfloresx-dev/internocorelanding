@@ -1,38 +1,49 @@
-# 💳 SERVICE LOG - SUBSCRIPTION SERVICE
+# Subscription Service – Log
 
-## 📌 Estado Actual: Phase 4 (Finalized)
-- **Puerto:** 8002
-- **Base de Datos:** `subscription_db`
-- **SSOT Acceso:** Tabla `entitlements`
+## Overview
+The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitlements, and Stripe billing integration.
 
-## ✅ Cambios Realizados
-### 2026-02-25 - Implementación MVP
-- **Cleanup:** Purga de `billing_service` y actualización de `MANIFEST.md`.
-- **Scaffolding:** Estructura Clean Architecture con FastAPI y SQLAlchemy Asíncrono.
-- **Modelado:**
-    - `Module`: Catálogo global.
-    - `Plan`: Definición de paquetes.
-    - `Subscription`: Estados `TRIAL`, `ACTIVE`, `EXPIRED`.
-    - `Entitlement`: Tabla puente de acceso por `company_id`.
-    - `AuditSubscriptionLog`: Auditoría JSONB.
-- **CQRS:**
-    - `StartTrialCommand`: Activación automática de Plan Básico.
-    - `GetEntitlementsQuery`: Consulta ultra-veloz para `auth_service`.
-- **API:**
-    - `GET /internal/entitlements/{company_id}`: Handshake interno.
-- **Stub:** `LicenseService` para firmas JWS.
+---
 
-### 2026-02-25 - Auditoría y Trazabilidad (Forensic Trace)
-- **Log Service:** Implementación de `AuditSubscriptionChange` para registro de estados Old vs New.
-- **Contexto:** Captura de IP y Usuario en logs de auditoría JSONB.
-- **Integración:** Soporte para `X-Transaction-ID` (correlation_id) en el handshake interno.
+## Phase 20 – Operación Suscripción Blindada ✅
+**Status**: ✅ Completed · **Date**: 2026-03-07
+- **Architecture**: 100% Clean Architecture compliance achieved.
+- **Patterns**: Implemented Repository Pattern (`ISubscriptionRepository`) and Adapter Pattern (`IPaymentProvider`).
+- **Decoupling**: Total decoupling from Stripe SDK and SQLAlchemy ORM in the application layer.
+- **Compliance**: Verified with Auditor v3 (0 errors, 100% compliance).
 
-### 2026-02-25 - Cierre Técnico y Admin Layer (God Mode)
-- **Error Handling:** Enriquecimiento de mensajes 403 con `transaction_id`.
-- **God Mode:** Creación de `app/api/v1/endpoints/admin.py` protegido por `ADMIN_MASTER_KEY`.
-- **Contrato RBAC:** Preparación del esquema `TokenPayload` con `role` y `accessible_warehouses`.
+---
 
-## 🚀 Próximos Pasos
-- Implementar lógica real de Upgrade/Override en el Admin Router.
-- Refactorización de `master_data_service` para integración delegada de seguridad.
-- Implementación de firma JWS real en `LicenseService`.
+## Phase 18.5 – Structure Remediation & OpenAPI ✅
+**Status**: ✅ Completed · **Date**: 2026-03-06
+- **Structure**: Relocated `debug_settings.py` from root to `app/core/`.
+- **OpenAPI**: Successfully extracted `subscription.json` spec.
+- **Compliance**: Verified 0 "Structure Violations" in Code Graph.
+
+## Phase 18 – SaaS Scale & Stripe Core
+**Status**: ✅ Completed · **Date**: 2026-03-06
+
+### Features
+- **Stripe Integration**: `BillingService` and `StripeManager` handling embedded checkout sessions.
+- **Webhook Handler**: Robust processing for `checkout.session.completed`.
+- **Audit Trails**: Forensic logging of all subscription attempts and status changes.
+- **Force Activation**: Backend capability to activate tenants manually if needed.
+
+---
+
+## Phase 10.6 – Notification Bridge
+**Status**: ✅ Completed · **Date**: 2026-03-06
+
+### Integration
+- **Event Dispatch**: Bridge to `Notification Service` (8008) on successful payment.
+- **Customer Context**: Capturing Name/Email from Stripe session for personalized welcome emails.
+
+---
+
+## Pending Backlog
+- [x] Multi-tenant subscription management (Stripe Billing).
+- [x] Implementation of `stripe_webhook` handler.
+- [x] Audit for subscription events.
+- [ ] Implement self-service plan upgrade (Frontend + Backend).
+- [ ] Add support for coupon codes and discounts.
+- [ ] Automated subscription cancellation flow.

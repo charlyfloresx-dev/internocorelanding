@@ -1,0 +1,9 @@
+node_modules
+.angular
+dist
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore
+npm-debug.log

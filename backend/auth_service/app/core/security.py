@@ -24,17 +24,23 @@ def create_final_access_token(
     company_id: uuid.UUID, 
     roles: List[str], 
     scopes: List[str],
+    group_id: Optional[uuid.UUID] = None,
     modules: List[str] = ["auth_core", "inventory_core"],
     status: str = "TRIAL",
     readonly: bool = False,
     correlation_id: Optional[str] = None
 ) -> str:
-    """Crea el JWT final que incluye roles, scopes, módulos habilitados, estado de suscripción y correlation_id."""
+    """
+    Crea el JWT final que incluye roles, scopes, módulos habilitados, estado de suscripción y correlation_id.
+    
+    # TODO: Validar status EXPIRED en DB de suscripciones antes de emitir T2 (Kill Switch)
+    """
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode = {
         "exp": expire,
         "sub": str(subject),
         "company_id": str(company_id),
+        "group_id": str(group_id) if group_id else None,
         "role_names": roles,
         "scopes": scopes,
         "modules": modules,

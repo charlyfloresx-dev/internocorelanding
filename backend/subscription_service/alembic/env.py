@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # 1. Configurar el Path para encontrar 'app' y 'common'
-sys.path.append("/app")
-sys.path.append("/app/subscription_service")
+sys.path.append(os.getcwd())
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # 2. Importar Configuración y Modelos
 from app.core.config import settings

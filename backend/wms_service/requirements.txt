@@ -20,3 +20,6 @@ bcrypt==4.0.1
 # Utilidades
 python-multipart
 requests
+httpx
+boto3
+asyncpg

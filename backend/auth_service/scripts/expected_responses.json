@@ -1,0 +1,58 @@
+{
+    "login_response": {
+        "status": "success",
+        "data": {
+            "selection_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "user_id": "69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38",
+            "companies": [
+                {
+                    "company_id": "9cd9986b-89da-48b7-8733-26a2a1225b01",
+                    "company_name": "InternoCorp Enterprise",
+                    "logo": "https://ui-avatars.com/api/?name=IC+Enterprise",
+                    "role_names": [
+                        "admin"
+                    ],
+                    "is_new": false
+                },
+                {
+                    "company_id": "ad6cc8a6-34f9-42df-8f29-28254e0ad242",
+                    "company_name": "Interno Logistics",
+                    "logo": "https://ui-avatars.com/api/?name=IC+Logistics",
+                    "role_names": [
+                        "operator"
+                    ],
+                    "is_new": false
+                }
+            ],
+            "isNew": false
+        },
+        "message": "Login successful, selection token issued.",
+        "meta": {
+            "trace_id": "ee46cc24-0fd8-4838-92d9-1bc2adfcbd76",
+            "latency": "0.2042s"
+        }
+    },
+    "select_company_response": {
+        "status": "success",
+        "data": {
+            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "token_type": "bearer",
+            "company_id": "9cd9986b-89da-48b7-8733-26a2a1225b01",
+            "roles": [
+                "admin"
+            ],
+            "scopes": [
+                "*"
+            ],
+            "permissions": [
+                "auth.user.create",
+                "wms.inventory.adjust"
+            ]
+        },
+        "message": "Company selected, access token issued.",
+        "meta": {
+            "trace_id": "079f10f0-83ed-4030-81fe-fdbda4374757",
+            "latency": "0.0044s"
+        }
+    }
+}

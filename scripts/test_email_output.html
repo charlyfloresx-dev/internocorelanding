@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interno Core - Notificación</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .header {
+            background-color: #000000;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .logo {
+            max-width: 180px;
+            height: auto;
+        }
+
+        .content {
+            padding: 40px 30px;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .legal-links a {
+            color: #888;
+            margin: 0 10px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            
+            <img src="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCIKCSB3aWR0aD0iMTAwJSIgdmlld0JveD0iMCAwIDYzMCA2MzAiIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDYzMCA2MzAiIHhtbDpzcGFjZT0icHJlc2VydmUiPgoKPHBhdGggZmlsbD0iIzAwMDAwMCIgb3BhY2l0eT0iMS4wMDAwMDAiIHN0cm9rZT0ibm9uZSIgCglkPSIKTTMzOC4yNzI1NTIsNDEzLjEwNzIzOSAKCUMzMzAuODM5MjMzLDQxNy41ODc4OTEgMzIzLjYzNTg2NCw0MjEuNzUwNDU4IDMxNi42NDkwNzgsNDI2LjI0OTIzNyAKCUMzMTQuMTQ3MzM5LDQyNy44NjAwNDYgMzEyLjMzNzczOCw0MjcuNzY1MzUwIDMwOS44ODczNjAsNDI2LjI2NDE5MSAKCUMyOTUuNjk4MDI5LDQxNy41NzE2MjUgMjgxLjQzNDA1Miw0MDkuMDAwMzA1IDI2Ny4xNjA3NjcsNDAwLjQ0NTYxOCAKCUMyNTEuMzg3NzExLDM5MC45OTIwMzUgMjM1LjYxMDYxMSwzODEuNTQ0MDA2IDIxOS43NTA0MTIsMzcyLjIzODIyMCAKCUMyMTcuMTQyMjg4LDM3MC43MDc5NDcgMjE2LjExOTY5MCwzNjkuMDMwNTE4IDIxNi4xMjc2ODYsMzY1Ljk0ODAyOSAKCUMyMTYuMjMyNzI3LDMyNS40NjIwOTcgMjE2LjIzMzk0OCwyODQuOTc1NzA4IDIxNi4xMjI3NDIsMjQ0LjQ4OTgyMiAKCUMyMTYuMTEzMzEyLDI0MS4wNTM2MzUgMjE3LjIyMTgzMiwyMzkuMjM0ODQ4IDIyMC4yMzE4MjcsMjM3LjQ2NjE3MSAKCUMyMzkuNDI2Mjg1LDIyNi4xODc2ODMgMjU4LjQ3MTY0OSwyMTQuNjU1MDQ1IDI3Ny41NDY2NjEsMjAzLjE3Mzc2NyAKCUMyODguMDU1ODc4LDE5Ni44NDgyNTEgMjk4LjU3MjE3NCwxOTAuNTMyMDc0IDMwOC45ODY0ODEsMTg0LjA1MjkxNyAKCUMzMTEuODY1MDIxLDE4Mi4yNjIwNzAgMzE0LjA0NDMxMiwxODIuMTY5NjE3IDMxNy4xMTI2MTAsMTg0LjAzMzczNyAKCUMzNDcuMDEwNTU5LDIwMi4xOTgyNTcgMzc3LjA0MTgwOSwyMjAuMTQzMjY1IDQwNi45Nzk0MzEsMjM4LjI0MjgyOCAKCUM0MDguMjE0MjY0LDIzOC45ODkzOTUgNDA5LjY5MjIzMCwyNDAuNjMwMjk1IDQwOS43MTYyMTcsMjQxLjg4MDI2NCAKCUM0MDkuOTI5NTM1LDI1Mi45ODU4MDkgNDA5Ljg0MDMwMiwyNjQuMDk3MTM3IDQwOS44NDAzMDIsMjc1LjQxNzIzNiAKCUMzOTkuNzI4MzYzLDI3NS40MTcyMzYgMzkwLjExNDcxNiwyNzUuNDE3MjM2IDM3OS42MjkzOTUsMjc1LjQxNzIzNiAKCUMzNzkuNjI5Mzk1LDI3MC42MDU5ODggMzc5LjQ2NjI3OCwyNjUuODU1MzQ3IDM3OS42OTAzMDgsMjYxLjEyMzA0NyAKCUMzNzkuODI1NTYyLDI1OC4yNjU5NjEgMzc4Ljg5MDU5NCwyNTYuNjMzMDg3IDM3Ni4zNjEzMjgsMjU1LjE3NDc0NCAKCUMzNTkuNTEyMDg1LDI0NS40NTk3NzggMzQyLjc0Nzc3MiwyMzUuNTk2OTI0IDMyNS45OTg3NDksMjI1LjcwOTUxOCAKCUMzMjMuMDI3Mzc0LDIyMy45NTU0NjAgMzIwLjAzNTQ2MSwyMjIuMTE1MDA1IDMxNy40NTAzNDgsMjE5Ljg1OTE2MSAKCUMzMTQuMzU3MzYxLDIxNy4xNjAxNTYgMzExLjg1Mzc5MCwyMTcuNzk2NjQ2IDMwOC42NzYwNTYsMjE5Ljc0MDE0MyAKCUMyODguOTkxNjM4LDIzMS43NzkwODMgMjY5LjE2Mzg0OSwyNDMuNTg0MTgzIDI0OS41MjM0ODMsMjU1LjY5MzYwNCAKCUMyNDcuOTI5MDAxLDI1Ni42NzY2OTcgMjQ2LjQ5MjUzOCwyNTkuMzUxMTA1IDI0Ni40Nzk3ODIsMjYxLjI0OTY2NCAKCUMyNDYuMjgyNzQ1LDI5MC41NzA4MzEgMjQ2LjI4MzgxMywzMTkuODkzOTUxIDI0Ni40NTUxMjQsMzQ5LjIxNTM2MyAKCUMyNDYuNDY1MTAzLDM1MC45MjE1NzAgMjQ3Ljg5ODU3NSwzNTMuMzA4MzE5IDI0OS4zODA4OTAsMzU0LjIxMzIyNiAKCUMyNjkuNjI5NzAwLDM2Ni41NzQ0NjMgMjg5Ljk3NDM2NSwzNzguNzgwNDI2IDMxMC40MTA2NzUsMzkwLjgyOTE5MyAKCUMzMTEuODUyMzU2LDM5MS42NzkxNjkgMzE0LjY0MTgxNSwzOTEuNzQ5MjA3IDMxNi4wNTU1MTEsMzkwLjkxNDAzMiAKCUMzMzYuMjMzODI2LDM3OC45OTI5NTAgMzU2LjI1NTM0MSwzNjYuODA2NzYzIDM3Ni4zOTg0OTksMzU0LjgyNTUwMCAKCUMzNzguOTAwNDgyLDM1My4zMzcyODAgMzc5Ljc5MjU3MiwzNTEuNzAxMDE5IDM3OS42NjQxMjQsMzQ4Ljg0MzM4NCAKCUMzNzkuNDI2NDUzLDM0My41NTYwMzAgMzc5LjU5NjEwMCwzMzguMjUwMzY2IDM3OS41OTYxMDAsMzMyLjUxNDI4MiAKCUMzODkuNzc0NTY3LDMzMi41MTQyODIgMzk5LjQ5NzQzNywzMzIuNTE0MjgyIDQwOS44NjE0ODEsMzMyLjUxNDI4MiAKCUM0MDkuODYxNDgxLDM0MS42Njk1ODYgNDA5LjI3Nzg5MywzNTAuOTkxODUyIDQxMC4wNDQyNTAsMzYwLjIwMTgxMyAKCUM0MTAuNjY5MDA2LDM2Ny43MTAwNTIgNDA4LjAxNzQ4NywzNzEuNjU0MjA1IDQwMS41MjM5MjYsMzc1LjM1NjQ3NiAKCUMzODAuMzA0MDQ3LDM4Ny40NTUxNzAgMzU5LjUzMjE5Niw0MDAuMzM5NjMwIDMzOC4yNzI1NTIsNDEzLjEwNzIzOSAKeiIvPgo8cGF0aCBmaWxsPSIjMDAwMDAwIiBvcGFjaXR5PSIxLjAwMDAwMCIgc3Ryb2tlPSJub25lIiAKCWQ9IgpNMjgzLjQ0MjU2Niw0NjcuMzk2NDg0IAoJQzI2Mi4xMjAzOTIsNDU0LjYxODk4OCAyNDEuMTYzOTcxLDQ0MS45NDkwOTcgMjIwLjEwNjk2NCw0MjkuNDQ4NjY5IAoJQzIxNy4zNjExMzAsNDI3LjgxODU3MyAyMTYuMDU4MTM2LDQyNi4xNzQ2MjIgMjE2LjEzOTEzMCw0MjIuODE5MjE0IAoJQzIxNi4zNzk5MjksNDEyLjg0MjgwNCAyMTYuMjI1NDQ5LDQwMi44NTY4NDIgMjE2LjIyNTQ0OSwzOTEuNzU2ODM2IAoJQzIyMi4yMTcwNDEsMzk1LjMwNDEzOCAyMjcuNTQyNDUwLDM5OC40MDMwNDYgMjMyLjgxNTcyMCw0MDEuNTg4MjI2IAoJQzI1Ny44NzEyMTYsNDE2LjcyMjI2MCAyODIuOTQ4Mzk1LDQzMS44MjExOTggMzA3LjkxOTQ2NCw0NDcuMDkzNDQ1IAoJQzMxMS41NzMyMTIsNDQ5LjMyODA5NCAzMTQuMzAyODI2LDQ0OS40ODY3ODYgMzE4LjE0NjM5Myw0NDcuMTUyNjE4IAoJQzM1My43MzAxMDMsNDI1LjU0MjYzMyAzODkuNDQwODI2LDQwNC4xNDExNzQgNDI1LjE5NTAzOCwzODIuODEzOTA0IAoJQzQyNy44NzY2MTcsMzgxLjIxNDMyNSA0MjguNzMwMTMzLDM3OS41MDU3MDcgNDI4LjY5MTU4OSwzNzYuNTA2NDA5IAoJQzQyOC41MjQ1OTcsMzYzLjUxODQ2MyA0MjguNTk4OTk5LDM1MC41Mjc0MzUgNDI4LjU4NjE1MSwzMzcuNTM3NTA2IAoJQzQyOC41ODQ1NjQsMzM1LjkyNzAwMiA0MjguNTg1OTY4LDMzNC4zMTY0OTggNDI4LjU4NTk2OCwzMzIuMzk2OTEyIAoJQzQzOC44MzY0MjYsMzMyLjM5NjkxMiA0NDguNDQxMDcxLDMzMi4zOTY5MTIgNDU4LjUyMzcxMiwzMzIuMzk2OTEyIAoJQzQ1OC42MTAwMTYsMzMzLjk4MTUzNyA0NTguNzY5NDQwLDMzNS41NzAwNjggNDU4Ljc3MTk3MywzMzcuMTU4OTA1IAoJQzQ1OC44MDE2MzYsMzU1LjgyMTk2MCA0NTguNzI1OTgzLDM3NC40ODU3NzkgNDU4Ljg5NzYxNCwzOTMuMTQ3NDAwIAoJQzQ1OC45MjczOTksMzk2LjM4ODMwNiA0NTcuOTUyNzU5LDM5OC4xODU1NDcgNDU1LjEzNjkwMiwzOTkuODY5MjAyIAoJQzQxNy42NDcwMDMsNDIyLjI4NDYwNyAzODAuMjM4NDAzLDQ0NC44MzU5NjggMzQyLjgxMDg4Myw0NjcuMzU1NjIxIAoJQzMzNC4zOTkzMjMsNDcyLjQxNjc3OSAzMjUuOTE2ODA5LDQ3Ny4zNjYwODkgMzE3LjYyMDQ1Myw0ODIuNjA5NjUwIAoJQzMxNC4xOTMzOTAsNDg0Ljc3NTYwNCAzMTEuODAyMDk0LDQ4NS4yMDQ1NTkgMzA4LjAyMjQwMCw0ODIuNTAzNjYyIAoJQzMwMC4zMTU2NzQsNDc2Ljk5NjUyMSAyOTEuOTAwNDIxLDQ3Mi40ODA4OTYgMjgzLjQ0MjU2Niw0NjcuMzk2NDg0IAp6Ii8+CjxwYXRoIGZpbGw9IiMwMDAwMDAiIG9wYWNpdHk9IjEuMDAwMDAwIiBzdHJva2U9Im5vbmUiIAoJZD0iCk0yMzUuMDgyOTQ3LDIwNi45MjcyNzcgCglDMjI4Ljk1Mjg1MCwyMTAuNjQxNjkzIDIyMy4xMjY2NzgsMjE0LjE1ODI0OSAyMTYuNzI3MzI1LDIxOC4wMjA3ODIgCglDMjE2LjUyNDEzOSwyMTYuMzQ2MzU5IDIxNi4yNTgyNDAsMjE1LjE0NTk5NiAyMTYuMjUxOTA3LDIxMy45NDQyNDQgCglDMjE2LjIwNjIzOCwyMDUuMjgwMDE0IDIxNi40MjE4NzUsMTk2LjYwNzg0OSAyMTYuMTA0OTgwLDE4Ny45NTQ2NjYgCglDMjE1Ljk3MDIwMCwxODQuMjc0MTA5IDIxNy4yNzExOTQsMTgyLjMzMjA5MiAyMjAuMzQyOTU3LDE4MC41MDI3MTYgCglDMjQ3LjY4OTE2MywxNjQuMjE2ODg4IDI3NS4yNDQ3MjAsMTQ4LjI0NzE0NyAzMDIuMDQyNjY0LDEzMS4wOTY4NzggCglDMzEwLjQ4NjgxNiwxMjUuNjkyNzgwIDMxNi4wMjc5NTQsMTI2LjEwODUwNSAzMjQuMjU1MDk2LDEzMS4xNjUwNTQgCglDMzY3LjM1MjcyMiwxNTcuNjUzNjQxIDQxMC44NjQ1OTQsMTgzLjQ2OTM5MSA0NTQuMzEzODQzLDIwOS4zODI1NjggCglDNDU3LjczNzU0OSwyMTEuNDI0NDg0IDQ1OC45OTQ5OTUsMjEzLjY0MzQxNyA0NTguOTM5MzkyLDIxNy42NDc4NzMgCglDNDU4LjY5NjQ3MiwyMzUuMTQwMDc2IDQ1OC44MjQzMTAsMjUyLjYzNzQyMSA0NTguODE3ODEwLDI3MC4xMzI5MDQgCglDNDU4LjgxNzIwMCwyNzEuNzYxOTAyIDQ1OC44MTc3NDksMjczLjM5MDkwMCA0NTguODE3NzQ5LDI3NS4zMTA2OTkgCglDNDQ4LjY0NjY2NywyNzUuMzEwNjk5IDQzOC45MDI4OTMsMjc1LjMxMDY5OSA0MjguNTM3Mzg0LDI3NS4zMTA2OTkgCglDNDI4LjUzNzM4NCwyNjYuNTg0OTAwIDQyOC41MjU5MDksMjU3Ljk3NDM5NiA0MjguNTQxNzE4LDI0OS4zNjM5ODMgCglDNDI4LjU1MTE3OCwyNDQuMjAwODA2IDQyOC40NjA2NjMsMjM5LjAzMTM3MiA0MjguNjg4OTk1LDIzMy44NzY4OTIgCglDNDI4LjgyOTA3MSwyMzAuNzE0NTY5IDQyNy44ODMxMTgsMjI4Ljc0MDU1NSA0MjUuMDExODEwLDIyNy4wMjkwOTkgCglDMzg4LjkwMTg1NSwyMDUuNTA1NzgzIDM1Mi44NzE3MDQsMTgzLjg0ODU1NyAzMTYuODI4NjQ0LDE2Mi4yMTMwMjggCglDMzE0LjY2OTg2MSwxNjAuOTE3MTc1IDMxMi45MjQ5NTcsMTU5LjkwMDcxMSAzMTAuMTIwMTQ4LDE2MS42MTI1MDMgCglDMjg1LjI4MjI4OCwxNzYuNzcxNDY5IDI2MC4zMTU1NTIsMTkxLjcxOTI2OSAyMzUuMDgyOTQ3LDIwNi45MjcyNzcgCnoiLz4KPHBhdGggZmlsbD0iIzAwMDAwMCIgb3BhY2l0eT0iMS4wMDAwMDAiIHN0cm9rZT0ibm9uZSIgCglkPSIKTTE2Ny4yMzczMDUsMzM5Ljk5OTg3OCAKCUMxNjcuMjMxMjAxLDMxNy44NTE2MjQgMTY3LjI4MDc0NiwyOTYuMjAzMDMzIDE2Ny4xNTM3MDIsMjc0LjU1NTUxMSAKCUMxNjcuMTM2MDc4LDI3MS41NTQzMjEgMTY3LjkyMDMzNCwyNjkuNzU3NzIxIDE3MC42NDA0NTcsMjY4LjIwMTU2OSAKCUMxNzkuMzgxMzAyLDI2My4yMDA5ODkgMTg3LjkzNjExMSwyNTcuODc1Mjc1IDE5Ny4xMjQ1NzMsMjUyLjMzNjI0MyAKCUMxOTcuMTI0NTczLDMwNi44OTM0OTQgMTk3LjEyNDU3MywzNjAuNzQ0MjkzIDE5Ny4xMjQ1NzMsNDE1LjM0NTQ1OSAKCUMxODcuMzk2MDcyLDQwOS41MjA5MDUgMTc4LjAxNzE5Nyw0MDQuMDQwMjIyIDE2OC44NDI0MjIsMzk4LjIzNjkwOCAKCUMxNjcuNzM1NjU3LDM5Ny41MzY4MzUgMTY3LjI5NTA3NCwzOTUuMDk0MDU1IDE2Ny4yODU2MTQsMzkzLjQ1NDY4MSAKCUMxNjcuMTgzODg0LDM3NS44MDM1ODkgMTY3LjIzMDc1OSwzNTguMTUxNjExIDE2Ny4yMzczMDUsMzM5Ljk5OTg3OCAKeiIvPgo8cGF0aCBmaWxsPSIjMDAwMDAwIiBvcGFjaXR5PSIxLjAwMDAwMCIgc3Ryb2tlPSJub25lIiAKCWQ9IgpNMTk3LjUxMDg2NCwyMjIuNzY4MjA0IAoJQzE5OC40MjI5MjgsMjI4LjEyOTMxOCAxOTYuMzUzMTE5LDIzMS4wNjgyNjggMTkxLjk4NTc2NCwyMzMuNDI2NjM2IAoJQzE4NS4wMjg2ODcsMjM3LjE4MzQyNiAxNzguNDM2NzM3LDI0MS42MTQxMzYgMTcxLjY2MjI3NywyNDUuNzEzNDQwIAoJQzE3MC40NDMxNjEsMjQ2LjQ1MTEyNiAxNjkuMDg4Njk5LDI0Ni45NjUxNzkgMTY3LjE4ODk5NSwyNDcuODcyODc5IAoJQzE2Ny4xODg5OTUsMjM2LjI3MTc1OSAxNjcuMDM2MzQ2LDIyNS4zMTkzMzYgMTY3LjM1Nzk3MSwyMTQuMzgwODU5IAoJQzE2Ny40MDQ3NzAsMjEyLjc4ODcyNyAxNjkuNDIyMDU4LDIxMC43ODU3MjEgMTcxLjAzMjQ3MSwyMDkuNzg2OTI2IAoJQzE3OS40NjY0MTUsMjA0LjU1NTk4NCAxODguMDYzMDgwLDE5OS41ODczODcgMTk3LjUwODQ1MywxOTMuOTkxMjg3IAoJQzE5Ny41MDg0NTMsMjAzLjg0NzkwMCAxOTcuNTA4NDUzLDIxMy4wNzU3MjkgMTk3LjUxMDg2NCwyMjIuNzY4MjA0IAp6Ii8+Cjwvc3ZnPg==" alt="Interno Core" class="logo">
+            
+        </div>
+        <div class="content">
+            
+<h2 style="color: #1a1a1a; margin-top: 0;">🚀 ¡Bienvenido a la Elite, Charly Flores!</h2>
+<p>Es un placer confirmarte que la suscripción para <strong>Demo Logistics</strong> ha sido activada exitosamente.
+</p>
+
+<div style="background-color: #f8f9fa; border-left: 4px solid #32CD32; padding: 15px; margin: 25px 0;">
+    <p style="margin: 0; font-size: 14px; color: #555;">Detalles de la Suscripción:</p>
+    <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #000;">Pro Plan</p>
+    <p style="margin: 5px 0 0 0; font-size: 13px; color: #888;">Próxima renovación: 06/04/2026</p>
+</div>
+
+<p>Desde este momento, tu organización tiene acceso total a todos los módulos contratados. Tu equipo ya puede empezar a
+    optimizar sus procesos industriales con la potencia de Interno Core.</p>
+
+<p>¿Qué sigue ahora?</p>
+<ul style="color: #555;">
+    <li>Configura tus centros de trabajo en el módulo MES.</li>
+    <li>Carga tu inventario inicial en el WMS.</li>
+    <li>Invita a tus colaboradores y asigna roles.</li>
+</ul>
+
+<div style="text-align: center;">
+    <a href="https://app.internocore.com" class="btn">Acceder a mi Dashboard</a>
+</div>
+
+<p style="margin-top: 30px;">Si tienes alguna duda técnica, nuestro equipo de soporte está listo para ayudarte en el
+    canal #soporte-premium.</p>
+
+<p>Atentamente,<br><strong>El equipo de Interno Core</strong></p>
+
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Interno Core. Todos los derechos reservados.</p>
+            <div class="legal-links">
+                <a href="https://internocore.com/privacy">Privacidad</a>
+                <a href="#">Términos</a>
+                <a href="#">Soporte</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 10px;">Enviado automáticamente por el motor de notificaciones de
+                Interno Core.</p>
+        </div>
+    </div>
+</body>
+
+</html>

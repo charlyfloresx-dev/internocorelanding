@@ -32,10 +32,10 @@ print("="*50 + "\n")
 # ------------------------------------------------------------------------
 # Importación de Modelos y Metadata
 # ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 try:
-    from common.models.base_models import Base
+    from common.infrastructure.models.base import Base
     import app.models 
-    from app.core.config import settings
 except ImportError as e:
     print(f"❌ Error de Importación en auditoría: {e}")
     raise
@@ -51,8 +51,11 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
-    """Transforma la URL para usar el driver psycopg2 (síncrono)"""
-    return settings.DATABASE_URL.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    """Transforma la URL para usar el driver psycopg2 (síncrono) o asyncpg dependendiendo de Alembic"""
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        url = "postgresql+asyncpg://user:password@localhost:5433/wms_db"
+    return str(url)
 
 def run_migrations_offline() -> None:
     url = get_url()
@@ -65,25 +68,28 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url()
-    
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+def do_run_migrations(connection):
+    context.configure(connection=connection, target_metadata=target_metadata)
+    with context.begin_transaction():
+        context.run_migrations()
+
+async def run_migrations_online() -> None:
+    from sqlalchemy.ext.asyncio import create_async_engine
+    url = get_url()
+    connectable = create_async_engine(
+        url,
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, 
-            target_metadata=target_metadata
-        )
-        with context.begin_transaction():
-            context.run_migrations()
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    import asyncio
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.run(run_migrations_online())

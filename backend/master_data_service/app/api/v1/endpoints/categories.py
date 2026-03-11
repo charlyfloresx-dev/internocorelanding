@@ -9,7 +9,7 @@ from app.schemas.product_category import CategoryRead, CategoryCreate, CategoryU
 from app.services.product_category_service import ProductCategoryService
 from common.responses import ApiResponse
 from app.dependencies import get_current_user
-from common.models.user_context import UserContext
+from common.domain.entities.user_context import UserContext
 from app.db.session import get_db
 
 router = APIRouter()

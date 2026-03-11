@@ -1,10 +1,10 @@
 from sqlalchemy import String, UUID as sqlalchemy_UUID, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.domain.entities import AuditBase
+from common.models import MultiTenantBase, AuditBase
 import uuid
 from typing import Optional
 
-class TicketHistory(AuditBase):
+class TicketHistory(MultiTenantBase):
     __tablename__ = "ticket_history"
 
     ticket_id: Mapped[uuid.UUID] = mapped_column(

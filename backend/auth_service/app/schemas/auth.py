@@ -3,9 +3,10 @@ from uuid import UUID
 from typing import List, Optional
 
 class LoginRequest(BaseModel):
-    """Datos de entrada para el login inicial."""
-    email: EmailStr
-    password: str
+    """Datos de entrada para el login inicial (Soporta Email o RFID)."""
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    identity_token: Optional[str] = None
 
 class SelectCompanyRequest(BaseModel):
     company_id: UUID
@@ -15,6 +16,8 @@ class CompanySelection(BaseModel):
     # CORRECCIÓN: Tipo UUID en lugar de str
     company_id: UUID  
     company_name: str
+    group_id: Optional[UUID] = None
+    group_name: Optional[str] = None
     logo: Optional[str] = None
     role_names: List[str]
     is_new: bool = False # Esencial para el flujo de bienvenida de la demo [cite: 2026-01-27]
@@ -36,7 +39,7 @@ class CompanyAccessDto(BaseModel):
     user_id: UUID
     companies: List[CompanySelection]
     # Indicates if the user is new in the global system [cite: 2026-01-27]
-    is_new: bool = Field(..., alias="isNew") 
+    is_new: bool
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
@@ -47,6 +50,7 @@ class AccessTokenResponse(BaseModel):
     # CORRECCIÓN: Tipo UUID
     user_id: UUID
     company_id: UUID
+    group_id: Optional[UUID] = None
     roles: List[str] = [] 
     permissions: List[str] = []
 
@@ -58,10 +62,18 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-class TokenPayload(BaseModel):
-    """
-    Representa los datos contenidos dentro del JWT.
-    El 'sub' es el estándar para el ID del usuario.
-    """
-    sub: Optional[str] = None
-    exp: Optional[int] = None
+class RegisterCompanyRequest(BaseModel):
+    company_name: str
+    admin_email: EmailStr
+    admin_password: str
+    admin_full_name: str
+    group_id: Optional[UUID] = None 
+    group_name: Optional[str] = None 
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirmRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str

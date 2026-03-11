@@ -79,7 +79,7 @@ type AccessView = 'hub' | 'login' | 'join' | 'register';
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Corporativo</label>
                     <input type="email" name="email" [(ngModel)]="loginData.email" 
                            class="w-full h-12 bg-slate-900 border border-slate-700 rounded-lg px-4 text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all" 
-                           placeholder="admin@interno.com" required>
+                           placeholder="admin&#64;interno.com" required>
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Contraseña</label>
@@ -146,7 +146,7 @@ type AccessView = 'hub' | 'login' | 'join' | 'register';
 export class LoginComponent {
   public auth = inject(AuthService);
   private router = inject(Router);
-  
+
   public view = signal<AccessView>('hub');
   public loginData = { email: '', password: '' };
 

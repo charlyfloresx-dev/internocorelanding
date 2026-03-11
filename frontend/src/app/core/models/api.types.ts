@@ -46,6 +46,8 @@ export interface Company {
 
   // Backend Mapping (v2.1)
   is_new?: boolean;
+  group_id?: string;
+  group_name?: string;
 }
 
 export interface UserCompanyAccess {
@@ -59,10 +61,8 @@ export interface HandshakeData {
 }
 
 export interface LoginResponse {
-  selection_token: string;
-  user_id: string; // Backend sends ID string only
-  companies: CompanySelection[]; // Full company selection objects
-  is_new: boolean; // Normalized to snake_case for backend parity
+  selection_token: string; // Pre-authorization token for company selection
+  companies: CompanySelection[]; // List of companies the user has access to
 }
 
 export interface SelectCompanyResponse {
@@ -77,6 +77,47 @@ export interface CompanySelection {
   logo?: string;
   role_names: string[];
   is_new: boolean;
+  group_id: string;
+  group_name: string;
+}
+
+// Admin v2 Interfaces (Auth-Service v2.1.0)
+export interface RoleResponse {
+  id: string;
+  name: string;
+}
+
+export interface InvitationCreate {
+  email: string;
+  role_id: string;
+}
+
+export interface InvitationResponse {
+  id: string;
+  code: string;
+  email: string;
+  role_id: string;
+  company_id: string;
+  expires_at: string;
+  is_used: boolean;
+}
+
+export interface UserRoleAssignment {
+  email: string;
+  role_id: string;
+}
+
+export interface GodModeIntervention {
+  action: string;
+  target_id: string;
+  company_id: string;
+  timestamp: string;
+  transaction_id: string;
+}
+
+export interface UpdateSubscriptionCommand {
+  days: number;
+  reason: string;
 }
 
 export interface SessionContext {
@@ -84,6 +125,106 @@ export interface SessionContext {
   companyId: string;
   role: Role;
   permissions: string[];
+  group_id: string;
+  group_name: string;
+}
+
+export interface RegisterCompanyPayload {
+  company_name: string;
+  tax_id: string;
+  admin_email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  access_token: string;
+  token_type: string;
+  company_id: string;
+  user_id: string;
+  company: Company;
+  role: Role;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  email: string;
+  password: string;
+}
+
+export interface CompleteRegistrationPayload {
+  code: string;
+  full_name: string;
+  password: string;
+}
+
+export interface ProductCreatePayload {
+  name: string;
+  sku: string;
+  description?: string | null;
+  product_type: 'FINISHED_GOOD' | 'RAW_MATERIAL' | 'SEMI_FINISHED';
+  uom_id: string;
+  category_id?: string | null;
+}
+
+export interface AuditBase {
+  created_at: string;
+  created_by: string;
+  updated_at?: string | null;
+  updated_by?: string | null;
+  version_id: number;
+}
+
+export interface UOMRead extends AuditBase {
+  id: string;
+  company_id?: string | null;
+  code: string;
+  name: string;
+  plural?: string | null;
+  translation_key?: string | null;
+}
+
+export interface ProductRead extends AuditBase {
+  id: string;
+  company_id: string;
+  name: string;
+  description?: string | null;
+  sku: string;
+  product_type: string;
+  status: string;
+  is_active?: boolean;
+  is_global_in_group: boolean;
+}
+
+export interface InventoryTransactionRead extends AuditBase {
+  id: string;
+  inventory_id: string;
+  transaction_type: 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT';
+  quantity_change: number;
+  previous_balance: number;
+  new_balance: number;
+  reference_document_id?: string;
+  reference_document_type?: string;
+  notes?: string;
+}
+
+export interface BrandRead extends AuditBase {
+  id: string;
+  company_id?: string | null;
+  name: string;
+  code: string;
+  translation_key?: string | null;
+}
+
+export interface CategoryRead extends AuditBase {
+  id: string;
+  company_id?: string | null;
+  name: string;
+  code: string;
+  translation_key?: string | null;
 }
 
 export interface Employee {
@@ -143,6 +284,82 @@ export interface RegisterUserCommand {
     country: string;
     zipCode: string;
   };
+}
+
+export enum TicketStatus {
+  New = 'New',
+  InReview = 'InReview',
+  Assigned = 'Assigned',
+  InProgress = 'InProgress',
+  OnHold = 'OnHold',
+  Resolved = 'Resolved',
+  Closed = 'Closed',
+  Canceled = 'Canceled'
+}
+
+export enum TicketPriority {
+  Low = 'Low',
+  Medium = 'Medium',
+  High = 'High',
+  Critical = 'Critical'
+}
+
+export enum TicketType {
+  Support = 'Support',
+  Incident = 'Incident',
+  Improvement = 'Improvement',
+  Complaint = 'Complaint',
+  Task = 'Task'
+}
+
+export interface TicketComment {
+  id: string;
+  ticket_id: string;
+  content: string;
+  author_id: string;
+  created_at: string;
+}
+
+export interface TicketHistory {
+  id: string;
+  ticket_id: string;
+  change_type: string;
+  old_value?: string;
+  new_value?: string;
+  changed_by_id: string;
+  created_at: string;
+}
+
+export interface Ticket {
+  id: string;
+  reference_code: string;
+  title: string;
+  description: string;
+  ticket_type: TicketType;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assigned_to_id?: string;
+  company_id: string;
+  created_by: string;
+  created_at: string;
+  comments?: TicketComment[];
+  history?: TicketHistory[];
+}
+
+export interface CreateTicketCommand {
+  company_id: string;
+  title: string;
+  description: string;
+  ticket_type: TicketType;
+  priority: TicketPriority;
+}
+
+export interface UpdateTicketCommand {
+  title?: string;
+  description?: string;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  assigned_to_id?: string;
 }
 
 export interface ProductionStatDto {
@@ -317,11 +534,14 @@ export interface InventoryDocument {
   total_amount: number; // Renamed for parity
   status: DocumentStatus;
   movements: any[];
+  destination_warehouse_id?: string;
+  destination_warehouse_name?: string;
 }
 
 export interface CreateDocumentCommand {
   conceptId: string;
   warehouseId: string;
+  destination_warehouse_id?: string;
   partnershipId?: string;
   deliveryDate: string;
   reference: string;

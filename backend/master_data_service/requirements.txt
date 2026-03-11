@@ -14,3 +14,5 @@ python-dotenv
 
 # Utilidades
 requests
+httpx
+boto3

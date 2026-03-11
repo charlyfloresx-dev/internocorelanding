@@ -5,6 +5,8 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 
 import { authInterceptor } from '@core/interceptors/auth.interceptor';
+import { multiTenantInterceptor } from '@core/interceptors/multi-tenant.interceptor';
+import { apiInterceptor } from '@core/interceptors/api.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,7 +14,9 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withHashLocation()),
     provideHttpClient(
       withInterceptors([
-        authInterceptor
+        authInterceptor,
+        multiTenantInterceptor,
+        apiInterceptor
       ])
     )
   ]

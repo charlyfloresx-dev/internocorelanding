@@ -1,5 +1,7 @@
-import { Routes } from '@angular/router'; 
+import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { tenantGuard } from './core/guards/tenant.guard';
+import { godModeGuard } from './core/guards/god-mode.guard';
 
 export const routes: Routes = [
   {
@@ -11,7 +13,7 @@ export const routes: Routes = [
     path: '',
     // VERIFICACIÓN: Asegúrate que el archivo esté en src/app/layout/main-layout.component.ts
     loadComponent: () => import('./layout/main-layout.component').then(m => m.MainLayoutComponent),
-    canActivate: [authGuard],
+    canActivate: [authGuard, tenantGuard],
     children: [
       {
         path: '',
@@ -33,13 +35,27 @@ export const routes: Routes = [
       {
         path: 'catalog',
         loadChildren: () => import('./modules/catalog/catalog.routes').then(m => m.CATALOG_ROUTES)
+      },
+      {
+        path: 'tickets',
+        loadChildren: () => import('./modules/tickets/tickets.routes').then(m => m.TICKETS_ROUTES)
+      },
+      {
+        path: 'admin/god-mode',
+        loadComponent: () => import('./modules/admin/admin-god-mode.component').then(m => m.AdminGodModeComponent),
+        canActivate: [godModeGuard]
       }
     ]
   },
   {
     path: 'setup-wizard',
     loadComponent: () => import('./modules/onboarding/onboarding-wizard.component').then(m => m.OnboardingWizardComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, tenantGuard]
+  },
+  {
+    path: 'onboarding/setup-warehouse',
+    loadComponent: () => import('./modules/onboarding/setup-warehouse.component').then(m => m.SetupWarehouseComponent),
+    canActivate: [authGuard, tenantGuard]
   },
   {
     path: '**',

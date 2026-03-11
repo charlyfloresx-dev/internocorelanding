@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Any
+from decimal import Decimal
 from app.core.constants import TicketStatus, TicketPriority, TicketType
 
 class TicketBase(BaseModel):
@@ -46,21 +47,46 @@ class TicketHistoryRead(BaseModel):
     class Config:
         from_attributes = True
 
+class TicketResourceRead(BaseModel):
+    id: UUID
+    resource_id: UUID
+    quantity: Decimal
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class StopLogRead(BaseModel):
+    id: UUID
+    station_id: UUID
+    downtime_minutes: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class TicketRead(TicketBase):
     id: UUID
     reference_code: str
     status: TicketStatus
     assigned_to_id: Optional[UUID] = None
-    company_id: UUID
+    module_origin: Optional[str] = None
+    area: Optional[str] = None
+    estimated_time: Optional[int] = None
+    real_time_spent: Optional[int] = None
+    cost_estimate: Optional[float] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     comments: List[TicketCommentRead] = []
-    
+    history: List[TicketHistoryRead] = []
+    resources: List[TicketResourceRead] = []
+    stop_logs: List[StopLogRead] = []
+
     class Config:
         from_attributes = True
 
 class ApiResponse(BaseModel):
     status: str = "success"
-    data: Optional[any] = None
+    data: Optional[Any] = None
     message: str = ""
     meta: dict = {}

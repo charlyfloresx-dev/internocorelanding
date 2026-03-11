@@ -1,44 +1,45 @@
-# 📂 INTERNO CORE - MASTER INDEX (SSOT)
+# 🧭 INTERNO CORE - MASTER INDEX (SSOT)
 
-> **Version:** 1.0.0
-> **Last Updated:** 2026-02-10
-> **Status:** Active
+> **Status:** Active / Optimized entry point.
+> **Last Updated:** 2026-03-06
 
-## 1. Identidad del Proyecto
-**Interno Core** (anteriormente referenciado como *NexoSuite*) es un sistema de ejecución de manufactura (MES) híbrido, diseñado para operar tanto en la nube (SaaS Multi-tenant) como en servidores locales (On-Premise Single-tenant) utilizando una única base de código unificada.
+Bienvenido al índice maestro de la documentación técnica y operativa de **InternoCore**. Este es el punto de entrada oficial (SSOT) para la navegación del repositorio.
 
 ---
 
-## 2. Mapa de Documentación (Documentation Map)
-
-### 🏛️ Arquitectura & Principios
-*   **01_ARCHITECTURE.md**: (Consolidado) Constitución Técnica, Stack (FastAPI/Angular), Estrategia Híbrida y Patrones de Diseño.
-
-### 💻 Frontend (Angular 19 Zoneless)
-*   **FRONTEND_CONTEXT.md**: Guía para el desarrollador frontend. Reglas de "Identidad Triple", inmutabilidad y manejo de señales.
-*   **ENGINEERING_LOG.md**: Bitácora de ingeniería, changelog y decisiones técnicas del cliente web.
-
-### 🔙 Backend Microservices
-*   **02_BACKEND_DEPLOYMENT.md**: (Consolidado) Especificaciones de despliegue AWS, configuración de Auth Service y Disaster Recovery.
-*   **Auth Service:** `backend/auth_service/` - Gestión de identidad, OIDC y Multi-tenancy.
-*   **Common:** `backend/common/` - Librería compartida (Modelos base, Respuestas estándar, Middlewares).
-*   **Inventory:** `backend/wms_service/` *(En desarrollo)*
-*   **Production:** `backend/mes_service/` *(En desarrollo)*
-
-### 📜 Histórico & Legado
-*   **docs/archive/Profile.txt**: Contexto histórico y evolución del negocio (SMK -> Zodiac -> Interno Core).
-*   **docs/archive/INTERNAL_CLEANUP_LOG.md**: Registro de limpieza y normalización del repositorio.
+## 🚀 ACCESO RÁPIDO (CORE)
+1.  [README.md](file:///c:/API/interno/README.md) - **Visión General y Reglas de Negocio**.
+2.  [REPO_LOG.md](file:///c:/API/interno/REPO_LOG.md) - **Memoria Histórica y Evolución**.
+3.  [MANIFEST.md](file:///c:/API/interno/docs/internal/MANIFEST.md) - **Inventario de Activos y Servicios**.
 
 ---
 
-## 3. Glosario de Términos Clave
-*   **SSOT (Single Source of Truth):** Este índice y los archivos que referencia.
-*   **Hybrid Core:** La capacidad del sistema de comportarse como SaaS o On-Premise basándose únicamente en variables de entorno (`.env`).
-*   **Zoneless:** Arquitectura frontend sin `zone.js`, utilizando Angular Signals.
-*   **Zero Trust:** Modelo de seguridad donde no se confía en la persistencia local sin validación contra el backend.
+## 📂 DOCUMENTACIÓN MAESTRA (`docs/`)
+
+### 🏗️ Arquitectura e Infraestructura
+*   [01_ARCHITECTURE.md](file:///c:/API/interno/docs/01_ARCHITECTURE.md): ADN Técnico, Stack y Clean Architecture.
+*   [02_BACKEND_DEPLOYMENT.md](file:///c:/API/interno/docs/02_BACKEND_DEPLOYMENT.md): Guía de despliegue en AWS y entornos On-Premise.
+*   [PHASE_SPECS.md](file:///c:/API/interno/docs/PHASE_SPECS.md): Especificaciones de Fases y Criterios de Aceptación.
+
+### 🔐 Microservicios (Backend Logs)
+*   **Auth Service**: [SERVICE_LOG.md](file:///c:/API/interno/docs/backend/auth_service/SERVICE_LOG.md)
+*   **WMS Service**: [ARCHITECTURAL_LOG.md](file:///c:/API/interno/docs/backend/wms_service/ARCHITECTURAL_LOG.md)
+*   **Subscription Service**: [README.md](file:///c:/API/interno/docs/backend/subscription_service/README.md)
+*   **MES Service**: [MES_CORE.md](file:///c:/API/interno/docs/backend/mes_service/MES_CORE.md)
+*   **Master Data**: [AUDIT_SPECS.md](file:///c:/API/interno/docs/backend/master_data_service/AUDIT_SPECS.md)
+*   **Tickets Service**: [README.md](file:///c:/API/interno/docs/backend/tickets_service/README.md)
+
+### 🎨 Frontend & UI
+*   [FRONTEND_CONTEXT.md](file:///c:/API/interno/docs/internal/FRONTEND_CONTEXT.md): Guía de desarrollo Angular y estado actual de la UI.
 
 ---
 
-## 4. Estado del Sistema
-*   **Fase Actual:** Fase 1 - Identificación y Rebranding.
-*   **Próximo Hito:** Migración completa a AWS y estandarización de `backend/common`.
+## 🛡️ ESTÁNDARES & GOBERNANZA
+*   **Protección de Datos**: Ver sección en [README.md](file:///c:/API/interno/README.md#gobernanza--reglas-de-oro).
+*   **Zero Root Pollution**: Política de limpieza de raíz [aquí](file:///c:/API/interno/docs/internal/MANIFEST.md#gobernanza--reglas-de-oro).
+
+---
+
+## 📦 ARCHIVO HISTÓRICO (`docs/archive/`)
+*   [pricing_logic.md](file:///c:/API/interno/docs/archive/pricing_logic.md): Lógica técnica heredada de precios.
+*   *Nota: Otros archivos legacy de .NET y documentación previa residen en este directorio.*

@@ -4,15 +4,16 @@ import sqlalchemy as sa
 from sqlalchemy import Column, String, Boolean, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.models.base import Base
+from common.models import MultiTenantBase, AuditBase
 
-class UserCompanyRole(Base):
+class UserCompanyRole(MultiTenantBase):
     __tablename__ = "user_company_roles"
 
-    # Definición de IDs con UUID para coherencia con el ADN de Interno Core
-    # Marcamos como primary_key=True para asegurar la unicidad de la relación triple
+    # 🔒 SECURITY SHIELD: Inherits company_id from MultiTenantBase (mapped_column(UUID, nullable=False, index=True))
+    # We keep it here as part of the PK
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True, nullable=False)
-    company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), primary_key=True, nullable=False)
+    # company_id is already in MultiTenantBase, but we override it here to include primary_key=True
+    company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("companies.id"), primary_key=True, nullable=False, index=True)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"), primary_key=True, nullable=False)
     
     is_new: Mapped[bool] = mapped_column(Boolean, default=True)

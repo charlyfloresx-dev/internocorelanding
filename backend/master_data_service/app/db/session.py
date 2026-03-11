@@ -1,15 +1,10 @@
-import os
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from typing import AsyncGenerator
-
-# 1. Configuración de la conexión a la base de datos (Docker Network)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://user:password@postgres-db:5432/master_data_db"
-)
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from common.config import settings
 
 # 2. Motor asíncrono de SQLAlchemy
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(settings.int_database_url, echo=False)
+
 
 # 3. Fábrica de sesiones asíncronas
 AsyncSessionLocal = async_sessionmaker(

@@ -1,0 +1,51 @@
+================ REPORT ================
+
+SERVICIO: auth_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: FAILED - Faltan MultiTenantBase en:
+  - c:/API/interno/backend/auth_service/app/models/base.py
+  - c:/API/interno/backend/auth_service/app/models/company_stub.py
+  - c:/API/interno/backend/auth_service/app/models/invitation.py
+  - c:/API/interno/backend/auth_service/app/models/permission.py
+  - c:/API/interno/backend/auth_service/app/models/role.py
+  - c:/API/interno/backend/auth_service/app/models/role_permission.py
+  - c:/API/interno/backend/auth_service/app/models/user.py
+  - c:/API/interno/backend/auth_service/app/models/user_company_role.py
+
+SERVICIO: master_data_service
+DISCREPANCIA: REPO_LOG no detalla claramente migraciones para master_data_service en Fase 7, o el código tiene 3 y no está alineado.
+ZOMBIE CODE: 
+  - product duplicado en: c:/API/interno/backend/master_data_service/app/models/product.py, c:/API/interno/backend/wms_service/app/models/product.py
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: mes_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: subscription_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: tickets_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: wms_service
+DISCREPANCIA: REPO_LOG no detalla claramente migraciones para wms_service en Fase 7, o el código tiene 1 y no está alineado.
+ZOMBIE CODE: 
+  - product duplicado en: c:/API/interno/backend/master_data_service/app/models/product.py, c:/API/interno/backend/wms_service/app/models/product.py
+ESTADO DE GOBERNANZA: PASSED
+
+================ RESUMEN ROOT POLLUTION ================
+backend/seed_db.py
+auth_service/responses.py
+auth_service/seed_auth.py
+master_data_service/init_db.py
+wms_service/schemas.py
+
+================ INVARIANTS ERRORS DE CODE GRAPH ================
+No reportados en invariants_errors list

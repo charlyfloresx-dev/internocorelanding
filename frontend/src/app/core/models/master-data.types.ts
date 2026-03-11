@@ -31,12 +31,13 @@ export interface BaseCatalog {
 export interface ProductRead {
   id: string; // UUID
   name: string;
-  description: string | null;
+  description?: string | null;
   sku: string;
-  is_active: boolean;
+  is_active?: boolean;
+  is_global_in_group: boolean;
   company_id: string; // UUID
-  created_at: string; // ISO Date string
-  updated_at: string | null; // ISO Date string
+  created_at?: string; // ISO Date string
+  updated_at?: string | null; // ISO Date string
 }
 
 /**
@@ -61,10 +62,10 @@ export interface UOMRead extends BaseCatalog {
  * Represents a Product Category.
  * Corresponds to the `CategoryRead` schema in OpenAPI.
  */
-export interface CategoryRead extends BaseCatalog {}
+export interface CategoryRead extends BaseCatalog { }
 
 /**
  * Represents a Product Brand.
  * Corresponds to the `BrandRead` schema in OpenAPI.
  */
-export interface BrandRead extends BaseCatalog {}
+export interface BrandRead extends BaseCatalog { }

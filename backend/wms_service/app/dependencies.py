@@ -5,14 +5,9 @@ from jose import jwt, JWTError
 from pydantic import ValidationError
 from common.security.auth_payload import TokenPayload
 from app.core.config import settings
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.infrastructure.database import SessionLocal
+from app.core.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-async def get_db() -> Generator:
-    async with SessionLocal() as session:
-        yield session
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenPayload:
     """

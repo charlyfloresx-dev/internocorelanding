@@ -1,8 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import (
+    get_production_run_repo, get_ledger_repo, get_labor_repo, 
+    get_wms_client, get_current_company
+)
+from app.domain.repositories.interfaces import (
+    IProductionRunRepository, IManufacturingLedgerRepository, 
+    ILaborRepository, IWMSClient
+)
 from app.services.scanner_service import ScannerService
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 import uuid
 from typing import Optional
 
@@ -11,22 +19,38 @@ from common.responses import ApiResponse
 router = APIRouter()
 
 class ScanRequest(BaseModel):
-    resource_result_id: uuid.UUID
-    scan_input: str
-    local_txn_id: Optional[uuid.UUID] = None
-    company_id: uuid.UUID
+    resource_result_id: uuid.UUID = Field(description="Target Resource Result/Shift ID")
+    scan_input: str = Field(description="Raw scan data from barcode/reader")
+    local_txn_id: Optional[uuid.UUID] = Field(None, description="Idempotency local ID from Edge")
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
 
 @router.post("/scan")
-async def process_scan(request: ScanRequest, db: AsyncSession = Depends(get_db)):
+async def process_scan(
+    request: ScanRequest, 
+    company_id: uuid.UUID = Depends(get_current_company),
+    run_repo: IProductionRunRepository = Depends(get_production_run_repo),
+    ledger_repo: IManufacturingLedgerRepository = Depends(get_ledger_repo),
+    labor_repo: ILaborRepository = Depends(get_labor_repo),
+    wms_client: IWMSClient = Depends(get_wms_client)
+):
     """
     Procesa un escaneo. Los errores de negocio lanzan BusinessRuleException
     que es capturada por el domain_exception_handler.
     """
-    service = ScannerService(db)
+    service = ScannerService(run_repo, ledger_repo, labor_repo, wms_client)
     ledger_entry, warning = await service.process_scan(
         resource_result_id=request.resource_result_id,
         scan_input=request.scan_input,
-        company_id=request.company_id,
+        company_id=company_id,
+        local_txn_id=request.local_txn_id
+    )
+        resource_result_id=request.resource_result_id,
+        scan_input=request.scan_input,
+        company_id=company_id,
         local_txn_id=request.local_txn_id
     )
     

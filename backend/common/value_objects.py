@@ -36,3 +36,14 @@ class UOM:
     name: str
     symbol: Optional[str] = None
     conversion_factor: float = 1.0 # Base para conversiones (ej. 1 Box = 12 EA)
+
+@dataclass(frozen=True)
+class Address:
+    """
+    Value Object para direcciones físicas.
+    """
+    street: str
+    city: str
+    state: str
+    postal_code: str
+    country: str = "MX"

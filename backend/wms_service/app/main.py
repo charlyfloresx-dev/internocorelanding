@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import inventory
+from app.api.v1.api import api_router
+from common.middleware import InternoCoreGlobalMiddleware
+
+from common.config import settings
 
 app = FastAPI(
     title="WMS Service", 
@@ -10,17 +13,19 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-# Habilitar CORS para permitir peticiones desde el frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # Origen del frontend
+    allow_origins=settings.int_backend_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*", "x-company-id", "x-selection-token", "authorization"],
+    allow_headers=["*", "x-company-id", "x-selection-token", "authorization", "x-trace-id"],
+    expose_headers=["x-trace-id"]
 )
 
-# Registrar Routers
-app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["inventory"])
+app.add_middleware(InternoCoreGlobalMiddleware)
+
+# Registrar Routers Centralizados
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/health")
 def health_check():

@@ -11,8 +11,9 @@ root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", 
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
 
-from common.middleware import request_context
-from common.models.user_context import UserContext
+from common.context import request_context # Corregido para apuntar al módulo aislado
+# Asumiendo que UserContext está en un módulo de dominio no conflictivo
+from common.domain import UserContext 
 from common.repository import BaseRepository
 
 # Mock de Modelo y DB para la prueba (sin conectar a DB real para simplicidad del script)

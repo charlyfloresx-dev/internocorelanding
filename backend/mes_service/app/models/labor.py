@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from common.models.base_models import MultiTenantBase
+
+if TYPE_CHECKING:
+    from .production_run import ProductionRun
 
 class LaborType(MultiTenantBase):
     """Tipos de registros de labor (ej. Directo, Indirecto, Calidad)."""
@@ -16,7 +19,7 @@ class Labor(MultiTenantBase):
     """Rastreo de personal en línea (Labor Tracking)."""
     __tablename__ = "mes_labors"
 
-    resource_result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_resource_results.id"), nullable=False)
+    production_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mes_production_runs.id"), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(nullable=False) # ID universal del usuario
     employee_number: Mapped[Optional[int]] = mapped_column(nullable=True) # Número de gafete (Legacy)
     
@@ -28,7 +31,7 @@ class Labor(MultiTenantBase):
     labor_type: Mapped[Optional["LaborType"]] = relationship()
 
     # Relaciones
-    production_result: Mapped["ResourceResult"] = relationship(back_populates="labors")
+    production_run: Mapped["ProductionRun"] = relationship(back_populates="labors")
 
     @property
     def transcurred_minutes(self) -> float:

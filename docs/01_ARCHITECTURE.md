@@ -105,3 +105,50 @@ Queda estrictamente prohibido generar archivos de lógica (`.py`), configuracion
 *   `MULTI_TENANT_MODE`: `true` (Cloud), `false` (On-Premise).
 *   `DB_ENGINE`: `postgresql`, `mysql`.
 *   `STORAGE_TYPE`: `s3`, `local`.
+
+---
+
+## 7. Flujos Arquitectónicos Core
+
+### 7.1 Flujo de Login y Selección de Empresa (Multitenancy)
+1. **Paso 1 (Autenticación - T1):** El usuario envía sus credenciales al `auth_service` (`/login`). El sistema valida y devuelve un `selection_token` temporal junto con la lista de empresas (inquilinos) a las que tiene acceso.
+2. **Paso 2 (Selección - T2):** El usuario selecciona una empresa destino enviando el `selection_token` al endpoint `/select-company`.
+3. **Paso 3 (JWT Final):** El `auth_service` emite el `access_token` JWT definitivo que inyecta el `company_id` seleccionado, los claims de RBAC (roles) y los módulos permitidos según la suscripción. Todos los repositorios usarán automáticamente este `company_id` interceptado para garantizar el aislamiento estricto (Zero Trust).
+
+### 7.2 Emisión y Recepción de Transferencia Inter-Company
+El flujo para orquestar envíos de inventario entre distintas empresas del mismo corporativo (Holding):
+
+#### Emisión (WMS -> Inventory)
+1. **Inicio en WMS:** El usuario origina un documento WMS de tipo `TRANSFER` llamando a `POST /transfers/inter-company`.
+2. **Validación de Holding:** El `wms_service` verifica que tanto la empresa origen (`source_company_id`) como la destino (`target_company_id`) pertenezcan al mismo `group_id` corporativo.
+3. **Kardex (Dispatch):** El WMS llama asíncronamente al `inventory_service` (vía `InventoryClient`). El servicio registra dos transacciones atómicas de Kardex:
+   - Salida `OUT` (`TRANSFER_DISPATCH`) del almacén origen.
+   - Entrada `IN` (`TRANSFER_IN_TRANSIT`) hacia un **Almacén Virtual de Tránsito** (generado dinámicamente mediante hash `UUID5` asociado al almacén destino).
+
+#### Recepción y Monitoreo (Inventory)
+1. **Monitoreo (TransitAgeWorker):** Mientras el paquete viaje, un worker evalúa su antigüedad en inventario. Si sobrepasa 24h genera un `WARNING`. Si sobrepasa 48h sin confirmación, levanta un Ticket nivel P3 (`tickets_service`).
+2. **Recepción en Almacén Destino:** Al llegar a la rampa de destino, el usuario escanea y confirma recepción.
+3. **Kardex (Receive):** `inventory_service` aplica los movimientos de cierre:
+   - Salida `OUT` (`TRANSFER_RECEIVE_TRANSIT`) del almacén de tránsito virtual.
+   - Entrada `IN` (`TRANSFER_RECEIVE`) definitiva al stock físico real de la empresa destino.
+   - Todo movimiento se auto-audita inmutablemente con `created_by` (token), `transaction_id` correlacionado y `company_id`.
+
+### 7.3 Gobernanza de Precios y Auditoría (WMS)
+Los precios en Interno Core no son propiedades mutables directas, sino registros de un ledger transaccional (Append-Only) para mantener la integridad financiera e histórica:
+
+1. **Contexto de Operación (`price_type`)**:
+   - `PURCHASE` (Costo): Valor pagado al proveedor. Usado como base para valuación (PEPS/UEPS).
+   - `SALE` (Venta): Valor emitido en Ticket/Factura hacia un cliente externo.
+   - `TRANSFER` (Traslado): Valor declarado para mover mercancía inter-company (vital para trazabilidad aduanal/fiscal).
+   - *El servicio consumidor (Ej. Ventas o Compras) tiene la obligación de especificar el contexto de la transacción al consultar con WMS.*
+
+2. **Inmutabilidad por Vigencia (Append-Only)**:
+   - Los precios no se desactivan con un campo `is_active = False` al cambiar. 
+   - El sistema invalida un precio anterior manipulando su **Fecha de Expiración (`end_date`)**.
+   - **Regla de Auditoría**: Al insertar un nuevo precio para un `item_id` y `type`, el sistema:
+     1. Localiza el precio actual con `end_date` en el futuro (o null).
+     2. Modifica dicho `end_date` a `now() - 1 second`.
+     3. Inserta el nuevo registro con `start_date = now()`, generando una nueva `version`.
+
+3. **Estructura de Auditoría Exigida**:
+   - El modelo hereda de `AuditBase`, forzando el registro de `version` y `change_reason` obligatorios ("Ajuste por inflación", "Contrato re-negociado") por cumplimiento de compliance interno.

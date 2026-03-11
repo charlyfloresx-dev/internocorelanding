@@ -1,0 +1,176 @@
+﻿================================================================================
+  Code Knowledge Graph Audit Report
+  Scanned from: C:\API\interno
+================================================================================
+
+[CRITICAL] ERRORS (48):
+------------------------------------------------------------
+  [01] backend\auth_service\app\services\permission_checker.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.UserCompanyRole)
+  [02] backend\auth_service\app\services\permission_checker.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.Role)
+  [03] backend\auth_service\app\services\permission_checker.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.RolePermission)
+  [04] backend\auth_service\app\services\permission_checker.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.Permission)
+  [05] backend\auth_service\app\services\permission_checker.py
+       Class: PermissionChecker
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [06] backend\auth_service\app\services\tenant_user_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (common.models.user_context.UserContext)
+  [07] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_run.ProductionRun)
+  [08] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.ledger.ManufacturingLedger)
+  [09] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.downtime.Downtime)
+  [10] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.labor.Labor)
+  [11] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.downtime.DowntimeReason)
+  [12] backend\mes_service\app\services\kpi_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.kpi.Goal)
+  [13] backend\mes_service\app\services\kpi_service.py
+       Class: KPIService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [14] backend\mes_service\app\services\production_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_event.ProductionEvent)
+  [15] backend\mes_service\app\services\production_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_session.ProductionSession)
+  [16] backend\mes_service\app\services\production_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_event.RegisterProductionEventCommand)
+  [17] backend\mes_service\app\services\production_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_event.EventMetaData)
+  [18] backend\mes_service\app\services\production_service.py
+       -> HIDDEN_TRANSACTION_VIOLATION: Manual transaction control detected in service (.commit()
+  [19] backend\mes_service\app\services\production_service.py
+       Class: ProductionService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [20] backend\mes_service\app\services\scanner_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.labor.Labor)
+  [21] backend\mes_service\app\services\scanner_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.ledger.ManufacturingLedger)
+  [22] backend\mes_service\app\services\scanner_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.production_run.ProductionRun)
+  [23] backend\mes_service\app\services\scanner_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.infrastructure.wms_client.WMSClient)
+  [24] backend\mes_service\app\services\scanner_service.py
+       -> HIDDEN_TRANSACTION_VIOLATION: Manual transaction control detected in service (.commit()
+  [25] backend\mes_service\app\services\scanner_service.py
+       Class: ScannerService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [26] backend\mes_service\app\services\shift_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.shift.Shift)
+  [27] backend\mes_service\app\services\shift_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.resource.Resource)
+  [28] backend\mes_service\app\services\shift_service.py
+       Class: ShiftService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [29] backend\notification_service\app\services\preference_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.UserPreferences)
+  [30] backend\notification_service\app\services\preference_service.py
+       Class: PreferenceService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [31] backend\subscription_service\app\services\billing_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.infrastructure.interfaces.payment_provider.IPaymentProvider)
+  [32] backend\subscription_service\app\services\webhook_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.infrastructure.interfaces.payment_provider.IPaymentProvider)
+  [33] backend\tickets_service\app\services\ticket_commands.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.resource.TicketResource)
+  [34] backend\tickets_service\app\services\ticket_commands.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.ticket.Ticket)
+  [35] backend\tickets_service\app\services\ticket_commands.py
+       -> HIDDEN_TRANSACTION_VIOLATION: Manual transaction control detected in service (.commit()
+  [36] backend\tickets_service\app\services\ticket_commands.py
+       Class: CreateTicketCommand
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [37] backend\tickets_service\app\services\ticket_commands.py
+       Class: ConsumeResourceDto
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [38] backend\tickets_service\app\services\ticket_commands.py
+       Class: ConsumeResourcesCommand
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [39] backend\tickets_service\app\services\ticket_commands.py
+       Class: TicketCommandHandler
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [40] backend\tickets_service\app\services\ticket_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.ticket.Ticket)
+  [41] backend\tickets_service\app\services\ticket_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.history.TicketHistory)
+  [42] backend\tickets_service\app\services\ticket_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.comments.TicketComment)
+  [43] backend\tickets_service\app\services\ticket_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.outbox.OutboxEvent)
+  [44] backend\tickets_service\app\services\ticket_service.py
+       -> HIDDEN_TRANSACTION_VIOLATION: Manual transaction control detected in service (.commit()
+  [45] backend\tickets_service\app\services\ticket_service.py
+       Class: TicketService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+  [46] backend\wms_service\app\services\wms_sync_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.models.item.Item)
+  [47] backend\wms_service\app\services\wms_sync_service.py
+       -> INFRASTRUCTURE_LEAK_VIOLATION: Service/Domain imports from infrastructure/models (app.infrastructure.clients.inventory_client.InventoryClient)
+  [48] backend\wms_service\app\services\wms_sync_service.py
+       Class: WMSSyncService
+       -> Clean Architecture Violation: Service layer calls database ORM directly (db_leak_detected)
+
+[WARNING] (10):
+------------------------------------------------------------
+  [01] backend\mes_service\app\services\kpi_service.py
+       Class: KPIService
+       -> REPOSITORY_INJECTION_MISSING: KPIService.__init__ does not receive a Repository parameter
+  [02] backend\mes_service\app\services\scanner_service.py
+       Class: ScannerService
+       -> REPOSITORY_INJECTION_MISSING: ScannerService.__init__ does not receive a Repository parameter
+  [03] backend\mes_service\app\services\shift_service.py
+       Class: ShiftService
+       -> REPOSITORY_INJECTION_MISSING: ShiftService.__init__ does not receive a Repository parameter
+  [04] backend\notification_service\app\services\preference_service.py
+       Class: PreferenceService
+       -> REPOSITORY_INJECTION_MISSING: PreferenceService.__init__ does not receive a Repository parameter
+  [05] backend\notification_service\app\services\template_service.py
+       Class: TemplateService
+       -> REPOSITORY_INJECTION_MISSING: TemplateService.__init__ does not receive a Repository parameter
+  [06] backend\notification_service\app\services\providers\email_resend.py
+       Class: ResendEmailProvider
+       -> REPOSITORY_INJECTION_MISSING: ResendEmailProvider.__init__ does not receive a Repository parameter
+  [07] backend\tickets_service\app\services\ticket_commands.py
+       Class: TicketCommandHandler
+       -> REPOSITORY_INJECTION_MISSING: TicketCommandHandler.__init__ does not receive a Repository parameter
+  [08] backend\tickets_service\app\services\ticket_service.py
+       Class: TicketService
+       -> REPOSITORY_INJECTION_MISSING: TicketService.__init__ does not receive a Repository parameter
+  [09] backend\wms_service\app\services\wms_sync_service.py
+       Class: WMSSyncService
+       -> REPOSITORY_INJECTION_MISSING: WMSSyncService.__init__ does not receive a Repository parameter
+  [10] backend\mes_service\app\domain
+       -> MISSING_DOMAIN_LOGIC_WARNING: mes_service has no complex logic in app/domain/services/
+
+[SUMMARY] Compliance Report by Microservice:
+------------------------------------------------------------
+   auth_service        :  70% Compliance (6 err) | Coupling: 0.52 -> DEBT
+   common              : 100% Compliance (0 err) | Coupling: 0.00 -> CLEAN
+   inventory_service   : 100% Compliance (0 err) | Coupling: 1.79 -> CLEAN
+   master_data_service : 100% Compliance (0 err) | Coupling: 0.48 -> CLEAN
+   mes_service         :   0% Compliance (26 err) | Coupling: 0.69 -> DEBT
+   notification_service:  75% Compliance (5 err) | Coupling: 1.25 -> DEBT
+   scripts             : 100% Compliance (0 err) | Coupling: 1.39 -> CLEAN
+   subscription_service:  90% Compliance (2 err) | Coupling: 0.00 -> DEBT
+   tests               : 100% Compliance (0 err) | Coupling: 0.00 -> CLEAN
+   tickets_service     :  25% Compliance (15 err) | Coupling: 1.16 -> DEBT
+   wms_service         :  80% Compliance (4 err) | Coupling: 1.05 -> DEBT
+
+[INTER-SERVICE DEPENDENCIES]:
+------------------------------------------------------------
+   auth_service -> AsyncClient, SubscriptionClient
+   inventory_service -> AsyncClient, IMasterDataClient, MasterDataClient, TicketsClient
+   master_data_service -> AsyncClient
+   mes_service -> AsyncClient, WMSClient
+   notification_service -> AsyncClient
+   scripts -> AsyncClient, AuthClient, InventoryClient
+   tickets_service -> AsyncClient
+   wms_service -> AsyncClient, InventoryClient, TicketsClient
+
+================================================================================
+  TOTAL ERRORS: 58
+================================================================================

@@ -15,15 +15,22 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # 2. IMPORTACIÓN DE LA BASE Y MODELOS
-from common.domain.entities import MultiTenantBase
+from common.models import MultiTenantBase
 # Importar modelos para que Alembic los detecte
 from app.models.uom import UOM
 from app.models.product_category import ProductCategory
 from app.models.product_brand import ProductBrand
+from app.models.product import Product, ProductVersion
 target_metadata = MultiTenantBase.metadata
 
+def get_url():
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        url = "postgresql+asyncpg://user:password@localhost:5433/master_data_db"
+    return str(url)
+
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
+    url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -42,8 +49,9 @@ def do_run_migrations(connection):
 # --- FUNCIÓN ONLINE ASÍNCRONA ---
 async def run_migrations_online() -> None:
     # Usamos create_async_engine para asyncpg
+    url = get_url()
     connectable = create_async_engine(
-        config.get_main_option("sqlalchemy.url"),
+        url,
         poolclass=pool.NullPool,
     )
 

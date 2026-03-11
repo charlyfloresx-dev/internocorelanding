@@ -45,3 +45,43 @@ Se creó un servicio centralizado (`src/app/core/services/system-health.service.
 - **Mecanismo:** Se ha implementado un nuevo signal computado `isReadOnly` dentro de `SystemHealthService`. Devuelve `true` si `overallStatus` no es `'online'`.
 - **Impacto:** Este signal es consumido por los componentes de formularios (ej. "Crear Producto") para deshabilitar los botones de "Guardar" y mostrar un mensaje de advertencia.
 - **Propósito:** Prevenir la inconsistencia de datos al bloquear operaciones de escritura cuando uno o más microservicios no están disponibles, forzando un modo de "solo lectura" durante las interrupciones.
+
+---
+
+## [2026-03-06] Notification Infrastructure & Templating (Phase 10.5 & 10.6)
+
+### 1. Delivery Infrastructure (Real Providers)
+- **Email (Resend):** Integrated the official Resend SDK for transactional emails.
+- **SMS (Mock):** Implemented a mock provider for SMS to prepare for future Twilio/AWS integration.
+- **Fail-Safe Dispatch:** Refactored `event_routes.py` to handle provider errors gracefully, marking notifications as `FAILED` without breaking the event loop.
+
+### 2. Professional HTML Templating
+- **Template Service:** Created a Jinja2-based `TemplateService` to render professional HTML emails.
+- **Base Layout:** Implemented `base_layout.html` with inline CSS for cross-client compatibility.
+- **Logo Integration:** The `InternoCoreSVGBlack.svg` logo is now embedded as a **Base64 Data URI** in all emails, ensuring visibility and branding consistency.
+
+### 3. Multi-tenancy & Traceability
+- **Metadata Injection:** Automatically injects `company_id` into delivery metadata and headers (`X-Company-ID`).
+- **Branding:** Dynamic logo and footer generation based on tenant context.
+
+---
+
+## [2026-03-06] Billing Service & Stripe Core (Phase 18)
+
+### 1. Security & Configuration
+- **Blinded Keys:** Implemented `StripeSettings` in `common/config.py` to handle API keys securely via Pydantic.
+- **Connectivity:** Added a startup fail-fast check using `stripe.Account.retrieve()` to validate Stripe API connection.
+
+### 2. Implementation Core
+- **StripeManager:** Created a dedicated wrapper for the Stripe SDK, handling embedded checkout sessions.
+- **BillingService:** Implemented business logic for subscription initiation, including multi-tenancy validation and session orchestration.
+- **Audit SSOT:** Every checkout session attempt is now logged in `AuditSubscriptionLog` with a `PENDING` status.
+
+### 3. Database & API
+- **Migrations**: Synchronized the database schema with new Stripe fields (`stripe_customer_id`, `stripe_subscription_id`, `current_period_end`) and the `CANCELED` status.
+- **Endpoints**: Exposed `POST /api/v1/billing/sessions/create-embedded` and `POST /api/v1/billing/webhook`.
+
+### 4. Webhook Automation (Phase 18.1)
+- **Automatic State Machine**: Subscriptions now transition to `ACTIVE` automatically upon receiving `checkout.session.completed`.
+- **Security**: Raw body signature verification implemented for webhook protection.
+- **Traceability**: `PAYMENT_SUCCESS` events are recorded in the forensic timeline with full metadata.

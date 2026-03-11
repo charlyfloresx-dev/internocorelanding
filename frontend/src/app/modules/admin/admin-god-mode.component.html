@@ -1,0 +1,62 @@
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="header-content">
+            <h1>🛡️ Security Dashboard <span class="badge">God Mode</span></h1>
+            <button (click)="deactivateGodMode()" class="btn-logout">Cerrar Sesión Admin</button>
+        </div>
+    </header>
+
+    <main class="admin-grid" *ngIf="isGodModeActive">
+        <!-- PANEL DE ACCIONES DE RESCATE -->
+        <section class="card rescue-panel">
+            <h2>🚩 Acciones de Rescate</h2>
+            <div class="actions-grid">
+                <div class="action-card">
+                    <h3>Asignación Forzada</h3>
+                    <p>Vincula un usuario a una empresa omitiendo invitaciones.</p>
+                    <div class="form-group">
+                        <input type="text" [(ngModel)]="rescueTarget.userId" placeholder="User UUID">
+                        <input type="text" [(ngModel)]="rescueTarget.companyId" placeholder="Company UUID">
+                        <input type="text" [(ngModel)]="rescueTarget.roleId" placeholder="Role UUID">
+                    </div>
+                    <button (click)="runForceAssign()" class="btn-action">Ejecutar Asignación</button>
+                </div>
+                <div class="action-card">
+                    <h3>Override Suscripción</h3>
+                    <p>Extiende el periodo de gracia manualmente.</p>
+                    <div class="form-group">
+                        <input type="text" [(ngModel)]="subscriptionOverride.companyId" placeholder="Company UUID">
+                        <input type="number" [(ngModel)]="subscriptionOverride.days" placeholder="Días extra">
+                    </div>
+                    <button (click)="runOverrideGrace()" class="btn-action">Extender Periodo</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TIMELINE DE AUDITORÍA -->
+        <section class="card timeline-panel">
+            <h2>📜 Auditoría de Intervenciones</h2>
+            <div class="timeline">
+                <div class="timeline-item" *ngFor="let item of interventions">
+                    <div class="time">{{ item.timestamp | date:'short' }}</div>
+                    <div class="content">
+                        <span class="action-tag">{{ item.action }}</span>
+                        <p><strong>Target:</strong> {{ item.target_id }}</p>
+                        <p><strong>Company:</strong> {{ item.company_id }}</p>
+                        <small>TX: {{ item.transaction_id }}</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL DE ACTIVACIÓN -->
+    <div class="modal-overlay" *ngIf="isModalOpen">
+        <div class="modal">
+            <h2>🔐 Acceso Administrativo</h2>
+            <p>Ingresa la llave maestra para habilitar el Modo Dios.</p>
+            <input type="password" [(ngModel)]="masterKeyInput" placeholder="INT_ADMIN_MASTER_KEY" />
+            <button (click)="activateGodMode()" class="btn-primary">Habilitar Intervención</button>
+        </div>
+    </div>
+</div>

@@ -1,15 +1,17 @@
-# mes_service - Manufacturing Execution System
+# 🏭 MES Service (Port 8008)
 
-Este microservicio se encarga de la captura de datos de piso, registro de labor, gestión de paros (downtime) y generación de KPIs de producción (OEE) en tiempo real.
+El **MES Service (Manufacturing Execution System)** es el encargado de orquestar las operaciones en planta, capturando eventos de producción, tiempos de ciclo y eficiencia operativa (OEE).
 
-## 🏗️ Arquitectura
-Sigue el estándar de Clean Architecture y Multitenancy de Interno Core.
+## 🎯 Responsabilidad
+- **Producción**: Registro de eventos de manufactura vinculados a órdenes de trabajo.
+- **Eficiencia**: Seguimiento de tiempos activos, paros (Downtime) y labor.
+- **Trazabilidad**: Ledger de producción por lote y recurso.
 
-## 🚀 Inicio Rápido
-1. Instalar dependencias: `pip install -r requirements.txt`
-2. Ejecutar con uvicorn: `uvicorn app.main:app --reload --port 8003`
+## 🏗️ Arquitectura Técnica
+- **Separación de Capas**: Las entidades SQLAlchemy residen en `app/models/`, mientras que las validaciones y contratos Pydantic residen en `app/schemas/`.
+- **Identidad**: Hereda de `MultiTenantBase` para asegurar el aislamiento de datos por empresa.
+- **Auditoría**: Cumple con `AuditBase` portando `transaction_id` y marcas temporales precisas.
 
-## 📚 Documentación
-- `MES_CORE.md`: Blueprint de construcción y reglas de negocio.
-- `CONTEXTO.md`: Visión del negocio.
-- `ARCHITECTURAL_LOG.md`: Bitácora de decisiones técnicas.
+## 🛡️ Gobernanza
+- **Zero Trust**: Filtrado mandatorio por `company_id`.
+- **Optimistic Locking**: Uso de `version_id` para proteger la concurrencia en cambios de estado de órdenes.

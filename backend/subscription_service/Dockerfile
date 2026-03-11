@@ -23,6 +23,7 @@ COPY common /app/common
 COPY subscription_service/app /app/app
 COPY subscription_service/alembic /app/alembic
 COPY subscription_service/alembic.ini /app/alembic.ini
+COPY subscription_service/scripts /app/scripts
 
 # 4. Ajuste de permisos
 RUN addgroup --system app && adduser --system --group app && \
@@ -30,7 +31,7 @@ RUN addgroup --system app && adduser --system --group app && \
 
 USER app
 
-EXPOSE 8002
+EXPOSE 8000
 
-# 5. Ejecución: Migraciones -> API
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8002"]
+# 5. Ejecución: Semillas -> API
+CMD ["sh", "-c", "python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

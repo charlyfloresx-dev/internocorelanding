@@ -1,14 +1,46 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user
 from app.services.ticket_service import TicketService
-from app.schemas.ticket_dto import TicketRead, TicketCreate, TicketUpdate, TicketCommentRead, TicketCommentCreate, ApiResponse
+from app.schemas.ticket_dto import (
+    TicketRead, 
+    TicketCreate, 
+    TicketUpdate, 
+    TicketCommentRead, 
+    TicketCommentCreate, 
+    TicketCommentBase,
+    ApiResponse
+)
+from app.schemas.internal_ticket import InternalTicketCreate
 from common.security.auth_payload import TokenPayload
-from typing import List
-import uuid
+from app.services.ticket_commands import TicketCommandHandler, ConsumeResourcesCommand, ConsumeResourceDto
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
+
+@router.post("/internal", response_model=ApiResponse)
+async def create_internal_ticket(
+    cmd: InternalTicketCreate,
+    db: AsyncSession = Depends(get_db),
+    x_company_id: str = Header(..., alias="X-Company-ID"),
+    x_service_signature: str = Header(None, alias="X-Service-Signature"),
+):
+    """
+    Endpoint inter-servicio para creación automática de tickets.
+    Invocado por inventory_service u otros servicios internos.
+    Incluye lógica de debouncing SHA256 para prevenir duplicados.
+    TODO: Validar HMAC signature con secreto compartido.
+    """
+    service = TicketService(db)
+    company_id = uuid.UUID(x_company_id)
+    ticket, is_new = await service.create_internal_ticket_with_debouncing(cmd, company_id)
+    
+    if is_new:
+        return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket interno creado exitosamente")
+    else:
+        return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket existente (debouncing activo, duplicado prevenido)")
 
 @router.post("/", response_model=ApiResponse)
 async def create_ticket(
@@ -79,3 +111,48 @@ async def add_comment(
     )
     comment = await service.add_comment(comment_cmd, uuid.UUID(user.sub))
     return ApiResponse(data=TicketCommentRead.model_validate(comment), message="Comentario agregado")
+
+@router.post("/{ticket_id}/consume-resources", response_model=ApiResponse)
+async def consume_ticket_resources(
+    ticket_id: uuid.UUID,
+    resources: List[ConsumeResourceDto],
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(get_current_user)
+):
+    """
+    CQRS: Registra consumo de recursos operacionales.
+    Dispara integración atómica POST /transactions/ hacia inventory_service (Kardex OUT).
+    """
+    cmd = ConsumeResourcesCommand(
+        ticket_id=ticket_id,
+        company_id=uuid.UUID(user.companyId),
+        user_id=uuid.UUID(user.sub),
+        resources=resources
+    )
+    handler = TicketCommandHandler(db)
+    
+    try:
+        ticket = await handler.handle_consume_resources(cmd)
+    except ValueError as e:
+        if str(e) == "Ticket not found":
+            raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        raise HTTPException(status_code=400, detail=str(e))
+        
+    return ApiResponse(data=TicketRead.model_validate(ticket), message="Recursos consumidos y Kardex actualizado exitosamente")
+
+@router.delete("/{ticket_id}", response_model=ApiResponse)
+async def delete_ticket(
+    ticket_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(get_current_user)
+):
+    """
+    Soft-delete: marca is_active=False para mantener integridad referencial
+    y cumplir con las políticas de auditoría forense.
+    """
+    service = TicketService(db)
+    ticket = await service.soft_delete_ticket(ticket_id, uuid.UUID(user.companyId), uuid.UUID(user.sub))
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket eliminado (soft-delete)")
+

@@ -1,6 +1,6 @@
 from sqlalchemy import String, Text, Enum as sqlalchemy_Enum, UUID as sqlalchemy_UUID, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.domain.entities import MultiTenantBase
+from common.models import MultiTenantBase
 from app.core.constants import TicketStatus, TicketPriority, TicketType
 import uuid
 from typing import List, Optional
@@ -26,10 +26,26 @@ class Ticket(MultiTenantBase):
         sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
     )
     
+    # Anti-Fatigue Debouncing
+    deduplication_hash: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    
+    # MES/ERP Execution metrics
+    module_origin: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # e.g., PRODUCTION, INVENTORY
+    area: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    estimated_time: Mapped[Optional[int]] = mapped_column(nullable=True) # in minutes
+    real_time_spent: Mapped[Optional[int]] = mapped_column(nullable=True) # in minutes
+    cost_estimate: Mapped[Optional[float]] = mapped_column(nullable=True)
+    
     # Relationships
     comments: Mapped[List["TicketComment"]] = relationship(
         "app.models.comments.TicketComment", back_populates="ticket", cascade="all, delete-orphan"
     )
     history: Mapped[List["TicketHistory"]] = relationship(
         "app.models.history.TicketHistory", back_populates="ticket", cascade="all, delete-orphan"
+    )
+    resources: Mapped[List["TicketResource"]] = relationship(
+        "app.models.resource.TicketResource", back_populates="ticket", cascade="all, delete-orphan"
+    )
+    stop_logs: Mapped[List["StopLog"]] = relationship(
+        "app.models.stop_log.StopLog", back_populates="ticket", cascade="all, delete-orphan"
     )

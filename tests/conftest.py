@@ -18,7 +18,7 @@ DB_USER = "user"
 DB_PASSWORD = "password"
 DB_HOST = "localhost" 
 DB_PORT = "5433"
-DB_NAME = "nexosuite_test"
+DB_NAME = "interno_test"
 
 # Main admin connection URL (to create the test DB)
 ADMIN_DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/postgres"

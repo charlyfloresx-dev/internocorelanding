@@ -6,6 +6,7 @@ from common.cqrs import ICommand, ICommandHandler
 from app.models import UserCompanyRole
 from common.exceptions import NotFoundException
 from common.repository import BaseRepository
+from common.services.audit_service import AuditService
 
 class CompleteOnboardingCommand(ICommand):
     def __init__(self, user_id: UUID, company_id: UUID):
@@ -31,6 +32,17 @@ class CompleteOnboardingCommandHandler(ICommandHandler[dict]):
             raise NotFoundException(entity="UserCompanyRole", entity_id=f"{command.user_id}-{command.company_id}")
         
         user_company_role.is_new = False
+        
+        # 3. Audit Trail Injection
+        await AuditService.log_change(
+            db=self.db,
+            company_id=command.company_id,
+            event_type="ONBOARDING_COMPLETED",
+            entity_name="UserCompanyRole",
+            entity_id=str(user_company_role.id),
+            description=f"User {command.user_id} completed onboarding for company {command.company_id}"
+        )
+        
         await self.db.commit()
         
         return {"is_new": False}

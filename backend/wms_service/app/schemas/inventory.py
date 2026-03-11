@@ -35,14 +35,14 @@ class InventoryMovementBase(BaseModel):
 class InventoryMovementCreate(InventoryMovementBase):
     pass
 
-class InventoryMovementRead(InventoryMovementBase):
-    id: uuid.UUID
-    
-    class Config:
-        from_attributes = True
+# class InventoryMovementRead(InventoryMovementBase):
+#    id: uuid.UUID
+#    
+#    class Config:
+#        from_attributes = True
 
 class InventoryDocumentBase(BaseModel):
-    concept_code: str = Field(..., description="Código del concepto (ej: ENT, SAL)")
+    concept_code: str = Field(..., description="C\u00f3digo del concepto (ej: ENT, SAL)")
     description: Optional[str] = None
     reference: Optional[str] = None
     date: datetime = Field(default_factory=datetime.utcnow)
@@ -50,21 +50,21 @@ class InventoryDocumentBase(BaseModel):
 class InventoryDocumentCreate(InventoryDocumentBase):
     movements: List[InventoryMovementCreate]
 
-class InventoryDocumentRead(InventoryDocumentBase):
-    id: uuid.UUID
-    company_id: uuid.UUID
-    status: str
-    sequence_number: int
-    folio: str
-    created_by: Optional[uuid.UUID] = None
-    created_at: datetime
-    confirmed_at: Optional[datetime] = None
-    confirmed_by: Optional[uuid.UUID] = None
-    movements: List[InventoryMovementRead] = []
-    total_amount: Decimal = Field(default=0)
-
-    class Config:
-        from_attributes = True
+# class InventoryDocumentRead(InventoryDocumentBase):
+#    id: uuid.UUID
+#    company_id: uuid.UUID
+#    status: str
+#    sequence_number: int
+#    folio: str
+#    created_by: Optional[uuid.UUID] = None
+#    created_at: datetime
+#    confirmed_at: Optional[datetime] = None
+#    confirmed_by: Optional[uuid.UUID] = None
+#    movements: List[InventoryMovementRead] = []
+#    total_amount: Decimal = Field(default=0)
+#
+#    class Config:
+#        from_attributes = True
 
 # --- Stock & Snapshot Schemas (El que faltaba) ---
 

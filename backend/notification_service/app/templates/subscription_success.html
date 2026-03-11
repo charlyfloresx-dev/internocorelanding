@@ -1,0 +1,32 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<h2 style="color: #1a1a1a; margin-top: 0;">🚀 ¡Bienvenido a la Elite, {{ user_name }}!</h2>
+<p>Es un placer confirmarte que la suscripción para <strong>{{ company_name }}</strong> ha sido activada exitosamente.
+</p>
+
+<div style="background-color: #f8f9fa; border-left: 4px solid #32CD32; padding: 15px; margin: 25px 0;">
+    <p style="margin: 0; font-size: 14px; color: #555;">Detalles de la Suscripción:</p>
+    <p style="margin: 5px 0 0 0; font-size: 18px; font-weight: bold; color: #000;">{{ plan_name }}</p>
+    <p style="margin: 5px 0 0 0; font-size: 13px; color: #888;">Próxima renovación: {{ expiry_date }}</p>
+</div>
+
+<p>Desde este momento, tu organización tiene acceso total a todos los módulos contratados. Tu equipo ya puede empezar a
+    optimizar sus procesos industriales con la potencia de Interno Core.</p>
+
+<p>¿Qué sigue ahora?</p>
+<ul style="color: #555;">
+    <li>Configura tus centros de trabajo en el módulo MES.</li>
+    <li>Carga tu inventario inicial en el WMS.</li>
+    <li>Invita a tus colaboradores y asigna roles.</li>
+</ul>
+
+<div style="text-align: center;">
+    <a href="https://app.internocore.com" class="btn">Acceder a mi Dashboard</a>
+</div>
+
+<p style="margin-top: 30px;">Si tienes alguna duda técnica, nuestro equipo de soporte está listo para ayudarte en el
+    canal #soporte-premium.</p>
+
+<p>Atentamente,<br><strong>El equipo de Interno Core</strong></p>
+{% endblock %}

@@ -24,6 +24,8 @@ class DocumentStatus(str, enum.Enum):
 # Al heredar de MultiTenantBase, ya tienes ID, CreatedAt, UpdatedAt y CompanyId
 class InventoryDocument(MultiTenantBase, Base):
     __tablename__ = "inventory_documents"
+    
+    # ... (el resto igual)
 
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     folio: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
@@ -53,6 +55,9 @@ class InventoryDocument(MultiTenantBase, Base):
     total: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0000"))
 
     # Relaciones ORM
+    warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="documents")
+    concept: Mapped["Concept"] = relationship("Concept")
+    
     movements: Mapped[List["InventoryMovement"]] = relationship(
         "InventoryMovement", 
         back_populates="document", 

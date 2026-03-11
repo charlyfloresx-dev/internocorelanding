@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { InventoryService } from '@services/inventory.service';
+import { AuthService } from '@services/auth.service';
 import { ConceptType, CreateDocumentCommand, DocumentStatus } from '@models/api.types';
 
 @Component({
@@ -80,13 +81,31 @@ import { ConceptType, CreateDocumentCommand, DocumentStatus } from '@models/api.
 
               <!-- WAREHOUSE -->
               <div>
-                 <label class="block text-slate-300 text-sm font-bold mb-2">Almacén *</label>
+                 <label class="block text-slate-300 text-sm font-bold mb-2">Almacén Origen *</label>
                  <select formControlName="warehouseId" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-sky-500 outline-none transition-colors disabled:opacity-50">
                     @for (w of service.warehouses(); track w.id) {
                       <option [value]="w.id">{{ w.name }}</option>
                     }
                  </select>
               </div>
+
+              <!-- DESTINATION WAREHOUSE (Conditional - Transfer) -->
+              @if (isTransfer()) {
+                <div class="animate-fade-in-down">
+                  <label class="block text-sky-400 text-sm font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-right-left"></i> Almacén Destino *
+                  </label>
+                  <select formControlName="destinationWarehouseId" class="w-full bg-slate-950 border border-sky-500/50 rounded-lg p-3 text-white focus:border-sky-500 outline-none transition-colors disabled:opacity-50 shadow-lg shadow-sky-500/5">
+                      <option value="" disabled>Seleccione Destino...</option>
+                      @for (w of availableDestinationWarehouses(); track w.id) {
+                        <option [value]="w.id">{{ w.name }}</option>
+                      }
+                  </select>
+                  @if (availableDestinationWarehouses().length === 0) {
+                    <p class="text-[10px] text-red-400 mt-1 italic">No hay otros almacenes disponibles en este grupo corporativo.</p>
+                  }
+                </div>
+              }
 
               <!-- PARTNER (Conditional) -->
               <div>
@@ -225,6 +244,7 @@ import { ConceptType, CreateDocumentCommand, DocumentStatus } from '@models/api.
 })
 export class InventoryDocumentEditorComponent implements OnInit {
   public service = inject(InventoryService);
+  public auth = inject(AuthService);
   fb: FormBuilder = inject(FormBuilder);
   router = inject(Router);
   route = inject(ActivatedRoute);
@@ -237,6 +257,7 @@ export class InventoryDocumentEditorComponent implements OnInit {
   form = this.fb.group({
     conceptId: ['', Validators.required],
     warehouseId: ['', Validators.required],
+    destinationWarehouseId: [''],
     partnershipId: [''],
     deliveryDate: [new Date().toISOString().slice(0, 10), Validators.required],
     reference: [''],
@@ -250,6 +271,15 @@ export class InventoryDocumentEditorComponent implements OnInit {
   selectedConcept = computed(() => {
     const id = this.form.controls.conceptId.value;
     return this.service.concepts().find(c => c.id === id) || null;
+  });
+
+  isTransfer = computed(() => this.selectedConcept()?.type === ConceptType.Transfer);
+
+  availableDestinationWarehouses = computed(() => {
+    const authGroupId = this.auth.currentContext()?.group_id;
+    const originWhId = this.form.controls.warehouseId.value;
+    // Filtrar por el mismo grupo corporativo y que no sea el mismo almacén de origen
+    return this.service.warehouses().filter(w => w.groupId === authGroupId && w.id !== originWhId);
   });
 
   subtotal = computed(() => this.movements.reduce((sum, m) => sum + (m.quantity * m.unitPrice), 0));
@@ -344,6 +374,7 @@ export class InventoryDocumentEditorComponent implements OnInit {
     const cmd: CreateDocumentCommand = {
       conceptId: this.form.value.conceptId!,
       warehouseId: this.form.value.warehouseId!,
+      destination_warehouse_id: this.isTransfer() ? this.form.value.destinationWarehouseId || undefined : undefined,
       partnershipId: this.form.value.partnershipId || undefined,
       deliveryDate: this.form.value.deliveryDate!,
       reference: this.form.value.reference || '',

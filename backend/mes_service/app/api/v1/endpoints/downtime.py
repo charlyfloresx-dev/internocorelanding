@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies import get_db
+from app.dependencies import get_db, get_current_company
 from app.models.downtime import Downtime, DowntimeReason
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 import uuid
 from datetime import datetime
 from sqlalchemy import select, update, and_
@@ -24,23 +25,40 @@ class DowntimeRead(BaseModel):
     action_taken: Optional[str]
     root_cause: Optional[str]
     mttr_minutes: float
+    escalation_level: int
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
 
 class DowntimeAdminClose(BaseModel):
-    admin_user_id: uuid.UUID
-    root_cause: str
+    admin_user_id: uuid.UUID = Field(description="Supervisor user ID")
+    root_cause: str = Field(description="Final root cause analysis")
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+class DowntimeOpen(BaseModel):
+    resource_result_id: uuid.UUID
+    reason_id: Optional[uuid.UUID] = None
+    description: Optional[str] = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 # Endpoints
 @router.post("/open", response_model=DowntimeRead)
-async def open_downtime(request: DowntimeOpen, db: AsyncSession = Depends(get_db)):
+async def open_downtime(
+    request: DowntimeOpen, 
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db)
+):
     """Abre un nuevo paro en línea."""
     downtime = Downtime(
         resource_result_id=request.resource_result_id,
         reason_id=request.reason_id,
         description=request.description,
-        company_id=request.company_id,
+        company_id=company_id,
         start_at=datetime.now(),
         status="OPEN"
     )

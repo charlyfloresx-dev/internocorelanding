@@ -1,6 +1,6 @@
 from sqlalchemy import String, Text, UUID as sqlalchemy_UUID, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.domain.entities import MultiTenantBase
+from common.models import MultiTenantBase
 import uuid
 
 class TicketComment(MultiTenantBase):

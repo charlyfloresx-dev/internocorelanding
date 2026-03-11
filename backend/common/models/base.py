@@ -2,8 +2,7 @@ import uuid
 from typing import Generic, TypeVar, Optional, List, Type, Any
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from common.models.user_context import UserContext
-from common.middleware import request_context
+from common.context import request_context
 # Asumimos que MultiTenantBase y BaseEntity están disponibles en common.models
 # Si no, se deberían importar de donde estén definidos (ej. common.domain.entities)
 # Para este ejemplo, usaremos un check dinámico de atributos.
@@ -20,8 +19,10 @@ class BaseRepository(Generic[T]):
         self.model = model
         self.db = db
 
-    def _get_context(self) -> Optional[UserContext]:
+    def _get_context(self) -> Optional[Any]:
         """Recupera el contexto del usuario actual desde el middleware."""
+        # Se devuelve 'Any' para desacoplar de 'UserContext' y evitar importaciones circulares.
+        # La estructura real del contexto se valida en el middleware.
         return request_context.get()
 
     def _get_base_query(self):

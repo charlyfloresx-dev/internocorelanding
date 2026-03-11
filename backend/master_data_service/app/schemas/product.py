@@ -1,31 +1,47 @@
-from pydantic import BaseModel
-from typing import Optional, List
-from uuid import UUID
+import uuid
 from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List, Optional
+from common.domain import ProductType, ProductStatus, VersionStatus
 
-# 1. Esquema Base (Campos comunes)
-class ProductBase(BaseModel):
+class ProductVersionRead(BaseModel):
+    id: uuid.UUID
+    version_number: int
+    version_status: VersionStatus
+    is_active: bool
+    is_validated: bool
+    change_reason: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ProductRead(BaseModel):
+    id: uuid.UUID
+    company_id: uuid.UUID
     name: str
-    description: Optional[str] = None
     sku: str
-    company_id: UUID
-    is_active: bool = True
-
-# 2. Esquema para Crear (Cuando llega del API)
-class ProductCreate(ProductBase):
-    pass
-
-# 3. Esquema para Leer (Lo que regresa el API)
-class ProductRead(ProductBase):
-    id: UUID
+    description: Optional[str] = None
+    product_type: ProductType
+    status: ProductStatus
+    group_id: Optional[uuid.UUID] = None
+    
+    # Auditoría
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+    created_by: Optional[uuid.UUID] = None
+    updated_by: Optional[uuid.UUID] = None
+    version_id: int
+    is_active: bool
 
-# 4. Esquema para Leer con Versiones (El que te faltaba)
+    model_config = ConfigDict(from_attributes=True)
+
 class ProductReadWithVersions(ProductRead):
-    # Aquí iría una lista de esquemas de versión, 
-    # por ahora lo dejamos como lista genérica para que el import pase.
-    versions: List[dict] = []
+    versions: List[ProductVersionRead] = []
+
+class ProductCreate(BaseModel):
+    name: str = Field(..., min_length=1, description="Nombre del producto")
+    sku: str = Field(..., min_length=1, description="SKU único por empresa")
+    description: Optional[str] = None
+    product_type: ProductType
+    uom_id: uuid.UUID
+    category_id: Optional[uuid.UUID] = None
+    group_id: Optional[uuid.UUID] = None

@@ -4,14 +4,15 @@ from sqlalchemy import event, select, inspect, cast
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID # ✅ Crucial para el cast
 from common.exceptions import BusinessRuleException
 
+from typing import Any, List, Optional
 # Imports absolutos
-from .inventory_document import InventoryDocument, InventoryDocumentStatus
+from .inventory_document import InventoryDocument, DocumentStatus
 from .inventory_movement import InventoryMovement
 from .inventory_snapshot import InventorySnapshot
 
 # ... (Eventos de inmutabilidad iguales)
 
-def update_stock_and_cost(doc: InventoryDocument, connection, reverse: bool):
+def update_stock_and_cost(doc: Any, connection, reverse: bool):
     """
     Core Ledger logic optimizada para UUIDs nativos.
     """
@@ -20,7 +21,7 @@ def update_stock_and_cost(doc: InventoryDocument, connection, reverse: bool):
         stmt = (
             select(
                 InventorySnapshot.id,
-                InventorySnapshot.stock_on_hand,
+                InventorySnapshot.quantity_on_hand,
                 InventorySnapshot.average_cost
             )
             .where(
@@ -41,7 +42,7 @@ def update_stock_and_cost(doc: InventoryDocument, connection, reverse: bool):
                     company_id=doc.company_id,
                     product_id=mov.product_id,
                     warehouse_id=mov.warehouse_id,
-                    stock_on_hand=Decimal("0.0"),
+                    quantity_on_hand=Decimal("0.0"),
                     average_cost=Decimal("0.0"),
                     created_at=doc.created_at or doc.updated_at,
                     is_active=True, # ✅ No olvidar campos base
@@ -75,7 +76,7 @@ def update_stock_and_cost(doc: InventoryDocument, connection, reverse: bool):
             InventorySnapshot.__table__.update()
             .where(InventorySnapshot.id == snapshot_id)
             .values(
-                stock_on_hand=new_stock,
+                quantity_on_hand=new_stock,
                 average_cost=new_cost,
                 updated_at=doc.updated_at
             )

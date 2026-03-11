@@ -524,6 +524,55 @@ Se creó un servicio centralizado (`src/app/core/services/system-health.service.
 
 ---
 
+### [v1.4.0] - Implementación de Pilares de Identidad (IAM v2)
+- **Resumen:** Se han implementado y refactorizado los flujos de identidad principales para alinearlos con las especificaciones de negocio y el estilo visual de Metronic v9.
+- **Login & Multi-Tenant:**
+  - **Cambiado:** `AuthService.login()` ahora detecta si un usuario tiene una sola empresa y ejecuta la selección automática, omitiendo la pantalla de selección.
+- **Recuperación de Contraseña:**
+  - **Añadido:** Componentes `ForgotPasswordComponent` y `ResetPasswordComponent` con formularios y lógica de servicio.
+  - **Añadido:** Métodos `forgotPassword()` y `resetPassword()` en `AuthService`.
+- **Ingreso por Código:**
+  - **Cambiado:** `CompleteRegistrationComponent` ahora implementa la lógica `onSubmit` para validar el código y realizar un auto-login, redirigiendo al dashboard.
+- **Registro de Empresa:**
+  - **Verificado:** El flujo de `RegisterCompanyComponent` ya cumple con el requisito de "Auto-Login" post-registro.
+- **Razón:** Unificar y robustecer todos los puntos de entrada y gestión de identidad del usuario final, cerrando brechas funcionales y mejorando la experiencia de usuario.
+
+---
+
+### [v1.4.1] - Implementación de Cliente para Master Data Service
+- **Resumen:** Se ha creado el cliente de API para el `master-data-service`, permitiendo al frontend consumir catálogos centrales como Unidades de Medida.
+- **Cambios Técnicos:**
+  - **Modelos:** Se añadieron las interfaces `UOMRead`, `ProductRead`, `BrandRead`, y `CategoryRead` a `api.types.ts`, alineadas con el Swagger del servicio.
+  - **Servicio:** Creación de `MasterDataService` con el método `listUoms()` que apunta a `/api/v1/ums/`.
+  - **Componente de Prueba:** Se generó `UomListComponent` para validar la conexión y listar las UOMs, demostrando la correcta integración del interceptor (`X-Company-Id`).
+- **Razón:** Habilitar la gestión y visualización de datos maestros en la UI, un paso fundamental para los módulos de Inventario y Producción.
+
+---
+
+### [v1.4.2] - Habilitación de Trazabilidad de Auditoría en UI
+- **Resumen:** Se ha implementado la visualización de los campos de auditoría (`created_at`, `created_by`, etc.) en el módulo de Master Data para proveer trazabilidad al usuario final.
+- **Cambios Técnicos:**
+  - **Modelos:** Se creó la interfaz `AuditBase` en `api.types.ts` con los campos de auditoría y se refactorizaron los modelos `UOMRead`, `ProductRead`, `BrandRead` y `CategoryRead` para heredar de ella.
+  - **Componente:** Se actualizó `uom-list.component.ts` para añadir una columna de "Auditoría" que muestra la información de creación y modificación en un tooltip al pasar el mouse sobre un icono.
+  - **UX:** Se utiliza el pipe `date:'medium'` para formatear las fechas de auditoría de manera legible.
+- **Razón:** Aumentar la transparencia y la capacidad de auditoría del sistema desde la interfaz de usuario, permitiendo a los administradores ver quién y cuándo se creó o modificó un registro maestro.
+
+---
+
+### [v1.3.2] - Implementación de Flujos de Registro e Invitación (IAM v2)
+- **Resumen:** Se han creado los componentes y métodos de servicio para soportar el registro de nuevas empresas y la invitación de usuarios, alineando el frontend con el `auth_service` v2.
+- **Componentes Nuevos (Esqueletos):**
+  - `RegisterCompanyComponent`: Formulario standalone para el auto-registro de nuevos clientes SaaS.
+  - `CompleteRegistrationComponent`: Vista para que los usuarios invitados finalicen su registro, capturando el `code` de la URL.
+  - `UserInviteModal`: Componente de UI para que los administradores inviten a nuevos miembros.
+- **Servicio (`AuthService`):**
+  - **Añadido:** `registerCompany()` para consumir `POST /v2/public/register-company`.
+  - **Añadido:** `completeRegistration()` para consumir `POST /v2/public/complete-registration`.
+  - **Añadido:** `inviteUser()` para consumir `POST /v2/admin/users/invite`.
+- **Razón:** Cerrar la brecha funcional identificada en la auditoría de integración con IAM v2, permitiendo el ciclo de vida completo del usuario y la empresa desde la UI.
+
+---
+
 ## [2026-02-24] UI Telemetry & Write-Lock Implementation
 
 ### 1. UI Telemetry (Health Badge)
@@ -538,3 +587,20 @@ Se creó un servicio centralizado (`src/app/core/services/system-health.service.
 - **Mecanismo:** Se ha implementado un nuevo signal computado `isReadOnly` dentro de `SystemHealthService`. Devuelve `true` si `overallStatus` no es `'online'`.
 - **Impacto:** Este signal es consumido por los componentes de formularios (ej. "Crear Producto") para deshabilitar los botones de "Guardar" y mostrar un mensaje de advertencia.
 - **Propósito:** Prevenir la inconsistencia de datos al bloquear operaciones de escritura cuando uno o más microservicios no están disponibles, forzando un modo de "solo lectura" durante las interrupciones.
+### [v1.4.3] - SaaS Scale & Billing Awareness (Phase 18 & 10.6)
+- **Resumen:** Integración del flujo de Stripe Billing y notificaciones transaccionales profesionales.
+- **Cambios Tecnicos:**
+  - **Billing:** El frontend ahora soporta el ruteo hacia el `subscription_service` (port 8002) para el embedded checkout.
+  - **Interceptors:** Refuerzo de `X-Company-Id` para asegurar que las sesiones de pago estén aisladas por tenant.
+  - **Notificaciones:** Soporte para la visualización de renders HTML profesionales con branding (Logo SVG Base64).
+- **Razón:** Habilitar el modelo de negocio SaaS con activación automática y feedback visual de primer nivel.
+
+---
+
+## 📅 Roadmap Próxima Jornada
+1.  **Pulse UI**: Gráficas de barras apiladas (Stacked Bar Charts) para producción horaria.
+2.  **Andon escalation**: UI de configuración de tiempos de respuesta para supervisores.
+3.  **Audit Evidence**: Carga de imágenes para paros de línea (MES).
+
+---
+**Status Final de Sesión (2026-03-06)**: 🚀 Global 92% Ready.
