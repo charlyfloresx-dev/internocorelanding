@@ -17,3 +17,16 @@ class VariantSearchResult(BaseModel):
 class VariantSearchResponse(BaseModel):
     status: str = "success"
     data: List[VariantSearchResult]
+
+class InventorySearchRow(BaseModel):
+    id: uuid.UUID
+    sku: str
+    name: str
+    current_stock: Decimal
+    uom_id: uuid.UUID
+    uom_symbol: str
+    abc_class: str
+
+class InventorySearchResponse(BaseModel):
+    status: str = "success"
+    data: List[InventorySearchRow]

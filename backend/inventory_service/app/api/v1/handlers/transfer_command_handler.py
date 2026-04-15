@@ -605,16 +605,16 @@ class TransferCommandHandler:
                 )
 
             # ── 2.1. ANTI-FRAUDE: Segregación de Funciones (SoD) ──────────────────
-            # if transfer.created_by == cmd.received_by:
-            #     logger.error(
-            #         f"[ICT][SECURITY] Intento de auto-recepción bloqueado. "
-            #         f"User={cmd.received_by} intentó recibir transfer={transfer.id}"
-            #     )
-            #     raise BusinessRuleException(
-            #         message="ERR_SELF_RECEIPT_NOT_ALLOWED: Por seguridad, "
-            #                 "un traspaso no puede ser recibido por el mismo usuario que lo inició.",
-            #         details={"transfer_id": str(cmd.transfer_id), "user_id": str(cmd.received_by)}
-            #     )
+            if transfer.created_by == cmd.received_by:
+                logger.error(
+                    f"[ICT][SECURITY] Intento de auto-recepción bloqueado. "
+                    f"User={cmd.received_by} intentó recibir transfer={transfer.id}"
+                )
+                raise BusinessRuleException(
+                    message="ERR_SELF_RECEIPT_NOT_ALLOWED: Por seguridad, "
+                            "un traspaso no puede ser recibido por el mismo usuario que lo inició.",
+                    details={"transfer_id": str(cmd.transfer_id), "user_id": str(cmd.received_by)}
+                )
 
             # ── 3. Validar estado del documento ───────────────────────────────────
             if transfer.status == TransferStatus.DELIVERED:

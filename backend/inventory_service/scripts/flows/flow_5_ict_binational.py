@@ -34,11 +34,11 @@ async def ensure_dependencies(session):
     
     await session.execute(text("""
         INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, is_active, 
+            id, name, company_id, tenant_id, code, country_code, type, is_active, 
             version_id, is_transit, created_at
         )
         VALUES (
-            :id, 'Logistics MX TJ', :co_mx, :co_mx, 'LOG-MX', 'MX', TRUE, 
+            :id, 'Logistics MX TJ', :co_mx, :co_mx, 'LOG-MX', 'MX', 'PHYSICAL', TRUE, 
             1, FALSE, :now_tz
         )
         ON CONFLICT (id) DO NOTHING;
@@ -46,11 +46,11 @@ async def ensure_dependencies(session):
 
     await session.execute(text("""
         INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, is_active, 
+            id, name, company_id, tenant_id, code, country_code, type, is_active, 
             version_id, is_transit, created_at
         )
         VALUES (
-            :id, 'Logistics US SD', :co_us, :co_us, 'LOG-US', 'US', TRUE, 
+            :id, 'Logistics US SD', :co_us, :co_us, 'LOG-US', 'US', 'PHYSICAL', TRUE, 
             1, FALSE, :now_tz
         )
         ON CONFLICT (id) DO NOTHING;

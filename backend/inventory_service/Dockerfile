@@ -8,7 +8,7 @@ WORKDIR /app
 
 # 1. Instalación de dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+    build-essential libpq-dev gcc curl && rm -rf /var/lib/apt/lists/*
 
 # 2. Instalación de dependencias Python
 COPY common/requirements.txt /app/common/requirements.txt
@@ -21,16 +21,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 3. Copia de la estructura del servicio
 COPY common /app/common
 COPY inventory_service/app /app/app
+COPY inventory_service/alembic /app/alembic
+COPY inventory_service/alembic.ini /app/alembic.ini
 COPY inventory_service/scripts /app/scripts
-# alembic copying will go here if/when initialized
+COPY inventory_service/entrypoint.sh /app/entrypoint.sh
 
-# 4. Ajuste de permisos
+# 4. Ajuste de permisos y entrypoint ejecutable
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# 5. Ejecución
-CMD ["sh", "-c", "python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# 5. Ejecución: Seed -> API (via entrypoint)
+CMD ["/bin/sh", "/app/entrypoint.sh"]

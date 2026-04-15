@@ -4,16 +4,10 @@ import sys
 import uuid
 from sqlalchemy import text
 
-# Matching seed.py logic
-BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SERVICE_APP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# Path normalization — Docker (WORKDIR=/app) compatible
+if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
 
-if BACKEND_ROOT not in sys.path:
-    sys.path.insert(0, BACKEND_ROOT)
-if SERVICE_APP not in sys.path:
-    sys.path.insert(0, SERVICE_APP)
-
-os.chdir(SERVICE_APP) 
 from app.db.session import engine
 
 async def verify_data():

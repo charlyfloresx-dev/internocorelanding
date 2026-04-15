@@ -28,11 +28,11 @@ async def ensure_warehouse(session):
     now_tz = datetime.now(timezone.utc)
     await session.execute(text("""
         INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, is_active, 
+            id, name, company_id, tenant_id, code, country_code, type, is_active, 
             version_id, is_transit, created_at
         )
         VALUES (
-            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', TRUE, 
+            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', 'PHYSICAL', TRUE, 
             1, FALSE, :now_tz
         )
         ON CONFLICT (id) DO NOTHING;
@@ -76,7 +76,7 @@ async def run_flow_2():
                 warehouse_id=WH_ENTERPRISE_TJ_ID,
                 product_id=PROD_ID,
                 company_id=CO_ENTERPRISE_ID,
-                quantity=Decimal("20.0"),
+                quantity=Decimal("-20.0"),
                 uom_id=UOM_ID,
                 weight=Decimal("10.0"),
                 movement_type="OUT",
@@ -84,7 +84,7 @@ async def run_flow_2():
                 document_id=doc_id, # Link to header
                 price=Money(Decimal("0.0"), "MXN"),
                 user_id=USER_A_ID,
-                available_quantity=Decimal("-20.0")
+                available_quantity=Decimal("0.0")
             )
             
             print("\n[⬅️ ] Registrando salida de inventario (Descarga)...")

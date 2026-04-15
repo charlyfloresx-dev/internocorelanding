@@ -1,3 +1,4 @@
+from common.security.cors_setup import setup_cors
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,8 +6,9 @@ from common.config import settings
 from common.middleware import InternoCoreGlobalMiddleware
 from common.models import Base
 from app.db.session import engine
-from app.api.v1.endpoints import transactions, reconciliation, boms
+from app.api.v1.endpoints import transactions, reconciliation, boms, inter_company_transfers
 from app.models import inventory  # Ensure models are imported for Base.metadata
+from app.models import inter_company_transfer  # ICT model - ensures table creation
 from app.core.workers.reconciliation_worker import ReconciliationWorker
 from app.core.workers.transit_worker import TransitAgeWorker
 
@@ -14,9 +16,11 @@ worker = ReconciliationWorker(interval_seconds=300) # 5 minutes heart-beat
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Crear tablas al iniciar (Solo para desarrollo)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Setup Audit
+    from app.core.events import setup_audit_listeners
+    setup_audit_listeners()
+
+    # Las tablas ahora se gestionan via Alembic en el entrypoint.sh 
     
     # Start Background Workers
     import asyncio
@@ -37,25 +41,46 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configuración de CORS basada en InternoSettings
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.int_backend_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# 2. Global Middleware
 app.add_middleware(InternoCoreGlobalMiddleware)
 
-from app.api.v1.endpoints import transactions, dashboard, search
+# 1. CORS (DEBE SER EL ÚLTIMO EN AÑADIRSE PARA SER EL PRIMERO EN PROCESAR PREFLIGHTS)
 
-# Registro de Routers (Uso de /internal para facilitar gobernanza)
+
+setup_cors(app)
+
+from app.api.v1.endpoints import (
+    transactions, 
+    reconciliation, 
+    boms, 
+    dashboard, 
+    inventory_search, 
+    dashboard_consolidated,
+    demo_reset,
+    onboarding,
+    inventory,
+    customs,
+    variants
+)
+
+# Registro de Routers
+# Prefix matches the environment.ts configurations for consistency
+app.include_router(customs.router, prefix="/api/v1/customs", tags=["Customs Compliance (Anexo 24)"])
 app.include_router(transactions.router, prefix="/api/v1/inventory", tags=["Inventory Transactions (Kardex)"])
-app.include_router(search.router, prefix="/api/v1/search", tags=["Variant Awareness Search"])
+app.include_router(inventory_search.router, prefix="/api/v1/search", tags=["Variant Awareness Search"])
 app.include_router(reconciliation.router, prefix="/api/v1/inventory", tags=["Reconciliation & Self-Healing"])
+app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory Operations"])
 app.include_router(boms.router, prefix="/api/v1/inventory/boms", tags=["BOM Management"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Stock Audit Dashboard"])
+app.include_router(onboarding.router, prefix="/api/v1", tags=["Onboarding / Readiness"])
+app.include_router(demo_reset.router, prefix="/api/v1", tags=["Admin / Demo"])
+app.include_router(
+    inter_company_transfers.router,
+    prefix="/api/v1/inventory/transfers/inter-company",
+    tags=["Inter-Company Transfers (Trusted Broker)"]
+)
+app.include_router(variants.router, prefix="/api/v1/inventory", tags=["Industrial Variants (Supplier Mappings)"])
+
 
 @app.get("/health")
 async def health():

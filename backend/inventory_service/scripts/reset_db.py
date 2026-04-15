@@ -3,11 +3,9 @@ import os
 import sys
 from sqlalchemy import text
 
-# Ajuste de path para encontrar 'app' y 'common'
-BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SERVICE_APP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, BACKEND_ROOT)
-sys.path.insert(0, SERVICE_APP)
+# Path normalization — Docker (WORKDIR=/app) compatible
+if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
 
 from app.db.session import engine
 

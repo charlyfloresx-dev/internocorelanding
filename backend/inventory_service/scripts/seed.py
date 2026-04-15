@@ -4,231 +4,139 @@ import logging
 import os
 import sys
 import random
-from datetime import datetime, timedelta
+import argparse
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from sqlalchemy import text, select
 
-# 1. Path Normalization
-BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SERVICE_APP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# Path Normalization
+if os.getcwd() not in sys.path:
+    sys.path.insert(0, os.getcwd())
 
-if BACKEND_ROOT not in sys.path:
-    sys.path.insert(0, BACKEND_ROOT)
-if SERVICE_APP not in sys.path:
-    sys.path.insert(0, SERVICE_APP)
-
-os.chdir(SERVICE_APP) 
 from app.db.session import AsyncSessionLocal
-from app.models.inventory import InventoryLevel, InventoryTransaction, TransactionType
-from app.models.concept import MovementConcept, ConceptType
+from app.models.inventory import InventoryLevel
+from app.models.concept import MovementConcept
 from app.models.item_variant import ItemVariant
 from app.models.movement import Movement
-from sqlalchemy.future import select
-from sqlalchemy import delete
+from app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
+from app.models.document import InventoryDocument, DocumentStatus
+from app.models.warehouse import Warehouse
+from app.models.warehouse import Warehouse
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger("seed_inventory")
 
-# --- IDs ALINEADOS CON AUTH SEED (LOGISTIC DEMO) ---
-CO_LOGISTICS_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
-SYSTEM_USER_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38") # Admin "Charly"
-UOM_PZ_ID = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.uom.PZA")
-
-# IDs de Almacenes
-WH_TIJ_ID = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.wh.WH-TIJ.{CO_LOGISTICS_ID}")
-WH_SDY_ID = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.wh.WH-SDY.{CO_LOGISTICS_ID}")
-
-async def seed_inventory():
+async def seed_inventory(company_id: uuid.UUID):
     async with AsyncSessionLocal() as session:
         try:
-            logger.info(f"🌱 [INVENTORY] Iniciando seed avanzado para company: {CO_LOGISTICS_ID}")
-
-            # 0. Garantizar tablas (Fail-safe)
-            async with session.bind.begin() as conn:
-                from common.models import Base
-                await conn.run_sync(Base.metadata.create_all)
-
-            # 1. CONCEPTOS DE MOVIMIENTO
-            concepts_data = [
-                {"name": "Compra Externo", "code": "COMPRA", "type": ConceptType.ENTRY},
-                {"name": "Consumo Producción", "code": "PRODUCCION", "type": ConceptType.OUTPUT},
-                {"name": "Transferencia Tijuana-SD", "code": "TRANSFERENCIA", "type": ConceptType.OUTPUT},
-                {"name": "Recepción Transferencia", "code": "RECEPCION_TRA", "type": ConceptType.ENTRY},
-                {"name": "Material Scrap", "code": "SCRAP", "type": ConceptType.OUTPUT},
-                {"name": "Ajuste de Inventario", "code": "AJUSTE", "type": ConceptType.ENTRY}, # Puede ser ambos, simplificado
-                {"name": "Devolución Cliente", "code": "DEVOLUCION_CLIENTE", "type": ConceptType.ENTRY},
-            ]
+            now = datetime.now(timezone.utc)
+            SYSTEM_USER_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
+            UOM_PZ_ID      = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.uom.PZA")
             
-            concept_ids = {}
-            for c in concepts_data:
-                stmt = select(MovementConcept).filter_by(code=c["code"], company_id=CO_LOGISTICS_ID)
-                res = await session.execute(stmt)
-                obj = res.scalars().first()
-                if not obj:
-                    obj = MovementConcept(
-                        id=uuid.uuid4(),
-                        name=c["name"],
-                        code=c["code"],
-                        type=c["type"],
-                        company_id=CO_LOGISTICS_ID,
-                        created_by=SYSTEM_USER_ID
-                    )
-                    session.add(obj)
-                concept_ids[c["code"]] = obj.id
-            await session.flush()
+            logger.info(f"🌱 [INVENTORY] Iniciando seed blindado determinista (Rectificado) para {company_id}")
 
-            # 2. CATALOGO Y STOCK (10 MATERIALES)
-            skus = [f"MAT-{str(i).zfill(3)}" for i in range(1, 11)]
-            item_variant_data = {
-                "MAT-001": [
-                    {"brand": "Alcoa", "mpn": "AL-6061-T6", "price": 12.50, "weight": 2.7, "vol": 0.001, "pref": True},
-                    {"brand": "Hydro", "mpn": "HY-EXT-6061", "price": 11.90, "weight": 2.7, "vol": 0.001, "pref": False}
-                ],
-                "MAT-005": [
-                    {"brand": "3M", "mpn": "G10-PRO-3M", "price": 45.00, "weight": 1.2, "vol": 0.002, "pref": True},
-                    {"brand": "Loctite", "mpn": "LOC-EPOXY-G10", "price": 42.50, "weight": 1.2, "vol": 0.002, "pref": False}
-                ],
-                "MAT-012": [
-                    {"brand": "Southwire", "mpn": "SW-14AWG-BK", "price": 0.85, "weight": 0.05, "vol": 0.0001, "pref": True},
-                    {"brand": "Encore", "mpn": "ENC-14AWG-CU", "price": 0.80, "weight": 0.05, "vol": 0.0001, "pref": False}
-                ],
-                "MAT-022": [
-                    {"brand": "Fastenal", "mpn": "FAS-M8-SS-100", "price": 0.15, "weight": 0.01, "vol": 0.00001, "pref": True}
-                ],
-                "MAT-002": [
-                    {"brand": "Uline", "mpn": "UL-STR-20IN", "price": 18.00, "weight": 5.0, "vol": 0.05, "pref": True}
-                ]
-            }
+            # 1. Almacenes (Independiente)
+            wh_codes = ["WH-TIJ", "WH-SDY"]
+            wh_map = {}
+            for code in wh_codes:
+                wh_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{company_id}.{code}")
+                wh_map[code] = wh_id
+                res = await session.execute(select(Warehouse).where(Warehouse.id == wh_id))
+                if not res.scalar():
+                    session.add(Warehouse(
+                        id=wh_id, company_id=company_id, tenant_id=company_id,
+                        code=code, name=f"Warehouse {code}", is_active=True
+                    ))
 
+            # --- 2. PRODUCTOS (FUERA DE CUALQUIER BUCLE DE ALMACÉN) ---
+            skus = ["PIZZA-BOX-01", "BOX-INDUSTRIAL-44"]
+            variant_map = {}
             for sku in skus:
-                item_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.item.{sku}")
+                v_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"variant.{company_id}.{sku}")
+                p_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"item.{company_id}.{sku}")
+                variant_map[sku] = (v_id, p_id)
                 
-                # STOCK INICIAL
-                base_qty_tij = 5000.0
-                base_qty_sdy = 2000.0
-                
-                # ALERTA MAT-001: Forzar stock bajo (Requisito 3)
-                if sku == "MAT-001":
-                    base_qty_tij = 12.0
-                if sku == "MAT-005":
-                    base_qty_sdy = 5.0
-
-                for wh_id, qty in [(WH_TIJ_ID, base_qty_tij), (WH_SDY_ID, base_qty_sdy)]:
-                    stmt = select(InventoryLevel).filter_by(
-                        warehouse_id=wh_id, product_id=item_id, company_id=CO_LOGISTICS_ID
-                    )
-                    res = await session.execute(stmt)
-                    level = res.scalars().first()
-                    
-                    if not level:
-                        level = InventoryLevel(
-                            id=uuid.uuid4(),
-                            company_id=CO_LOGISTICS_ID,
-                            warehouse_id=wh_id,
-                            product_id=item_id,
-                            uom_id=UOM_PZ_ID,
-                            quantity=Decimal(str(qty)),
-                            weighted_average_cost=Decimal("10.0"),
-                            created_by=SYSTEM_USER_ID
-                        )
-                        session.add(level)
-                    else:
-                        level.quantity = Decimal(str(qty))
-
-                # VARIANTES (Requisito 1)
-                variants = item_variant_data.get(sku, [])
-                for v in variants:
-                    stmt = select(ItemVariant).filter_by(
-                        internal_sku=sku, brand=v["brand"], company_id=CO_LOGISTICS_ID
-                    )
-                    res = await session.execute(stmt)
-                    if not res.scalars().first():
-                        session.add(ItemVariant(
-                            id=uuid.uuid4(),
-                            company_id=CO_LOGISTICS_ID,
-                            product_id=item_id,
-                            internal_sku=sku,
-                            brand=v["brand"],
-                            mfg_part_number=v["mpn"],
-                            unit_price=Decimal(str(v["price"])),
-                            weight=Decimal(str(v["weight"])),
-                            volume=Decimal(str(v["vol"])),
-                            is_preferred=v["pref"],
-                            created_by=SYSTEM_USER_ID
-                        ))
-
-            # 3. MOVIMIENTOS HISTORICOS (20 últimos 24h)
-            logger.info("🕒 Generando historial de movimientos (24h)...")
-            now = datetime.utcnow()
-            for _ in range(20):
-                target_sku = random.choice(skus)
-                target_item_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.item.{target_sku}")
-                wh = random.choice([WH_TIJ_ID, WH_SDY_ID])
-                
-                # Simular transacciones
-                change = random.uniform(50, 200)
-                is_entry = random.choice([True, False])
-                
-                # Seleccionar concepto y tipo
-                if is_entry:
-                    type_tx = TransactionType.IN
-                    concept_code = "COMPRA"
+                v_res = await session.execute(select(ItemVariant).where(ItemVariant.id == v_id))
+                if not v_res.scalar():
+                    logger.info(f"[+] SEEDING_VARIANT: SKU={sku}, ID={v_id}")
+                    session.add(ItemVariant(
+                        id=v_id, company_id=company_id, tenant_id=company_id,
+                        product_id=p_id, internal_sku=sku, is_active=True, created_by=SYSTEM_USER_ID,
+                        brand="INDUSTRIAL-CORP", mfg_part_number=f"MPN-{sku}"
+                    ))
                 else:
-                    type_tx = TransactionType.OUT
-                    concept_code = "PRODUCCION"
+                    logger.warning(f"[!] VARIANT_ALREADY_EXISTS: ID={v_id}. Skipping.")
                 
-                tx_date = now - timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
-                
-                # Registrar transaccion simplificada
-                session.add(InventoryTransaction(
-                    id=uuid.uuid4(),
-                    company_id=CO_LOGISTICS_ID,
-                    product_id=target_item_id,
-                    warehouse_id=wh,
-                    transaction_type=type_tx,
-                    quantity_change=Decimal(str(change if is_entry else -change)),
-                    previous_balance=Decimal("1000"), # Mock
-                    new_balance=Decimal("1000") + Decimal(str(change if is_entry else -change)),
-                    comments=f"Movimiento demo {concept_code}",
-                    created_at=tx_date,
-                    created_by=SYSTEM_USER_ID
-                ))
-                
-                # Registrar Movimiento (Ledger)
-                session.add(Movement(
-                    id=uuid.uuid4(),
-                    company_id=CO_LOGISTICS_ID,
-                    warehouse_id=wh,
-                    product_id=target_item_id,
-                    quantity=Decimal(str(change)),
-                    movement_type="IN" if is_entry else "OUT",
-                    concept_id=concept_ids[concept_code],
-                    document_type="ENT" if is_entry else "SAL",
-                    document_id=uuid.uuid4(),
-                    created_at=tx_date,
-                    created_by=SYSTEM_USER_ID
-                ))
+                # Nivel de stock determinista (Solo en TIJ para esta prueba)
+                lvl_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"stock.{wh_map['WH-TIJ']}.{v_id}")
+                lvl_res = await session.execute(select(InventoryLevel).where(InventoryLevel.id == lvl_id))
+                if not lvl_res.scalar():
+                    session.add(InventoryLevel(
+                        id=lvl_id, company_id=company_id, tenant_id=company_id,
+                        warehouse_id=wh_map["WH-TIJ"], product_id=p_id, uom_id=UOM_PZ_ID,
+                        quantity=Decimal("500.0"), is_active=True, created_by=SYSTEM_USER_ID
+                    ))
 
-            # Simular transferencia en TRANSIT (TRA-2026-0008)
-            session.add(Movement(
-                id=uuid.uuid4(),
-                company_id=CO_LOGISTICS_ID,
-                warehouse_id=WH_TIJ_ID,
-                product_id=uuid.uuid5(uuid.NAMESPACE_DNS, "interno.item.MAT-002"),
-                quantity=Decimal("500"),
-                movement_type="OUT",
-                concept_id=concept_ids["TRANSFERENCIA"],
-                document_type="TRA",
-                document_id=uuid.UUID("00000000-0000-0000-0000-202600000008"), # Mock folios
-                comments="Transferencia activa a San Diego",
-                created_by=SYSTEM_USER_ID
-            ))
+            # 3. Transacciones FIFO (Lotes con IDs fijos)
+            for i in range(1, 4):
+                sku = skus[i % len(skus)]
+                v_id, p_id = variant_map[sku]
+                ped_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"ped.{company_id}.{i}")
+                p_number = f"PED-{str(company_id)[:4]}-{i}"
+                
+                ped_res = await session.execute(select(CustomsPedimento).where(CustomsPedimento.id == ped_id))
+                if not ped_res.scalar():
+                    session.add(CustomsPedimento(
+                        id=ped_id, company_id=company_id, tenant_id=company_id,
+                        pedimento_number=p_number, customs_key="IM", is_active=True,
+                        operation_type=CustomsOperationType.IMPORT,
+                        customs_date=(now - timedelta(days=20)).replace(tzinfo=None), created_by=SYSTEM_USER_ID
+                    ))
+                
+                doc_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"doc.{company_id}.{i}")
+                doc_res = await session.execute(select(InventoryDocument).where(InventoryDocument.id == doc_id))
+                if not doc_res.scalar():
+                    session.add(InventoryDocument(
+                        id=doc_id, company_id=company_id, tenant_id=company_id,
+                        folio=f"FOL-{str(company_id)[:4]}-{i}", document_type="ENTRY", is_active=True,
+                        status=DocumentStatus.PROCESSED, origin_name="Supplier", 
+                        external_reference=f"REF-{str(company_id)[:4]}-{i}", created_by=SYSTEM_USER_ID
+                    ))
+                
+                mov_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"mov.{company_id}.{i}")
+                mov_res = await session.execute(select(Movement).where(Movement.id == mov_id))
+                if not mov_res.scalar():
+                    session.add(Movement(
+                        id=mov_id, company_id=company_id, tenant_id=company_id,
+                        warehouse_id=wh_map["WH-TIJ"], product_id=p_id, quantity=Decimal("100.0"),
+                        available_quantity=Decimal("100.0"), uom_id=UOM_PZ_ID, weight=Decimal("1.0"),
+                        movement_type="IN", document_type="ENTRY", document_id=doc_id, 
+                        customs_pedimento_id=ped_id, location=f"RACK-{i}", is_active=True,
+                        created_by=SYSTEM_USER_ID
+                    ))
 
             await session.commit()
-            logger.info("✅ [INVENTORY] Seed avanzado completado exitosamente.")
+            logger.info("✅ SUCCESS: Datos FIFO deterministas inyectados con arquitectura rectificada.")
         except Exception as e:
             await session.rollback()
-            logger.error(f"❌ [INVENTORY] Error en seed avanzado: {e}")
+            logger.error(f"❌ ERROR: {str(e)}")
             raise
 
+async def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--company-id", required=True)
+    parser.add_argument("--wipe", action="store_true")
+    args = parser.parse_args()
+    cid = uuid.UUID(args.company_id)
+    if args.wipe:
+        async with AsyncSessionLocal() as session:
+            logger.info("🧹 Atomic Wipe...")
+            tabs = ["inventory_movements", "inventory_levels", "inventory_documents", 
+                    "inventory_item_variants", "inventory_warehouses", "customs_pedimentos"]
+            for tab in tabs:
+                await session.execute(text(f"TRUNCATE TABLE {tab} CASCADE"))
+            await session.commit()
+    await seed_inventory(cid)
+
 if __name__ == "__main__":
-    asyncio.run(seed_inventory())
+    asyncio.run(main())

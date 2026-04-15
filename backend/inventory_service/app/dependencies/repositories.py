@@ -9,8 +9,11 @@ from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLA
 from app.services.inventory import InventoryTransactionService
 from app.dependencies.clients import get_master_data_client
 
-async def get_inventory_repository(db: AsyncSession = Depends(get_db)) -> IInventoryRepository:
-    return SQLAlchemyInventoryRepository(db)
+async def get_inventory_repository(
+    db: AsyncSession = Depends(get_db),
+    md_client: IMasterDataClient = Depends(get_master_data_client)
+) -> IInventoryRepository:
+    return SQLAlchemyInventoryRepository(db, md_client)
 
 async def get_inventory_service(
     repo: IInventoryRepository = Depends(get_inventory_repository),

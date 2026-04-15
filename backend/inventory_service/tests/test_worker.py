@@ -1,7 +1,7 @@
 import os
 # Mock environment for Pydantic validation
-os.environ["INT_DATABASE_URL"] = "postgresql+asyncpg://user:pass@localhost/db"
-os.environ["INT_SECRET_KEY"] = "test_secret_key"
+os.environ["CORE_DATABASE_URL"] = "postgresql+asyncpg://user:pass@localhost/db"
+os.environ["CORE_SECRET_KEY"] = "test_secret_key"
 
 import asyncio
 import uuid

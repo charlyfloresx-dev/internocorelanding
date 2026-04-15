@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import Column, String, Numeric, Enum, ForeignKey, Integer, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models import MultiTenantBase, AuditBase
+from common.models import MultiTenantBase
 
 class BackflushErrorType(str, enum.Enum):
     MISSING_BOM = "MISSING_BOM"
@@ -17,7 +17,7 @@ class BackflushStatus(str, enum.Enum):
     IGNORED = "IGNORED"
     FAILED_MANUAL_REVIEW = "FAILED_MANUAL_REVIEW"
 
-class BackflushError(MultiTenantBase, AuditBase):
+class BackflushError(MultiTenantBase):
     """
     Tracks failed backflushing attempts for asynchronous resolution.
     This ensures manufacturing is never blocked by inventory data issues.

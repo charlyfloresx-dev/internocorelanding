@@ -27,11 +27,11 @@ async def ensure_warehouse(session):
     now_tz = datetime.now(timezone.utc)
     await session.execute(text("""
         INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, is_active, 
+            id, name, company_id, tenant_id, code, country_code, type, is_active, 
             version_id, is_transit, created_at
         )
         VALUES (
-            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', TRUE, 
+            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', 'PHYSICAL', TRUE, 
             1, FALSE, :now_tz
         )
         ON CONFLICT (id) DO NOTHING;

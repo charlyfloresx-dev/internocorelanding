@@ -2,9 +2,9 @@ import uuid
 from sqlalchemy import String, Numeric, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models import MultiTenantBase, AuditBase
+from common.models import MultiTenantBase
 
-class BOM(MultiTenantBase, AuditBase):
+class BOM(MultiTenantBase):
     """
     Bill of Materials: Defines the relationship between a parent item 
     and its components for backflushing.

@@ -4,9 +4,14 @@ from typing import List, Optional
 import uuid
 from decimal import Decimal
 
+from fastapi.responses import StreamingResponse
+import io
+import csv
+from datetime import datetime
+
 from app.db.db import get_session
 from app.services.inventory import InventoryService
-from app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd
+from app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd, CycleCountPayload
 from common.schemas import ApiResponse
 from app.services.transfer_service import TransferService
 
@@ -114,3 +119,68 @@ async def receive_transfer(
         return ApiResponse(message="Transfer received successfully", data={"movement_id": movement.id})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/warehouses/{warehouse_id}/audit-export")
+async def export_audit_sheet(
+    warehouse_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    x_company_id: uuid.UUID = Header(...)
+):
+    from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+    repo = SQLAlchemyInventoryRepository(session, None)
+    
+    # [Zero Trust] Validate warehouse ownership
+    await repo._validate_warehouse_ownership(warehouse_id, x_company_id)
+    
+    data = await repo.get_detailed_stock_report(warehouse_id, x_company_id)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Technical Header for the auditor
+    writer.writerow(['Ubicacion', 'SKU', 'Descripcion', 'Pedimento', 'Teorico', 'Fisico_Check (Escribe aqui)'])
+    
+    for item in data:
+        writer.writerow([
+            item["location"],
+            item["sku"],
+            item["description"],
+            item["pedimento"],
+            item["quantity"],
+            ""  # Space for manual count
+        ])
+    
+    filename = f"Audit_Sheet_{warehouse_id}_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.post("/warehouses/{warehouse_id}/cycle-count", status_code=201)
+async def submit_cycle_count(
+    warehouse_id: uuid.UUID,
+    payload: CycleCountPayload,
+    session: AsyncSession = Depends(get_session),
+    x_company_id: uuid.UUID = Header(...),
+    x_user_id: str = Header(default="unknown")
+):
+    from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+    from app.services.inventory import InventoryTransactionService
+    
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryTransactionService(repo)
+    
+    try:
+        results = await service.process_cycle_count(
+            warehouse_id=warehouse_id,
+            payload=payload,
+            company_id=x_company_id,
+            user_id=x_user_id
+        )
+        return {"status": "success", "adjustments_processed": len(results)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error de persistencia (Cycle Count)")

@@ -1,28 +1,215 @@
 import uuid
 import httpx
+import logging
+from decimal import Decimal
+from typing import Optional
 from app.domain.interfaces.master_data_client import IMasterDataClient
-from common.config import settings
+
+from common.context import request_context
+
+logger = logging.getLogger(__name__)
 
 class MasterDataClient(IMasterDataClient):
     """
     Client to interact with Master Data Service (Port 8003).
-    Ensures cross-service integrity for Product IDs.
+    Ensures cross-service integrity for Product IDs and UOM Factors.
     """
     def __init__(self):
-        # In production, this would use service discovery or INT_MASTER_DATA_URL
+        # In production, this would use service discovery or CORE_MASTER_DATA_URL
+        # Internal service URL (docker networking)
         self.base_url = "http://master-data-service-api:8000/api/v1"
+        self.timeout = httpx.Timeout(5.0, connect=2.0)
+
+    def _get_headers(self, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
+        headers = {
+            "X-Company-ID": str(company_id),
+            "X-Trace-ID": trace_id or str(uuid.uuid4())
+        }
+        # Inyectar token de la sesión actual si existe en el contexto (Propagación)
+        try:
+            ctx = request_context.get()
+            if ctx and ctx.token:
+                headers["Authorization"] = f"Bearer {ctx.token}"
+            # God Mode propagation if active in context
+            if hasattr(ctx, 'role') and ctx.role == 'GOD_MODE_ADMIN':
+                headers["X-Admin-Master-Key"] = "GOD_MODE_ACTIVE"
+        except:
+            pass
+        return headers
+
+    async def get_uom_factor(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> Decimal:
+        """
+        Retrieves the conversion factor for a specific UOM from Master Data.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/uoms/{uom_id}",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    uom_data = data.get("data", {})
+                    factor = uom_data.get("conversion_factor")
+                    return Decimal(str(factor)) if factor is not None else Decimal("1.0")
+                return Decimal("1.0")
+        except Exception as e:
+            logger.error(f"Error fetching UOM factor {uom_id}: {str(e)}")
+            return Decimal("1.0")
+
+    async def get_product_internal_metadata(self, product_id: uuid.UUID, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
+        """
+        Retrieves product name and metadata from internal master data endpoint.
+        Uses a resilient fallback strategy for Dashboard continuity.
+        """
+        headers = {
+            "X-Company-ID": str(company_id),
+            "X-Trace-ID": trace_id or str(uuid.uuid4())
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Using the internal endpoint requested by the user
+                response = await client.get(
+                    f"{self.base_url}/products/internal/{product_id}",
+                    headers=headers
+                )
+                
+                if response.status_code == 200:
+                    payload = response.json()
+                    # ApiResponse envelope handling: {status, data, message}
+                    return payload.get("data", {})
+                
+                logger.warning(f"Master Data returned {response.status_code} for product {product_id}")
+                
+        except (httpx.RequestError, httpx.TimeoutException) as e:
+            logger.error(f"Resiliency Triggered: Master Data Service unavailable or slow. Error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unknown error in MasterDataClient: {str(e)}")
+
+        # Senior Automation: Metadata Offline fallback
+        return {
+            "name": f"[SKU: {str(product_id)[:8]}] - Metadata Offline",
+            "description": "Information temporarily unavailable from Master Data Provider.",
+            "product_type": "UNKNOWN",
+            "is_fallback": True
+        }
 
     async def validate_product(self, product_id: uuid.UUID, company_id: uuid.UUID) -> bool:
         """
         Checks if a product exists and is active in Master Data.
         """
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
                     f"{self.base_url}/products/{product_id}",
-                    headers={"X-Company-ID": str(company_id)}
+                    headers=self._get_headers(company_id)
                 )
                 return response.status_code == 200
         except Exception:
-            # Fail-closed approach: if service unavailable, assume invalid
+            return False
+
+    async def get_warehouse(self, warehouse_id: uuid.UUID, company_id: uuid.UUID) -> dict:
+        """
+        Retrieves warehouse details from Master Data.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/warehouses/{warehouse_id}",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    return response.json().get("data", {})
+                return {}
+        except Exception as e:
+            logger.error(f"Error fetching warehouse {warehouse_id}: {str(e)}")
+            return {}
+
+    async def get_partner(self, partner_id: uuid.UUID, company_id: uuid.UUID) -> dict:
+        """
+        Retrieves business partner details from Master Data.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/partners/{partner_id}",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    return response.json().get("data", {})
+                return {}
+        except Exception as e:
+            logger.error(f"Error fetching partner {partner_id}: {str(e)}")
+            return {}
+
+    async def list_warehouses(self, company_id: uuid.UUID) -> list[dict]:
+        """
+        Lists all warehouses for a company from Master Data.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/warehouses/",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    return response.json().get("data", [])
+                return []
+        except Exception as e:
+            logger.error(f"Error listing warehouses: {str(e)}")
+            return []
+
+    async def check_uom_readiness(self, company_id: uuid.UUID) -> bool:
+        """
+        Checks if the company has basic UOMs configured.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/uoms/",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    data = response.json().get("data", [])
+                    return len(data) > 0
+                return False
+        except Exception as e:
+            logger.error(f"Error checking UOM readiness: {str(e)}")
+            return False
+
+    async def check_product_readiness(self, company_id: uuid.UUID) -> bool:
+        """
+        Checks if the company has products registered.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/products/",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    data = response.json().get("data", [])
+                    return len(data) > 0
+                return False
+        except Exception as e:
+            logger.error(f"Error checking product readiness: {str(e)}")
+            return False
+
+    async def check_pricing_readiness(self, company_id: uuid.UUID) -> bool:
+        """
+        Checks if the company has at least some prices configured.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/prices/",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    data = response.json().get("data", [])
+                    return len(data) > 0
+                return False
+        except Exception as e:
+            logger.error(f"Error checking pricing readiness: {str(e)}")
             return False
