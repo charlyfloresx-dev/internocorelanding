@@ -236,6 +236,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             document_id=movement.document_id,
             concept_id=movement.concept_id,
             comments=getattr(movement, 'comments', None),
+            location=movement.location,
             created_by=movement.user_id,
             updated_by=movement.user_id,
             
@@ -243,7 +244,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             available_quantity=getattr(movement, 'available_quantity', Decimal("0.0")),
             customs_pedimento_id=getattr(movement, 'customs_pedimento_id', None),
             source_movement_id=getattr(movement, 'source_movement_id', None),
-            expiry_date=getattr(movement, 'expiry_date', None)
+            expiry_date=getattr(movement, 'expiry_date', None),
+            validation_status=getattr(movement, 'validation_status', "CLEAN")
         )
 
         self.session.add(movement_model)
@@ -588,7 +590,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 total_weight=doc.total_weight,
                 status=doc.status.value,
                 trace_id=str(doc.id),
-                external_reference=doc.external_reference
+                external_reference=doc.external_reference,
+                validation_status="CLEAN" # TODO: Aggregated status if needed
             )
             for doc in docs
         ]
@@ -675,7 +678,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 uom_id=m.uom_id,
                 uom_name="PZA", # Placeholder for now
                 weight=m.weight,
-                location=m.location
+                location=m.location,
+                validation_status=m.validation_status
             ))
 
         try:
@@ -753,7 +757,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 Movement.weight,
                 Movement.price,
                 running_balance,
-                Movement.company_id
+                Movement.company_id,
+                Movement.validation_status
             )
             .where(
                 and_(
@@ -780,7 +785,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 weight=r.weight,
                 price=r.price,
                 running_balance=r.running_balance,
-                company_id=r.company_id
+                company_id=r.company_id,
+                validation_status=r.validation_status
             )
             for r in rows
         ]
@@ -1177,7 +1183,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 weight=m.weight,
                 price=m.price,
                 running_balance=Decimal("0.0"), # Informativo, no acumulado
-                company_id=company_id
+                company_id=company_id,
+                validation_status=m.validation_status
             ) for m, folio in recent_res.all()
         ]
 
@@ -1579,7 +1586,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         stmt = select(InventoryLocation.max_capacity).where(
             and_(
                 InventoryLocation.warehouse_id == warehouse_id,
-                InventoryLocation.location_code == location_code,
+                InventoryLocation.code == location_code,
                 InventoryLocation.company_id == company_id
             )
         )

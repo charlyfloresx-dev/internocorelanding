@@ -25,15 +25,13 @@ from app.api.v1.endpoints.gis_validator import router as gis_router
 async def lifespan(app: FastAPI):
     # Setup audit listeners
     from app.core.events import setup_audit_listeners
-    from app.models.product import Product
-    from app.models.warehouse import Warehouse
-    from app.models.movement_concept import MovementConcept
-    from app.models.uom_conversion import UOMConversion
+    from app.models import Product, Warehouse, MovementConcept, UOMConversion, InventoryLocation
     
     setup_audit_listeners(Product)
     setup_audit_listeners(Warehouse)
     setup_audit_listeners(MovementConcept)
     setup_audit_listeners(UOMConversion)
+    setup_audit_listeners(InventoryLocation)
 
     from app.models.product_price import ProductPrice
     setup_audit_listeners(ProductPrice)
@@ -74,3 +72,5 @@ app.include_router(concepts.router, prefix="/api/v1/concepts", tags=["Movement C
 app.include_router(warehouses.router, prefix="/api/v1/warehouses", tags=["Warehouses"])
 app.include_router(partner_router, prefix="/api/v1/partners", tags=["Partners"])
 app.include_router(gis_router, prefix="/api/v1/gis", tags=["GIS Property Validation"])
+from app.api.v1.endpoints import locations
+app.include_router(locations.router, prefix="/api/v1/locations", tags=["Warehouse Structure (SSOT)"])

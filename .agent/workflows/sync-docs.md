@@ -1,88 +1,57 @@
----
-description: Synchronize project documentation, logs, and implementation plans after completing a development phase
----
+# InternoCore: Protocolo de Sincronización de Documentación (Sync-Docs)
 
-// turbo-all
+Este flujo de trabajo garantiza que la "fuente de verdad" documental esté siempre alineada con el código desplegado, evitando la deuda técnica y manteniendo el control arquitectónico (FinOps, Seguridad y Estructura).
 
-## When to Run
-Run this workflow whenever the user asks for:
-- "actualiza la documentación"
-- "terminamos la fase, sincroniza"
-- "sync docs"
-- "actualiza los logs"
-- Any request to update documentation, logs, and plans after completing a phase or set of instructions.
+## Disparadores (Triggers)
+Ejecutar este workflow cuando:
+1. Se despliega un nuevo microservicio en AWS (ECS o App Runner).
+2. Se resuelve un bug crítico que involucra cambios en configuración (`env`, dependencias, DB).
+3. Se finaliza una Fase Arquitectónica importante.
 
----
+## Tareas
 
-## Steps
+### 1. Auditoría del Gráfico de Código (Code Graph)
+Ejecutar el script de auditoría automatizada para validar _Invariants_ (FinOps, CORS, multi-tenant):
+// turbo
+```bash
+python backend/scripts/generate_code_graph.py
+```
+> **Validación:** Si el script falla con Exit Code 1 o reporta Errores Críticos (Ej. Inicios de Load Balancer que rompan el presupuesto), detener el workflow de documentación y avisar al usuario. No documentar arquitectura inválida.
 
-### Step 1 — Review recent changes
-Explore the current changes to determine what was worked on during the recently completed phase:
-- Identify which microservices in `C:\API\interno\backend\` were modified.
-- Identify which modules in `C:\API\interno\frontend\` were modified.
-- Review recent conversation history or artifacts to summarize the completed work.
-- **Critical Check**: Verify if any new environment variables were introduced (prefix `CORE_`).
+### 2. Generar Status Report (Punto de Control)
+Si la auditoría es limpia, invocar el comando para generar un reporte del estado diario. Esto resumirá la fase completada.
+```text
+/status-report
+```
 
----
+### 3. Actualizar Documentación FinOps & Infraestructura
+Revisar la carpeta `docs/infraestructura/` y verificar si es necesario actualizar alguna de las guías base basándose en los comandos y flujos estabilizados recientemente.
+Ejemplos críticos a verificar:
+*   `APP_RUNNER_DEPLOY_GUIDE.md`: Chequear si existen nuevos parámetros o límites encontrados (ej. Cuotas).
+*   `AWS_Deployment_Strategy.md`: Actualizar topología si se migró un frontend o se cambió el plan.
 
-### Step 2 — Create Daily Snapshots from Gemini Brain
-Extract the context, technical decisions, and progress from the current Gemini "brain" (conversation context and artifacts) and create daily snapshots.
-Create new files in the appropriate `docs/historial/` subdirectories:
-- **`docs/historial/implementation/master_implementation_historyYYYYMMDD.md`**: Write a detailed history of the implementation steps taken today. Include architectural decisions (SSOT), patterns used, and blockers resolved.
-- **`docs/historial/tasks/consolidated_tasksYYYYMMDD.md`**: Consolidate all completed, in-progress, and pending tasks from the current session. Organize them by domain.
+### 4. Actualizar REPO_LOG.md (Bitácora Maestra y Microservicios)
+Escribir un resumen breve en el `REPO_LOG.md` raíz con los siguientes detalles de la fase actual:
+1. Número de la Fase y Objetivo (Ej. *Estabilización App Runner*).
+2. Tareas técnicas completadas con éxito.
+3. Decisiones Arquitectónicas o Workarounds aplicados.
 
----
+**IMPORTANTE:** Replicar un resumen técnico adaptado en el respectivo `REPO_LOG.md` de cada microservicio afectado (Ej. `backend/auth_service/REPO_LOG.md`) para mantener su contexto individualizado.
 
-### Step 3 — Update Microservice Documentation and Logs
-For every microservice or frontend module that was modified during the phase:
-- Update its `SERVICE_LOG.md` (for backend) or `ENGINEERING_LOG.md` (for frontend).
-- Document new features, architectural changes, models, DTOs, or endpoints added.
-- Update any specific `README.md` within the service if the configuration or dependencies changed (using `CORE_` prefix).
+### 4.5. Consolidados Diarios y Planes de Implementación
+Para no contaminar la raíz documental, dividir y clasificar la jornada obligatoriamente respetando esta nomenclatura estricta:
+- **Tareas del Día**: Crear o actualizar `docs/historial/tasks/consolidated_tasksYYYYMMDD.md` (Ej. `consolidated_tasks20260420.md`) capturando backlog superado y pendientes.
+- **Planes de Implementación**: Crear archivo `docs/historial/implementation/master_implementation_historyYYYYMMDD.md` (Ej. `master_implementation_history20260420.md`) registrando la arquitectura planeada/ejecutada del día.
 
----
+### 5. Confirmación Segura (Git Versioning)
+Finalmente, empaquetar de forma segura toda la arquitectura confirmando el commit.
+// turbo
+```bash
+git add .
+git commit -m "docs(architecture): Phase completion and sync-docs audit"
+```
 
-### Step 4 — Update Master Implementation Plan and Phase Specs
-Update the global implementation tracking files:
-- **`docs/specs/PHASE_SPECS.md`**: Add the newly completed phase or update status to `✅ COMPLETED`.
-- **`docs/architecture/01_ARCHITECTURE.md`**: Update if core architectural patterns evolved.
-- **`docs/historial/implementation/master_implementation_history.md`**: Add technical details of today's implementation to the master historical record.
-
----
-
-### Step 5 — Zero Root Pollution Check
-Review the project root (`C:\API\interno\`) and ensure no "pollution" occurred:
-- New scripts MUST reside in `scripts/`.
-- New output files or temporary logs MUST reside in `logs/` or `scratch/`.
-- New documentation must be properly categorized in `docs/` subdirectories.
-
----
-
-### Step 6 — Update Master Index and Project Log
-- **`docs/00_MASTER_INDEX.md`**: Update links to include new snapshots created in Step 2, ensuring they point to the correct `historial/` subfolders.
-- **`C:\API\interno\REPO_LOG.md`**: Add a new dated entry describing the completed phase.
-- **`C:\API\interno\README.md`**: Update "Estado Técnico" if necessary.
-
----
-
-### Step 7 — Commit and Push Changes
-Once all documentation and code changes are finalized:
-- Run `git add .` to stage all changes (including docs, configs, and patches).
-- Run `git commit -m "Phase XX: [Phase Description] - Unified Secret Lifecycle & Docs Sync"`.
-- Run `git push` to synchronize with the remote repository.
-- Verify that the push was successful.
-
----
-
-### Step 8 — Final Summary to User
-After all documentation files are successfully synchronized and pushed:
-- Provide the user with a concise summary of the files updated.
-- Highlight the key achievements documented in this sync.
-- Confirm readiness for the next phase.
-
----
-
-### Step 9 — AWS Deployment Pipeline (Pendientes Fase Comercial/Industrial)
-Cuando aplique, continuar con la estrategia de despliegue ECR -> ECS -> ALB para los siguientes microservicios:
-1. **`inventory_service`** (Siguiente fase inmediata)
-2. **`master_data_service`**
-3. **`hr_service`**
+## Criterios de Éxito
+- `generate_code_graph.py` compila al 100% (Limpieza).
+- Los Markdowns en `/docs` reflejan comandos copiables y verídicos sobre la última iteración.
+- `REPO_LOG.md` cuenta la historia del estado actual de forma secuencial.

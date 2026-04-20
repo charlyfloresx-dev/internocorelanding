@@ -2,7 +2,7 @@ import uuid
 import httpx
 import logging
 from typing import List, Optional, Any, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.inventory import InventoryLevel, InventoryTransaction, TransactionType
 from app.schemas.inventory import InventoryTransactionCreate, InventoryTransactionRead, InventoryDocumentCreate
 from app.services.inventory import InventoryTransactionService
+from app.services.density_guard_audit import run_density_guard_audit # Phase 64
 from app.domain.entities.inventory_item import DocumentDetailEntity
 from app.domain.repositories.inventory_repository import IInventoryRepository
 from app.dependencies.repositories import get_inventory_service, get_inventory_repository
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 @idempotent()
 async def create_document(
     doc: InventoryDocumentCreate,
+    background_tasks: BackgroundTasks,
     service: InventoryTransactionService = Depends(get_inventory_service),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     client_request_id: Optional[str] = None
@@ -71,6 +73,17 @@ async def create_document(
             if "ERR_WAREHOUSE_LOCK" in str(e):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        # [PHASE 64] Silently Audit in Background
+        if tx.location:
+             background_tasks.add_task(
+                 run_density_guard_audit,
+                 warehouse_id=doc.warehouse_id,
+                 location_code=tx.location,
+                 quantity_moved=tx.quantity,
+                 movement_id=tx.id,
+                 company_id=token.company_id
+             )
 
         results.append(tx)
         total_weight += tx.weight
@@ -144,6 +157,7 @@ async def create_document(
 async def create_transaction(
     request: Request,
     stmt: InventoryTransactionCreate,
+    background_tasks: BackgroundTasks,
     service: InventoryTransactionService = Depends(get_inventory_service),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     client_request_id: Optional[str] = None
@@ -175,6 +189,17 @@ async def create_transaction(
         if "ERR_WAREHOUSE_LOCK" in str(e):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # [PHASE 64] Silently Audit in Background
+    if transaction.location:
+         background_tasks.add_task(
+             run_density_guard_audit,
+             warehouse_id=stmt.warehouse_id,
+             location_code=transaction.location,
+             quantity_moved=transaction.quantity,
+             movement_id=transaction.id,
+             company_id=token.company_id
+         )
 
 
     # CRITICAL: Commit transaction

@@ -44,7 +44,12 @@ async def consume_event(
             return ApiResponse(message="Event already handled", data={"event_id": event_id})
 
         # Mark as processed immediately (In this transaction)
-        db.add(ProcessedEvent(event_id=event_id, event_type=event_type))
+        db.add(ProcessedEvent(
+            event_id=event_id, 
+            event_type=event_type, 
+            company_id=x_company_id,
+            tenant_id=x_company_id
+        ))
 
     # ── Dispatch: TicketCreatedEvent ───────────────────────────────────────────
     if event_type == "TicketCreatedEvent":
@@ -62,6 +67,7 @@ async def consume_event(
         for channel in channels:
             notification = Notification(
                 company_id=x_company_id,
+                tenant_id=x_company_id,
                 event_id=event_id,        # stored to enable idempotency lookup
                 type="TicketCreated",
                 title=f"Ticket {ticket_id} created",
@@ -77,6 +83,8 @@ async def consume_event(
                 db.add(NotificationRecipient(
                     notification_id=notification.id,
                     user_id=assigned_user_id,
+                    company_id=x_company_id,
+                    tenant_id=x_company_id,
                     is_read=False,
                 ))
 
@@ -154,6 +162,7 @@ async def consume_event(
             # 3. Registrar notificación en DB para auditoría
             notification = Notification(
                 company_id=x_company_id,
+                tenant_id=x_company_id,
                 event_id=event_id,
                 type="SubscriptionActivated",
                 title="Suscripción Activada",
@@ -200,6 +209,7 @@ async def consume_event(
             # 3. Auditoría
             notification = Notification(
                 company_id=x_company_id,
+                tenant_id=x_company_id,
                 event_id=event_id,
                 type="UserInvitation",
                 title="Invitación Enviada",
@@ -214,6 +224,30 @@ async def consume_event(
         except Exception as exc:
             logger.error(f"Error procesando UserInvitationEvent: {str(exc)}")
             return ApiResponse(message="Error interno", status_code=500)
+
+    # ── Dispatch: CapacityViolationEvent ─────────────────────────────────────
+    if event_type == "CapacityViolationEvent":
+        location = payload.get("location_code")
+        occupancy = payload.get("current_occupancy")
+        capacity = payload.get("max_capacity")
+        severity = payload.get("severity", "YELLOW")
+
+        logger.warning(f"🚨 CAPACITY_VIOLATION in {location}: {occupancy}/{capacity} (Company: {x_company_id})")
+        
+        # Register in DB for the "God Mode" heatmap/dashboard
+        notification = Notification(
+            company_id=x_company_id,
+            tenant_id=x_company_id,
+            event_id=event_id,
+            type="CapacityViolation",
+            title=f"Overflow Warning: {location}",
+            message=f"Location {location} exceeded capacity. Current: {occupancy}, Max: {capacity}",
+            priority="HIGH" if severity == "RED" else "MEDIUM",
+            channel="IN_APP",
+            status="SENT"
+        )
+        db.add(notification)
+        await db.commit()
 
     return ApiResponse(message="Event Accepted", data={"event_id": event_id})
 

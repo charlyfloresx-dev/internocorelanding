@@ -25,21 +25,14 @@ class InventoryTransactionService:
 
     async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
         """
-        [Phase 58.2] Density Guard: Validates that adding 'quantity' to 'location_code' doesn't exceed its max capacity.
+        [Phase 64] Passive Density Check: Log-only validation during synchronous flow.
+        The real audit happens in the background.
         """
         if not location_code or quantity <= 0:
             return
 
-        capacity = await self.repository.get_location_capacity(warehouse_id, location_code, company_id)
-        if capacity > 0:
-            # We use a safety buffer (density coefficient) if needed, but here we use strict capacity.
-            occupancy = await self.repository.get_location_occupancy(warehouse_id, location_code, company_id)
-            if occupancy + quantity > capacity:
-                logger.warning(f"🚨 DENSITY_GUARD_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
-                raise ValueError(
-                    f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene capacidad suficiente. "
-                    f"Capacidad: {capacity}, Ocupación actual: {occupancy}, Exceso: {(occupancy + quantity) - capacity}"
-                )
+        # Passive log - won't block the transaction
+        logger.debug(f"PASSIVE_CHECK: Movement to {location_code} initiated. Audit will follow in background.")
 
     async def create_transaction(
         self,
@@ -137,7 +130,9 @@ class InventoryTransactionService:
             location=stmt.location,
             document_type="INVENTORY_DOC",
             document_id=stmt.reference_id or uuid.uuid4(),
-            user_id=user_id
+            user_id=user_id,
+            validation_status="PENDING", # Laissez-Faire: Start as pending
+            available_quantity=Decimal(str(stmt.quantity_change)) # Essential for Occupancy sum
         )
 
         await self.repository.record_movement(
@@ -147,19 +142,7 @@ class InventoryTransactionService:
         )
         return movement
 
-    async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
-        """
-        [Phase 49] The Density Guard: Validates that the location doesn't exceed its configured capacity.
-        """
-        if not location_code or quantity <= 0:
-            return
-
-        capacity = await self.repository.get_location_capacity(warehouse_id, location_code, company_id)
-        if capacity > 0:
-            occupancy = await self.repository.get_location_occupancy(warehouse_id, location_code, company_id)
-            if occupancy + quantity > capacity:
-                logger.warning(f"🚨 DENSITY_GUARD_VIOLATION: Location {location_code} overflows. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
-                raise ValueError(f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene espacio disponible. Capacidad Máxima: {capacity}, Ocupación Actual: {occupancy}, Nueva Carga: {quantity}. Exceso: {(occupancy + quantity) - capacity}")
+    # Phase 64: Removing legacy _check_location_capacity implementation in favor of audit_silent_density
 
 
     async def register_movement(self, cmd: MovementCreate, company_id: uuid.UUID) -> MovementEntity:

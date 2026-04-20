@@ -1,6 +1,6 @@
 import uuid
 import logging
-from typing import Optional
+from typing import Optional, Any
 from decimal import Decimal
 from app.domain.repositories.inventory_repository import IInventoryRepository
 from app.domain.entities.inventory_item import MovementEntity
@@ -14,20 +14,10 @@ class TransferService:
 
     async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
         """
-        [Phase 58.6] Integrated Density Guard for Service level transfers.
+        [DEPRECATED in Phase 63] Integrated Density Guard for Service level transfers.
+        Now replaced by run_density_guard_audit in the background.
         """
-        if not location_code or quantity <= 0:
-            return
-
-        capacity = await self.repository.get_location_capacity(warehouse_id, location_code, company_id)
-        if capacity > 0:
-            occupancy = await self.repository.get_location_occupancy(warehouse_id, location_code, company_id)
-            if occupancy + quantity > capacity:
-                logger.warning(f"🚨 DENSITY_GUARD_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
-                from common.exceptions import BusinessRuleException
-                raise BusinessRuleException(
-                    f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene capacidad suficiente."
-                )
+        pass
 
     async def dispatch_transfer(
         self, 
@@ -121,17 +111,15 @@ class TransferService:
         weight: Decimal, 
         company_id: uuid.UUID, 
         transfer_id: uuid.UUID,
-        location: Optional[str] = None
+        location: Optional[str] = None,
+        background_tasks: Optional[Any] = None
     ) -> MovementEntity:
         """
-        Moves stock from IN_TRANSIT to final destination.
+        [Phase 63] Laissez-Faire: Moves stock from IN_TRANSIT to final destination.
+        Density Guard validation moved to BackgroundTask to ensure operational continuity.
         """
         if await self.repository.has_processed_document("TRANS_RECEIVE", transfer_id, company_id):
             return None 
-            
-        # 1. Density Guard Validation (Phase 58.7)
-        if location:
-            await self._check_location_capacity(to_warehouse_id, location, quantity, company_id)
 
         transit_warehouse_id = await self.repository.ensure_transit_warehouse(to_warehouse_id, company_id)
 
@@ -167,6 +155,22 @@ class TransferService:
             document_id=transfer_id,
             location=location
         )
+        # Fast-Track (Anexo 24 SSOT compliance)
+        in_movement.validation_status = "PENDING"
         await self.repository.record_movement(in_movement)
+        
+        # ─── Density Guard Audit (Asynchronous) ───
+        if location and background_tasks:
+            from app.services.density_guard_audit import run_density_guard_audit
+            background_tasks.add_task(
+                run_density_guard_audit,
+                warehouse_id=to_warehouse_id,
+                location_code=location,
+                quantity_moved=quantity,
+                movement_id=in_movement.id,
+                company_id=company_id,
+                repository=self.repository
+            )
+            logger.info(f"[Phase 63] Queued background audit for location {location}")
         
         return in_movement

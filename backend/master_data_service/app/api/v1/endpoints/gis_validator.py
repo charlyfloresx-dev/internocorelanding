@@ -1,4 +1,3 @@
-from getattr import getattr
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel

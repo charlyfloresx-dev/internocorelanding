@@ -28,6 +28,7 @@ class Notification(MultiTenantBase):
     __tablename__ = "notifications"
 
     type: Mapped[str] = mapped_column(String(50), index=True) # e.g., TICKET_CREATED, STOCK_BREAK
+    event_id: Mapped[Optional[uuid.UUID]] = mapped_column(sqlalchemy_UUID(as_uuid=True), index=True, nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     message: Mapped[str] = mapped_column(Text)
     

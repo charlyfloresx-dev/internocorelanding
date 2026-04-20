@@ -1,0 +1,17 @@
+{
+    "ImageRepository": {
+        "ImageIdentifier": "584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/inventory-service:latest",
+        "ImageConfiguration": {
+            "Port": "8000",
+            "RuntimeEnvironmentVariables": {
+                "CORE_ENV_MODE": "aws",
+                "CORE_AWS_SECRET_ID": "interno-core/inventory-service/prod"
+            }
+        },
+        "ImageRepositoryType": "ECR"
+    },
+    "AuthenticationConfiguration": {
+        "AccessRoleArn": "arn:aws:iam::584094645491:role/AppRunnerECRAccessRole"
+    },
+    "AutoDeploymentsEnabled": true
+}

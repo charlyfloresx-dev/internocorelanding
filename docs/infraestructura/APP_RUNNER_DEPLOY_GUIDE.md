@@ -4,83 +4,31 @@ Esta guía sustituye al despliegue en ECS + ALB para reducir costos en la fase d
 
 ## 1. Requisitos Previos
 
-1. **GitHub Connection ARN**: Debes crear una conexión con GitHub en la consola de AWS App Runner (Service -> Settings -> Connections) y copiar el ARN.
-2. **Secrets Manager**: El secreto `interno-core/auth-service/prod` debe existir con las credenciales de la DB.
-3. **IAM Instance Role**: App Runner necesita un rol para leer de Secrets Manager.
+1. **Amazon ECR**: Una imagen de Docker válida debe estar subida a ECR (ej. `interno-core/auth-service:latest`).
+2. **Secrets Manager**: El secreto `interno-core/auth-service/prod` debe existir con las credenciales de la DB y estar en la misma región (`us-east-2`).
 
-## 2. Configuración de IAM (Acceso a Secretos)
+## 2. Configuración de Despliegue (Vía AWS Console)
 
-Crea un rol llamado `InternoCore-AppRunner-Role` con la siguiente política de confianza:
+Dado que usar el AWS CLI requiere crear a mano roles de confianza bastante complejos (`build.apprunner.amazonaws.com` y `tasks.apprunner.amazonaws.com`), la **ruta más rápida y libre de errores (FinOps Approved)** es usar la Consola Web de AWS:
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "tasks.apprunner.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
+1. Ve a **AWS App Runner** -> **Create an App Runner service**.
+2. **Source**: Selecciona `Amazon ECR`.
+3. **Container image URI**: Localiza y selecciona tu imagen (ej. `interno-core/auth-service`).
+4. **ECR access role**: Deja la opción en "Create new service role" (AWS automatizará el acceso ECR de manera transparente).
+5. **Deployment settings**: "Manual" o "Automatic" (si quieres CI/CD con cada push a ECR).
 
-Y asígnale permiso para leer el secreto:
+## 3. Configuración de Entorno y Variables (Vital)
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      "Resource": "arn:aws:secretsmanager:us-east-2:584094645491:secret:interno-core/auth-service/*"
-    }
-  ]
-}
-```
+En la pantalla de *Configure service*, asegúrate de establecer estos parámetros para no superar el presupuesto de $5.00 a $20.00:
 
-## 3. Comando de Creación del Servicio
+*   **Port**: `8000` (Debe hacer match con el `EXPOSE` del Dockerfile y Uvicorn).
+*   **Virtual CPU & Memory**: `0.25 vCPU / 0.5 GB` (Lo mínimo indispensable).
+*   **Environment Variables**:
+    *   `CORE_ENV_MODE` = `aws`
+    *   `CORE_AWS_SECRET_ID` = `interno-core/auth-service/prod`
+*   **Security (Instance Role)**: Selecciona un rol IAM que tenga permisos sobre Secrets Manager (ej. `InternoCore-AppRunner-Role` o tu rol de ejecución de ECS) para que el servicio pueda extraer los Connection Strings.
 
-Sustituye `<GITHUB_CONNECTION_ARN>` y `<REPO_URL>` con tus valores:
-
-```bash
-aws apprunner create-service \
-    --service-name interno-auth-service-dev \
-    --source-configuration '{
-        "CodeRepository": {
-            "RepositoryUrl": "<REPO_URL>",
-            "SourceCodeVersion": {
-                "Type": "BRANCH",
-                "Value": "main"
-            },
-            "CodeConfiguration": {
-                "ConfigurationSource": "REPOSITORY"
-            }
-        },
-        "AuthenticationConfiguration": {
-            "ConnectionArn": "<GITHUB_CONNECTION_ARN>"
-        }
-    }' \
-    --instance-configuration '{
-        "Cpu": "0.25 vCPU",
-        "Memory": "0.5 GB",
-        "InstanceRoleArn": "arn:aws:iam::584094645491:role/InternoCore-AppRunner-Role"
-    }' \
-    --health-check-configuration '{
-        "Protocol": "HTTP",
-        "Path": "/health",
-        "Interval": 10,
-        "Timeout": 5,
-        "HealthyThreshold": 1,
-        "UnhealthyThreshold": 5
-    }'
-```
+Una vez creado, AWS te entregará el `Default domain` (con SSL/TLS automático) que puedes inyectar directamente en el Frontend o `environment.prod.ts`.
 
 ## 4. Ventajas del Cambio
 - **Costo Fijo:** $0.00 (vs ~$27.00 del ALB).

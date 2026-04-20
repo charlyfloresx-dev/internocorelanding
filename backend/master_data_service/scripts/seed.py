@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 from app.db.db import async_session
 from app.models.uom import UOM
 from app.models.product import Product, ProductVersion
-from app.models.product_price import ProductPrice
+from app.models.product_price import ProductPrice, UnitType
 from app.models.movement_concept import MovementConcept
 from app.models.warehouse import Warehouse
 from app.models.product_category import ProductCategory

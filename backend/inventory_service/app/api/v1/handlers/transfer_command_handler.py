@@ -39,6 +39,8 @@ from app.domain.entities.transfer_entities import (
     MovementType,
 )
 from common.messaging import EventPublisher
+from common.services.master_data_client import master_data_client
+from common.services.notification_client import notification_client
 from app.domain.entities.inventory_item import MovementEntity
 from app.domain.repositories.inventory_repository import IInventoryRepository
 from app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
@@ -147,16 +149,35 @@ class TransferCommandHandler:
 
     async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
         """
-        [Phase 49.2] The Density Guard for Transfers: Validates location capacity before reception.
+        [Phase 63] Master Data SSOT Density Guard: Validates location capacity using structural metadata.
+        No longer uses local repo, calls Master Data Service via internal API client.
         """
         if not location_code or quantity <= 0:
             return
 
-        capacity = await self.repo.get_location_capacity(warehouse_id, location_code, company_id)
+        # SSOT: Fetch capacity from Master Data Service
+        capacity = await master_data_client.get_location_capacity(warehouse_id, location_code, company_id)
+        
         if capacity > 0:
             occupancy = await self.repo.get_location_occupancy(warehouse_id, location_code, company_id)
             if occupancy + quantity > capacity:
-                logger.warning(f"🚨 DENSITY_GUARDv_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
+                logger.warning(f"🚨 DENSITY_GUARD_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
+                
+                # Notification Flow: Dispatch ComplianceViolationEvent
+                await notification_client.send_event(
+                    event_type="ComplianceViolationEvent",
+                    payload={
+                        "violation_type": "DENSITY_OVERFLOW",
+                        "warehouse_id": str(warehouse_id),
+                        "location_code": location_code,
+                        "capacity": float(capacity),
+                        "occupancy": float(occupancy),
+                        "requested": float(quantity),
+                        "severity": "HIGH"
+                    },
+                    company_id=str(company_id)
+                )
+
                 raise BusinessRuleException(
                     message=f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene espacio disponible.",
                     details={
@@ -1186,43 +1207,36 @@ class TransferCommandHandler:
 
     async def verify_density_and_compliance(self, movement_id: uuid.UUID, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
         """
-        [Phase 61] Background Density Guard.
-        Executes post-registration physical validation to avoid blocking the handheld user.
-        If it fails, triggers an OVERFLOW_ALERT and notifies the system.
+        [Phase 63] Industrial Async Reconciliation: Post-receive physical capacity validation.
+        Leverages Master Data SSOT to detect compliance violations in background.
         """
         try:
-            from app.models.movement import Movement
-            from common.services.event_publisher import EventPublisher
-
-            # 1. Physical Capacity Check
-            # Note: Movement already exists in DB with PENDING status.
-            await self._check_location_capacity(warehouse_id, location_code, quantity, company_id)
-            
-            # 2. If OK, mark as CLEAN
-            stmt = update(Movement).where(Movement.id == movement_id).values(validation_status="CLEAN")
+            # 1. Physical Capacity Check via SSOT Client
+            try:
+                await self._check_location_capacity(warehouse_id, location_code, quantity, company_id)
+                status = "CLEAN"
+            except BusinessRuleException as be:
+                logger.error(f"Post-Receive Density Guard Violation: {be.message}")
+                status = "OVERFLOW_ALERT"
+                # Note: Notification is already dispatched inside _check_location_capacity
+            # 2. Update movement status atomically
+            stmt = (
+                update(Movement)
+                .where(Movement.id == movement_id)
+                .values(validation_status=status)
+            )
             await self.session.execute(stmt)
             await self.session.commit()
             
-            logger.info(f"✅ ASYNC_VAL_SUCCESS: Movement {movement_id} verified in {location_code}.")
+            # 3. Final Reconciliation Event
+            publisher = EventPublisher()
+            await publisher.publish("TransferValidationCompleted", {
+                "movement_id": str(movement_id),
+                "status": status
+            })
+
+            logger.info(f"✅ ASYNC_VAL_FINISH: Movement {movement_id} processed as {status}.")
             
         except Exception as e:
-            # 3. Handle Overflow or Error: Mark as ALERT but keep transaction
-            from app.models.movement import Movement
-            from common.services.event_publisher import EventPublisher
-            
-            stmt = update(Movement).where(Movement.id == movement_id).values(validation_status="OVERFLOW_ALERT")
-            await self.session.execute(stmt)
-            await self.session.commit()
-            
-            logger.warning(f"🚨 ASYNC_VAL_FAILED: {str(e)}. Status set to OVERFLOW_ALERT for movement {movement_id}.")
-            
-            # 4. Trigger Internal Notification
-            publisher = EventPublisher()
-            await publisher.publish("ComplianceViolationEvent", {
-                "type": "DENSITY_OVERFLOW",
-                "movement_id": str(movement_id),
-                "location_code": location_code,
-                "quantity_excess": str(quantity), 
-                "severity": "CRITICAL",
-                "details": str(e)
-            })
+            logger.error(f"Critical error in verify_density_and_compliance: {str(e)}")
+            await self.session.rollback()

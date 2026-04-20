@@ -18,8 +18,9 @@ app.add_middleware(InternoCoreGlobalMiddleware)
 async def health_check():
     return {"status": "ok", "service": "notification_service"}
 
-from app.routers import event_routes
+from app.routers import event_routes, notification_routes
 app.include_router(event_routes.router, prefix="/api/v1")
+app.include_router(notification_routes.router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

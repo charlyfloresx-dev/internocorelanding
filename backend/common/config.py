@@ -102,7 +102,12 @@ class InternoSettings(BaseSettings):
     
     # CORS & Web
     int_backend_cors_origins: List[str] = Field(
-        default=[],
+        default=[
+            "http://localhost:4200",
+            "http://127.0.0.1:4200",
+            "https://d3b47jx48onn9j.cloudfront.net",
+            "https://jtq5mfp8pj.us-east-2.awsapprunner.com"
+        ],
         validation_alias=AliasChoices("CORE_BACKEND_CORS_ORIGINS", "BACKEND_CORS_ORIGINS")
     )
     
@@ -168,6 +173,21 @@ class InternoSettings(BaseSettings):
         validation_alias=AliasChoices("CORE_CURRENCY_SERVICE_URL", "CURRENCY_SERVICE_URL"),
         description="URL del microservicio de tipos de cambio"
     )
+    int_master_data_service_url: str = Field(
+        default="http://master-data-service:8000", 
+        validation_alias=AliasChoices("CORE_MASTER_DATA_SERVICE_URL", "MASTER_DATA_SERVICE_URL"),
+        description="URL del microservicio de datos maestros"
+    )
+    int_notification_service_url: str = Field(
+        default="http://notification-service:8000", 
+        validation_alias=AliasChoices("CORE_NOTIFICATION_SERVICE_URL", "NOTIFICATION_SERVICE_URL"),
+        description="URL del microservicio de notificaciones"
+    )
+    int_inventory_service_url: str = Field(
+        default="http://inventory-service:8000", 
+        validation_alias=AliasChoices("CORE_INVENTORY_SERVICE_URL", "INVENTORY_SERVICE_URL"),
+        description="URL del microservicio de inventario"
+    )
 
     # SaaS / Stripe
     stripe: StripeSettings = Field(default_factory=StripeSettings)
@@ -208,6 +228,26 @@ class InternoSettings(BaseSettings):
     @property
     def DB_POOL_SIZE(self) -> int:
         return 5
+        
+    @property
+    def CURRENCY_SERVICE_URL(self) -> str:
+        return self.int_currency_service_url
+
+    @property
+    def MASTER_DATA_SERVICE_URL(self) -> str:
+        return self.int_master_data_service_url
+
+    @property
+    def NOTIFICATION_SERVICE_URL(self) -> str:
+        return self.int_notification_service_url
+
+    @property
+    def INVENTORY_SERVICE_URL(self) -> str:
+        return self.int_inventory_service_url
+
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        return self.DATABASE_URL
         
     @property
     def DB_MAX_OVERFLOW(self) -> int:

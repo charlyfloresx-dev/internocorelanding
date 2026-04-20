@@ -8,8 +8,10 @@ import { ItemSearchComponent, InventoryItem } from '../../shared/components/item
 import { InventoryService } from '../../core/services/inventory.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
-import { DashboardDTO, StockAlert, Money, Currency } from '../../core/models/domain.types';
+import { DashboardDTO, StockAlert, Money, Currency, ValidationStatus } from '../../core/models/domain.types';
 import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
+import { DensityAlertPanelComponent } from './components/density-alert-panel.component';
+import { OverflowBadgeComponent } from '../../shared/components/overflow-badge.component';
 
 interface StockWidget {
   warehouse: string;
@@ -32,7 +34,7 @@ interface CriticalItem {
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe, StatusBadgeComponent, ItemSearchComponent, CurrencyFormatPipe],
+  imports: [CommonModule, MatIconModule, TranslatePipe, StatusBadgeComponent, ItemSearchComponent, CurrencyFormatPipe, DensityAlertPanelComponent, OverflowBadgeComponent],
   template: `
     <div class="space-y-8 animate-fade-in">
       <!-- Header Section -->
@@ -260,6 +262,9 @@ interface CriticalItem {
         <!-- Right Column: Operations Graph & Ledger -->
         <div class="lg:col-span-2 space-y-8">
           
+          <!-- God Mode: Density Violation Alerts -->
+          <app-density-alert-panel></app-density-alert-panel>
+
           <!-- Telemetry Graph Placeholder (Simplified) -->
           <div class="industrial-card p-6 min-h-[300px]">
              <div class="flex items-center justify-between mb-8">
@@ -327,7 +332,12 @@ interface CriticalItem {
                       <td class="px-6 py-4">
                         <app-status-badge [status]="m.status" [label]="m.type"></app-status-badge>
                       </td>
-                      <td class="px-6 py-4 text-surface-text-muted italic">{{ m.warehouse }}</td>
+                      <td class="px-6 py-4 text-surface-text-muted italic flex items-center gap-2">
+                        {{ m.warehouse }}
+                        @if (m.validation_status) {
+                          <app-overflow-badge [status]="m.validation_status"></app-overflow-badge>
+                        }
+                      </td>
                       <td class="px-6 py-4 text-right font-mono text-[10px]">{{ m.date | date:'shortTime' }}</td>
                       <td class="px-6 py-4 text-right font-black">{{ m.valuation.amount | currencyFormat }}</td>
                     </tr>
@@ -564,6 +574,7 @@ export class InventoryDashboardComponent implements OnInit {
         type: this.translationService.translate('inventory.type.' + m.type.toLowerCase(), m.type),
         warehouse: m.type === 'TRANSFER' ? `${m.origin} -> ${m.destination}` : (m.type === 'ENTRY' ? m.destination : m.origin),
         status: m.status || 'PROCESSED',
+        validation_status: m.validation_status,
         valuation: m.total_valuation || { amount: 0, currency: 'USD' }
       })));
     } catch (e) {

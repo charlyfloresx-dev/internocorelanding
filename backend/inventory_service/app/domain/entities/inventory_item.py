@@ -96,6 +96,7 @@ class DocumentListRowEntity(BaseModel):
     status: str # DRAFT, PROCESSED, CANCELLED
     trace_id: Optional[str] = None  # Correlation ID for forensic view
     external_reference: Optional[str] = None
+    validation_status: Optional[str] = "CLEAN"
 
 # ─── Report Entities ──────────────────────────────────────────────────────────
 
@@ -111,6 +112,7 @@ class KardexRowEntity(BaseModel):
     price: Money
     running_balance: Decimal     # Cumulative balance from Window Function
     company_id: UUID
+    validation_status: Optional[str] = "CLEAN"
 
 class WACValuationEntity(BaseModel):
     """Weighted Average Cost valuation snapshot for a product/warehouse."""
@@ -171,6 +173,7 @@ class DocumentItemEntity(BaseModel):
     uom_name: Optional[str] = "PZA"
     weight: Decimal
     location: Optional[str] = None
+    validation_status: Optional[str] = "CLEAN"
 
 class DocumentDetailEntity(BaseModel):
     id: UUID

@@ -16,6 +16,13 @@ class IMasterDataClient(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    async def get_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, company_id: uuid.UUID) -> Decimal:
+        """
+        [Phase 63] Retrieves structural capacity for a location.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     async def get_product_internal_metadata(self, product_id: uuid.UUID, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
         """
         Retrieves product name and metadata from internal master data endpoint.

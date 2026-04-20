@@ -1,5 +1,9 @@
 # Auth Service - Service Log
 
+## [2026-04-20] Phase 65: AWS App Runner FinOps Pivot
+- **Deployment Strategy**: Migrado de ECS Fargate a App Runner nativo (ECR image) para aislar la facturación.
+- **Limitación AWS**: Despliegue suspendido temporalmente por límite general de Sandbox (Max 2 servicios AWS). Contenedor fallido borrado preventivamente para ahorrar costos.
+
 ## [2026-04-18] AWS Cloud Stability & CORS Resolution
 - **Lifecycle Bug Fix**: Inverted import sequence in `app/main.py`. Forced `load_aws_secrets` (via `app.core.config.settings`) to evaluate *before* `CORSMiddleware` locks memory origin list.
 - **Secrets Fix**: Removed read-only properties (`env_mode`) from AWS Secrets JSON to prevent `AttributeError` crashing the iterative dynamic injection.

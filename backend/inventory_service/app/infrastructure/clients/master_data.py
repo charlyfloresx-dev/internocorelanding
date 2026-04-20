@@ -57,6 +57,25 @@ class MasterDataClient(IMasterDataClient):
             logger.error(f"Error fetching UOM factor {uom_id}: {str(e)}")
             return Decimal("1.0")
 
+    async def get_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, company_id: uuid.UUID) -> Decimal:
+        """
+        [Phase 63] Fetches capacity from Master Data structural Source of Truth.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/locations/{warehouse_id}/{location_code}/capacity",
+                    headers=self._get_headers(company_id)
+                )
+                if response.status_code == 200:
+                    payload = response.json()
+                    data = payload.get("data", {})
+                    return Decimal(str(data.get("max_capacity", 0)))
+                return Decimal("0")
+        except Exception as e:
+            logger.error(f"Density Guard Fail-Open: Could not fetch capacity for {location_code}: {str(e)}")
+            return Decimal("0") # Fail-open: allow movement if MD is down
+
     async def get_product_internal_metadata(self, product_id: uuid.UUID, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
         """
         Retrieves product name and metadata from internal master data endpoint.

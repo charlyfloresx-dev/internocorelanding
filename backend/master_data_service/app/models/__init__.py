@@ -12,3 +12,4 @@ from app.models.warehouse import Warehouse  # noqa: F401
 from app.models.movement_concept import MovementConcept  # noqa: F401
 from app.models.partner import Partner  # noqa: F401
 from app.models.price_agreement import PriceAgreement # noqa: F401
+from app.models.location import InventoryLocation # noqa: F401

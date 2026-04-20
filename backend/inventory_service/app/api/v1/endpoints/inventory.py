@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import uuid
@@ -28,7 +28,7 @@ async def get_stock(
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
-    stock = await service.repository.get_stock(warehouse_id, product_id)
+    stock = await service.repository.get_stock(warehouse_id, product_id, x_company_id)
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     return ApiResponse(data=stock)
@@ -74,7 +74,7 @@ async def reserve_inventory(
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        stock = await service.repository.reserve_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity)
+        stock = await service.repository.reserve_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, x_company_id)
         return ApiResponse(message="Stock reserved successfully", data={"available_quantity": stock.available_quantity})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -88,7 +88,7 @@ async def release_inventory(
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        stock = await service.repository.release_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity)
+        stock = await service.repository.release_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, x_company_id)
         return ApiResponse(message="Stock released successfully", data={"available_quantity": stock.available_quantity})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -99,7 +99,8 @@ async def dispatch_transfer(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = TransferService(session)
+    repo = SQLAlchemyInventoryRepository(session)
+    service = TransferService(repo)
     try:
         movement = await service.dispatch_transfer(
             cmd.from_warehouse_id, cmd.to_warehouse_id, cmd.product_id, 
@@ -109,21 +110,37 @@ async def dispatch_transfer(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/transfers/receive", response_model=ApiResponse)
+@router.post("/transfers/receive", response_model=ApiResponse, status_code=status.HTTP_202_ACCEPTED)
 async def receive_transfer(
     cmd: TransferReceiveCmd,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = TransferService(session)
+    """
+    [Phase 63] Laissez-Faire Reception: Registers stock immediately.
+    Density Guard validation moved to background.
+    """
+    repo = SQLAlchemyInventoryRepository(session)
+    service = TransferService(repo)
     try:
         movement = await service.receive_transfer(
-            cmd.from_warehouse_id, cmd.to_warehouse_id, cmd.product_id, 
-            cmd.quantity, x_company_id, cmd.transfer_id
+            from_warehouse_id=cmd.from_warehouse_id, 
+            to_warehouse_id=cmd.to_warehouse_id, 
+            product_id=cmd.product_id, 
+            quantity=cmd.quantity, 
+            company_id=x_company_id, 
+            transfer_id=cmd.transfer_id,
+            location=cmd.location,
+            background_tasks=background_tasks
         )
         if not movement:
              return ApiResponse(message="Transfer already received", data={})
-        return ApiResponse(message="Transfer received successfully", data={"movement_id": movement.id})
+        
+        return ApiResponse(
+            message="Transfer reception initiated (Laissez-Faire)", 
+            data={"movement_id": movement.id, "status": "QUEUED_FOR_AUDIT"}
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

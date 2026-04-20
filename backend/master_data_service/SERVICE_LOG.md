@@ -1,3 +1,7 @@
+### [2026-04-20] - Phase 65: AWS App Runner FinOps Pivot
+- **Deployment**: Migración de `master-data-service` a App Runner (`584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/master-data-service`).
+- **Bloqueo AWS**: Contenedor provisto exitosamente pero bloqueado (CREATE_FAILED) por Sandbox AWS Quota limit (2). Servicio removido preventivamente por FinOps.
+
 ### [2026-04-14] - Phase 45.1: Pricing Stabilization & B2B Immortality ✅
 - **Status**: ✅ COMPLETED — **Reliable Pricing Architecture**
 - **Composite Mapping Fix**: Resolved `AttributeError: 'ProductPrice' object has no attribute 'amount'` by implementing python property bridges for `amount` and `currency` in the SQLAlchemy model.

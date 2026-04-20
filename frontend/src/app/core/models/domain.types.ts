@@ -49,6 +49,12 @@ export const enum Currency {
   EUR = 'EUR'
 }
 
+export const enum ValidationStatus {
+  CLEAN = 'CLEAN',
+  OVERFLOW_CONFIRMED = 'OVERFLOW_CONFIRMED',
+  UNDER_REVIEW = 'UNDER_REVIEW'
+}
+
 /**
  * Value Objects
  */
@@ -142,6 +148,7 @@ export interface RecentActivityRow {
   warehouse_name?: string;
   id?: string;
   movement_id?: string;
+  validation_status?: ValidationStatus;
 }
 
 export interface DashboardDTO {
@@ -235,6 +242,7 @@ export interface InventoryMovement extends BaseEntity {
   weight?: number;
   location_code?: string;
   is_weight_mismatch?: boolean;
+  validation_status?: ValidationStatus;
 }
 
 export interface InventoryDocument extends AuditBase {

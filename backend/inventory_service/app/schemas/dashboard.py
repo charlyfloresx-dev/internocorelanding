@@ -44,6 +44,7 @@ class MovementDocumentRow(BaseModel):
     total_weight: Decimal = Decimal("0.0")
     status: str
     external_reference: Optional[str] = None
+    validation_status: Optional[str] = "CLEAN"
 
 class KardexRow(BaseModel):
     movement_id: Union[uuid.UUID, str]

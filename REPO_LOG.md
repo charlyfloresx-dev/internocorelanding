@@ -2,6 +2,26 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
+### [2026-04-20] Phase 65: FinOps App Runner Isolation & AWS Service Quotas
+- **App Runner Deployment refactor**: Transicionamos la validación de AWS desde despliegues manuales en CLI atados a la cuenta de GitHub hacia un enfoque `Amazon ECR` nativo, optimizando los costos de despliegue mediante AWS App Runner.
+- **Service Quotas Discovery**: Se descubrió una cuota oculta ("Anti-Fraude") de AWS en cuentas nuevas que restringe App Runner a un máximo de **2 servicios simultáneos**. Se abrió Ticket Support `#177671606300742` a Operaciones de AWS para incrementar la cuota a 5 y acomodar la flota Microservicios completa.
+- **Limpieza Estratégica**: Se ejecutó limpieza via CLI eliminando `notification-service` y recursos bloqueados para priorizar de forma elástica la disponibilidad del `master-data-service` y el `auth-service` dentro del límite de 2 slots actual.
+- **Status**: ⏳ Phase 65 PAUSED - Pending AWS Support Quota Approval (ETA < 24h).
+
+### [2026-04-20] Phase 63: High Operational Availability (Laissez-Faire) & Density Guard
+- **Recepción Laissez-Faire**: Refactorización del flujo de entrada de mercancía para priorizar la continuidad operativa. El sistema ahora responde con **202 Accepted** de forma inmediata, delegando la validación a tareas de fondo.
+- **Density Guard Asíncrono**: Implementación de auditoría silenciosa que valida la capacidad física de las ubicaciones sin bloquear la transacción. Registra estados de `OVERFLOW_CONFIRMED` en el Ledger para visibilidad gerencial.
+- **Centralización de Master Data**: Migración definitiva de `InventoryLocation` al `master_data_service` como única fuente de verdad (SSOT) estructural.
+- **Arquitectura Reactiva**: Activación de eventos `CapacityViolationEvent` hacia el `notification_service` para alimentar alertas en tiempo real en el Dashboard principal.
+- **Compliance DB (Alembic)**: Despliegue de la migración `fe63_val_status` para soportar estados de validación en el ledger de movimientos.
+- **Status**: ✅ Phase 63 COMPLETED - Reactive Industrial Logic Online.
+
+### [2026-04-20] Phase 64: Visibility Stress-Test & Resilience
+- **E2E Validation**: Successfully executed the "Stress-Test de Visibilidad" injecting a 500-unit overflow into a 10-unit location.
+- **Notificación Industrial**: El `notification_service` procesó correctamente la alerta `CapacityViolationEvent`, persistiendo el estado en el Dashboard de Control.
+- **Hardenning**: Corregidos fallos de integridad multitenancy y esquemas faltantes en el motor de notificaciones.
+- **Status**: ✅ FASE 64 E2E VALIDATION: PASSED.
+
 ### [2026-04-20] AWS Budget Pivot: ALB to App Runner
 - **Optimización de Costos**: El Application Load Balancer (ALB) fue identificado como un gasto excesivo (~$23 USD/mes base) para el presupuesto de $5.00 USD.
 - **Acción**: Eliminación del ALB e infraestructura de ECS Fargate residual. Transición hacia **AWS App Runner** (PaaS) para el `auth_service`.

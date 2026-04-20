@@ -1,0 +1,5 @@
+{
+    "Cpu": "0.25 vCPU",
+    "Memory": "0.5 GB",
+    "InstanceRoleArn": "arn:aws:iam::584094645491:role/InternoCore-AppRunner-Role"
+}
