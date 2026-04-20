@@ -45,6 +45,9 @@ class Movement(MultiTenantBase):
     
     comments: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     
+    # Fast-Track Validation (Phase 61)
+    validation_status: Mapped[str] = mapped_column(String(20), server_default="CLEAN", default="CLEAN") # PENDING, CLEAN, OVERFLOW_ALERT
+    
     # Inherits created_at, created_by, and company_id from MultiTenantBase
 
     def __repr__(self):

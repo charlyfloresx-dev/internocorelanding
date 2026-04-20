@@ -23,7 +23,7 @@ from typing import Optional
 from common.domain.value_objects import Money
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, update
 import sqlalchemy as sa
 
 from common.services.audit_service import AuditService
@@ -667,14 +667,9 @@ class TransferCommandHandler:
             except Exception:
                 transit_wac = transfer.unit_price
 
-            # ── 5.1 DENSITY GUARD (Phase 49.3): Validate Target Location Capacity ──
-            if cmd.destination_location:
-                await self._check_location_capacity(
-                    warehouse_id=transfer.destination_warehouse_id,
-                    location_code=cmd.destination_location,
-                    quantity=receive_qty_ok,
-                    company_id=cmd.receiver_company_id
-                )
+            # ── 5.1 ASYNC FAST-TRACK (Phase 61): Validation moved to Background Tasks ──
+            # Skip synchronous check to return 202 Accepted faster.
+            pass
 
             # ── 6. TRANSIT_RELEASE: Sacar del almacén lógico de tránsito ──────────
             release_movement = MovementEntity(
@@ -711,7 +706,9 @@ class TransferCommandHandler:
                 # FIFO compliance
                 available_quantity=receive_qty_ok,
                 location=cmd.destination_location, # Assign location to record
-                customs_pedimento_id=cmd.customs_pedimento_id or transfer.customs_pedimento_id
+                customs_pedimento_id=cmd.customs_pedimento_id or transfer.customs_pedimento_id,
+                # FAST-TRACK
+                validation_status="PENDING"
             )
             await self.repo.record_movement(in_movement)
 
@@ -1186,3 +1183,46 @@ class TransferCommandHandler:
             shipped_at=t.shipped_at,
             received_at=t.received_at
         )
+
+    async def verify_density_and_compliance(self, movement_id: uuid.UUID, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
+        """
+        [Phase 61] Background Density Guard.
+        Executes post-registration physical validation to avoid blocking the handheld user.
+        If it fails, triggers an OVERFLOW_ALERT and notifies the system.
+        """
+        try:
+            from app.models.movement import Movement
+            from common.services.event_publisher import EventPublisher
+
+            # 1. Physical Capacity Check
+            # Note: Movement already exists in DB with PENDING status.
+            await self._check_location_capacity(warehouse_id, location_code, quantity, company_id)
+            
+            # 2. If OK, mark as CLEAN
+            stmt = update(Movement).where(Movement.id == movement_id).values(validation_status="CLEAN")
+            await self.session.execute(stmt)
+            await self.session.commit()
+            
+            logger.info(f"✅ ASYNC_VAL_SUCCESS: Movement {movement_id} verified in {location_code}.")
+            
+        except Exception as e:
+            # 3. Handle Overflow or Error: Mark as ALERT but keep transaction
+            from app.models.movement import Movement
+            from common.services.event_publisher import EventPublisher
+            
+            stmt = update(Movement).where(Movement.id == movement_id).values(validation_status="OVERFLOW_ALERT")
+            await self.session.execute(stmt)
+            await self.session.commit()
+            
+            logger.warning(f"🚨 ASYNC_VAL_FAILED: {str(e)}. Status set to OVERFLOW_ALERT for movement {movement_id}.")
+            
+            # 4. Trigger Internal Notification
+            publisher = EventPublisher()
+            await publisher.publish("ComplianceViolationEvent", {
+                "type": "DENSITY_OVERFLOW",
+                "movement_id": str(movement_id),
+                "location_code": location_code,
+                "quantity_excess": str(quantity), 
+                "severity": "CRITICAL",
+                "details": str(e)
+            })

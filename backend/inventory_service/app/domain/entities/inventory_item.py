@@ -74,6 +74,9 @@ class MovementEntity(BaseModel):
     source_movement_id: Optional[UUID] = None
     expiry_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    
+    # Fast-Track Validation (Phase 61)
+    validation_status: str = "CLEAN" # PENDING, CLEAN, OVERFLOW_ALERT
 
 class MovementSummaryEntity(BaseModel):
     entries_24h: int

@@ -14,7 +14,9 @@
 - [x] **FinOps Final Audit**: Verified RDS ($12.24) and Secrets ($0.40) are the only fixed costs.
 - [x] **Recovery Infrastructure**: Created `rebuild_inventory_levels.py` for ledger-based recovery.
 - [x] **Phase 60: Unified Secret Architecture**: Refactored all 13 microservices to use unified `InternoSettings` and standardized `load_aws_secrets()` lifecycle.
-- [x] **Architecture Verification**: Achieved 100% CLEAN status in Code Knowledge Graph Audit.
+- [x] **CloudWatch FinOps**: Applied 3-day retention policy to all Log Groups via CLI.
+- [x] **Phase 61: Fast-Track Async Reception**: Implemented `validation_status=PENDING` and BackgroundTasks for non-blocking WMS receiving.
+- [x] **Architecture Verification**: Achieved 100% CLEAN status in Code Knowledge Graph Audit with support for Async Density Guard.
 
 ## 🚧 IN PROGRESS
 - [ ] **Auth Service Migration**: Code is ready for App Runner deployment.

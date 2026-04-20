@@ -32,7 +32,7 @@ import uuid
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -230,18 +230,19 @@ async def initiate_inter_company_transfer(
 
 @router.post(
     "/{transfer_id}/receive",
+    summary="[Empresa B] Recibir transferencia (Fast-Track)",
     response_model=ApiResponse,
-    status_code=status.HTTP_200_OK,
-    summary="[Empresa B] Confirmar recepción de transferencia",
+    status_code=status.HTTP_202_ACCEPTED,
     description=(
         "Empresa B confirma la recepción del inventario en tránsito. "
-        "El stock sale del hold de tránsito y entra al almacén físico de Empresa B. "
-        "El documento de tránsito se marca como DELIVERED."
+        "El stock sale del hold de tránsito y entra al almacén físico de Empresa B de forma inmediata. "
+        "La validación de Density Guard ocurre en Background."
     ),
 )
 async def receive_inter_company_transfer(
     transfer_id: uuid.UUID,
     body: ReceiveTransferRequest,
+    background_tasks: BackgroundTasks,
     handler: TransferCommandHandler = Depends(get_transfer_handler),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
 ):
@@ -263,6 +264,18 @@ async def receive_inter_company_transfer(
 
     try:
         transfer_doc = await handler.complete_transfer(cmd)
+        
+        # ── FAST-TRACK (Phase 61): Delegar validación física a Background Task ──
+        if cmd.destination_location:
+            background_tasks.add_task(
+                handler.verify_density_and_compliance,
+                movement_id=transfer_doc.receive_movement_id,
+                warehouse_id=transfer_doc.destination_warehouse_id,
+                location_code=cmd.destination_location,
+                quantity=cmd.received_quantity or transfer_doc.quantity,
+                company_id=cmd.receiver_company_id
+            )
+
     except DomainException as exc:
         raise _handle_domain_exception(exc)
     except ValueError as exc:
@@ -271,7 +284,7 @@ async def receive_inter_company_transfer(
     return ApiResponse(
         status="success",
         data=transfer_doc.model_dump(mode="json"),
-        message=f"Transferencia {transfer_doc.folio} recibida exitosamente. Stock actualizado en Empresa B.",
+        message=f"REPEPTION_ACCEPTED: Recepción de {transfer_doc.folio} en proceso. Validación asíncrona iniciada.",
     )
 
 

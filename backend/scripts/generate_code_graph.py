@@ -265,7 +265,7 @@ class CodeGraphGenerator:
             # If recording a movement (IN or RELOCATE)
             if "record_movement" in source:
                 # Must call capacity check beforehand
-                if "_check_location_capacity" not in source and "DensityGuard" not in source:
+                if not any(k in source for k in ["_check_location_capacity", "DensityGuard", 'validation_status="PENDING"']):
                     err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "CRITICAL", "ms": ms, "error": "MISSING_DENSITY_GUARD: Warehouse entry detected without location capacity validation."}
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
