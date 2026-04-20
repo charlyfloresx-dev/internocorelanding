@@ -17,11 +17,12 @@
 - [x] **CloudWatch FinOps**: Applied 3-day retention policy to all Log Groups via CLI.
 - [x] **Phase 61: Fast-Track Async Reception**: Implemented `validation_status=PENDING` and BackgroundTasks for non-blocking WMS receiving.
 - [x] **Architecture Verification**: Achieved 100% CLEAN status in Code Knowledge Graph Audit with support for Async Density Guard.
+- [x] **Phase 62: Frontend Deployment (OAC)**: Built Angular production and synchronized to S3 with CloudFront OAC.
+- [x] **FinOps & Compliance**: Confirmed CloudWatch 3-day retention and Secret Manager de-duplication.
 
 ## 🚧 IN PROGRESS
 - [ ] **Auth Service Migration**: Code is ready for App Runner deployment.
-- [ ] **Frontend Deployment**: Pending initial build and sync with new private bucket.
+- [ ] **MES Service Migration**: Scheduled after Auth stabilization.
 
 ## 📅 PENDING
-- [ ] **CloudWatch Monitoring**: Configure retention policies for logs (3 days) to prevent cost leaks.
 - [ ] **Migration of Secondary Services**: Apply App Runner pattern to `inventory` and `master_data`.
