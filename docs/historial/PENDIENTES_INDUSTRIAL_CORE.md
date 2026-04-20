@@ -39,7 +39,7 @@ Este documento centraliza los bloqueos y tareas críticas para el núcleo indust
 ## 🌐 Infraestructura (Fase 65)
 - [x] **AWS Cost Pivot**: Transición exitosa de ALB (~$23 USD) a AWS App Runner nativo.
 - [ ] **AWS Support Ticket**: Confirmar aprobación del Ticket `#177671606300742` para subir cuota de App Runner de 2 a 5.
-- [ ] **App Runner VPC Connector**: Establecer conector VPC para `auth-service` y `master-data-service` para evitar bloqueos del Healthcheck al intentar contactar RDS en subred privada.
+- [x] **App Runner VPC Connector**: Creado `InternoCore-VPC-Bridge` cruzando subredes privadas para evitar el bloqueo del Healthcheck de Postgres RDS. Aplicado a `auth` y `master-data`.
 - [ ] **AWS Secrets Manager**: Migrar todas las variables `CORE_` desde archivos `.env` locales hacia el gestor de secretos de AWS.
 - [ ] **Cloud Connectivity**: Validar que MinIO resuelva correctamente bajo el dominio en entorno de App Runner.
 - [ ] **Telemetría**: Configurar Prometheus/Grafana para capturar métricas de los 10 principales microservicios.

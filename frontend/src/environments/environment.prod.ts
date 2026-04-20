@@ -1,6 +1,6 @@
-const AUTH_BACKEND_URL = 'https://s3mukfdmmx.us-east-2.awsapprunner.com';
+const AUTH_BACKEND_URL = 'https://zdvp36ydhj.us-east-2.awsapprunner.com';
 const NOTIFICATION_BACKEND_URL = 'https://zi2vwrmucp.us-east-2.awsapprunner.com';
-const MASTER_DATA_URL = 'https://hxgker2msp.us-east-2.awsapprunner.com';
+const MASTER_DATA_URL = 'https://qrhbfj8hb4.us-east-2.awsapprunner.com';
 
 const API_V1 = `${AUTH_BACKEND_URL}/api/v1`;
 const NOTIFICATION_API_V1 = `${NOTIFICATION_BACKEND_URL}/api/v1`;

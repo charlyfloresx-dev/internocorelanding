@@ -23,7 +23,7 @@
 - **Budget Breach**: Resolved the forecasted $6.64 breach by deleting resources that cost ~$27/mo.
 - **SPA Routing**: Configured CloudFront error handlers to prevent 404s on direct URL access in Angular.
 - **App Runner "Zombies"**: Eliminados exitosamente servicios en estado `CREATE_FAILED` (Auth, Master Data) liberando la cuota estricta (2) de la región.
-- **App Runner VPC Bridge**: Identificado timeout de salud al faltar VPC Connectors en App Runner hacia los Security Groups del RDS.
+- **App Runner VPC Bridge**: Identificado timeout de salud al faltar VPC Connectors en App Runner hacia los Security Groups del RDS. **(RESUELTO: Desplegado `InternoCore-VPC-Bridge` vía API, servicios redesplegados y en `OPERATION_IN_PROGRESS`)**.
 
 ## Summary of Changes
 - **Infrastructure**: Deleted `InternoCore-ALB`. Created `apprunner.yaml`.

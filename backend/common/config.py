@@ -103,7 +103,6 @@ class InternoSettings(BaseSettings):
     # CORS & Web
     int_backend_cors_origins: List[str] = Field(
         default=[
-            "http://localhost:4200",
             "http://127.0.0.1:4200",
             "https://d3b47jx48onn9j.cloudfront.net",
             "https://jtq5mfp8pj.us-east-2.awsapprunner.com"

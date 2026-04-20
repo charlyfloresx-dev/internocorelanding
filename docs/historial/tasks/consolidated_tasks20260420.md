@@ -24,6 +24,7 @@
 - [x] **Phase 64: Density Stress-Test**: Validación E2E del disparo de eventos de desbordamiento (Capacity Violation Event) sin brokers costosos.
 - [x] **Phase 65: AWS App Runner FinOps Pivot**: Ejecución de limpieza mitigante de recursos en error (`CREATE_FAILED` auth/master) para liberar la cuota de AWS de Sandbox limit=2.
 - [x] **Phase 65: AST Code Graph Fix**: Parcheado script `generate_code_graph.py` para soportar asignación multi-espacio de DensityGuard en `validation_status`.
+- [x] **Phase 65: VPC Connector Deployment**: Generado e inyectado puente VPC Serverless `InternoCore-VPC-Bridge` atado a la red de la RDS Postgres en AWS CLI. Despliegue de `auth-service` y `master-data` iniciado.
 
 ## 🚧 IN PROGRESS / BLOCKED
 - [ ] **Auth Service Migration**: Code is ready for App Runner deployment but **BLOCKED** by AWS Quota sandbox (limit 2).
