@@ -9,10 +9,12 @@ import io
 import csv
 from datetime import datetime
 
-from app.db.db import get_session
-from app.services.inventory import InventoryService
+from app.db.session import get_db as get_session
+
+from app.services.inventory import InventoryTransactionService as InventoryService
+from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
 from app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd, CycleCountPayload
-from common.schemas import ApiResponse
+from common.responses import ApiResponse
 from app.services.transfer_service import TransferService
 
 router = APIRouter()
@@ -24,7 +26,8 @@ async def get_stock(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = InventoryService(session)
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryService(repo, None)
     stock = await service.repository.get_stock(warehouse_id, product_id)
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
@@ -36,7 +39,8 @@ async def create_movement(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = InventoryService(session)
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryService(repo, None)
     try:
         movement = await service.register_movement(cmd, x_company_id)
         return ApiResponse(message="Movement recorded successfully", data={"id": movement.id})
@@ -51,7 +55,8 @@ async def reconcile_inventory(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = InventoryService(session)
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryService(repo, None)
     try:
         adjustment = await service.reconcile_stock(warehouse_id, product_id, physical_qty, x_company_id)
         if not adjustment:
@@ -66,7 +71,8 @@ async def reserve_inventory(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = InventoryService(session)
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryService(repo, None)
     try:
         stock = await service.repository.reserve_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity)
         return ApiResponse(message="Stock reserved successfully", data={"available_quantity": stock.available_quantity})
@@ -79,7 +85,8 @@ async def release_inventory(
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...)
 ):
-    service = InventoryService(session)
+    repo = SQLAlchemyInventoryRepository(session, None)
+    service = InventoryService(repo, None)
     try:
         stock = await service.repository.release_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity)
         return ApiResponse(message="Stock released successfully", data={"available_quantity": stock.available_quantity})
@@ -166,11 +173,8 @@ async def submit_cycle_count(
     x_company_id: uuid.UUID = Header(...),
     x_user_id: str = Header(default="unknown")
 ):
-    from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-    from app.services.inventory import InventoryTransactionService
-    
     repo = SQLAlchemyInventoryRepository(session, None)
-    service = InventoryTransactionService(repo)
+    service = InventoryService(repo, None)
     
     try:
         results = await service.process_cycle_count(

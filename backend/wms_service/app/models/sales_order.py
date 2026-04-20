@@ -7,14 +7,9 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from common.models import MultiTenantBase, Base
 
-class SalesOrderStatus(str, enum.Enum):
-    DRAFT = "DRAFT"
-    CONFIRMED = "CONFIRMED"
-    PICKED = "PICKED"
-    SHIPPED = "SHIPPED"
-    CANCELLED = "CANCELLED"
+from app.domain.entities.sales_order import SalesOrderStatus
 
-class SalesOrder(MultiTenantBase, Base):
+class SalesOrder(MultiTenantBase):
     """
     Representa una Orden de Venta en el WMS.
     """

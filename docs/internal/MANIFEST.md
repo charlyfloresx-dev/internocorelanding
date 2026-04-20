@@ -17,7 +17,7 @@
 * [code_graph.json](file:///c:/API/interno/docs/audit/code_graph.json): Mapa de dependencias del sistema tras la limpieza de raíz.
 
 ### 📂 Especificaciones Técnicas (`docs/technical/`)
-* [GOD_MODE_GUIDE.md](file:///c:/API/interno/docs/technical/GOD_MODE_GUIDE.md): Protocolo de uso de la `INT_ADMIN_MASTER_KEY`.
+* [GOD_MODE_GUIDE.md](file:///c:/API/interno/docs/technical/GOD_MODE_GUIDE.md): Protocolo de uso de la `CORE_ADMIN_MASTER_KEY`.
 * [INVENTORY_FLOW.md](file:///c:/API/interno/docs/technical/INVENTORY_FLOW.md): (Nuevo) Flujo de transacciones inmutables del Kardex.
 
 ### 📂 Backend Service Logs (`docs/backend/`)

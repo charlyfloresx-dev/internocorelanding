@@ -1,6 +1,7 @@
 # Web Framework
 fastapi
 uvicorn[standard]
+python-multipart
 
 # Base de Datos y Migraciones
 sqlalchemy
@@ -11,8 +12,19 @@ alembic
 pydantic
 pydantic-settings
 python-dotenv
+email-validator
+
+# Seguridad y JWT
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
 
 # Utilidades
 requests
 httpx
 boto3
+
+# Testing
+pytest
+pytest-asyncio
+aiosqlite

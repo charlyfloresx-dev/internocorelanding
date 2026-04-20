@@ -1,0 +1,69 @@
+<div class="login-layout">
+  <!-- Left Side: Visuals -->
+  <div class="visual-pane">
+    <div class="brand">
+      <span class="material-icons">travel_explore</span>
+      <h1>Viatra Core</h1>
+    </div>
+    <div class="motto">
+      <h2>Misión Control de Viajes.</h2>
+      <p>Logística descentralizada y automatización financiera para todos tus grupos de viaje.</p>
+    </div>
+  </div>
+
+  <!-- Right Side: Form / Auth -->
+  <div class="auth-pane">
+    <div class="auth-container">
+      
+      @if (!isSelectingCompany() && !isNewUser()) {
+        <h3>Inicia Sesión</h3>
+        <p class="subtitle">Desbloquea el acceso a tu espacio de trabajo Viatra.</p>
+        
+        <div class="social-buttons">
+          <div id="google-btn"></div>
+          
+          <button class="btn btn-outline" disabled>
+            <span class="material-icons">facebook</span> Continúa con Facebook
+          </button>
+          <button class="btn btn-outline" disabled>
+            <span class="material-icons">window</span> Continúa con Microsoft
+          </button>
+        </div>
+      } @else if (isNewUser()) {
+        <div class="success-state">
+          <span class="material-icons success-icon">how_to_reg</span>
+          <h3>¡Registro Completado!</h3>
+          <p class="subtitle">Tu cuenta de <strong>Traveler</strong> ha sido creada con éxito.</p>
+          <div class="info-card">
+            <p>Un administrador de la red Viatra Core debe asignarte a un grupo de viaje o agencia para continuar.</p>
+          </div>
+          <button class="btn btn-primary" (click)="isNewUser.set(false)">Volver al inicio</button>
+        </div>
+      } @else {
+        <h3>Selecciona tu Agencia</h3>
+        <p class="subtitle">Elige con qué equipo vas a trabajar hoy.</p>
+        
+        <div class="companies-list">
+          @for (company of availableCompanies(); track company.company_id) {
+            <div class="company-card" (click)="selectCompany(company.company_id)">
+              <div class="company-avatar">
+                <span class="material-icons">business</span>
+              </div>
+              <div class="company-info">
+                <h4>{{ company.company_name }}</h4>
+                <div class="roles-tags">
+                  @for (role of company.role_names; track role) {
+                    <span class="badge">{{ role }}</span>
+                  }
+                </div>
+              </div>
+              <span class="material-icons arrow">chevron_right</span>
+            </div>
+          }
+        </div>
+      }
+      
+    </div>
+
+  </div>
+</div>

@@ -24,14 +24,16 @@ COPY auth_service/app /app/app
 COPY auth_service/alembic /app/alembic
 COPY auth_service/alembic.ini /app/alembic.ini
 COPY auth_service/scripts /app/scripts
+COPY auth_service/entrypoint.sh /app/entrypoint.sh
 
-# 4. Ajuste de permisos
+# 4. Ajuste de permisos y entrypoint ejecutable
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# 5. Ejecución: Migraciones -> Semillas -> API
-CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# 5. Ejecución: Migraciones -> Semillas -> API (via entrypoint)
+CMD ["/bin/sh", "/app/entrypoint.sh"]

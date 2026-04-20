@@ -1,0 +1,120 @@
+
+???? INICIANDO FLUJO DE AUDENTICACI??N COMPLETO (AUDITOR??A DE ROLES)
+======================================================================
+???? PASO 1: Login...
+??? Login exitoso. Selection Token listo.
+
+???? [JSON DE LOGIN COMPLETO]:
+{
+    "status": "success",
+    "data": {
+        "selection_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzU4NDc2NTEsInN1YiI6IjY5YWE1ZGRjLWJiYWEtNDZlNi1hN2YwLWFlYjRiOTJiNmQzOCIsInR5cCI6InNlbGVjdGlvbiJ9.yi8AmMtMBq9x3v6Rg_fBDmu-qpGxwZWYbS8BKetswy0",
+        "user_id": "69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38",
+        "companies": [
+            {
+                "company_id": "9cd9986b-89da-48b7-8733-26a2a1225b01",
+                "company_name": "InternoCorp Enterprise",
+                "group_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+                "group_name": null,
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": false
+            },
+            {
+                "company_id": "ad6cc8a6-34f9-42df-8f29-28254e0ad242",
+                "company_name": "Interno Logistics MX",
+                "group_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+                "group_name": null,
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": false
+            },
+            {
+                "company_id": "777cc8a6-34f9-42df-8f29-28254e0ad277",
+                "company_name": "Interno Logistics US",
+                "group_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+                "group_name": null,
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": false
+            },
+            {
+                "company_id": "203e03c9-5d65-43ff-9e83-864ef605426c",
+                "company_name": "Empresa Demo (Pendiente)",
+                "group_id": "eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e",
+                "group_name": null,
+                "logo": null,
+                "role_names": [
+                    "admin"
+                ],
+                "is_new": true
+            }
+        ],
+        "is_new": false
+    },
+    "message": "Login successful. Please select a company.",
+    "code": null,
+    "meta": {
+        "trace_id": "0d5a34e8-77e1-4658-bf27-51df8ba67514",
+        "latency": "0.2127s"
+    }
+}
+
+???? PASO 2: Seleccionando empresa: InternoCorp Enterprise (ID: 9cd9986b-89da-48b7-8733-26a2a1225b01)...
+
+??????? PASO 3: Verificaci??n de Claims y Scopes (JWT vs JSON)...
+
+???? REPORTE DE PERMISOS POR EMPRESA:
+========================================
+???? Empresa ID: 9cd9986b-89da-48b7-8733-26a2a1225b01
+----------------------------------------
+???? DATOS EN JSON PLANO (Response Body):
+   - Roles:  ['admin']
+   - Scopes: ['auth:user:manage', 'auth:roles:manage', 'inv:movements:manage', 'inv:warehouse:manage', 'master:catalog:manage', 'notif:email:send', 'audit:logs:view']
+----------------------------------------
+???? DATOS DENTRO DEL JWT (Cifrado):
+   - Role Names: ['admin']
+   - Scopes:     ['auth:user:manage', 'auth:roles:manage', 'inv:movements:manage', 'inv:warehouse:manage', 'master:catalog:manage', 'notif:email:send', 'audit:logs:view']
+   - Group ID:   None
+========================================
+
+???? [JSON DE RESPUESTA COMPLETO]:
+{
+    "status": "success",
+    "data": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzU4MDQ0NTEsInN1YiI6IjY5YWE1ZGRjLWJiYWEtNDZlNi1hN2YwLWFlYjRiOTJiNmQzOCIsInR5cCI6ImFjY2VzcyIsImNvbXBhbnlfaWQiOiI5Y2Q5OTg2Yi04OWRhLTQ4YjctODczMy0yNmEyYTEyMjViMDEiLCJncm91cF9pZCI6bnVsbCwicm9sZV9uYW1lcyI6WyJhZG1pbiJdLCJzY29wZXMiOlsiYXV0aDp1c2VyOm1hbmFnZSIsImF1dGg6cm9sZXM6bWFuYWdlIiwiaW52Om1vdmVtZW50czptYW5hZ2UiLCJpbnY6d2FyZWhvdXNlOm1hbmFnZSIsIm1hc3RlcjpjYXRhbG9nOm1hbmFnZSIsIm5vdGlmOmVtYWlsOnNlbmQiLCJhdWRpdDpsb2dzOnZpZXciXSwibW9kdWxlcyI6WyJhdXRoX2NvcmUiLCJpbnZlbnRvcnlfY29yZSJdLCJzdGF0dXMiOiJUUklBTCIsInJlYWRvbmx5IjpmYWxzZSwiY29ycmVsYXRpb25faWQiOiJjM2QyYjFhNi00MzgxLTQyMDctYjQ5NC1jNjcwZTdkOGJkYzYifQ.2a1mHoH7WurLY3o8uQGhpXVSFmCC_SssIQDUS6tsWZY",
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzgzNTMyNTEsInN1YiI6IjY5YWE1ZGRjLWJiYWEtNDZlNi1hN2YwLWFlYjRiOTJiNmQzOCIsInR5cCI6InJlZnJlc2giLCJjb21wYW55X2lkIjoiOWNkOTk4NmItODlkYS00OGI3LTg3MzMtMjZhMmExMjI1YjAxIiwianRpIjoiODlkMDdhZjUtYTAzNS00M2Y0LWI5NTUtNDA2MTIxZjg2NGVlIn0.aZAvyqbS1Cg5wlqgNalBfdXiPLZfaNLPyWYv3vWoPJs",
+        "token_type": "bearer",
+        "user_id": "69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38",
+        "company_id": "9cd9986b-89da-48b7-8733-26a2a1225b01",
+        "company_name": null,
+        "group_id": null,
+        "roles": [
+            "admin"
+        ],
+        "permissions": [],
+        "scopes": [
+            "auth:user:manage",
+            "auth:roles:manage",
+            "inv:movements:manage",
+            "inv:warehouse:manage",
+            "master:catalog:manage",
+            "notif:email:send",
+            "audit:logs:view"
+        ],
+        "user_full_name": null,
+        "user_email": null
+    },
+    "message": "Access token generated successfully.",
+    "code": null,
+    "meta": {
+        "trace_id": "480227b7-4a23-44af-b0dc-a8a1d426b4c3",
+        "latency": "0.0300s"
+    }
+}

@@ -158,6 +158,7 @@ class ReceiveTransferRequest(BaseModel):
         description="Cantidad reportada como dañada (ajuste automático por merma)"
     )
     notes: Optional[str] = Field(None, description="Notas de recepción")
+    destination_location: Optional[str] = Field("RECEPTION", description="Ubicación física final en el almacén de destino.")
 
 
 class CancelTransferRequest(BaseModel):
@@ -257,6 +258,7 @@ async def receive_inter_company_transfer(
         received_quantity=body.received_quantity,
         damaged_quantity=body.damaged_quantity,
         notes=body.notes,
+        destination_location=body.destination_location,
     )
 
     try:

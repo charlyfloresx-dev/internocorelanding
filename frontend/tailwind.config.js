@@ -1,41 +1,39 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
   content: [
-    './src/**/*.{js,ts,jsx,tsx,html}',
+    "./src/**/*.{html,ts}",
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['var(--font-sans)', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
-      },
       colors: {
-        'ic-dark': 'var(--color-ic-dark)', 
-        'ic-slate': 'var(--color-ic-slate)', 
-        'ic-cyan': 'var(--color-ic-cyan)', 
-        'ic-blue': 'var(--color-ic-blue)', 
-        'ic-muted': 'var(--color-ic-muted)', 
-        'ic-white': 'var(--color-ic-white)',
-
+        ic: {
+          dark: '#050B14',
+          slate: '#0A1628',
+          cyan: '#00E5FF',
+          blue: '#00A3FF',
+          muted: '#64748B',
+          white: '#F8FAFC',
+        },
         primary: {
           DEFAULT: 'var(--color-primary)',
           dark: 'var(--color-primary-dark)',
         },
-
         surface: {
-          bg: 'var(--color-surface-bg)', 
-          card: 'var(--color-surface-card)', 
-          border: 'var(--color-surface-border)', 
-          text: 'var(--color-surface-text)', 
-          'text-muted': 'var(--color-surface-text-muted)',
+          bg: 'var(--color-surface-bg)',
+          card: 'var(--color-surface-card)',
+          border: 'var(--color-surface-border)',
+          text: 'var(--color-surface-text)',
+          muted: 'var(--color-surface-text-muted)',
         },
-
         neon: {
-          cyan: 'var(--color-neon-cyan)',
-          green: 'var(--color-neon-green)',
-          blue: 'var(--color-neon-blue)',
+          cyan: '#00E5FF',
+          green: '#00FF9D',
+          blue: '#00A3FF',
         }
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       animation: {
         'spin-slow': 'spin 8s linear infinite',
@@ -63,9 +61,8 @@ module.exports = {
           to: { transform: 'rotate(360deg)' },
         },
         'pulse-hexagon': {
-          '0%': { transform: 'scale(1)', opacity: '0.5' },
+          '0%, 100%': { transform: 'scale(1)', opacity: '0.5' },
           '50%': { transform: 'scale(1.1)', opacity: '1' },
-          '100%': { transform: 'scale(1)', opacity: '0.5' },
         },
         'bounce-x': {
           '0%, 100%': { transform: 'translateX(0)' },
@@ -82,9 +79,9 @@ module.exports = {
         'pulse-glow': {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
-        }
+        },
       }
     },
   },
   plugins: [],
-};
+}

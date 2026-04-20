@@ -18,4 +18,4 @@ class ProductCategory(MultiTenantBase):
         UniqueConstraint('code', 'company_id', name='uq_category_code_company'),
     )
     
-    __mapper_args__ = {"version_id_col": None}
+    # Enable Standard Optimistic Locking

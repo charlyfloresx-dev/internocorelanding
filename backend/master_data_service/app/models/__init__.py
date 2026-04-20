@@ -1,0 +1,14 @@
+# Master Data Service — Model Registry
+# Importar todos los modelos aquí para que Alembic y SQLAlchemy los detecten
+# al momento de auto-generar migraciones.
+
+from app.models.product import Product, ProductVersion  # noqa: F401
+from app.models.product_price import ProductPrice, UnitType  # noqa: F401
+from app.models.product_category import ProductCategory  # noqa: F401
+from app.models.product_brand import ProductBrand  # noqa: F401
+from app.models.uom import UOM  # noqa: F401
+from app.models.uom_conversion import UOMConversion  # noqa: F401
+from app.models.warehouse import Warehouse  # noqa: F401
+from app.models.movement_concept import MovementConcept  # noqa: F401
+from app.models.partner import Partner  # noqa: F401
+from app.models.price_agreement import PriceAgreement # noqa: F401

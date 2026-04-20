@@ -26,35 +26,72 @@ class StripeSettings(BaseSettings):
 class InternoSettings(BaseSettings):
     """
     Núcleo de Configuración de Interno Core.
-    Centraliza todas las variables críticas con el prefijo INT_.
+    Centraliza todas las variables críticas con el prefijo CORE_.
     Implementa un enfoque 'Fail-Closed' y carga dinámica de secretos en AWS.
     """
     # Básicos
-    int_environment: str = "development"
     int_project_name: str = "Interno Core"
     int_api_v1_str: str = "/api/v1"
     
     # 3. VALIDACIÓN DE TENANT (Solo para rutas PRIVADAS)
     SECRET_KEY: str = Field(
         default="local-dev-secret-key-InternoCore", 
-        validation_alias=AliasChoices("INT_SECRET_KEY", "SECRET_KEY"),
+        validation_alias=AliasChoices("CORE_SECRET_KEY", "SECRET_KEY", "JWT_SECRET"),
         description="Llave secreta para firmado de JWT"
     )
     ALGORITHM: str = Field(
         default="HS256", 
-        validation_alias=AliasChoices("INT_ALGORITHM", "ALGORITHM")
+        validation_alias=AliasChoices("CORE_ALGORITHM", "ALGORITHM", "JWT_ALGORITHM")
     )
     
     # Base de Datos
     DATABASE_URL: str = Field(
-        default=os.getenv("INT_DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5433/dbname"), 
-        validation_alias=AliasChoices("INT_DATABASE_URL", "DATABASE_URL"),
+        default="postgresql+asyncpg://user:password@db:5432/dbname", 
+        validation_alias=AliasChoices("CORE_DATABASE_URL", "DATABASE_URL", "SQLALCHEMY_DATABASE_URI"),
         description="URL de conexión a la base de datos (asyncpg)"
     )
     
+    # Almacenamiento (S3 / Local)
+    STORAGE_BACKEND: str = Field(
+        default="local", 
+        validation_alias=AliasChoices("CORE_STORAGE_BACKEND", "STORAGE_BACKEND"),
+        description="S3 | LOCAL"
+    )
+    S3_ENDPOINT: Optional[str] = Field(
+        default=None, 
+        validation_alias=AliasChoices("CORE_S3_ENDPOINT", "S3_ENDPOINT"),
+        description="Endpoint para MinIO/LocalStack (ej. http://localstack:4566)"
+    )
+    S3_BUCKET: str = Field(
+        default="momentos-assets", 
+        validation_alias=AliasChoices("CORE_S3_BUCKET", "S3_BUCKET")
+    )
+    S3_ACCESS_KEY: Optional[str] = Field(
+        None, validation_alias=AliasChoices("CORE_S3_ACCESS_KEY", "S3_ACCESS_KEY")
+    )
+    S3_SECRET_KEY: Optional[str] = Field(
+        None, validation_alias=AliasChoices("CORE_S3_SECRET_KEY", "S3_SECRET_KEY")
+    )
+    S3_PUBLIC_URL: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_S3_PUBLIC_URL", "S3_PUBLIC_URL"),
+        description="URL pública (CloudFront / MinIO Public Gateway)"
+    )
+    LOCAL_STORAGE_PATH: str = Field(
+        default="/app/storage", 
+        validation_alias=AliasChoices("CORE_LOCAL_STORAGE_PATH", "LOCAL_STORAGE_PATH")
+    )
+
     # Infraestructura & AWS
+    int_environment: str = Field(
+        default="development",
+        validation_alias=AliasChoices("CORE_ENV_MODE", "ENV_MODE", "INT_ENVIRONMENT")
+    )
     int_aws_region: str = "us-east-2"
-    int_aws_secret_id: Optional[str] = None
+    int_aws_secret_id: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("CORE_AWS_SECRET_ID", "AWS_SECRET_ID", "INT_AWS_SECRET_ID")
+    )
     int_multi_tenant_mode: bool = True
     
     # Mail Config (Notificaciones)
@@ -64,11 +101,73 @@ class InternoSettings(BaseSettings):
     int_mail_password: Optional[str] = None
     
     # CORS & Web
-    int_backend_cors_origins: List[str] = ["*"]
-    int_frontend_url: str = "http://localhost:4200"
+    int_backend_cors_origins: List[str] = Field(
+        default=[],
+        validation_alias=AliasChoices("CORE_BACKEND_CORS_ORIGINS", "BACKEND_CORS_ORIGINS")
+    )
+    
+    @field_validator("int_backend_cors_origins", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            if v.startswith("["):
+                try:
+                    import json
+                    return json.loads(v)
+                except Exception:
+                    pass
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
+    int_cors_allowed_headers: List[str] = [
+        "X-Company-ID", "x-company-id",
+        "X-User-ID", "x-user-id",
+        "X-Trace-Id", "X-Transaction-ID", "x-transaction-id",
+        "X-Client-Request-ID", "x-client-request-id",
+        "X-Selection-Token", "x-selection-token",
+        "X-Admin-Master-Key",
+        "X-Silent-Error", "x-silent-error",
+        "X-Warehouse-ID", "x-warehouse-id",
+        "Authorization", 
+        "Content-Type", 
+        "Accept", 
+        "Origin",
+        "X-Correlation-ID", "x-correlation-id",
+        "X-Correlation-Id"
+    ]
+    int_cors_exposed_headers: List[str] = ["X-Transaction-ID", "X-Trace-Id", "X-Selection-Token", "Content-Disposition", "content-disposition"]
+    int_frontend_url: str = Field(
+        default="http://127.0.0.1:4200",
+        validation_alias=AliasChoices("CORE_FRONTEND_URL", "FRONTEND_URL")
+    )
  
-    # Providers (Wait, better grouped)
-    int_resend_api_key: Optional[str] = None
+    # Providers
+    int_resend_api_key: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_RESEND_API_KEY", "RESEND_API_KEY")
+    )
+
+    # ── [INDUSTRIAL SECURITY] ──────────────────────────────────────────────
+    int_internal_api_key: str = Field(
+        default="DEV_INTERNAL_API_KEY_CHANGE_ME",
+        validation_alias=AliasChoices("CORE_INTERNAL_API_KEY", "INTERNAL_API_KEY")
+    )
+    int_rfid_static_salt: str = Field(
+        default="INTERNO_HR_RFID_DEFAULT_SALT_CHANGE_ME",
+        validation_alias=AliasChoices("CORE_HR_RFID_SALT", "RFID_STATIC_SALT")
+    )
+
+    # ── CURRENCY / BANXICO ──────────────────────────────────────────────────
+    int_banxico_token: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("CORE_BANXICO_TOKEN", "BANXICO_TOKEN")
+    )
+    int_banxico_serie_usd: str = "SF43718"  # Dólar FIX (USD → MXN)
+    int_currency_variation_threshold: float = 0.10  # 10% = suspicious flag
+    int_currency_service_url: str = Field(
+        default="http://currency-service:8000", 
+        validation_alias=AliasChoices("CORE_CURRENCY_SERVICE_URL", "CURRENCY_SERVICE_URL"),
+        description="URL del microservicio de tipos de cambio"
+    )
 
     # SaaS / Stripe
     stripe: StripeSettings = Field(default_factory=StripeSettings)
@@ -95,6 +194,14 @@ class InternoSettings(BaseSettings):
         return self.int_resend_api_key
 
     @property
+    def INTERNAL_API_KEY(self) -> str:
+        return self.int_internal_api_key
+
+    @property
+    def RFID_STATIC_SALT(self) -> str:
+        return self.int_rfid_static_salt
+
+    @property
     def FRONTEND_URL(self) -> str:
         return self.int_frontend_url
 
@@ -114,11 +221,14 @@ class InternoSettings(BaseSettings):
 
     def load_aws_secrets(self):
         """
-        Si el entorno es producción, intenta cargar secretos desde AWS Secrets Manager.
+        Si el entorno es producción o modo AWS, intenta cargar secretos desde AWS Secrets Manager.
         """
-        if self.int_environment.lower() != "production" or not self.int_aws_secret_id:
+        env = self.int_environment.lower()
+        if env not in ["production", "prod", "aws"] or not self.int_aws_secret_id:
+            print(f"DEBUG: Skipping AWS secrets loading (Env: {env}, SecretID: {self.int_aws_secret_id})")
             return
 
+        print(f"DEBUG: Loading secrets from AWS ID: {self.int_aws_secret_id} in {self.int_aws_region}...")
         try:
             session = boto3.session.Session()
             client = session.client(
@@ -131,26 +241,34 @@ class InternoSettings(BaseSettings):
             
             if 'SecretString' in get_secret_value_response:
                 secrets = json.loads(get_secret_value_response['SecretString'])
-                # Mapeo manual de secretos de AWS a los atributos de la clase (quitando prefijo si vienen así)
                 for key, value in secrets.items():
-                    attr_name = key.lower()
-                    if not attr_name.startswith("int_"):
-                        attr_name = f"int_{attr_name}"
+                    # Mapeo universal de atributos
+                    possible_attrs = [key, key.upper(), key.lower(), f"int_{key.lower()}"]
                     
-                    if hasattr(self, attr_name):
-                        setattr(self, attr_name, value)
+                    found = False
+                    for attr in possible_attrs:
+                        if hasattr(self, attr):
+                            setattr(self, attr, value)
+                            print(f"DEBUG: Mapped AWS secret '{key}' to setting '{attr}'")
+                            found = True
+                            break
+                    
+                    if not found:
+                        # Si no existe, lo agregamos como atributo dinámico
+                        setattr(self, key, value)
+                        print(f"DEBUG: Added dynamic AWS secret '{key}'")
                         
         except ClientError as e:
-            print(f"⚠️ Error cargando secretos de AWS: {e.response['Error']['Code']}")
+            print(f"WARNING: Error loading AWS secrets: {e.response['Error']['Code']}")
         except Exception as e:
-            print(f"⚠️ Error inesperado en carga de secretos AWS: {str(e)}")
+            print(f"WARNING: Unexpected error in AWS secrets loading: {str(e)}")
 
 # Instanciación global
 try:
     settings = InternoSettings()
     settings.load_aws_secrets()
 except Exception as e:
-    error_msg = f"❌ ERROR CRÍTICO DE CONFIGURACIÓN (Fail-Fast): {str(e)}"
+    error_msg = f"CRITICAL CONFIGURATION ERROR (Fail-Fast): {str(e)}"
     print(error_msg)
     # En lugar de settings = None, lanzamos excepción para detener el proceso
     raise ConfigurationError(error_msg)

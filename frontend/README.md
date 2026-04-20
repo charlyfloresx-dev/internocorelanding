@@ -2,19 +2,48 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# 🌐 Interno Core - Frontend (MES Industrial)
 
-This contains everything you need to run your app locally.
+Frontend de alto rendimiento para el Sistema de Ejecución de Manufactura (MES) de Interno Core, construido con **Angular 19 (Zoneless)** y diseñado para resiliencia en entornos industriales.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1qCGY8YI_zRBBklYcFcF5eyR6_q1jOuJT
+## 🚀 Estado del Proyecto (Audit Integrated)
+Este frontend ha sido migrado desde el prototipo `temp_future` y enriquecido con la lógica crítica del sistema legado (`frontend_legacy`).
 
-## Run Locally
+- **Zoneless Performance:** Máxima eficiencia de CPU/Batería para tablets industriales.
+- **Microservices Ready:** Conexión nativa con Auth, Inventory, Master Data, MES (Production) y Currency services.
+- **Multidivisa Reactiva:** Conversión dinámica USD/MXN con persistencia.
+- **System Health Monitor:** Vigilancia en tiempo real del clúster de microservicios.
 
-**Prerequisites:**  Node.js
+## 📚 Documentación Técnica (Recomendada)
+Para entender la arquitectura y las reglas de negocio, consulte:
+- [**Contexto del Frontend**](./FRONTEND_CONTEXT.md): Pilares de identidad, Handshake de 3 pasos y reglas industriales.
+- [**Log de Ingeniería**](./ENGINEERING_LOG.md): Bitácora de decisiones técnicas y arquitectura Zoneless.
+- [**Auditoría del Legado**](./docs/legacy_audit.md): Plan de migración y estatus de módulos portados.
 
+## 🛠 Ejecución Local (Docker Orchestration)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+**Prerrequisitos:** Node.js 20+, Docker Desktop.
+
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
+2. **Levantar el ecosistema (Docker):**
+   ```bash
+   docker-compose up -d --build
+   ```
+   *El frontend estará disponible en `http://localhost:8080`*
+
+3. **Modo Desarrollo (Vite):**
+   ```bash
+   npm run dev
+   ```
+
+## 🧪 Testing (Playwright)
+Contamos con una suite de pruebas E2E estabilizada con mocks híbridos:
+```bash
+npx playwright test
+```
+
+---
+*Interno Core - Ingeniería de Resiliencia Industrial @ 2026*

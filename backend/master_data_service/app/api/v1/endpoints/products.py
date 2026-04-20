@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Header
+from fastapi import APIRouter, Depends, status, HTTPException, Header, Query, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Any
+from typing import List, Any, Optional
 import uuid
 
-from app.schemas.product import ProductCreate, ProductRead, ProductReadWithVersions
+from app.schemas.product import ProductCreate, ProductRead, ProductReadWithVersions, ProductUpdate
 from app.services.product_service import ProductService
-from app.dependencies import get_db, get_current_user
-from common.domain.entities.user_context import UserContext
+from common.domain import ProductStatus, VersionStatus
+from app.dependencies import get_current_user, get_product_service
 from common.responses import ApiResponse
-from common.exceptions import DomainException
+from common.exceptions import DomainException, NotFoundException
+from common.domain.entities.user_context import UserContext
 
 router = APIRouter()
 
@@ -17,40 +18,62 @@ router = APIRouter()
 @router.post("/", response_model=ApiResponse[ProductReadWithVersions], status_code=status.HTTP_201_CREATED)
 async def create_product(
     product_in: ProductCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    photo: Optional[UploadFile] = File(None),
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
 ):
-    """ Crear un nuevo producto con su versión inicial. """
+    """ Crear un nuevo producto con su versión inicial y opcionalmente una foto. """
     try:
-        service = ProductService(db)
-        product = await service.create_product(product_in, current_user.company_id)
+        product = await service.create_product(product_in, photo=photo)
         # El servicio debe retornar el objeto con sus relaciones cargadas si se espera ProductReadWithVersions
-        return ApiResponse(status="success", data=product, message="Producto creado exitosamente")
+        return ApiResponse(status="success", data=product, message="Product created successfully")
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/", response_model=ApiResponse[List[ProductRead]])
 async def get_products(
-    db: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    q: Optional[str] = Query(None, description="Buscar por SKU o Nombre"),
+    warehouse_id: Optional[uuid.UUID] = Query(None, description="Resolver precios para este almacén"),
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
 ):
-    """ Listar productos de la compañía actual. """
-    service = ProductService(db)
-    products = await service.get_products_by_company(current_user.company_id)
-    return ApiResponse(status="success", data=products, message="Listado de productos recuperado")
+    """ Listar productos de la compañía actual con filtro opcional. """
+    products = await service.get_products_by_company(current_user.company_id, q=q, warehouse_id=warehouse_id)
+    return ApiResponse(status="success", data=products, message="Product list retrieved successfully")
 
 @router.get("/{product_id}", response_model=ApiResponse[ProductReadWithVersions])
 async def get_product(
     product_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
 ):
     """ Obtener detalle de un producto específico con sus versiones. """
-    service = ProductService(db)
     product = await service.get_product_by_id(product_id, current_user.company_id)
     if not product:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
+        raise HTTPException(status_code=404, detail="Product not found")
     return ApiResponse(status="success", data=product)
+
+@router.patch("/{product_id}", response_model=ApiResponse[ProductRead])
+async def update_product(
+    product_id: uuid.UUID,
+    update_in: ProductUpdate,
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
+):
+    """ Actualizar campos de un producto existente. """
+    update_data = update_in.model_dump(exclude_unset=True)
+    product = await service.update_product(product_id, current_user.company_id, update_data)
+    return ApiResponse(status="success", data=product, message="Product updated successfully")
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(
+    product_id: uuid.UUID,
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
+):
+    """ Soft-delete un producto. """
+    await service.delete_product(product_id, current_user.company_id)
+    return None
 
 # --- GESTIÓN DE VERSIONES ---
 
@@ -58,29 +81,25 @@ async def get_product(
 async def create_product_version(
     product_id: uuid.UUID,
     version_in: Any, # Debería ser un schema ProductVersionCreate
-    db: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user),
+    service: ProductService = Depends(get_product_service)
 ):
     """ Crear una nueva versión técnica para un producto existente. """
-    service = ProductService(db)
-    product = await service.add_version_to_product(product_id, version_in, current_user.company_id)
-    return ApiResponse(status="success", data=product, message="Nueva versión creada")
+    product = await service.approve_version(product_id, version_in.version_number, current_user.company_id)
+    return ApiResponse(status="success", data=product, message="New version created successfully")
 # --- INTERNAL ENDPOINTS (Inter-service) ---
 
 @router.get("/internal/{product_id}", response_model=ApiResponse[ProductRead])
 async def get_product_internal(
     product_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
+    service: ProductService = Depends(get_product_service),
     x_company_id: uuid.UUID = Header(...)
 ):
     """
     Endpoint interno para validación entre microservicios (bypass auth usuario).
     """
-    service = ProductService(db)
     try:
         product = await service.get_product_by_id(product_id, x_company_id)
         return ApiResponse(status="success", data=product)
-    except NotFoundException:
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

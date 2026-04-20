@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-dark text-white font-sans antialiased;
+    /* Evitar efecto rebote y scroll innecesario en movil */
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Efecto touch genérico para botones grandes */
+.touch-scale {
+  transition: transform 0.1s ease-in-out;
+}
+.touch-scale:active {
+  transform: scale(0.95);
+}
+
+/* Efecto touch genérico para botones grandes */
+.touch-scale {
+  transition: transform 0.1s ease-in-out;
+}
+.touch-scale:active {
+  transform: scale(0.95);
+}

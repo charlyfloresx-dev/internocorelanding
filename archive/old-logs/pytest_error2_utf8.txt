@@ -1,0 +1,31 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\API\interno\backend\master_data_service\tests
+configfile: pytest.ini
+plugins: asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 2 items
+
+tests\test_price_inmutability.py FF                                      [100%]
+
+================================== FAILURES ===================================
+___________________________ test_price_upsert_logic ___________________________
+tests\test_price_inmutability.py:44: in test_price_upsert_logic
+    price_v1 = await repo.upsert_product_price(price_data_v1, company_id)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\infrastructure\repositories\sqlalchemy_master_data_repository.py:260: in upsert_product_price
+    ProductPrice.currency == currency,
+    ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: type object 'ProductPrice' has no attribute 'currency'
+__________________________ test_manual_override_flag __________________________
+tests\test_price_inmutability.py:85: in test_manual_override_flag
+    price = await repo.upsert_product_price(manual_price_data, company_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\infrastructure\repositories\sqlalchemy_master_data_repository.py:260: in upsert_product_price
+    ProductPrice.currency == currency,
+    ^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: type object 'ProductPrice' has no attribute 'currency'
+=========================== short test summary info ===========================
+FAILED tests\test_price_inmutability.py::test_price_upsert_logic - AttributeE...
+FAILED tests\test_price_inmutability.py::test_manual_override_flag - Attribut...
+============================== 2 failed in 0.28s ==============================

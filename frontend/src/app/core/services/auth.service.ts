@@ -1,616 +1,348 @@
-import { Injectable, signal, inject, computed, effect } from '@angular/core';
+// temp_future/src/app/core/services/auth.service.ts
+import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { lastValueFrom, Observable } from 'rxjs';
+import { lastValueFrom, Observable, BehaviorSubject, of } from 'rxjs';
+import { AuthSession, AuthHandshake, ApiResponse } from '../models/domain.types';
 import { environment } from '../../../environments/environment';
-import { User, SessionContext, UserCompanyAccess, ApiResponse, LoginResponse, SelectCompanyResponse, RegisterCompanyPayload, RegisterResponse, CompleteRegistrationPayload, ForgotPasswordPayload, ResetPasswordPayload } from '@models/api.types';
-import { NavigationService } from './navigation.service';
-import { tap, catchError } from 'rxjs/operators';
-import { SystemHealthService } from './system-health.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = environment.authUrl;
   private http = inject(HttpClient);
-  private router = inject(Router);
-  private navService = inject(NavigationService);
-  private health = inject(SystemHealthService);
+  private platformId = inject(PLATFORM_ID);
+  public isBrowser = isPlatformBrowser(this.platformId);
+  private apiUrl = environment.authUrl;
 
-  // === SIGNALS ===
-  currentUser = signal<User | null>(null);
-  availableAccesses = signal<UserCompanyAccess[]>([]);
-  currentContext = signal<SessionContext | null>(null);
-  authStep = signal<'guest' | 'handshake' | 'authenticated'>('guest');
-  isLoading = signal<boolean>(false);
+  // === Signals ===
+  public session = signal<AuthSession | null>(null);
+  public handshake = signal<AuthHandshake | null>(null);
+  public isLoading = signal<boolean>(false);
+  public authStep = signal<'login' | 'handshake' | 'verified'>('login');
+  
+  // 🔄 Token Rotation State (for Interceptor buffering)
+  public isRefreshing = signal<boolean>(false);
+  public refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
-  // Temporal storage for selection_token (T1)
-  selectionToken = signal<string | null>(null);
+  // ⚡ Companies persistidas explícitamente (patrón legacy: sobrevive a recargas)
+  private _companies = signal<any[]>([]);
 
-  // === COMPUTED SIGNALS ===
-  isAuthenticated = computed(() => this.authStep() === 'authenticated');
-  selectedCompanyId = computed(() => this.currentContext()?.companyId || null);
-  activeRole = computed(() => this.currentContext()?.role || null);
-  activeCompany = computed(() => {
-    const ctx = this.currentContext();
-    return this.availableAccesses().find(a => String(a.company.id) === String(ctx?.companyId))?.company;
+  // === Computed ===
+  public availableCompanies = computed(() => this._companies());
+  public availableAccesses = this.availableCompanies; // Alias for tenant-selection
+  
+  public isAuthenticated = computed(() => !!this.session());
+  public currentUser = computed(() => this.session()?.user ?? null);
+  public roles = computed(() => this.session()?.roles ?? []);
+  public permissions = computed(() => this.session()?.permissions ?? []);
+  public activeCompanyId = computed(() => this.session()?.company_id || null);
+
+  public isSuperAdmin = computed(() => {
+    const r = this.roles().map(x => x.toLowerCase());
+    const p = this.permissions().map(x => x.toLowerCase());
+    return r.some(role => role.includes('admin')) || p.some(perm => perm.includes('admin') || perm === '*');
   });
 
-  // Alias para compatibilidad con interceptores
-  token = computed(() => this.currentContext()?.access_token || null);
-  activeCompanyId = computed(() => this.currentContext()?.companyId || null);
-  isNewUser = computed(() => this.availableAccesses().some(a => a.company.is_new));
+  public isReadOnly = computed(() => {
+    return this.roles().some(r => r.toLowerCase().includes('viewer')) || 
+           this.permissions().some(p => p.toLowerCase().includes('read'));
+  });
 
-  constructor() {
-    // The effect was removed to favor imperative persistence inside login/selectCompany methods,
-    // preventing race conditions with the Router and AuthGuard.
-    // Session restoration is now handled by the AuthGuard on navigation.
+  constructor(private router: Router) {
+    // Initial silent restoration from storage (optimistic UI)
+    if (this.isBrowser) {
+      this.restoreFromStorage();
+    }
   }
 
-  async restoreSessionWithValidation(): Promise<boolean> {
-    try {
-      const savedCtx = localStorage.getItem('interno_auth_ctx');
-      const savedUser = localStorage.getItem('interno_auth_user');
-      const savedAccesses = localStorage.getItem('interno_auth_accesses');
 
-      if (savedCtx && savedUser) {
-        this.currentContext.set(JSON.parse(savedCtx));
-        this.currentUser.set(JSON.parse(savedUser));
-        this.availableAccesses.set(JSON.parse(savedAccesses || '[]'));
-
-        // Zero Trust: Validar token con backend
-        await lastValueFrom(this.http.get(`${this.apiUrl}/auth/me`));
-        this.health.updateStatus('auth', true);
-
-        this.authStep.set('authenticated');
-        return true;
-      }
-    } catch (e) {
-      console.warn('[AuthService] Validación de sesión fallida:', e);
+  /**
+   * Universal Session Injector (Backend Scopes -> Frontend Permissions)
+   */
+  public setSession(data: AuthSession) {
+    console.group('Auth: Set Session');
+    
+    // Safety Mapping: Convert scopes (backend) to permissions (frontend)
+    if ((data as any).scopes && (!data.permissions || data.permissions.length === 0)) {
+       data.permissions = (data as any).scopes;
     }
-    // No marcamos auth: false aquí porque puede ser solo expiración de token, no caída del servicio
-    this.logoutQuiet();
-    return false;
-  }
 
-  private restoreSession() {
-    try {
-      const savedCtx = localStorage.getItem('interno_auth_ctx');
-      const savedUser = localStorage.getItem('interno_auth_user');
-      const savedAccesses = localStorage.getItem('interno_auth_accesses');
+    this.session.set(data);
+    this.authStep.set('verified');
 
-      // Si hay datos guardados, restaurar directamente sin validar
-      if (savedCtx && savedUser) {
-        this.currentContext.set(JSON.parse(savedCtx));
-        this.currentUser.set(JSON.parse(savedUser));
-        this.availableAccesses.set(JSON.parse(savedAccesses || '[]'));
-        this.authStep.set('authenticated');
-        console.log('[AuthService] ✅ Sesión restaurada desde localStorage.');
-      } else {
-        // Sin datos guardados = login nuevo
-        this.authStep.set('guest');
-      }
-    } catch (e) {
-      console.error('[AuthService] Error al restaurar sesión:', e);
-      this.logout();
+    if (this.isBrowser) {
+      localStorage.setItem('auth_session', JSON.stringify(data));
+      // Legacy Context (Used by Interceptors)
+      localStorage.setItem('_ic_auth_ctx', JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        company_id: data.company_id,
+        user_id: data.user_id,
+        roles: data.roles,
+        company_name: (data as any).company_name || 'InternoCorp Enterprise'
+      }));
     }
+    console.log('[AuthService] ✅ Session persisted with refresh_token & permissions');
+    console.groupEnd();
   }
 
   /**
-   * PASO 1: Login - Solo recibe selection_token y companies, sin redirigir
-   * No marca como 'authenticated', solo como 'handshake'
+   * Step 1: Handshake (Credential Validation -> Company List)
    */
-  login(credentials: { email?: string; password?: string }) {
-    console.group('Auth Handshake Trace');
+  public async login(credentials: any): Promise<void> {
+    console.group('Auth login (T1)');
     this.isLoading.set(true);
-    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/auth/login`, credentials)
-      .pipe(
-        tap({
-          next: (response: ApiResponse<LoginResponse>) => {
-            this.health.updateStatus('auth', true);
-            // CORRECCIÓN: La respuesta viene envuelta en ApiResponse { status, data, ... }
-            const data = response.data;
-
-            if (!data || !data.selection_token) {
-              console.error('[AuthService] ❌ selection_token ausente. Estructura:', response);
-              this.isLoading.set(false);
-              return;
-            }
-
-            console.log('[AuthService] 📥 Respuesta recibida:', { has_token: !!data.selection_token, companies: data.companies?.length });
-            console.log(`%c[AuthService] 1. Status del selection_token: ${data.selection_token ? 'RECIBIDO' : 'AUSENTE'}`, 'color: #22d3ee');
-
-            // === GUARDAR PRIMERO: T1 TOKEN ===
-            sessionStorage.setItem('selection_token', data.selection_token);
-            this.selectionToken.set(data.selection_token);
-
-            // === USER PROFILE ===
-            // Per Swagger v2.1.0, user_id is not provided at this stage.
-            // A partial profile is created. The full profile will be available after T2.
-            this.currentUser.set({
-              id: 'temp-user', // ID will be confirmed after selectCompany
-              email: credentials.email || '',
-              firstName: credentials.email?.split('@')[0] || 'User',
-              lastName: '',
-              avatar: `https://ui-avatars.com/api/?name=${credentials.email?.charAt(0)}`,
-              status: 'Active'
-            });
-
-            // === AVAILABLE ACCESSES ===
-            // Backend v2.1 envía companies como array de CompanySelection
-            const formattedAccesses: UserCompanyAccess[] = (data.companies || []).map((c: any) => ({
-              company: {
-                id: c.company_id,
-                name: c.company_name,
-                logo: c.logo,
-                is_new: c.is_new || false, // Normalized to snake_case
-                group_id: c.group_id,
-                group_name: c.group_name,
-                registrationNumber: '',
-                contactEmail: '',
-                status: 'Active',
-                plan: 'Standard'
-              },
-              role: {
-                id: 'role-placeholder',
-                name: (c.role_names && c.role_names[0]) || 'viewer',
-                description: '',
-                permissions: []
-              }
-            }));
-
-            this.availableAccesses.set(formattedAccesses);
-
-            // === STATE TRANSITION & AUTO-SELECT LOGIC ===
-            if (formattedAccesses.length === 1) {
-              console.log('[AuthService] 🚀 Una sola empresa detectada. Iniciando selección automática...');
-              this.selectCompany(formattedAccesses[0].company.id);
-            } else {
-              this.authStep.set('handshake');
-              this.isLoading.set(false);
-              console.log('[AuthService] ✅ Login exitoso. Estado = "handshake". Selector debe renderizarse en LoginComponent.');
-            }
-            console.log('[AuthService] selection_token guardado:', sessionStorage.getItem('selection_token') ? '✅ SÍ' : '❌ NO');
-            console.log('[AuthService] availableAccesses:', this.availableAccesses().length, 'empresas');
-          },
-          error: (err) => {
-            console.error('Login Failed:', err);
-            if (err.status === 0) this.health.updateStatus('auth', false);
-            console.groupEnd(); // Cerrar grupo en caso de error
-            this.isLoading.set(false);
-          }
-        })
+    try {
+      const resp = await lastValueFrom(
+        this.http.post<ApiResponse<AuthHandshake>>(`${this.apiUrl}/auth/login`, credentials)
       );
+      
+      const handshakeData = resp.data;
+      if (!handshakeData) throw new Error('Handshake failed: empty response');
+      
+      this.handshake.set(handshakeData);
+      this.authStep.set('handshake');
+
+      // ✅ PERSISTIR LISTA DE EMPRESAS (patrón legacy: sobrevive recargas de página)
+      if (this.isBrowser && handshakeData.companies?.length) {
+        this._companies.set(handshakeData.companies);
+        localStorage.setItem('_ic_companies', JSON.stringify(handshakeData.companies));
+      }
+      
+      if (this.isBrowser) {
+        sessionStorage.setItem('_ic_selection_token', handshakeData.selection_token);
+        localStorage.setItem('_ic_handshake', JSON.stringify(handshakeData));
+      }
+
+      if (handshakeData.companies.length === 1) {
+        await this.selectCompany(handshakeData.companies[0].company_id);
+      } else {
+        this.router.navigate(['/select-company']);
+      }
+    } catch (err) {
+      console.error('[AuthService] ❌ T1 failed:', err);
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+      console.groupEnd();
+    }
   }
 
   /**
-   * Registra una nueva empresa y su usuario administrador, y luego inicia sesión directamente.
-   * Corresponde a: POST /v2/public/register-company
+   * Step 2: Selection (Target Company -> Scoped JWT)
    */
-  registerCompany(payload: RegisterCompanyPayload) {
-    this.isLoading.set(true);
-    return this.http.post<ApiResponse<RegisterResponse>>(
-      `${this.apiUrl}/v2/public/register-company`,
-      payload
-    ).pipe(
-      tap({
-        next: (response: ApiResponse<RegisterResponse>) => {
-          this.health.updateStatus('auth', true);
-          const data = response.data;
-
-          if (!data || !data.access_token || !data.company_id || !data.user_id) {
-            console.error('[AuthService] ❌ Datos de registro incompletos:', response);
-            this.isLoading.set(false);
-            throw new Error('Datos de registro incompletos.');
-          }
-
-          const permissionNames = data.role.permissions.map((p: any) => p.name || p);
-
-          // 1. Establecer el usuario actual
-          this.currentUser.set({
-            id: data.user_id,
-            email: payload.admin_email, // Usar el email proporcionado en el registro
-            firstName: payload.admin_email.split('@')[0] || 'Admin',
-            lastName: '',
-            avatar: `https://ui-avatars.com/api/?name=${data.user_id}`,
-            status: 'Active'
-          });
-
-          // 2. Establecer los accesos disponibles (solo la empresa recién creada)
-          const newCompanyAccess: UserCompanyAccess = {
-            company: { ...data.company, id: data.company_id }, // Asegurar que el ID de la compañía coincida
-            role: data.role
-          };
-          this.availableAccesses.set([newCompanyAccess]);
-
-          // 3. Establecer el contexto de la sesión
-          const context: SessionContext = {
-            access_token: data.access_token,
-            companyId: data.company_id,
-            role: data.role,
-            permissions: permissionNames,
-            group_id: data.company.group_id || '',
-            group_name: data.company.group_name || ''
-          };
-          this.currentContext.set(context);
-
-          // 4. Persistir la sesión
-          localStorage.setItem('interno_auth_ctx', JSON.stringify(context));
-          localStorage.setItem('interno_auth_user', JSON.stringify(this.currentUser()));
-          localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
-
-          // 5. Transición de estado
-          this.authStep.set('authenticated');
-          this.isLoading.set(false);
-          this.navService.generateMenu(permissionNames); // Generar menú con los permisos del nuevo rol
-        },
-        error: (err: HttpErrorResponse) => {
-          console.error('Register Company Failed:', err);
-          if (err.status === 0) this.health.updateStatus('auth', false);
-          this.isLoading.set(false);
-          throw err; // Re-throw para que el componente pueda manejarlo
-        }
-      })
-    );
-  }
-
-  /**
-   * Completa el registro de un usuario invitado y realiza auto-login.
-   * Corresponde a: POST /v2/public/complete-registration
-   */
-  completeRegistration(payload: CompleteRegistrationPayload) {
-    this.isLoading.set(true);
-    // Asumimos que el backend devuelve el mismo tipo de respuesta que registerCompany para el auto-login
-    return this.http.post<ApiResponse<RegisterResponse>>(
-      `${this.apiUrl}/v2/public/complete-registration`,
-      payload
-    ).pipe(
-      tap({
-        next: (response: ApiResponse<RegisterResponse>) => {
-          this.health.updateStatus('auth', true);
-          const data = response.data;
-
-          if (!data || !data.access_token || !data.company_id || !data.user_id) {
-            console.error('[AuthService] ❌ Datos de registro (invitación) incompletos:', response);
-            this.isLoading.set(false);
-            throw new Error('Datos de registro (invitación) incompletos.');
-          }
-
-          const permissionNames = data.role.permissions.map((p: any) => p.name || p);
-
-          // 1. Establecer el usuario actual
-          this.currentUser.set({
-            id: data.user_id,
-            email: 'invited.user@interno.com', // El backend debería proveer el email
-            firstName: payload.full_name.split(' ')[0],
-            lastName: payload.full_name.split(' ').slice(1).join(' '),
-            avatar: `https://ui-avatars.com/api/?name=${data.user_id}`,
-            status: 'Active'
-          });
-
-          // 2. Establecer los accesos disponibles
-          const newCompanyAccess: UserCompanyAccess = {
-            company: { ...data.company, id: data.company_id },
-            role: data.role
-          };
-          this.availableAccesses.set([newCompanyAccess]);
-
-          // 3. Establecer el contexto de la sesión
-          const context: SessionContext = {
-            access_token: data.access_token,
-            companyId: data.company_id,
-            role: data.role,
-            permissions: permissionNames,
-            group_id: data.company.group_id || '',
-            group_name: data.company.group_name || ''
-          };
-          this.currentContext.set(context);
-
-          // 4. Persistir la sesión
-          localStorage.setItem('interno_auth_ctx', JSON.stringify(context));
-          localStorage.setItem('interno_auth_user', JSON.stringify(this.currentUser()));
-          localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
-
-          // 5. Transición de estado
-          this.authStep.set('authenticated');
-          this.isLoading.set(false);
-          this.navService.generateMenu(permissionNames);
-        },
-        error: (err: HttpErrorResponse) => {
-          console.error('Complete Registration Failed:', err);
-          if (err.status === 0) this.health.updateStatus('auth', false);
-          this.isLoading.set(false);
-          throw err;
-        }
-      })
-    );
-  }
-
-  /**
-   * PASO 2: Select Company - Recibe access_token y marca como 'authenticated'
-   * Redirige a /dashboard o /onboarding según isNew
-   */
-  selectCompany(companyId: string) {
-    console.log('[CACHE-CHECK] v2-' + Date.now());
-    this.isLoading.set(true);
-    const selectionToken = this.selectionToken() || sessionStorage.getItem('selection_token');
-
-    if (!selectionToken) {
-      console.error('[AuthService] ❌ No selection_token available');
+  public async selectCompany(companyId: string, redirectTo: string = '/dashboard'): Promise<void> {
+    console.group('Auth selectCompany (T2)');
+    const t1 = this.handshake()?.selection_token || (this.isBrowser ? sessionStorage.getItem('_ic_selection_token') : null);
+    
+    if (!t1) {
       this.logout();
-      return;
+      throw new Error('Selection token missing');
     }
 
-    console.log('[AuthService] 📤 Enviando select-company request', { companyId, hasToken: !!selectionToken });
-    console.log(`%c[AuthService] 2. Headers enviados en T2: Authorization: Bearer ${selectionToken ? '***' : 'null'}`, 'color: #22d3ee');
+    this.isLoading.set(true);
+    try {
+      const resp = await lastValueFrom(
+        this.http.post<ApiResponse<AuthSession>>(`${this.apiUrl}/auth/select-company`, 
+          { company_id: companyId },
+          { headers: { 'Authorization': `Bearer ${t1}` } }
+        )
+      );
+      
+      const sessionData = resp.data;
+      if (!sessionData) throw new Error('Selection failed: empty response');
+      
+      // Adapt multi-service naming conventions
+      if (!sessionData.roles && (sessionData as any).role_names) {
+        sessionData.roles = (sessionData as any).role_names;
+      }
+      
+      // ✅ Entitlements & Normalization
+      const rawScopes = (sessionData as any).scopes || [];
+      if (rawScopes.length > 0) {
+        sessionData.permissions = rawScopes;
+        console.log('[AuthService] 🛡️ Scopes detected. Setting as primary permissions:', rawScopes);
+      }
 
-    // Per Swagger v2.1.0, the select-company endpoint is secured with OAuth2PasswordBearer.
-    // The selection_token must be sent as a Bearer token.
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${selectionToken}`,
-      'Content-Type': 'application/json'
+      // ✅ ENRIQUECER SESIÓN con company_name desde la lista persistida (T1 → T2 bridge)
+      const companies = this._companies();
+      const matched = companies.find(c => String(c.company_id) === String(companyId));
+      if (matched) {
+        (sessionData as any).company_name = matched.company_name;
+      }
+      
+      this.setSession(sessionData);
+      if (redirectTo) {
+        this.router.navigate([redirectTo]);
+      }
+    } catch (err) {
+      console.error('[AuthService] ❌ T2 failed:', err);
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+      console.groupEnd();
+    }
+  }
+
+  public logout(): void {
+    console.log('[AuthService] 🔒 Logout sequence initiated.');
+    this.session.set(null);
+    this.handshake.set(null);
+    this._companies.set([]);
+    this.authStep.set('login');
+    if (this.isBrowser) {
+      const keys = ['auth_session', '_ic_auth_ctx', '_ic_handshake', '_ic_selection_token', '_ic_companies'];
+      keys.forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    }
+    this.router.navigate(['/login']);
+  }
+
+  /**
+   * SILENT REFRESH (RTR)
+   * Calls the backend to rotate the session tokens.
+   */
+  public refreshToken(): Observable<ApiResponse<AuthSession>> {
+    const session = this.session();
+    let refreshToken = session?.refresh_token;
+
+    if (!refreshToken && this.isBrowser) {
+      const stored = localStorage.getItem('_ic_auth_ctx');
+      if (stored) {
+        try {
+          refreshToken = JSON.parse(stored).refresh_token;
+        } catch {}
+      }
+    }
+
+    if (!refreshToken) {
+      return of({ status: 'error', message: 'No refresh token available' } as any);
+    }
+
+    return this.http.post<ApiResponse<AuthSession>>(`${this.apiUrl}/auth/refresh`, {
+      refresh_token: refreshToken
     });
+  }
 
-    this.http.post<ApiResponse<SelectCompanyResponse>>(
-      `${this.apiUrl}/auth/select-company`,
-      { company_id: companyId },
-      { headers }
-    ).pipe(
-      catchError(err => {
-        if (err.status === 401) {
-          console.warn('[AuthService] ⚠️ 401 Unauthorized en selectCompany. Limpiando sesión.');
-          console.groupEnd();
-          // 401 significa que el servicio responde, así que auth está true
-          localStorage.clear();
-          this.router.navigate(['/login']);
+  /**
+   * Kiosk / Collaborator Login (RFID or PIN)
+   * Calls the auth_service collaborator proxy endpoint, which validates against hr_service.
+   * Stores the collaborator JWT directly — no company selection step needed (company is embedded in token).
+   */
+  public async collaboratorLogin(params: {
+    rfid_tag?: string;
+    internal_id?: string;
+    pin_code?: string;
+    company_id?: string;
+  }, redirectTo: string = '/dashboard'): Promise<void> {
+    console.group('Auth collaboratorLogin (Kiosk)');
+    this.isLoading.set(true);
+    try {
+      const resp = await lastValueFrom(
+        this.http.post<any>(
+          `${this.apiUrl}/auth/collaborator/login`,
+          params
+        )
+      );
+
+      // result is polymorphic (comes from CollaboratorLoginResponse)
+      const data = resp.data || resp; // API interceptor might have already unwrapped it
+
+      // CASE A: Handshake (Multiple companies found)
+      if (data.selection_token && data.companies) {
+        this.handshake.set(data);
+        this._companies.set(data.companies);
+        this.authStep.set('handshake');
+        
+        if (this.isBrowser) {
+          sessionStorage.setItem('_ic_selection_token', data.selection_token);
+          localStorage.setItem('_ic_companies', JSON.stringify(data.companies));
         }
-        throw err;
-      })
-    ).subscribe({
-      next: (response: ApiResponse<SelectCompanyResponse>) => {
-        this.health.updateStatus('auth', true);
-        // CORRECCIÓN: La respuesta viene envuelta en ApiResponse { status, data, ... }
-        const data = response.data as any; // Cast para acceder a propiedades dinámicas (scopes)
-        const access = this.availableAccesses().find(a => String(a.company.id) === String(companyId));
+        
+        this.router.navigate(['/select-company']);
+        return;
+      }
 
-        console.log('[AuthService] 📊 Buscando empresa:', { companyId, foundAccess: !!access });
-        if (access) {
-          console.log('[AuthService] 📊 Company data:', { id: access.company.id, name: access.company.name, is_new: access.company.is_new });
-        }
-
-        // === PERMISSIONS LOGIC ===
-        // Prioridad: Scopes (Backend v1.1) > Roles (Legacy) > Local Permissions
-        let effectivePermissions: string[] = [];
-        if (data?.scopes && data.scopes.length > 0) {
-          effectivePermissions = data.scopes;
-        } else if (data?.roles) {
-          effectivePermissions = data.roles.map((p: any) => p.name || p);
-        } else if (access?.role?.permissions) {
-          effectivePermissions = access.role.permissions.map((p: any) => p.name);
-        }
-        console.log(`%c[AuthService] 3. Confirmación de JWT final: ${data.access_token ? 'RECIBIDO' : 'FALLIDO'}`, 'color: #22d3ee');
-
-        console.log('[AuthService] 🔐 Permisos efectivos calculados (Scopes/Roles):', effectivePermissions);
-
-        // === T2 TOKEN: Final Access Token ===
-        const context: SessionContext = {
+      // CASE B: Direct Login (1 company found)
+      if (data.access_token) {
+        const session: AuthSession = {
           access_token: data.access_token,
-          companyId: data.company_id, // Usar ID confirmado por backend
-          role: access?.role || { id: '0', name: 'user', description: '', permissions: [] },
-          permissions: effectivePermissions,
-          group_id: access?.company.group_id || '',
-          group_name: access?.company.group_name || ''
+          refresh_token: null as any,
+          user_id: null as any,
+          company_id: params.company_id || data.company_id || (data as any).cid,
+          roles: ['collaborator'],
+          permissions: ['inv:movements:manage'],
+          user: { email: '', name: 'Colaborador' } as any,
         };
 
-        // 1. FORCE SYNC SAVE: Guardar inmediatamente en disco para evitar Race Condition con AuthGuard
-        // Cumplimiento de Regla de Oro: Claves explícitas para AuthGuard
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('company_id', data.company_id);
-
-        localStorage.setItem('interno_auth_ctx', JSON.stringify(context));
-        if (this.currentUser()) {
-          localStorage.setItem('interno_auth_user', JSON.stringify(this.currentUser()));
-        }
-        localStorage.setItem('interno_auth_accesses', JSON.stringify(this.availableAccesses()));
-
-
-        // 3. UPDATE SIGNALS & STATE TRANSITION
-        this.currentContext.set(context);
-        // Ahora sí: usuario completamente autenticado
-        this.authStep.set('authenticated');
-        this.isLoading.set(false);
-
-        // 4. UPDATE NAVIGATION: Regenerar menú con los nuevos permisos
-        console.log('[AuthService] 🔄 Invocando regeneración de menú...');
-        this.navService.generateMenu(effectivePermissions);
-
-        console.log('[AuthService] ✅ Empresa seleccionada. Estado en "authenticated".', { companyId });
-
-        // 4. NAVIGATION: Redirigir forzosamente con delay para digest cycle
-        // Basarse en isNew del backend para decidir ruta
-        const isNew = access?.company.is_new;
-        console.log('[AuthService] 🔍 is_new value:', isNew);
-
-        // Usar setTimeout (150ms) para asegurar que los Signals se propaguen y localStorage esté listo
-        setTimeout(() => {
-          // HARD RESET: Asegurar estado autenticado justo antes de navegar
-          this.authStep.set('authenticated');
-
-          if (isNew) {
-            console.log('[AuthService] 🚀 Empresa nueva. Navegando a /setup-wizard');
-            this.router.navigate(['/setup-wizard']);
-          } else {
-            console.log('[AuthService] 🚀 Empresa existente. Navegando a /dashboard');
-            this.router.navigate(['/dashboard']);
-          }
-          console.groupEnd();
-        }, 150);
-      },
-      error: (err) => {
-        console.error('[AuthService] ❌ select-company FAILED', err);
-        if (err.status === 0) this.health.updateStatus('auth', false);
-        this.isLoading.set(false);
-        console.groupEnd();
-
-        // === ERROR HANDLING ===
-        if (err.status === 401) {
-          console.warn('[AuthService] ⚠️ 401 Unauthorized. Token expirado. Limpiando sesión.');
-          localStorage.clear();
-          this.router.navigate(['/login']);
+        this.setSession(session);
+        if (redirectTo) {
+          this.router.navigate([redirectTo]);
         }
       }
-    });
+    } catch (err) {
+      console.error('[AuthService] ❌ Kiosk login failed:', err);
+      throw err;
+    } finally {
+      this.isLoading.set(false);
+      console.groupEnd();
+    }
   }
 
-  /**
-   * Notifies the backend that the initial setup for a company is complete.
-   * Corresponds to: PATCH /auth/complete-onboarding
-   */
-  completeOnboarding(): Observable<ApiResponse<void>> {
-    return this.http.patch<ApiResponse<void>>(`${this.apiUrl}/auth/complete-onboarding`, {});
-  }
 
   /**
-   * Updates the 'is_new' status for the currently active company in the local state.
-   * This should be called only after a successful onboarding completion.
-   * @param isNew The new status to set.
+   * Optimistic restoration from localStorage to avoid UI flickering
    */
-  updateCompanyIsNewStatus(isNew: boolean) {
-    const companyId = this.selectedCompanyId();
-    if (!companyId) {
-      console.warn('[AuthService] Cannot update is_new status without a selected company.');
-      return;
+  private restoreFromStorage(): void {
+    const savedSession = localStorage.getItem('auth_session');
+    if (savedSession) {
+      try {
+        const parsedData = JSON.parse(savedSession);
+        this.session.set(parsedData);
+        this.authStep.set('verified');
+      } catch {}
     }
 
-    this.availableAccesses.update(accesses => {
-      return accesses.map(access => {
-        if (String(access.company.id) === String(companyId)) {
-          // Create new objects for immutability to ensure signal propagation
-          const updatedCompany = { ...access.company, is_new: isNew };
-          return { ...access, company: updatedCompany };
-        }
-        return access;
-      });
-    });
-
-    // Also update the current context if it's holding onto a stale company object
-    const access = this.availableAccesses().find(a => String(a.company.id) === String(companyId));
-    if (this.currentContext() && access) {
-      this.currentContext.update(ctx => ctx ? ({ ...ctx, role: access.role }) : null);
+    const savedCompanies = localStorage.getItem('_ic_companies');
+    if (savedCompanies) {
+      try {
+        this._companies.set(JSON.parse(savedCompanies));
+      } catch {}
     }
-
-    console.log(`[AuthService] 🔄 Local state for company ${companyId} updated: is_new = ${isNew}`);
   }
 
   /**
-   * Solicita el reseteo de contraseña para un email.
-   * Corresponde a: POST /v1/auth/forgot-password
+   * Active Zero-Trust Restoration
+   * Validates the token and company context with the backend.
+   * Used by APP_INITIALIZER to block app startup.
    */
-  forgotPassword(payload: ForgotPasswordPayload): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/auth/forgot-password`, payload);
-  }
+  public async restoreSession(): Promise<boolean> {
+    if (!this.isBrowser) return true;
 
-  /**
-   * Establece una nueva contraseña usando un token.
-   * Corresponde a: POST /v1/auth/reset-password
-   */
-  resetPassword(payload: ResetPasswordPayload): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/auth/reset-password`, payload);
-  }
-
-
-  /**
-   * Vuelve al estado 'handshake' para cambiar de empresa
-   * - Limpia el access_token (currentContext) de la empresa anterior
-   * - Mantiene el selection_token (T1) en sessionStorage para seleccionar otra empresa
-   * - Mantiene la lista de empresas disponibles para que el selector funcione
-   */
-  switchCompany() {
-    console.log('[AuthService] 🔄 Cambiando de empresa...');
-
-    // === LIMPIAR CONTEXTO DE ACCESO (T2) ===
-    // Ya no estamos autenticados en ninguna empresa específica
-    this.currentContext.set(null);
-    localStorage.removeItem('interno_auth_ctx');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('company_id');
-
-    // === MANTENER SELECTION TOKEN ===
-    // El selection_token sigue válido y está en sessionStorage
-    // La corrección en `selectCompany` asegura que este token no se borre.
-    const currentToken = sessionStorage.getItem('selection_token');
-    if (!currentToken) {
-      console.error('[AuthService] ❌ CRITICAL: No selection_token found in sessionStorage during switchCompany. Logging out.');
+    const savedSession = localStorage.getItem('auth_session');
+    if (!savedSession) {
       this.logout();
-      return;
+      return true;
     }
-    console.log('[AuthService] selection_token persistido:', currentToken ? '✅ SÍ' : '❌ NO');
 
-    // === MANTENER EMPRESAS DISPONIBLES ===
-    // availableAccesses sigue poblado para que el selector funcione
-
-    // === STATE TRANSITION ===
-    this.authStep.set('handshake');
-    console.log('[AuthService] ✅ Estado = "handshake". Selector debe aparecer en LoginComponent.');
-
-    // === NAVEGACIÓN ===
-    // Navegar a /login dispara el LoginComponent que detectará authStep === 'handshake'
-    this.router.navigate(['/login']);
-  }
-
-  /**
-   * Cierra sesión silenciosamente (sin redirigir)
-   * Usado en APP_INITIALIZER cuando no hay token
-   */
-  logoutQuiet() {
-    localStorage.clear();
-    sessionStorage.clear();
-    this.authStep.set('guest');
-    this.currentContext.set(null);
-    this.currentUser.set(null);
-    this.availableAccesses.set([]);
-    this.selectionToken.set(null);
-    console.log('[AuthService] 🔒 logoutQuiet: Sesión limpiada (sin redirigir)');
-  }
-
-  /**
-   * Restaura sesión SOLO desde localStorage (sin peticiones HTTP)
-   * Usado en APP_INITIALIZER para boot seguro
-   */
-  restoreSessionFromStorage() {
     try {
-      const savedCtx = localStorage.getItem('interno_auth_ctx');
-      const savedUser = localStorage.getItem('interno_auth_user');
-      const savedAccesses = localStorage.getItem('interno_auth_accesses');
+      const resp = await lastValueFrom(
+        this.http.get<ApiResponse<AuthSession>>(`${this.apiUrl}/auth/me`)
+      );
 
-      if (savedCtx && savedUser) {
-        this.currentContext.set(JSON.parse(savedCtx));
-        this.currentUser.set(JSON.parse(savedUser));
-        this.availableAccesses.set(JSON.parse(savedAccesses || '[]'));
-        this.authStep.set('authenticated');
-        console.log('[AuthService] ✅ restoreSessionFromStorage: Sesión restaurada desde localStorage');
+      if (resp.status === 'success' && resp.data) {
+        this.setSession(resp.data);
+        return true;
       } else {
-        console.warn('[AuthService] ⚠️ restoreSessionFromStorage: Sin datos guardados');
-        this.logoutQuiet();
+        throw new Error('Server rejected session validation');
       }
-    } catch (e) {
-      console.error('[AuthService] ❌ restoreSessionFromStorage: Error al restaurar', e);
-      this.logoutQuiet();
+    } catch (err) {
+      console.error('[AuthService] 🛡️ Zero-Trust Validation Failed:', err);
+      this.logout();
+      return true; // We return true to allow app to start, but redir to login is handled by logout/signals
     }
   }
 
-  /**
-   * Cierra la sesión completamente
-   */
-  logout() {
-    localStorage.clear();
-    sessionStorage.clear();
-    this.authStep.set('guest');
-    this.currentContext.set(null);
-    this.currentUser.set(null);
-    this.availableAccesses.set([]);
-    this.selectionToken.set(null);
-    this.router.navigate(['/login']);
-  }
 }

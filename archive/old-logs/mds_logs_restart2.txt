@@ -1,0 +1,101 @@
+ðŸš€ Master Data Service starting...
+
+  File "/usr/local/lib/python3.11/asyncio/runners.py", line 190, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/app/scripts/seed.py", line 148, in main
+    await session.execute(text("TRUNCATE TABLE warehouses CASCADE"))
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/session.py", line 455, in execute
+    result = await greenlet_spawn(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 200, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2308, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2199, in _execute_internal
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 517, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2344, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 130, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 195, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 509, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.ProgrammingError: (sqlalchemy.dialects.postgresql.asyncpg.ProgrammingError) <class 'asyncpg.exceptions.UndefinedTableError'>: relation "warehouses" does not exist
+[SQL: TRUNCATE TABLE warehouses CASCADE]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO: ðŸŒ± Iniciando Seeding de Master Data Service
+INFO:   [MD] Limpiando datos previos...
+INFO:   [MD] Cargando UOMs globales...
+INFO:     âž• UOM: PZ
+INFO:     âž• UOM: UN
+INFO:     âž• UOM: KG
+INFO:     âž• UOM: GL
+INFO:   [MD] Cargando catÃ¡logo demo para company: ad6cc8a6-34f9-42df-8f29-28254e0ad242
+INFO:     âž• Producto: MAT-001
+INFO:     âž• Producto: MAT-002
+INFO:     âž• Producto: MAT-003
+INFO:     âž• Producto: MAT-004
+INFO:     âž• Producto: MAT-005
+INFO:     âž• Producto: MAT-006
+INFO:     âž• Producto: MAT-007
+INFO:     âž• Producto: MAT-008
+INFO:     âž• Producto: MAT-009
+INFO:     âž• Producto: MAT-010
+INFO:     âž• Concepto: ENT-PUR
+INFO:     âž• Concepto: ENT-ADJ
+INFO:     âž• Concepto: SAL-VEN
+INFO:     âž• Concepto: SAL-ADJ
+INFO:     âž• AlmacÃ©n: WH-TIJ
+INFO:     âž• AlmacÃ©n: WH-SDY
+INFO:     âž• AlmacÃ©n: WH-QUARANTINE
+INFO:     âž• AlmacÃ©n: WH-ENS
+INFO:     âž• AlmacÃ©n: WH-OTY
+INFO:   [MD] Cargando Listas de Precios para company: ad6cc8a6-34f9-42df-8f29-28254e0ad242
+INFO:     âž• Precio 1 para MAT-001 (GLOBAL)
+INFO:     âž• Precio 1 para MAT-002 (GLOBAL)
+INFO:     âž• Precio 1 para MAT-001 (WH-TIJ)
+INFO:     âž• Precio 1 para MAT-002 (WH-SDY)
+INFO: âœ… Seeding completado con Ã©xito.
+INFO:     Started server process [13]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

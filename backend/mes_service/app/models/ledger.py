@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import datetime
 from sqlalchemy import String, Numeric, ForeignKey, Boolean, DateTime, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 if TYPE_CHECKING:
     from .production_run import ProductionRun

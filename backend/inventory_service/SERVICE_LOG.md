@@ -1,6 +1,21 @@
 # Service Log — Inventory Service
 
 ## 🕒 Última Actividad (2026-04-15)
+**Industrial Data Simulation (Fase 53 Completada)**
+- Ejecución de Bypass Directa a DB (SQLAlchemy Core) en modo simulación masiva.
+- Generadas +180 transacciones de inventario simulando 15 días consecutivos para validar Frontend rendering.
+- Alineación estricta de la estructura en vivo (`inventory_transactions`) y mitigación de NotNullViolationErrors por evolución de esquemas (`available_quantity`, `is_transit`) en crudo, evadiendo la API.
+
+## 🕒 Actividad Previa (2026-04-15)
+**Outbound Shipping & Audit Export (Completada)**
+1. **Audit Sheet Export (Compliance Anexo 24)**:
+   - Implementado endpoint `/warehouses/{id}/audit-export` para la generación de hojas de auditoría física en CSV.
+   - Soportado encoding UTF-8-BOM y mapeo de campos de cumplimiento fiscal (SKU, Ubicación, Pedimento).
+2. **Dispatch Validation Bridge**:
+   - Expuesto soporte para la recepción de credenciales de operador durante el despacho de transferencias.
+   - Preparada la estructura para validación sincrónica contra el microservicio de HR (Fase 50).
+
+## 🕒 Última Actividad (2026-04-15)
 **Integridad Industrial y "The Density Guard" (Completada)**
 
 1. **The Density Guard (Control de Capacidad)**:

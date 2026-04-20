@@ -46,17 +46,26 @@ class CompanyAccessDto(BaseModel):
 class AccessTokenResponse(BaseModel):
     """Respuesta final con el JWT de acceso por empresa."""
     access_token: str
+    refresh_token: Optional[str] = None   # ← Incluido al seleccionar empresa
     token_type: str = "bearer"
-    # CORRECCIÓN: Tipo UUID
     user_id: UUID
     company_id: UUID
+    company_name: Optional[str] = None
     group_id: Optional[UUID] = None
-    roles: List[str] = [] 
+    roles: List[str] = []
     permissions: List[str] = []
+    scopes: List[str] = []
+    # Campos de usuario para hidratar la sesión sin un request extra
+    user_full_name: Optional[str] = None
+    user_email: Optional[str] = None
 
-    scopes: List[str] = [] # Added scopes to match endpoint usage
-    
     model_config = ConfigDict(from_attributes=True)
+
+
+class RefreshRequest(BaseModel):
+    """Cuerpo del endpoint POST /auth/refresh."""
+    refresh_token: str
+
 
 class Token(BaseModel):
     access_token: str

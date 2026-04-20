@@ -16,7 +16,39 @@ Este servicio es el núcleo de seguridad y gestión de identidad de **InternoCor
 * **Endpoint:** `POST /api/v1/auth/select-company`
 * **Output (`ApiResponse`):** `access_token` enriquecido con `modules`, `status` y `readonly`.
 
+### Modelo de Datos Empresarial
+Para cumplir con el estándar de configuración:
+*   **CompanyStatus:** Enum global (Activo, Inactivo, Demo).
+*   **CompanyAccessDto:** DTO utilizado en la fase de Login para entregar el listado de empresas disponibles.
+*   **Flexibilidad de Identidad:** Soporte para correo único global o usuarios aislados por empresa.
+*   **Persistencia:** Todo registro de empresa debe generar un `company_id` único y persistente.
+
 ---
+
+## 👤 Gestión de Usuarios y Roles (RBAC)
+
+El sistema utiliza un control de acceso basado en roles (RBAC) granular por empresa.
+
+### Especificaciones Técnicas (CQRS)
+
+| Operación | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `CreateUserCommand` | Comando | Crea la identidad global del usuario. |
+| `AssignRoleCommand` | Comando | Vincula usuario a empresa con rol y scopes específicos. |
+| `GetUserPermissionsQuery` | Consulta | Retorna permisos efectivos del usuario para el `company_id` actual. |
+| `UpdateUserScopesCommand` | Comando | Agrega/quita permisos en `UserCompanyRole` sin alterar el Rol base. |
+
+### Estructura del JWT (Claims)
+El token generado debe incluir:
+*   `sub`: UUID del usuario.
+*   `company_id`: UUID de la empresa activa.
+*   `role_names`: Lista de nombres de roles (ej. `['admin']`).
+*   `scopes`: Lista plana de permisos (ej. `['inventory:read', 'catalog:admin']`).
+
+### Lógica de Middleware
+1.  **Extracción:** Obtiene `company_id` del JWT o header `X-Company-Id`.
+2.  **Validación:** Verifica que el par `(user_id, company_id)` existe en `user_company_roles`.
+3.  **Inyección:** Setea `UserContext` para filtrado automático en repositorios.
 
 ## 🛰️ Integración con Subscription Service
 El `auth_service` actúa como cliente del `subscription_service` (Puerto 8002) durante la Fase 2 del Handshake.
@@ -80,3 +112,8 @@ Al trabajar en fases pendientes, el agente debe verificar:
 ## 🛡️ Auditoría de Integridad
 Para verificar la salud de los datos y el cumplimiento de normas multi-tenant:
 `docker compose exec auth-service python -m app.scripts.integrity_scan`
+
+### God Mode (Super-Admin)
+Capacidades de intervención mediante `CORE_ADMIN_MASTER_KEY` para soporte crítico:
+*   **Force Assign:** Vinculación directa de usuarios a empresas sin flujo de invitación.
+*   **Role Elevation:** Modificación de permisos en `user_company_roles` saltando restricciones de tenant.

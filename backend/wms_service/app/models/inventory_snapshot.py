@@ -9,7 +9,7 @@ from common.models import Base, MultiTenantBase
 if TYPE_CHECKING:
     from .warehouse import Warehouse
 
-class InventorySnapshot(MultiTenantBase, Base):
+class InventorySnapshot(MultiTenantBase):
     """
     Representa el stock actual valorizado.
     Fuente \u00fanica de verdad para existencias y costo promedio (CPP).

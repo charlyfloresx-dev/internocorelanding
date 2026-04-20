@@ -10,7 +10,7 @@ from alembic.migration import MigrationContext
 from alembic.operations import ops
 
 from app.models import *
-from common.models.base_models import Base
+from common.infrastructure.models.base import Base
 
 def generate():
     engine = create_engine("sqlite:///:memory:")

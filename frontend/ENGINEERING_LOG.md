@@ -1,606 +1,203 @@
-# 🛠 Interno Core MES - Engineering Blueprint & Change Log
+### [2026-04-17] Phase 55: CloudFront Deployment & API Sync
+- **Angular Build Stability**: Corregido `angular.json` para habilitar `fileReplacements` (missing in prod config).
+- **Environment Sync**: Actualizado `environment.prod.ts` para apuntar al ALB de AWS en Ohio.
+- **S3 Sync Protocol**: Ajustado despliegue de S3 para servir desde la raíz, eliminando la colisión del subdirectorio `/browser/`.
+- **CloudFront Invalidation**: Automatizada la invalidación de caché tras el despliegue de assets.
+- **Status**: ✅ DEPLOYED ON CLOUDFRONT
 
-## 📐 Arquitectura de Referencia
-- **Framework:** Angular 19.1.0 (Zoneless Mode).
-- **State Management:** Angular Signals (signal, computed, effect).
-- **Routing:** HashLocationStrategy (importante para entornos locales).
-- **Estilos:** Tailwind CSS JIT (CDN).
-- **Persistence Layer:** LocalStorage + ApiSimulationService.
+### [2026-04-16] Phase 44: Media Assets Support & URL Normalization
+- **Image Interceptor**: Implemented a global `imageInterceptor` to handle multi-tenant asset normalization. Automatically prepends `environment.assetsUrl` to relative paths (`photo_path`, `profile_url`) in API responses.
+- **SecureImage Pipe**: Created a standalone `secureImage` Pipe to simplify template rendering. Supports default placeholders and handles mixed relative/absolute URLs gracefully.
+- **Environment Config**: Introduced `assetsUrl` token for centralized control of the media domain (e.g., `momentos.com` for local dev parity).
+- **Architecture**: Registered the new interceptor in `app.config.ts`, ensuring all existing and future modules benefit from unified asset resolution.
 
-## 🗂 Estructura de Módulos (Blueprint)
-1. **Auth Module:** Maneja el flujo Guest -&gt; Handshake -&gt; Authenticated.
-2. **Production Module:** 
-   - Dashboard: OEE, Downtime, Pareto.
-   - WorkOrders: Lista filtrable y Scanner QR.
-3. **Inventory Module:**
-   - Maestro: Stock y Precios.
-   - Documentos: Movimientos de almacén.
-   - Estructura: Warehouses y Socios comerciales.
-4. **System Module:**
-   - Snapshot Manager: Herramienta de recuperación ante errores de datos.
+### [2026-04-15] Phase 49.8: Outbound Shipping & Compliance (Embarques Industrial)
+- **Shipping Handheld Module**: Developed `InventoryShippingComponent` (`/inventory/shipping`) with Folio-driven validation and industrial high-contrast ergonomics.
+- **Operator Badge Validation**: Integrated a mandatory driver badge scan as a prerequisite for dispatch, establishing the link to upcoming cross-border identity modules in `hr_service`.
+- **UI Responsiveness**: Expanded handheld layouts to `max-w-4xl` and `max-w-7xl` to better utilize industrial tablet real estate (iPad Pro).
+- **Manual Mode Toggle**: Added a clear "Manual vs Folio" state toggle in the standard reception screen to improve warehouse floor decision-making.
 
-## 📝 Registro de Modificaciones (Change Log)
+### [2026-04-15] Phase 48: Industrial Integrity & "The Density Guard"
+- **Registry Cache**: Implemented `InventoryRegistryService` for $O(1)$ in-memory SKU lookups, enabling zero-latency scanning for 10k+ products.
+- **The Density Guard**: Added real-time location capacity validation in the Put-Away flow, including a semantic visual bar (Green/Amber/Red) and industrial audio alerts (110Hz Overflow Beep).
+- **Manual Entry Mode**: Integrated high-speed manual SKU input with auto-hydration from the registry cache and pre-emptive capacity checks.
+- **Scan Hygiene**: Ported `getNumber` regex logic to sanitize barcode scans in real-time.
 
-### [v1.3.1] - Fix de Persistencia y Flujo T2
-- **Resumen:** Estabilización completa del flujo de autenticación y cambio de contexto.
-- **Detalles:**
-  - `AuthInterceptor` ahora inyecta correctamente `x-selection-token` (handshake) y `x-company-id` (negocio) en minúsculas.
-  - `NavigationService` carga menús dinámicos basados en los `scopes` devueltos en el T2.
-  - `AuthService` normalizado para consumir `ApiResponse` y gestionar la persistencia del `selection_token`.
-- **Estado:** Estable.
+### [2026-04-15] Phase 47: Industrial Put-Away & Session Stability
+- **Put-Away Module**: Developed high-priority handheld interface for DOCK-to-RACK relocation with 3-step scan flow and F2 confirmation.
+- **Audio Feedback**: Integrated `playIndustrialBeep` (200Hz/880Hz) for real-time haptic/audio validation on the warehouse floor.
+- **Session Resilience**: Patched `StockLevelComponent` with a resilient parsing engine to handle variant microservice response structures without UI death.
+- **Identity Fix**: Resolved session loss on refresh by implementing defensive attribute access for user profiles.
 
-### [v1.3.1] - Corrección de Persistencia y Cambio de Contexto
-- **Resumen:** Se ha estabilizado el flujo de "Cambiar Empresa", eliminando el error `No selection_token available` y asegurando que el estado del frontend se limpie correctamente.
-- **Archivo:** `src/app/core/services/auth.service.ts`
-  - **Cambiado:** Se modificó el método `selectCompany` para evitar el borrado del `selection_token` de `sessionStorage` tras una selección exitosa.
-  - **Cambiado:** Se robusteció el método `switchCompany` para limpiar explícitamente el contexto de la empresa anterior (`access_token`, `company_id`) de `localStorage` y forzar la transición al estado `handshake`.
-  - **Cambiado:** Se ajustó la extracción de datos en `login` y `selectCompany` para leer desde la propiedad `response.data`, alineándose con la estructura `ApiResponse` del backend.
-- **Archivo:** `src/app/core/interceptors/auth.interceptor.ts`
-  - **Verificado:** Se confirmó que el interceptor maneja correctamente la inyección condicional de `x-selection-token` (para la fase de selección) y `x-company-id` + `authorization` (para peticiones autenticadas), usando siempre cabeceras en minúsculas.
-  - **Razón:** Garantizar un flujo de autenticación multi-tenant robusto, permitiendo al usuario cambiar de contexto de empresa sin perder la sesión principal.
+### [2026-04-15] Phase 46: Industrial Scalability & Warehouse Stabilization (Anexo 24)
+- **Scalability (10k+ SKUs)**: Implemented server-side pagination and search in `StockLevelComponent` and `InventoryService`.
+- **UI Architecture**: Updated global `ApiResponse` to include `total_count` and pagination metadata, standardizing industrial report handling.
+- **Bug Squashing**:
+    - Resolved `TS2341` and `NG5002` compilation errors in Inventory modules.
+    - Fixed API integration in `StockLevelComponent` by standardizing service layer usage and correcting JSON parsing.
+- **Visual Compliance**: Implemented risk-aware UI with industrial aesthetics for Anexo 24 auditing, including aging alerts and stock status filters.
 
-### [v1.0.3] - Implementación de Flujo Multi-Tenancy y Onboarding
-- **Resumen:** Se reestructuró el flujo de autenticación para soportar múltiples empresas por usuario, roles con permisos dinámicos y un flujo de bienvenida para empresas nuevas.
+### [2026-04-14] Phase 45.1: Pricing Stabilization & B2B Immortality (Final)
+- **Hybrid Tabbed UI**: Refactored `ProductPriceListComponent` to support a clean separation between Master Prices and Partner-specific Agreements.
+- **B2B Lifecycle**: Fully integrated the "Soft-Close & Insert" pattern for price agreements, ensuring frontend parity with the backend's immutable architecture.
+- **Quality Tooltips**: Implemented modern, yellow-themed active tooltips for "Missing Data" alerts (SAT codes, UOM) in the catalog dashboard, improving operational governance.
+- **Path Resolution**: Corrected API paths in `MasterDataService` to properly bridge the `/api/v1/prices` backend module.
 
-- **Archivo:** `src/app/app.routes.ts`
-  - **Cambio:** Se migraron las rutas a `loadComponent` para lazy-loading y se añadieron todas las rutas de los módulos de Inventario y Producción. Se añadió la ruta `/onboarding`.
-  - **Razón:** Mejorar el rendimiento inicial de la aplicación y completar la navegación del sistema según el blueprint.
+### [2026-04-14] Phase 45: Industrial Pricing & Identity Stabilization (Frontend UX & RBAC)
 
-- **Archivo:** `src/app/services/api-simulation.service.ts`
-  - **Cambio:** Se reconfiguró la base de datos mock para simular 3 empresas (`Enterprise`, `Standard`, `New`). Se crearon roles con permisos específicos y se ajustó el método `login` y `selectContext` para ser dinámicos.
-  - **Razón:** Simular un entorno multi-tenancy realista que permita probar los flujos de permisos y onboarding.
+### [2026-04-13] Session 7: Control Tower B2B - Mass Price Import
+- **Industrial Dashboard**: Created `PriceImportDashboardComponent` (Standalone) with Neon Cyan aesthetics. Handles general price lists and partner-specific agreements.
+- **UX Features**: 
+    - Full Drag & Drop support for CSV with active drag state transitions.
+    - Integrated result matrix with side-by-side display of "Immutable Creations" vs "Failed Integrities".
+    - Forensic error reporting per CSV line.
+- **Service Layer**: 
+    - Extended `MasterDataService` to support dynamic template downloads (general vs partner-based).
+    - Implemented `importPrices` with `FormData` and native error interception.
+- **Dialog Orchestration**: Catalog header integration using `MatDialog` with automatic catalog `loadProducts()` refresh on modal close.
+- **Styles**: Defined `ic-dark-dialog` and glassmorphism overlays in global CSS.
 
-- **Archivo:** `src/app/services/auth.service.ts`
-  - **Cambio:** Se eliminó la lógica de auto-selección de empresa en el método `login`. Se verificó que la redirección a `/onboarding` funcione correctamente.
-  - **Razón:** Forzar siempre la selección manual de la empresa por parte del usuario, un requisito clave del flujo de "handshake".
+### [2026-04-10 EOD] Session 6: RBAC Governance + Excel Grid Wizard
 
-### [v1.0.5] - Ajuste de Visibilidad del Menú Lateral (RBAC) y Corrección de Build
-- **Resumen:** Se implementó un filtrado estricto en el menú de navegación basado en los permisos del rol del usuario. Se corrigió un error de build relacionado con la creación de órdenes de trabajo.
 
-- **Archivo:** `src/app/services/api-simulation.service.ts`
-  - **Cambio:** Se corrigió un error de tipado en `createWorkOrder` (`cmd.cost` a `cmd.estimatedCost`). Se ajustó la definición de roles para que 'Standard' solo reciba permisos de la categoría 'Inventory'.
-  - **Razón:** Solucionar un error de compilación que impedía el funcionamiento y alinear la simulación de datos con los requisitos de RBAC.
+Guard-First UI: all catalog modals disable form/delete for non-admin via AuthService.
+Excel Wizard: ProductWizardComponent full-screen grid, Tab/Enter nav, price optional.
+Incomplete Panel: computed signal flags products missing price/SAT/category.
 
-- **Archivo:** `src/app/services/navigation.service.ts`
-  - **Cambio:** Se actualizó `generateMenu` para filtrar los módulos principales y sus hijos basándose en un array de strings de permisos.
-  - **Razón:** Garantizar que el menú lateral se reconstruya dinámicamente y muestre únicamente los módulos a los que el usuario tiene acceso según su rol.
-
-- **Archivo:** `src/app/services/auth.service.ts`
-  - **Cambio:** Se aseguró que `selectCompany` extraiga los nombres de los permisos (`string[]`) y los pase al `NavigationService`. Se verificó que el `SessionContext` (incluyendo los permisos) se guarde en `localStorage`.
-  - **Razón:** Implementar la persistencia de los permisos. Al recargar la página, `restoreSession` lee los permisos y regenera el menú filtrado correctamente.
-
-- **Archivo:** `src/app/modules/auth/tenant-selection.component.ts`
-  - **Cambio:** Se mejoró la alerta visual para las empresas nuevas, añadiendo un efecto de resplandor animado y un icono más descriptivo.
-  - **Razón:** Hacer más evidente la acción requerida para configurar una nueva planta, mejorando la experiencia de usuario en el onboarding.
-
-### [v1.0.6] - Corrección de Gráficas de Dashboard sin Datos
-- **Resumen:** Las gráficas del dashboard de producción (Tendencia Semanal y Pareto de Tiempos Muertos) no mostraban datos porque el servicio de simulación devolvía arrays vacíos.
-
-- **Archivo:** `src/app/services/api-simulation.service.ts`
-  - **Cambio:** Se pobló con datos de prueba los arrays `weeklyTrend` y `downtimePareto` dentro del objeto `ProductionDashboardDto` que retorna el método `getProductionDashboard`.
-  - **Razón:** Proveer datos simulados a los componentes de las gráficas para que puedan renderizar la información correctamente y permitir la validación visual de la UI.
-
-### [v1.0.7] - Creación del Modelo de Dominio Compartido
-- **Resumen:** Se creó un nuevo archivo de tipos (`domain.types.ts`) que actúa como la "fuente de verdad" para las estructuras de datos de la aplicación, reflejando los modelos del backend.
-
-- **Archivo:** `src/app/core/models/domain.types.ts`
-  - **Cambio:** Se creó el archivo con las interfaces y tipos principales del dominio, incluyendo `BaseEntity`, `AuditBase`, `WorkOrder`, `AuthResponse`, etc.
-  - **Razón:** Establecer un contrato de datos claro y tipado entre el frontend y el backend, mejorando la mantenibilidad y reduciendo errores de integración. Este archivo será el espejo de `Interno.Common` e `Interno.Domain`.
-
-### [v1.0.2] - Implementación de Filtros en Documentos de Inventario
-- **Archivo:** `src/app/modules/inventory/inventory-documents-list.component.ts`
-  - **Cambio:** Se reemplazaron los botones de filtro estáticos por una implementación funcional basada en Signals.
-  - **Razón:** Permitir al usuario filtrar la lista de documentos por tipo (Todos, Entradas, Salidas) de forma reactiva y eficiente, sin recargar datos desde el servicio.
-  - **Detalles:**
-    - Se introdujo un `signal` (`filter`) para mantener el estado del filtro actual.
-    - Se creó un `computed signal` (`filteredDocuments`) que deriva la lista de documentos a mostrar, reaccionando a los cambios en el filtro.
-    - Se actualizaron los botones en la plantilla para usar `(click)` y `[ngClass]` para reflejar el estado activo del filtro.
-    - La tabla ahora itera sobre el `computed signal`, asegurando que la UI se actualice automáticamente.
-
-### [v1.0.1] - Corrección de Visibilidad Local y Rutas
-- **Archivo:** `src/app/services/auth.service.ts`
-  - **Cambio:** Se implementó `restoreSession()` en el constructor.
-  - **Razón:** Al refrescar la página (F5) en local, el sistema perdía los permisos y el menú desaparecía. Ahora lee de `localStorage` y dispara `navService.generateMenu()`.
-  
-- **Archivo:** `index.tsx` (Router Map)
-  - **Cambio:** Se mapearon todas las rutas de Inventarios (`/inventory`, `/inventory/documents`, `/inventory/warehouses`, etc.).
-  - **Razón:** Los clics en la barra lateral fallaban porque Angular no conocía las rutas de los nuevos módulos.
-
-- **Archivo:** `src/app/services/navigation.service.ts`
-  - **Cambio:** Se robusteció la lógica de `generateMenu()` para filtrar categorías y submenús simultáneamente.
-  - **Razón:** Asegurar que si un usuario tiene permiso de 'inventory', vea todos los sub-módulos asociados.
-
-- **Archivo:** `src/app/services/api-simulation.service.ts`
-  - **Cambio:** Se expandieron los permisos base (`p1` a `p10`) para cubrir el 100% de la funcionalidad del Blueprint.
-
----
-**Próximos Pasos Recomendados:**
-1. ~~Implementar filtros reales en la tabla de documentos de inventario.~~ (Completado en v1.0.2)
-2. Mejorar la validación de stock negativo en el editor de documentos.
-
-### [v1.0.4] - Integración de Componente de Selección de Tenant
-- **Archivo:** `src/app/modules/auth/tenant-selection.component.ts`
-  - **Cambio:** Se procesó e integró el componente `TenantSelectionComponent` corrigiendo la codificación HTML de la plantilla.
-  - **Análisis Técnico:**
-    - Componente Standalone con inyección de dependencias moderna (`inject`).
-    - Uso de `output<void>()` (Angular 17.3+).
-    - Control de flujo `@for` y `@if`.
-  - **Requisitos para Retomar (Checklist):**
-    1. **Estilos:** Definir `.animate-fade-in-up` (keyframes) y `.custom-scrollbar` en `src/styles.css` o configuración de Tailwind.
-    2. **Iconos:** Asegurar carga de FontAwesome (clases `fa-industry`, `fa-wand-magic-sparkles`, etc.).
-    3. **Modelo:** `UserCompanyAccess` debe tener la propiedad `company.isNew` y `company.plan`.
-    4. **Servicio:** `AuthService` debe manejar la señal `availableAccesses`.
-
-### [v1.0.8] - Definición de Permisos Granulares en AuthService
-- **Resumen:** Se actualizó la inyección de permisos para el rol 'admin' en `AuthService` para utilizar un formato estricto `modulo:submodulo`.
-- **Archivo:** `src/app/services/auth.service.ts`
-  - **Cambio:** Se expandió el array `permissionNames` en el modo "Dios Extendido" para incluir sub-permisos explícitos para Production, Inventory, Maintenance, Quality, Settings y System.
-  - **Razón:** Permitir que `NavigationService` detecte correctamente la jerarquía de menús y renderice los submenús correspondientes en el sidebar, asegurando acceso completo a todas las vistas del sistema.
-
-### [v1.0.9] - Refactorización de Estilos y Limpieza
-- **Resumen:** Se centralizaron los estilos globales y se configuró Tailwind CSS correctamente en la arquitectura del proyecto.
-- **Archivo:** `src/index.css`
-  - **Cambio:** Creación del archivo de estilos globales con directivas `@tailwind`.
-- **Archivo:** `angular.json`
-  - **Cambio:** Registro de `src/index.css` en el pipeline de compilación (build y test).
-  - **Razón:** Asegurar que los estilos globales y utilidades de Tailwind estén disponibles en toda la aplicación sin depender de estilos en línea en `index.html`.
-
-### [AUDIT-2026-01-24] - Informe de Situación Actual (Technical Snapshot)
-- **Estado del Runtime:**
-  - **Zoneless:** Confirmado (Angular 19.1.0).
-  - **Reactivity:** Uso consistente de Signals (`signal`, `computed`) para gestión de estado local y filtros.
-
-- **Mecánica de Autenticación:**
-  - **Flujo:** Definido como 3 fases (Login -> Tenant Selection -> Context).
-  - **Estado:** 🔴 **CRÍTICO**. La implementación actual en `AuthService` no procesa el `handshakeToken` ni gestiona el array de `tenants` devuelto por el backend v1.1.
-  - **Persistencia:** No se detecta mecanismo robusto para persistir `company_id` activo más allá de la sesión volátil.
-
-- **Arquitectura de Red:**
-  - **Interceptor:** `AuthInterceptor` detectado.
-  - **Headers:** Inyección de `Authorization` presente pero dependiente de almacenamiento incompleto. Inyección de `X-Company-Id` **AUSENTE**. Esto bloqueará cualquier petición multi-tenant.
-
-- **Cumplimiento UI Industrial:**
-  - **Tailwind:** Configuración de colores correcta (`primary: #0A4F70`, `industrial-gray`).
-  - **Ergonomía:** ⚠️ **ALERTA**. No se observan extensiones de tema para alturas 'Fat Finger' (min-h-14 / 56px). Se recomienda forzar esto en `tailwind.config.js`.
-
-- **Estructura de Navegación:**
-  - **Sidebar:** Renderizado dinámico basado en `NavigationService` y permisos (RBAC).
-  - **Modo:** Estático/Relativo. No se detecta configuración para modo Fly-out.
-
-- **Modelos de Datos:**
-  - **SSOT:** `src/app/core/models/domain.types.ts`.
-  - **Entidades Clave:** `WorkOrder`, `ProductionDashboardDto` (KPIs: OEE, Downtime).
-
-### [v1.1.0] - Migración a Zoneless Puro
-- **Resumen:** Se eliminó la dependencia de `zone.js` para optimizar el rendimiento y se habilitó la detección de cambios experimental sin zonas.
-- **Archivo:** `src/main.ts`
-  - **Cambio:** Inyección de `provideExperimentalZonelessChangeDetection()` y adición de `import '@angular/compiler'`.
-- **Archivo:** `angular.json`
-  - **Cambio:** Eliminación de `zone.js` de los polyfills de build y test.
-
-### [v1.1.1] - Multi-tenant Network Layer
-- **Resumen:** Implementación de la infraestructura de red para soportar peticiones autenticadas y contextualizadas por empresa.
-- **Archivo:** `src/app/core/interceptors/api.interceptor.ts`
-  - **Creación:** Interceptor funcional que inyecta `Authorization` y `X-Company-Id` leyendo Signals del `AuthService`.
-- **Archivo:** `src/app/app.config.ts`
-  - **Cambio:** Registro del interceptor mediante `provideHttpClient(withInterceptors([...]))`.
-
-### [v1.1.2] - Auth Handshake & Persistence
-- **Resumen:** Refactorización completa del `AuthService` para implementar el handshake de 3 fases y persistencia de sesión. El sistema ahora es resiliente a recargas de página y soporta múltiples tenants por usuario.
-- **Archivo:** `src/app/core/services/auth.service.ts`
-  - **Signals:** Implementación de `token`, `currentUser`, `activeCompanyId` y `handshakeToken`.
-  - **Persistencia:** Lógica de restauración de sesión desde `localStorage` (`_ic_token`, `_ic_company_id`).
-  - **Flujo:** Métodos `login` (Fase 1) y `selectCompany` (Fase 2) conectados con el backend v1.1.
-
-### [v1.1.3] - Integración de Datos Demo y Feedback Visual
-- **Resumen:** Se completó la integración de servicios de feedback (Toast) y datos de producción simulados para la validación en modo demo.
-- **Estado:** Listo para validación de usuario (Mañana).
-- **Cambios:**
-  - Integración de `ToastService` para notificaciones de sistema.
-  - `ProductionDataService` ahora sirve datos precargados para empresas demo.
-  - Validación de flujo con empresas pre-cargadas.
-
-### [v1.1.4] - Consolidación de Arquitectura y Limpieza Técnica
-- **Resumen:** Eliminación de deuda técnica en interceptores y estandarización de manejo de errores Backend-Frontend.
-- **Frontend:**
-  - **Refactor:** `auth.interceptor.ts` ahora es la única fuente de verdad para headers (`Authorization` y `X-Company-Id`), usando `AuthService`.
-  - **Limpieza:** Se eliminó lógica redundante en `api.interceptor.ts`.
-  - **Nuevo:** `ErrorMapper` para traducción centralizada de códigos HTTP a mensajes de usuario.
-- **Backend:**
-  - **Common:** Creación de `exceptions.py` (DomainException, NotFound, BusinessRule) y `error_handlers.py` para respuestas JSON consistentes.
-- **Protocolo:**
-  - **Header:** Se estandarizó el uso de `X-Company-Id` en todo el stack.
-
-## 2026-02-04: Sincronizaci�n de Contratos v2.1
-*   **Hito**: Sincronizaci�n de Contratos v2.1
-*   **Cambios**:
-    *   **Homologaci�n de interfaces**: Refactor completo a snake_case (selection_token, 
-ole_names) en pi.types.ts.
-    *   **AuthService Update**: Actualizaci�n de l�gica de login y selecci�n de empresa para consumir la nueva estructura JSON.
-    *   **Interceptor Check**: Confirmaci�n de inyecci�n correcta de X-Company-Id en uth.interceptor.ts.
----
-
-## 🔍 AUDITORÍA TÉCNICA - Backend Middleware & Data Structure (2026-02-06)
-
-### 1. TenantSecurityMiddleware & Response Envelope
-
-**Backend Source:** `backend/auth_service/app/core/middleware.py`
-- ✅ **No envuelve respuestas.** El middleware solo valida headers X-Company-Id contra JWT claims.
-- ✅ **ApiResponse envelope:** Definido en `common/responses.py` como estructura de envío:
-  ```json
-  {
-    "status": "success|error",
-    "data": {...},          // Payload real
-    "message": "string",
-    "meta": {"trace_id": "uuid", "latency": "ms"}
-  }
-  ```
-
-### 2. Backend Schema Mapping (LoginResponse Flow)
-
-**Source:** `backend/auth_service/app/schemas/auth.py`
-
-| Campo Backend | Propiedad Interface Frontend | Tipo de Dato | Notas |
-|---|---|---|---|
-| `selection_token` | `selection_token` | `string` | JWT Temporal (Fase 1) - sin claims de empresa |
-| `user_id` | `user_id` | `string` (UUID) | ID único del usuario en el sistema global |
-| `companies[].company_id` | `company_id` | `string` (UUID) | ID de empresa en la lista de selección |
-| `companies[].company_name` | `company_name` | `string` | Nombre legible de la empresa |
-| `companies[].logo` | `logo` | `string (URL)` | URI de logo (opcional) |
-| `companies[].role_names` | `role_names` | `string[]` | Array de nombres de roles asignados |
-| `companies[].is_new` | `is_new` | `boolean` | Flag de empresa nueva (requiere onboarding) |
-| `is_new` (global) | `isNew` | `boolean` | Flag de usuario nuevo en el sistema |
-
-### 3. Frontend Interface Alignment
-
-**Source:** `frontend/src/app/core/models/api.types.ts`
-
-```typescript
-// ✅ CORRECTO
-export interface LoginResponse {
-  selection_token: string;      // Matches backend
-  user_id: string;              // Matches backend (UUID string)
-  companies: CompanySelection[]; // Matches backend array
-  isNew: boolean;                // NOTA: Backend puede enviar is_new (snake_case)
-}
-
-export interface CompanySelection {
-  company_id: string;           // ✅ UUID string
-  company_name: string;         // ✅ string
-  logo?: string;                // ✅ optional
-  role_names: string[];         // ✅ string[]
-  is_new: boolean;              // ✅ boolean (may need isNew alias)
-}
-```
-
-### 4. Data Extraction Layer (AuthService)
-
-**Source:** `frontend/src/app/services/auth.service.ts` → `login()` method
-
-**PIPELINE:**
-1. HTTP POST `/api/v1/auth/login` → ✅ Returns `ApiResponse<CompanyAccessDto>`
-2. Tap operator intercepts → receives `response: { status, data, message, meta }`
-3. **EXTRACTION:** `const data = response?.data;` (NOT `response?.data?.data`)
-   - ✅ `data` now contains the `CompanyAccessDto` object
-   - ✅ `data.selection_token` is directly accessible
-4. **DEFENSIVE MAPPING:** Companies array handles both snake_case and camelCase:
-   ```typescript
-   is_new: c.is_new || c.isNew || false  // Handles both notations
-   ```
-
-### 5. Interceptor Deserialization Strategy
-
-**Source:** `frontend/src/app/core/interceptors/auth.interceptor.ts`
-
-**ROLE:** HTTP header injection (NOT response transformation)
-- ✅ Reads `AuthService.currentContext()` for `access_token` and `companyId`
-- ✅ Injects `Authorization: Bearer <token>` header
-- ✅ Injects `X-Company-Id: <companyId>` header for all subsequent requests
-- ℹ️ **Does NOT deserialize** the response body (leave to AuthService)
-
-### 6. Session Persistence Flow
-
-| Phase | Storage | Content |
-|-------|---------|---------|
-| **T1 (Login)** | `sessionStorage` | `selection_token` (JWT - temporary) |
-| **T1 (Login)** | Signal | `authStep = 'handshake'` |
-| **T2 (SelectCompany)** | `localStorage` | `currentContext` (access_token, companyId, role, permissions) |
-| **T2 (SelectCompany)** | Signal | `authStep = 'authenticated'` |
-| **Persist** | `localStorage` | `_ic_auth_ctx`, `_ic_auth_user`, `_ic_auth_accesses` |
-
-### 7. Known Issues & Resolutions
-
-**Issue 1:** Backend sends `is_new` (snake_case) but frontend expects `isNew` (camelCase)
-- ✅ **Fixed:** Defensive mapping in AuthService: `c.is_new || c.isNew || false`
-
-**Issue 2:** Double-wrapping assumption (`response?.data?.data`)
-- ✅ **Fixed:** Removed double-wrapping; now only `response?.data` (single level)
-
-**Issue 3:** Null/undefined checks inadequate
-- ✅ **Fixed:** Added explicit null checks for `companies` array and fallback values
-
-### 8. Validation Checklist for Future Sessions
-
-Before deploying changes:
-1. ✅ Verify `ApiResponse` structure in `common/responses.py`
-2. ✅ Verify `CompanyAccessDto` schema in `auth_schemas.py`
-3. ✅ Confirm backend endpoint returns `response_model=ApiResponse`
-4. ✅ Confirm frontend `LoginResponse` matches backend `CompanyAccessDto` + `selection_token`
-5. ✅ Test HTTP response in DevTools to confirm structure
-6. ✅ Verify `sessionStorage.selection_token` is set after login
-7. ✅ Verify `TenantSelectionComponent` renders when `authStep === 'handshake'`
-8. ✅ Verify `selectCompany()` sends `X-Selection-Token` and `X-Company-Id` headers
-9. ✅ Verify navigation to `/onboarding/onboarding-wizard` or `/dashboard` based on `is_new`
+Files: partner-modal, concept-modal, uom-modal, master-data.service, product-wizard.component (NEW), product-catalog.component
+Status: BUILD CLEAN 17:41:55
 
 ---
 
-## 2026-02-06: Data Flow Homologation & Interceptor Architecture (FINAL)
+### [2026-03-30] â€” Session 6: Inventory Context Virtualization & Routing Match
+- **Decision**: Elevate Physical Warehouse Selection to a Global Module Context and resolve 404/422 discrepancies in cross-border transfers.
+- **Reason**: The transfer routing payload lacked strict alignment with FastAPI boundaries (`/api/v1/inventory/transfers/inter-company`) and required mandatory Pydantic structural components (like `uom_id`). From a UX perspective, physical operators do not select "origin" per transaction; they operate from a fixed terminal logic.
+- **Impact**:
+-   **Architecture Pivot (Pending Modal)**: Mapped out the requirement for a mandatory Warehouse Selection Modal upon entering the Inventory Module. This will act as the genesis for location-aware RBAC.
+-   **Cascade Reliability**: Deprecated the flat origin card in favor of a global header dropdown `originWarehouseId` that automatically back-computes the parent `company_id` for zero-trust routing.
+-   **Compliance Fallback**: Injected a proxy `uom_id` and geographical proxy `company_id` into the payload and UI computed functions to allow full utilization of the sparse backend Docker seed data.
+- **Status**: âœ… COMPLETED
 
-### **The Complete Picture: Backend → Interceptor → Service**
+### [2026-03-30] â€” Session 5: Dashboard High-Fidelity & Industrial Resilience
+- **Decision**: Refactor `InventoryService` for fault-tolerant catalog loading and harmonize "Mission Control" UI for high-contrast/tablets (iPad Pro).
+- **Reason**: 500 errors in secondary catalogs (Categories/Brands) were crashing the entire dashboard due to strict `Promise.all` logic. The header selector had z-index occlusion and poor contrast on high-resolution displays.
+- **Impact**:
+-   **Header Minimalism**: Transitioned to a borderless, transparent context selector with `z-20` elevation and `group/tenant` click-protection.
+-   **Technical Resilience**: Implemented `Promise.allSettled()` in `loadCatalogs` and `X-Silent-Error` header handling to suppress non-fatal dashboard alerts.
+-   **Iconography & UX**: Standardized `IN/OUT` and `ENTRADA/SALIDA` movement mappings. Added a premium "Back to Dashboard" exit path in the document confirmation flow.
+-   **Visual Symmetry**: Calibrated "Mission Control" title scaling (5xl desktop / 3xl mobile) to improve layout balance.
+- **Status**: âœ… COMPLETED
 
-| Layer | Output Structure | Input to Next Layer | Comments |
-|-------|------------------|-------------------|----------|
-| **Backend** | `{ status, data: { selection_token, user_id, ... }, message, meta }` | Raw HTTP Response | Always wraps in ApiResponse (middleware ensures this) |
-| **HTTP Wire** | Same as above (wire protocol) | HttpResponse<ApiResponse<T>> | Network transmission |
-| **API Interceptor** | Extracts `.data` | `{ selection_token, user_id, companies, ... }` | **CRITICAL:** Unwraps ApiResponse, passes clean object |
-| **AuthService.tap()** | Receives clean object | `data.selection_token`, `data.companies` | No `.data` prefix needed - interceptor already unwrapped |
-| **AuthService Signals** | Publishes state | Frontend reactive components | `authStep`, `availableAccesses`, `currentUser` |
+### [2026-03-24] â€” Session 4: Full Frontend Internationalization (i18n) & Localization
+- **Decision**: Replace all hardcoded Spanish strings and labels with a dynamic, key-based translation system (`TranslatePipe` and `TranslationService`).
+- **Reason**: Enable multi-language support (ES/EN) across all core modules to prepare for international deployment and standardize system messages.
+- **Impact**:
+-   **Infrastructure**: Implemented a reactive, Signal-based i18n engine with fallback support.
+-   **Module Localization**: Completed the migration for `Login`, `Inventory Dashboard`, `Product Catalog`, `User Management`, and `Main Layout`.
+-   **Bug Fix**: Resolved a critical template compilation error (`NG5002`) in the `InventoryDashboardComponent`.
+-   **Standardization**: Populated `en.json` and `es.json` with comprehensive keys for both UI labels and procedural toast notifications.
+- **Status**: âœ… COMPLETED
 
-### **Why This Architecture?**
+### [2026-03-24] â€” Session 3: Tenant Selector Homologation & Catalog Restoration
+- **Decision**: Refactor `MainLayoutComponent`'s tenant selector to match the `Dashboard`'s high-fidelity UI and logic, and restore the "Nuevo Producto" action in the catalog.
+- **Reason**: Discrepancy between header and dashboard selectors caused user confusion, and the missing "Create" button in the catalog was a major functional blocker.
+- **Impact**:
+-   **Header Identity**: Unified `activeCompanyName()` resolution using strictly current shared signals.
+-   **Catalog Action**: Added "Nuevo Producto" button with context-aware validation (requires active tenant).
+-   **Persistence**: Implemented `localStorage` pack for company list to bridge the state between refresh cycles.
+-   **Status**: âœ… COMPLETED
 
-1. **Backend**: Global middleware ensures consistency (no mixed response formats)
-2. **Interceptor**: Single responsibility - unwrap ApiResponse envelope
-3. **Services**: Only deal with business objects (no protocol noise)
-4. **Components**: Subscribe to signals, never parse ApiResponse
+### [2026-03-23] â€” Session 2: UX Resilience & Rate Parsing Robustness
+- **Decision**: Refactor `MainLayoutComponent` moving the `CompanySelector` to the header and enforce `scopes` strict mapping inside `AuthService` logic.
+- **Reason**: Fix silent failures where the sidebar menu wouldn't render the `Inventarios` tab for users despite possessing valid scopes, and allow a true global "hot-switching" pattern for the user without needing to open the sidebar.
+- **Impact**:
+  - `CompanySelector` is fully operational globally with instant signal propagation across all services.
+  - `NavigationService` correctly isolates tabs defaulting securely to the dashboard instead of rendering a blank view if permissions are delayed.
+  - Reduced component friction in standard workflows.
+- **Status**: âœ… COMPLETED
 
-### **CRITICAL RULE: The Interceptor Is The Aduana (Customs)**
+### [2026-03-23] â€” Phase 35: Compliance Binacional & Smoke Testing
+- **Decision**: Enforce customs documentation only when Country IDs differ in transfers.
+- **Reason**: Legal compliance in cross-border operations (e.g. MX-USA) requires traceable customs references (Pedimento). Handled via BusinessRuleException in the handler and conditional form fields in Angular.
+- **Impact**:
+  - InventoryTransferComponent displays customs_pedimento input only for international routes.
+  - InventoryDocumentsComponent shows legal cues (gavel icon) for verified binational transfers.
+  - Multi-company transfers now block without pedimento if country codes mismatch.
+- **Status**: âœ… COMPLETED
 
-- **Incoming (Network):** `ApiResponse` envelope
-- **Outgoing (Services):** Clean business data
-- **Never** bypass the interceptor by assuming different structures
-- **Always** access `response.field` directly in services (interceptor handles unwrapping)
+# Engineering Log - Interno Core MES
 
-### **Evidence of Correctness (Audit 2026-02-06)**
+### [2026-04-10] — Session 5: Partner Creation Integration & UI Stability
+- **Decision**: Integrate a unified `PartnerModalComponent` across all transactional modules and implement `@if` based visibility.
+- **Reason**: Reduce code duplication and fix "phantom overlays" caused by `[hidden]` logic. Ensure partners can be created on-the-fly during inventory movements without losing context.
+- **Impact**:
+  - **Shared Component**: Created `PartnerModalComponent` (Standalone) with simplified validation (RFC/Email optional).
+  - **Visibility**: Implemented `@if (isAddingPartner())` pattern, ensuring DOM isolation for modals.
+  - **Enum Synchronization**: Synchronized `PartnerType` enum between Angular services and FastAPI models.
+  - **UX Polish**: Added close (X) buttons to all critical modals and improved saving-state recovery on errors.
+- **Status**: ✅ COMPLETED
 
-✅ **Login Endpoint:** Returns `ApiResponse(status='success', data=CompanyAccessDto(...))`  
-✅ **Select-Company Endpoint:** Returns `ApiResponse(status='success', data={access_token, ...})`  
-✅ **Global Middleware:** Detects ApiResponse and passes through (no double-wrapping)  
-✅ **Interceptor:** Extracts `.data` from both responses  
-✅ **AuthService:** Receives clean object in both cases  
-✅ **No Inconsistencies:** Both endpoints follow the same contract  
 
-### **Future-Proofing Checklist**
+## Architecture Decisions
 
-- [ ] If adding new endpoints: Always return `ApiResponse` (backend must enforce)
-- [ ] If modifying interceptor: Remember it's the ONLY place that unwraps ApiResponse
-- [ ] If adding direct HTTP calls: They will receive ApiResponse until interceptor processes them
-- [ ] If debugging response issues: Check Network tab (ApiResponse), then Console (after interceptor unwraps)
+### [2026-03-23] Ã¢â‚¬â€� Phase 34: ICT Lifecycle Actions & WAC Precision
+- **Decision**: Implement manual "Receive" and "Reclaim" actions in `InventoryDocumentsComponent`.
+- **Reason**: Close the operational loop. Receivers need to verify quantities physically before the ledger reflects the final IN. Senders need a way to recover stock if the receiver rejects or abandons the transfer (Reclaim).
+- **Impact**: 
+  - Added "Confirm Receipt" and "Reclaim Stock" buttons with contextual behavior.
+  - Implemented `receiveTransfer()` and `revertTransfer()` in `InventoryService` connected to the backend.
+  - Added specific icons (`outbox`, `move_to_inbox`) and border-tag colors (Indigo/Cyan) to the movement ledger.
+- **WAC Validation**: Successfully verified mathematical recalculation of WAC in the UI after receiving 100u ($20.00 final WAC for MAT-001).
+- **Status**: Ã¢Å“â€¦ COMPLETED
 
-### [v1.1.5] - Security Hardening & App Initialization
-- **Resumen:** Se implementó un blindaje de seguridad para evitar el acceso no autorizado al Dashboard mediante manipulación de estado o borrado de caché.
-- **Componentes Afectados:**
-  - `AuthGuard`: Refactorizado a lógica síncrona estricta. Verifica `localStorage` directamente antes de permitir la navegación.
-  - `AppInitializer`: Nueva factoría en `app.config.ts` que bloquea el arranque de la app hasta que `AuthService.restoreSession()` finaliza.
-  - `AuthService`: Lógica de `switchCompany` ajustada para limpiar `access_token` pero preservar `selection_token` (Handshake).
-- **Correcciones:**
-  - **Fuga de Dashboard:** Solucionado. Si se borra `_ic_auth_ctx`, el guard redirige a `/login` instantáneamente.
-  - **Multitenancy:** El interceptor ahora emite advertencias si se intenta una petición autenticada sin `X-Company-Id`.
+### 1. Zoneless Angular 19
+- **Decision:** Use `provideExperimentalZonelessChangeDetection()`.
+- **Reason:** Maximize performance for industrial tablets and reduce bundle size.
+- **Impact:** All change detection must be triggered via Signals or manual `markForCheck`.
 
-### [v1.1.6] - Environment Configuration Prep
-- **Resumen:** Preparación para despliegue híbrido (AWS/On-Premise).
-- **Acción:** Se validó que las URLs base no estén hardcodeadas.
-- **Estrategia:**
-  - Local: `http://localhost:8000/api/v1`
-  - Producción: Inyección mediante `environment.ts` o `window.env` (Runtime Config) para contenedores Docker agnósticos.
+### 2. Multi-tenant Handshake (T1/T2)
+- **Decision:** Two-step authentication flow.
+- **Phase 1 (Login):** Credentials -> `selection_token` + Company List.
+- **Phase 2 (Selection):** `selection_token` + `company_id` -> `access_token` (JWT).
+- **Reason:** Securely handle users with access to multiple plants/companies.
 
-### [v1.1.7] - Zero Trust Security Implementation
-- **Resumen:** Se eliminó la confianza implícita en `localStorage`. Ahora el sistema valida criptográficamente la sesión con el backend antes de iniciar.
-- **Componentes Críticos:**
-  - **AuthService:** `restoreSession()` ahora es asíncrono y realiza una petición `GET /auth/validate`. Si falla, ejecuta `logout()`.
-  - **AppInitializer:** Configurado para bloquear el arranque de la aplicación (`Promise`) hasta que la validación del token responda.
-  - **AuthInterceptor:** Implementa un "Kill Switch". Cualquier respuesta `401 Unauthorized` provoca un logout inmediato y redirección a login.
-  - **AuthGuard:** Ahora verifica estrictamente el signal `authStep() === 'authenticated'`, garantizando que la validación de red pasó exitosamente.
-- **Resultado:** Inmunidad a sesiones "zombie" o tokens expirados en caché local.
+### 3. Identity Triple
+- **Decision:** Every document must expose UUID, Sequence, and Folio.
+- **Reason:** Compliance with audit trails (Sequence) and user-friendly search (Folio).
 
-### [v1.1.8] - Zero Trust Architecture Implementation
-- **Resumen:** Implementada validación activa de sesión en el arranque (Zero Trust Architecture). Se eliminó la dependencia exclusiva de localStorage para la navegación inicial.
-- **Cambios Técnicos:**
-  - **AuthService:** `restoreSession()` refactorizado para retornar `Observable<boolean>` y validar contra endpoint `/validate`.
-  - **AppConfig:** `APP_INITIALIZER` configurado como bloqueante (`lastValueFrom`) esperando la validación del token.
-  - **AuthGuard:** Blindado para depender únicamente del signal `authStep` en memoria.
-  - **AuthInterceptor:** Kill switch activado para errores 401 y 0 (Server Offline).
+### 4. Immutable Ledger
+- **Decision:** Documents in `CONFIRMED` state are `readonly`.
+- **Reason:** Maintain data integrity in the inventory ledger.
 
-### [v1.1.8] - Zero Trust Architecture Implementation
-- **Resumen:** Implementada validación activa de sesión en el arranque (Zero Trust Architecture). Se eliminó la dependencia exclusiva de localStorage para la navegación inicial.
-- **Cambios Técnicos:**
-  - **AuthService:** `restoreSession()` refactorizado para retornar `Observable<boolean>` y validar contra endpoint `/validate`.
-  - **AppConfig:** `APP_INITIALIZER` configurado como bloqueante (`lastValueFrom`) esperando la validación del token.
-  - **AuthGuard:** Blindado para depender únicamente del signal `authStep` en memoria.
-  - **AuthInterceptor:** Kill switch activado para errores 401 y 0 (Server Offline).
+### 5. Inter-Company Transfer Flow (WMS -> Inventory)
+- **Origination:** Originated in WMS as `TRANSFER` type via `POST /transfers/inter-company`.
+- **Validation:** `wms_service` validates that both source and target companies belong to the same `group_id` (Holding).
+- **Kardex Dispatch:** 
+    - `OUT` movement (`TRANSFER_DISPATCH`) from source warehouse.
+    - `IN` movement (`TRANSFER_IN_TRANSIT`) to a Virtual Transit Warehouse (UUID5 hash based on target warehouse).
+- **Monitoring:** `TransitAgeWorker` monitors transit time.
+    - > 24 hrs: `WARNING`.
+    - > 48 hrs: Critical `P3 Ticket` in `tickets_service`.
+- **Reception:**
+    - `OUT` movement (`TRANSFER_RECEIVE_TRANSIT`) from virtual transit warehouse.
+    - `IN` movement (`TRANSFER_RECEIVE`) to destination real warehouse.
 
-### [v1.2.0] - Zoneless Architecture & MES Signals Integration
-- **Resumen:** Se ha completado la transición a una arquitectura **Zoneless** pura en el frontend, eliminando la dependencia de `zone.js` y confiando exclusivamente en **Angular Signals** para la detección de cambios y la reactividad.
-- **Componentes Afectados:**
-  - `AuthInterceptor`: Ahora accede a `AuthService.activeCompanyId()` (Signal) de forma síncrona para inyectar el header `X-Company-Id`, garantizando el contexto del tenant sin overhead de Observables.
-  - `ProductionService`: Implementado usando `resource` y `computed` signals para manejar el estado del Dashboard OEE.
-- **Identidad Triple (Verificación UI):**
-  - Se verificó que las interfaces en `src/app/core/models/mes.types.ts` reflejen la estructura del backend: `id` (UUID), `sequence_number` (Int) y `folio` (String).
-  - Las vistas de Producción están preparadas para mostrar el `folio` como identificador principal y usar `id` para ruteo.
-- **Decisión Técnica (Zoneless):**
-  - **Por qué:** Para reducir el bundle size y mejorar el rendimiento en dispositivos industriales (tablets de piso) eliminando el monkey-patching de Zone.js.
-  - **Cómo:** Se configuró `provideExperimentalZonelessChangeDetection()` en `app.config.ts`.
-- **Inmutabilidad (UX):**
-  - Se establecieron las bases para que los formularios de `ProductionResult` respeten el estado `CONFIRMED`, bloqueando la edición mediante Signals derivados (`isEditable = computed(() => status() === 'DRAFT')`).
+### 6. Audit & Visualization Points
+- **Real-Time Dashboard:** `GET /dashboard/stock` shows `available` vs `in_transit_quantity`.
+- **Immutable Ledger:** `movements` (Inventory) and `documents` (WMS) tables. Auto-signed via `BaseRepository` with `created_by`, `company_id`, and `transaction_id`.
+- **Operational Logs:** Worker alerts logged to application console (Docker) and aggregated in CloudWatch/Kibana.
+- **Inventory Service Sync**: Updated to support Postgres real data and Money VO composites.
 
-### [SPEC-UPDATE-2026-02-11] - Definición Técnica de Autenticación y WMS
-- **Resumen:** Se han incorporado las especificaciones técnicas detalladas para el Handshake de 2 pasos, la gestión de WMS y la paridad de entornos AWS/Local.
-- **Cambios en Contexto:**
-  - **Auth Architecture:** Definición estricta del flujo `login` -> `selection_token` -> `selectCompany` (Header `X-Selection-Token`).
-  - **Storage:** Separación de tokens temporales (Session) y persistentes (Local).
-  - **WMS:** Jerarquía de datos (Tenant > Warehouse > Zone > Bin) y filtrado de precios contextual.
-  - **Onboarding:** Lógica para el flag `is_new` y el endpoint `/complete-onboarding`.
-  - **Infraestructura:** Estrategia de build agnóstica para S3/CloudFront o Nginx.
-  - **Seguridad:** Protocolo de manejo de errores 401/403 en `MultiTenantInterceptor`.
 
-## 🔍 AUDITORÍA DE INTEGRIDAD: BACKEND VS FRONTEND (2026-02-13)
-
-### 1. Sincronización de Endpoints (AuthService)
-
-| Endpoint Backend | Método Frontend | Estado | Hallazgo |
-|---|---|---|---|
-| `POST /api/v1/auth/login` | `login()` | ✅ Sincronizado | Maneja correctamente `selection_token` y lista de empresas. |
-| `POST /api/v1/auth/select-company` | `selectCompany()` | ✅ Sincronizado | Envía contexto para obtener `access_token`. |
-| `GET /api/v1/auth/me` | `restoreSession()` | ⚠️ **Discrepancia** | Frontend llama a `/validate` (v1.1.8) pero Backend expone `/me`. Requiere refactor inmediato. |
-
-### 2. Handshake de Seguridad (AuthInterceptor)
-- **Fase 1 (Discovery):** El interceptor detecta correctamente el `selection_token` en `sessionStorage`.
-- **Fase 2 (Context):** Se confirma la transición a `access_token` en `localStorage` tras la selección.
-- **Transporte:** Se debe validar que el `selection_token` se envíe vía header `X-Selection-Token` (según `FRONTEND_CONTEXT`) para evitar conflictos con el Bearer estándar.
-
-### 3. Aislamiento Multi-Tenant (X-Company-Id)
-- **Inyección:** Confirmada en `AuthInterceptor` (referido como `MultiTenantInterceptor` en especificaciones).
-- **Regla:** Se inyecta leyendo el Signal `activeCompanyId()`.
-- **Cobertura:** Cubre todas las peticiones HTTP excepto las de `auth/login` y `assets`.
-
-### 4. Action Items (Prioridad Alta)
-1.  **Refactor Zero Trust:** Cambiar llamada de `/validate` a `/api/v1/auth/me`.
-2.  **Onboarding Guard:** Implementar bloqueo de navegación si `is_new === true`.
-3.  **Naming Convention:** Unificar nomenclatura de interceptor (`Auth` vs `MultiTenant`) en documentación y código.
-
-## 2026-02-13: Resolución de Auditoría de Integridad
-*   **Hito**: Sincronización Backend-Frontend v2.1
-*   **Estado**: ✅ COMPLETADO
-*   **Cambios Aplicados**:
-    *   **Endpoint `/me`**: Se actualizó `AuthService.restoreSession()` para consumir `GET /api/v1/auth/me`, alineándose con el contrato Swagger del backend.
-    *   **MultiTenantInterceptor**: Se creó el interceptor unificado que maneja la lógica condicional de cabeceras:
-        *   `X-Selection-Token` para el handshake (select-company).
-        *   `Authorization` + `X-Company-Id` para el resto de peticiones.
-    *   **OnboardingGuard**: Implementado guard funcional que redirige a `/onboarding` si el signal `isNewUser()` es true.
-*   **Deuda Técnica Resuelta**:
-    *   Eliminada la ambigüedad entre `AuthInterceptor` y `MultiTenantInterceptor`.
-    *   Cerrada la brecha de seguridad donde usuarios nuevos podían acceder al dashboard.
-
-### [v1.3.0] - Implementación Módulo de Catálogo (Master Data)
-- **Resumen:** Se ha creado la infraestructura base para el módulo de Catálogo, conectando con el `master_data_service` del backend.
-- **Cambios Técnicos:**
-  - **Modelos:** Definición de interfaces en `catalog.types.ts` con paridad `snake_case` (backend) y soporte para `ApiResponse`.
-  - **Servicio:** `MasterDataService` implementado para gestionar Productos, UOMs, Categorías y Marcas.
-  - **Componentes:**
-    - `ProductListComponent`: Tabla reactiva con Signals y filtros en cliente.
-    - `UomManagerComponent`: CRUD básico para gestión de unidades.
-  - **Arquitectura:** Uso estricto de `HttpClient` que aprovecha el `AuthInterceptor` existente para la inyección de `X-Company-Id`.
-  - **Value Objects:** Definición de interfaz `Money` para futuros usos en precios.
-
----
-
-## [2026-02-23] Arquitectura de Resiliencia y Telemetría UI
-
-### 1. Cambio Arquitectónico: Offline-First (Read-Only)
-Se ha implementado un patrón de **Cache-Then-Fallback** en los servicios críticos del frontend (`MasterDataService`, `WmsService`).
-- **Comportamiento:**
-  - Las peticiones exitosas guardan la respuesta en `localStorage` con prefijo `interno_cache_`.
-  - Si la API falla (Status 0, 500, 404), el servicio intercepta el error y retorna los datos cacheados usando `of()`.
-  - Esto permite que la aplicación siga siendo funcional en modo lectura incluso si los microservicios de backend están caídos.
-
-### 2. Nuevo Componente: SystemHealthService
-Se creó un servicio centralizado (`src/app/core/services/system-health.service.ts`) para monitorear el estado de los microservicios.
-- **Estados:**
-  - 🟢 **Online:** Todos los servicios responden (`auth`, `masterData`, `wms`).
-  - 🟡 **Degraded:** Fallo en servicios de datos (WMS/MasterData). Se sirve contenido de caché.
-  - 🔴 **Offline:** Fallo en `AuthService`. Bloqueo crítico.
-- **Signal `isReadOnly`:** Computado global que se activa cuando el estado no es `online`. Deshabilita botones de escritura (Guardar/Crear) en toda la UI.
-
-### 3. Correcciones de API (OpenAPI Sync)
-- **Master Data:** Se corrigió la ruta de Unidades de Medida de `/uoms/` a `/api/v1/ums/` para coincidir con la especificación del backend.
-
-### 4. Variables de Entorno y Testing
-- **Puerto WMS:**
-  - Producción/Dev: `8002`
-  - Testing de Resiliencia: `8099` (Simula caída para verificar estado Ámbar).
-
-### 5. Deuda Técnica / Pendientes (Próxima Sesión)
-- **UI Debug:** El indicador "Foquito" en `HeaderComponent` no es visible. Revisar estilos Tailwind/Z-Index.
-- **Validación de Hidratación:** Confirmar que las tablas se llenan correctamente desde `localStorage` tras un reinicio simulado.
-
----
-
-### [v1.4.0] - Implementación de Pilares de Identidad (IAM v2)
-- **Resumen:** Se han implementado y refactorizado los flujos de identidad principales para alinearlos con las especificaciones de negocio y el estilo visual de Metronic v9.
-- **Login & Multi-Tenant:**
-  - **Cambiado:** `AuthService.login()` ahora detecta si un usuario tiene una sola empresa y ejecuta la selección automática, omitiendo la pantalla de selección.
-- **Recuperación de Contraseña:**
-  - **Añadido:** Componentes `ForgotPasswordComponent` y `ResetPasswordComponent` con formularios y lógica de servicio.
-  - **Añadido:** Métodos `forgotPassword()` y `resetPassword()` en `AuthService`.
-- **Ingreso por Código:**
-  - **Cambiado:** `CompleteRegistrationComponent` ahora implementa la lógica `onSubmit` para validar el código y realizar un auto-login, redirigiendo al dashboard.
-- **Registro de Empresa:**
-  - **Verificado:** El flujo de `RegisterCompanyComponent` ya cumple con el requisito de "Auto-Login" post-registro.
-- **Razón:** Unificar y robustecer todos los puntos de entrada y gestión de identidad del usuario final, cerrando brechas funcionales y mejorando la experiencia de usuario.
-
----
-
-### [v1.4.1] - Implementación de Cliente para Master Data Service
-- **Resumen:** Se ha creado el cliente de API para el `master-data-service`, permitiendo al frontend consumir catálogos centrales como Unidades de Medida.
-- **Cambios Técnicos:**
-  - **Modelos:** Se añadieron las interfaces `UOMRead`, `ProductRead`, `BrandRead`, y `CategoryRead` a `api.types.ts`, alineadas con el Swagger del servicio.
-  - **Servicio:** Creación de `MasterDataService` con el método `listUoms()` que apunta a `/api/v1/ums/`.
-  - **Componente de Prueba:** Se generó `UomListComponent` para validar la conexión y listar las UOMs, demostrando la correcta integración del interceptor (`X-Company-Id`).
-- **Razón:** Habilitar la gestión y visualización de datos maestros en la UI, un paso fundamental para los módulos de Inventario y Producción.
-
----
-
-### [v1.4.2] - Habilitación de Trazabilidad de Auditoría en UI
-- **Resumen:** Se ha implementado la visualización de los campos de auditoría (`created_at`, `created_by`, etc.) en el módulo de Master Data para proveer trazabilidad al usuario final.
-- **Cambios Técnicos:**
-  - **Modelos:** Se creó la interfaz `AuditBase` en `api.types.ts` con los campos de auditoría y se refactorizaron los modelos `UOMRead`, `ProductRead`, `BrandRead` y `CategoryRead` para heredar de ella.
-  - **Componente:** Se actualizó `uom-list.component.ts` para añadir una columna de "Auditoría" que muestra la información de creación y modificación en un tooltip al pasar el mouse sobre un icono.
-  - **UX:** Se utiliza el pipe `date:'medium'` para formatear las fechas de auditoría de manera legible.
-- **Razón:** Aumentar la transparencia y la capacidad de auditoría del sistema desde la interfaz de usuario, permitiendo a los administradores ver quién y cuándo se creó o modificó un registro maestro.
-
----
-
-### [v1.3.2] - Implementación de Flujos de Registro e Invitación (IAM v2)
-- **Resumen:** Se han creado los componentes y métodos de servicio para soportar el registro de nuevas empresas y la invitación de usuarios, alineando el frontend con el `auth_service` v2.
-- **Componentes Nuevos (Esqueletos):**
-  - `RegisterCompanyComponent`: Formulario standalone para el auto-registro de nuevos clientes SaaS.
-  - `CompleteRegistrationComponent`: Vista para que los usuarios invitados finalicen su registro, capturando el `code` de la URL.
-  - `UserInviteModal`: Componente de UI para que los administradores inviten a nuevos miembros.
-- **Servicio (`AuthService`):**
-  - **Añadido:** `registerCompany()` para consumir `POST /v2/public/register-company`.
-  - **Añadido:** `completeRegistration()` para consumir `POST /v2/public/complete-registration`.
-  - **Añadido:** `inviteUser()` para consumir `POST /v2/admin/users/invite`.
-- **Razón:** Cerrar la brecha funcional identificada en la auditoría de integración con IAM v2, permitiendo el ciclo de vida completo del usuario y la empresa desde la UI.
-
----
-
-## [2026-02-24] UI Telemetry & Write-Lock Implementation
-
-### 1. UI Telemetry (Health Badge)
-- **Componente:** `SystemHealthService` ahora actúa como el sistema nervioso central para la reactividad de la UI a la salud del backend.
-- **Integración:** `MasterDataService` y `WmsService` ahora reportan activamente su estado (activo/caído) al `SystemHealthService` en cada llamada a la API (éxito o `catchError`).
-- **Feedback Visual:** El "foquito" del avatar (Health Badge) en el `HeaderComponent` es ahora completamente reactivo:
-  - 🟢 **Online:** Todos los servicios responden.
-  - 🟡 **Degraded:** Un servicio de datos (WMS/MasterData) ha fallado; el sistema opera desde el caché.
-  - 🔴 **Offline:** El `AuthService` es inalcanzable.
-
-### 2. Bloqueo de Escritura en Modo Degradado
-- **Mecanismo:** Se ha implementado un nuevo signal computado `isReadOnly` dentro de `SystemHealthService`. Devuelve `true` si `overallStatus` no es `'online'`.
-- **Impacto:** Este signal es consumido por los componentes de formularios (ej. "Crear Producto") para deshabilitar los botones de "Guardar" y mostrar un mensaje de advertencia.
-- **Propósito:** Prevenir la inconsistencia de datos al bloquear operaciones de escritura cuando uno o más microservicios no están disponibles, forzando un modo de "solo lectura" durante las interrupciones.
-### [v1.4.3] - SaaS Scale & Billing Awareness (Phase 18 & 10.6)
-- **Resumen:** Integración del flujo de Stripe Billing y notificaciones transaccionales profesionales.
-- **Cambios Tecnicos:**
-  - **Billing:** El frontend ahora soporta el ruteo hacia el `subscription_service` (port 8002) para el embedded checkout.
-  - **Interceptors:** Refuerzo de `X-Company-Id` para asegurar que las sesiones de pago estén aisladas por tenant.
-  - **Notificaciones:** Soporte para la visualización de renders HTML profesionales con branding (Logo SVG Base64).
-- **Razón:** Habilitar el modelo de negocio SaaS con activación automática y feedback visual de primer nivel.
-
----
-
-## 📅 Roadmap Próxima Jornada
-1.  **Pulse UI**: Gráficas de barras apiladas (Stacked Bar Charts) para producción horaria.
-2.  **Andon escalation**: UI de configuración de tiempos de respuesta para supervisores.
-3.  **Audit Evidence**: Carga de imágenes para paros de línea (MES).
-
----
-**Status Final de Sesión (2026-03-06)**: 🚀 Global 92% Ready.
+ # #   2 0 2 6 - 0 3 - 3 0 :   I n v e n t o r y   C o n t e x t   R e f i n e m e n t   &   S t a b i l i t y 
+ # # #   <Ø×ßþ  I n v e n t o r y T r a n s f e r C o m p o n e n t 
+ -   F i x e d   s e l e c t i o n   f i l t e r i n g :   O r i g i n   l i s t   n o w   s c o p e s   o n l y   t o   t h e   c u r r e n t   ' X - C o m p a n y - I D ' . 
+ -   G r o u p e d   d e s t i n a t i o n   s e l e c t o r :   C l e a r l y   s e p a r a t e s   I n t e r n a l   v s   E x t e r n a l   e n t i t i e s . 
+ -   ' D e f i n i d o   p o r   R e c e p t o r '   l o g i c :   A u t o m a t e d   f o r   i n t e r - c o m p a n y   m o v e m e n t s . 
+ -   T h e m e   i s o l a t i o n :   R e p l a c e d   h a r d c o d e d   s t y l e s   w i t h   s u r f a c e - a w a r e   T a i l w i n d   t o k e n s . 
+ 
+ # # #   =ØÝ  D a s h b o a r d S e r v i c e 
+ -   F i x e d   i n f i n i t e   c a l l   l o o p   f o r   m o v e m e n t s   f e e d . 
+ -   A d d e d   c i r c u i t   b r e a k e r   f o r   o f f l i n e   m o d e   ( s w i t c h e s   a u t o m a t i c a l l y   t o   s y n t h e t i c   d a t a ) . 
+ -   I n t e g r a t e d   ' X - C o m p a n y - I D '   h e a d e r   i n t o   t e l e m e t r y   p o l l i n g .  
+ 

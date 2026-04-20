@@ -1,31 +1,35 @@
+// temp_future/src/app/core/guards/tenant.guard.ts
 import { inject } from '@angular/core';
-import { CanActivateFn, Router, RouterStateSnapshot } from '@angular/router';
-import { AuthService } from '@services/auth.service';
+import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
-export const tenantGuard: CanActivateFn = (route, state: RouterStateSnapshot) => {
-  const authService = inject(AuthService);
+/**
+ * TenantGuard: Ensures a company is active and authorized.
+ */
+export const tenantGuard: CanActivateFn = (route, state) => {
+  const auth = inject(AuthService);
   const router = inject(Router);
+  
+  const activeCompanyId = auth.activeCompanyId();
+  const availableCompanies = auth.availableCompanies();
 
-  const activeCompany = authService.activeCompany();
-
-  // The authGuard should run first, ensuring we are authenticated and have a context.
-  // This guard handles the business logic redirection based on tenant status.
-  if (!activeCompany) {
-    // This is a fallback. authGuard should prevent this state.
-    return router.parseUrl('/login');
+  if (!auth.isAuthenticated()) {
+    router.navigate(['/auth/login']);
+    return false;
   }
 
-  const isNew = activeCompany.is_new;
-  const isGoingToOnboarding = state.url.startsWith('/onboarding/setup-warehouse');
-
-  if (isNew && !isGoingToOnboarding) {
-    console.log('[TenantGuard] 🚧 New company detected. Redirecting to onboarding.');
-    return router.parseUrl('/onboarding/setup-warehouse');
+  if (!activeCompanyId) {
+    // If authenticated but no company, send to selection
+    router.navigate(['/auth/select-company']);
+    return false;
   }
 
-  if (!isNew && isGoingToOnboarding) {
-    console.log('[TenantGuard] ⛔️ Company already configured. Redirecting to dashboard.');
-    return router.parseUrl('/dashboard');
+  // Double Check: Is the active company still in the allowed list?
+  const isAuthorized = availableCompanies.some(c => c.company_id === activeCompanyId);
+  if (!isAuthorized && availableCompanies.length > 0) {
+    console.error('[Security] Active company is not in the authorized list.');
+    router.navigate(['/auth/select-company']);
+    return false;
   }
 
   return true;

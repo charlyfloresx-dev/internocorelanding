@@ -57,6 +57,13 @@ def get_url():
         url = "postgresql+asyncpg://user:password@localhost:5433/wms_db"
     return str(url)
 
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table":
+        # Evitamos que microservicios intenten crear tablas 'globales' si ya existen
+        # o si no les corresponden, pero permitimos las necesarias para WMS.
+        return name not in ["companies", "business_groups", "users", "roles", "permissions"]
+    return True
+
 def run_migrations_offline() -> None:
     url = get_url()
     context.configure(
@@ -64,12 +71,17 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        include_object=include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 

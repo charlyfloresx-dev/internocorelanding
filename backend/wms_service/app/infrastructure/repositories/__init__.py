@@ -5,7 +5,7 @@ from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.product_price import ProductPrice, PriceType
-from common.models.base import BaseRepository
+from common.repository import BaseRepository
 
 class ProductPriceRepository(BaseRepository[ProductPrice]):
     def __init__(self, db: AsyncSession):

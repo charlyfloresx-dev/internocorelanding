@@ -25,6 +25,7 @@ class SQLAlchemyUserRepository(IUserRepository):
         )
 
     async def get_by_id(self, user_id: UUID) -> Optional[UserEntity]:
+        """Gets user by ID (bypass_tenant: global for auth handshake)"""
         result = await self.db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if user:
@@ -32,6 +33,7 @@ class SQLAlchemyUserRepository(IUserRepository):
         return None
 
     async def get_by_email(self, email: str) -> Optional[UserEntity]:
+        """Gets user by email (bypass_tenant: global for login process)"""
         result = await self.db.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
         if user:
@@ -39,6 +41,7 @@ class SQLAlchemyUserRepository(IUserRepository):
         return None
 
     async def get_by_identity_token(self, token: str) -> Optional[UserEntity]:
+        """Gets user by token (bypass_tenant: global for SSO/Tokens)"""
         result = await self.db.execute(select(User).where(User.identity_token == token))
         user = result.scalar_one_or_none()
         if user:

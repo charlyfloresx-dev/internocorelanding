@@ -1,6 +1,5 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import UserPreferences
+from uuid import UUID
+from app.domain.ports.notification_repository import INotificationRepository
 
 class PreferenceService:
     """Service to determine which notification channels to use for a user.
@@ -9,22 +8,17 @@ class PreferenceService:
     - For other priorities, respect the UserPreferences flags.
     """
 
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self, repo: INotificationRepository):
+        self.repo = repo
 
-    async def get_user_channels(self, user_id, company_id, priority: str):
+    async def get_user_channels(self, user_id: UUID, company_id: UUID, priority: str):
         # High priority overrides preferences
         if priority == "HIGH":
             return ["IN_APP", "EMAIL", "PUSH"]
 
-        # Retrieve user preferences for the tenant
-        result = await self.db.execute(
-            select(UserPreferences).where(
-                UserPreferences.user_id == user_id,
-                UserPreferences.company_id == company_id,
-            )
-        )
-        pref = result.scalar_one_or_none()
+        # Retrieve user preferences for the tenant via repository
+        pref = await self.repo.get_user_preferences(user_id, company_id)
+        
         channels = []
         if pref:
             if pref.receive_in_app:

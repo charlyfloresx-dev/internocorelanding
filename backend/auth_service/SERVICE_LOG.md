@@ -1,36 +1,62 @@
-# 📜 Auth Service - SERVICE LOG
+# Auth Service - Service Log
 
-> **Service:** Auth Service (Port 8001)
-> **Status:** Critical / Identity Provider — ✅ 100% Auditor Compliant
-
----
-
-### [2026-03-07] - Phase 19-20.5: Sanitization & Common Migration ✅
-- **Status**: ✅ COMPLETED — **0 CRITICAL errors** in Auditor v4.1
-- **PermissionChecker**: Extracted DB logic to `IPermissionRepository`. Pure domain logic now.
-- **SelectCompanyCommandHandler**: Refactored with `IUserCompanyRoleRepository`.
-- **Common Migration**: Updated imports from `common.domain.entities` to `common.models`.
-- **Compliance**: 1 remaining INFO-level warning (AuditService trace). No structural violations.
+## [2026-04-18] AWS Cloud Stability & CORS Resolution
+- **Lifecycle Bug Fix**: Inverted import sequence in `app/main.py`. Forced `load_aws_secrets` (via `app.core.config.settings`) to evaluate *before* `CORSMiddleware` locks memory origin list.
+- **Secrets Fix**: Removed read-only properties (`env_mode`) from AWS Secrets JSON to prevent `AttributeError` crashing the iterative dynamic injection.
+- **Deployment**: Automatic Docker registry push to `584094645491.dkr.ecr.us-east-2.amazonaws.com`.
+- **ECS**: Zero-downtime rotation applied to `auth-service-prod`.
 
 ---
 
-### [2026-03-04] - FASE 4: Trazabilidad y Gobernanza Sanitizada (Actualidad)
-- **Bloque de Seguridad:** Refactorización de `UserCompanyRole` para heredar de `MultiTenantBase`, garantizando cumplimiento de auditoría estricta.
-- **Trazabilidad:** Integración de `X-Trace-Id`. Registro de cada intento de login y selección vinculado a un ID de seguimiento único.
-- **Performance:** Indexación de tablas de relación para asegurar tiempos de respuesta `< 100ms` en el T2 Handshake.
+## [2026-04-17] Phase 55: AWS Industrial Deployment
+- **ECS Fargate**: Servicio desplegado exitosamente en clúster Ohio.
+- **ALB Connection**: Vinculación nativa con `Auth-Service-TG` en puerto 8000.
+- **Secret Injection**: Implementado patrón `entrypoint.sh` para bypass de Pydantic initialization.
+- **RDS Validated**: Conectividad verificada contra `interno-core-db` (.asyncpg).
+- **Status**: ✅ PRODUCTION READY
 
-### [2026-03-03] - FASE 3: Estructura de Clusters (Holdings)
-- **Modelo de Datos:** Introducción del modelo `BusinessGroup` (Tabla `business_groups`).
-- **Contexto Corporativo:** Inyección del claim `group_id` en el JWT.
-- **Propósito:** Habilitar la visibilidad compartida para Master Data y transferencias entre almacenes del mismo grupo.
+**`entrypoint.sh` - Shell-Level Secret Injection (BREAKING CHANGE POSITIVO)**
+- Se reemplazo la logica de carga de secretos desde Python a inyeccion directa en el shell
+- Antes: Python cargaba secretos post-instanciacion (Pydantic los ignoraba)
+- Ahora: `entrypoint.sh` extrae los secretos con `aws cli` y los exporta como env vars ANTES de que Python arranque
+- Esto garantiza que Pydantic lea los valores correctos en tiempo de import
 
-### [2026-02-25] - FASE 2: Integración de Suscripciones y Entitlements
-- **Interconectividad:** Implementación de handshake síncrono con `subscription_service` (Port 8002).
-- **Claims Dinámicos:** Inclusión del array `modules` según la licencia activa de la empresa.
-- **Modo Read-Only:** Implementación del flag `readonly: true` para bloquear escrituras en inquilinos con suscripciones vencidas.
+**`app/core/config.py` - Validacion Mejorada**
+- Agregada condicion inteligente: solo se sincroniza si el valor de `common_settings` es distinto al default
+- Agregado diagnostico de hostname con `flush=True` para CloudWatch
 
-### [2026-02-10] - FASE 1: Cimiento y Handshake T1/T2
-- **Protocolo:** Implementación de OAuth2 con Password Flow.
-- **Flujo de Acceso:** Creación del proceso de dos pasos (`/login` -> T1, `/select-company` -> T2).
-- **Estabilización:** Estandarización de UUIDs para consistencia entre desarrollo (`aiosqlite`) y producción (`PostgreSQL`).
-- **Optimización:** Uso de `lazy="selectin"` en SQLAlchemy para prevenir problemas de performance N+1.
+### Infraestructura AWS (Produccion Ohio us-east-2)
+
+| Recurso | Valor |
+|---|---|
+| ECS Cluster | `nexosuite-production-cluster` |
+| ECS Service | `auth-service-prod` |
+| Task Role | `InternoCore-Auth-TaskRole` |
+| ECR Image | `584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/auth-service:latest` |
+| RDS Endpoint | `interno-core-db.c920i68eetxr.us-east-2.rds.amazonaws.com:5432` |
+| Secret ID | `interno-core/auth-service/prod` |
+| Log Group | `/ecs/interno-core-auth` |
+| ALB | `InternoCore-ALB-276451613.us-east-2.elb.amazonaws.com` |
+
+### Variables de Entorno Requeridas en Task Definition ECS
+
+```
+CORE_ENV_MODE=aws
+AWS_SECRET_ID=interno-core/auth-service/prod
+AWS_REGION=us-east-2
+```
+
+### Lecciones Documentadas
+Ver: `docs/lecciones_aprendidas/aws_deployment_lessons_20260417.md`
+
+---
+
+## [2026-04-17] Limpieza de Logs (compatibilidad Windows charmap)
+- Eliminados todos los emojis y caracteres Unicode especiales de logs de arranque
+- Reemplazados por texto ASCII puro para compatibilidad con codificacion charmap de PowerShell
+- Afecta: `entrypoint.sh`, `app/core/config.py`, `common/config.py`
+
+---
+
+## [Versiones Anteriores]
+Ver historial de Git o `docs/historial/` para versiones anteriores del service log.

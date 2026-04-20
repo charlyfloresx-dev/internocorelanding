@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.dependencies import get_db, get_current_company
-from app.models.resource import Resource, ProductionArea, Facility
+from app.models.resource import Resource
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 import uuid
@@ -15,9 +15,7 @@ class ResourceRead(BaseModel):
     code: str = Field(description="Unique code identifying the line/cell")
     name: str = Field(description="Human readable name")
     description: Optional[str] = Field(None, description="Detailed description of the resource")
-    capacity_per_hour: float = Field(description="Theoretical pieces per hour")
-    default_labor: int = Field(description="Number of planned operators")
-    area_id: Optional[uuid.UUID] = Field(None, description="Parent production area ID")
+    active: bool = Field(True, description="Whether the resource is active")
     
     model_config = ConfigDict(
         from_attributes=True,

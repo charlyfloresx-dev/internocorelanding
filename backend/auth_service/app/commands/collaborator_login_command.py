@@ -1,0 +1,173 @@
+"""
+Collaborator Login Command
+==========================
+Orchestrates the physical identity authentication flow:
+  1. Receives raw RFID or PIN from the Kiosk frontend.
+  2. Calls the hr_service internal /verify endpoint via HTTP.
+  3. On success, mints a JWT with role=collaborator, wid, cid, is_supervisor.
+"""
+import uuid
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+import httpx
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
+from app.core.security import _encode
+from app.models.company import Company
+
+logger = logging.getLogger(__name__)
+
+# JWT lifetime for collaborator sessions: 8 hours (a full shift)
+COLLABORATOR_TOKEN_EXPIRE_HOURS = 8
+
+
+from app.core import security
+
+
+async def collaborator_login(
+    db: AsyncSession,
+    rfid_tag: Optional[str] = None,
+    internal_id: Optional[str] = None,
+    pin_code: Optional[str] = None,
+    company_id: Optional[uuid.UUID] = None,
+) -> dict:
+    """
+    Proxy login for floor collaborators.
+    Returns:
+       - {"access_token": "..."} if 1 match
+       - {"selection_token": "...", "companies": [...]} if >1 matches
+    """
+    if not rfid_tag and not pin_code and not internal_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Se requiere rfid_tag, internal_id o pin_code para identificar al colaborador.",
+        )
+
+    # Limpiar entradas de posibles caracteres invisibles del escáner (\n, \r, espacios)
+    if rfid_tag:
+        rfid_tag = rfid_tag.strip()
+    if internal_id:
+        internal_id = internal_id.strip()
+    if pin_code:
+        pin_code = pin_code.strip()
+
+    # ── Step 1: Call hr_service internal verification ──────────────────────────
+    payload = {
+        "company_id": str(company_id) if company_id else None,
+        "rfid_tag": rfid_tag,
+        "internal_id": internal_id,
+        "pin_code": pin_code,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.post(
+                f"{settings.HR_SERVICE_URL}/api/v1/internal/collaborators/verify",
+                json=payload,
+                headers={"X-Internal-Api-Key": settings.INTERNAL_API_KEY},
+            )
+    except Exception as exc:
+        logger.error(f"❌ hr_service error: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="HR Service no disponible.",
+        )
+
+    if response.status_code == 401:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credencial no reconocida. Verifique su RFID o PIN.",
+        )
+
+    if response.status_code != 200:
+        logger.warning(f"hr_service returned unexpected status: {response.status_code}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Error al verificar identidad física.",
+        )
+
+    # ── Step 2: Handle Multi-Match Discovery ───────────────────────────────────
+    hr_data = response.json()
+    matches = hr_data.get("matches", [])
+    
+    if not matches:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No se encontraron colaboradores para esa credencial.",
+        )
+
+    # Case A: Multiple Companies Found -> Selection Handshake (T1)
+    if len(matches) > 1:
+        # Usamos el primer ID de colaborador como sujeto del selection_token
+        selection_token = security.create_selection_token(matches[0]["collaborator_id"])
+        
+        # Resolve company names from Auth DB
+        match_cids = [uuid.UUID(m["company_id"]) if isinstance(m["company_id"], str) else m["company_id"] for m in matches]
+        q = await db.execute(select(Company).where(Company.id.in_(match_cids)))
+        names_map = {c.id: c.name for c in q.scalars().all()}
+        
+        companies_list = []
+        for m in matches:
+            cid = uuid.UUID(m["company_id"]) if isinstance(m["company_id"], str) else m["company_id"]
+            companies_list.append({
+                "company_id": str(cid),
+                "company_name": names_map.get(cid, f"Interno - {str(cid)[:8]}"),
+                "role_names": ["collaborator"],
+                "is_new": False
+            })
+            
+        return {
+            "selection_token": selection_token,
+            "companies": companies_list
+        }
+
+    # Case B: Exactly 1 Company Found -> Direct Access (T2 Bypass)
+    identity = matches[0]
+    dept = identity.get("department")
+    is_supervisor = identity.get("is_supervisor", False)
+
+    expire = datetime.now(timezone.utc) + timedelta(hours=COLLABORATOR_TOKEN_EXPIRE_HOURS)
+
+    # Permission logic
+    has_inventory_access = (dept == "Warehouse" or is_supervisor)
+    permissions = ["INVENTORY_READ", "INVENTORY_WRITE", "PHYSICAL_SCAN"] if has_inventory_access else []
+    
+    token = security._encode({
+        "exp": expire,
+        "sub": str(identity["collaborator_id"]),
+        "typ": "access",
+        "role": "collaborator",
+        "cid": str(identity["company_id"]),
+        "wid": str(identity.get("home_warehouse_id")) if identity.get("home_warehouse_id") else None,
+        "is_supervisor": is_supervisor, 
+        "internal_id": identity.get("internal_id"),
+        "full_name": identity.get("full_name"),
+        "department": dept,
+        "warehouse_permission": has_inventory_access,
+        "permissions": permissions
+    })
+    
+    # Resolve company name for the header
+    company_obj = await db.get(Company, identity["company_id"])
+    company_name = company_obj.name if company_obj else "Interno Core"
+
+    # Scopes compatibles con el frontend (Sidebar)
+    scopes = ["inv:movements:manage"] if has_inventory_access else []
+    if is_supervisor or dept == "Warehouse":
+        scopes.append("inv:warehouse:manage")
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user_id": str(identity["collaborator_id"]),
+        "company_id": str(identity["company_id"]),
+        "company_name": company_name,
+        "scopes": scopes,
+        "permissions": permissions,
+        "user_full_name": identity.get("full_name"),
+        "role": "collaborator"
+    }

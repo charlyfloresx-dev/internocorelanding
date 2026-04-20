@@ -3,6 +3,8 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 from typing import AsyncGenerator
+from fastapi import HTTPException, status
+from common.exceptions import ConflictException
 
 # Importamos settings desde la ruta correcta dentro del contenedor
 from app.core.config import settings
@@ -10,7 +12,7 @@ from app.core.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DATABASE_URL = os.getenv("INT_DATABASE_URL") or os.getenv("DATABASE_URL") or settings.DATABASE_URL
+DATABASE_URL = settings.DATABASE_URL
 
 def get_corrected_url(url: str) -> str:
     """

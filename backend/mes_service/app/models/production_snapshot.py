@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from sqlalchemy import Integer, ForeignKey, Date, Numeric, UniqueConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class HourlyProductionSnapshot(MultiTenantBase):
     """Read Model: Event-driven hourly snapshot of production vs. goal."""

@@ -3,38 +3,46 @@ import enum
 from datetime import datetime
 from typing import Optional, Any
 from sqlalchemy import String, DateTime, func, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from common.infrastructure.models.base import MultiTenantBase
 
-# Asumiendo una Base declarativa común, si no, se crea aquí.
-Base = declarative_base()
 
 class ActionType(str, enum.Enum):
     CREATE = "CREATE"
     UPDATE = "UPDATE"
     DELETE = "DELETE"
 
-class AuditLog(Base):
+
+class AuditLog(MultiTenantBase):
+    """
+    Inmutable Ledger de auditoría multi-tenant.
+    Cada registro de auditoría queda vinculado a un tenant/company para trazabilidad completa.
+    """
     __tablename__ = 'audit_logs'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     correlation_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), index=True)
     
+    # Multitenancy (Overrides MultiTenantBase to be optional for Audit)
+    company_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    group_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+
     # User & Request Context
     user_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
     client_ip: Mapped[Optional[str]] = mapped_column(String(50))
     user_agent: Mapped[Optional[str]] = mapped_column(String(255))
-    
+
     # Action Details
-    action: Mapped[ActionType] = mapped_column(SAEnum(ActionType, name="actiontype_enum", create_type=True), nullable=False)
-    table_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    record_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    
+    action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    table_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    record_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
     # Data Snapshots (The "Immutable Ledger" part)
     old_value: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB)
     new_value: Mapped[Optional[dict[str, Any]]] = mapped_column(JSONB)
-    
-    # Timestamp
+
+    # Timestamp (alias over inherited created_at for backwards compatibility)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     def __repr__(self):

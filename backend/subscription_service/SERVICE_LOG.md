@@ -5,6 +5,14 @@ The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitl
 
 ---
 
+## Phase 36 – Multi-Tenant Data Consistency & Stabilization ✅
+**Status**: ✅ Completed · **Date**: 2026-03-24
+- **Homologation**: Unified subscription seeding for `Enterprise`, `Logistics`, and `Demo` across the entire ecosystem.
+- **Bugfixes**: Resolved `ModuleNotFoundError` by correctly packaging `app.dependencies` and importing `ISubscriptionRepository` in `webhook_service.py`.
+- **CORS**: Implemented permissive preflight checks (`allow_origins=["*"]`) with expanded headers for UI synchronization.
+
+---
+
 ## Phase 20 – Operación Suscripción Blindada ✅
 **Status**: ✅ Completed · **Date**: 2026-03-07
 - **Architecture**: 100% Clean Architecture compliance achieved.

@@ -1,9 +1,9 @@
 import uuid
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from common.models.base_models import MultiTenantBase, AuditBase
+from common.models import MultiTenantBase
 
-class ScrapEntry(MultiTenantBase, AuditBase):
+class ScrapEntry(MultiTenantBase):
     __tablename__ = "mes_scrap_entries"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

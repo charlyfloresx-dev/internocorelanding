@@ -12,17 +12,17 @@ from app.schemas.location import LocationCreate, LocationResponse
 
 router = APIRouter()
 
-@router.post("/", response_model=None)
+@router.post("/", response_model=None, summary="Create Location")
 async def create_location(
     location_in: LocationCreate,
     db: AsyncSession = Depends(get_db),
     token_data: TokenPayload = Depends(get_current_user)
 ) -> Any:
     """
-    Crea una nueva ubicación física en el almacén.
+    Creates a new physical location in the warehouse.
     """
     try:
-        # Validar duplicados
+        # Validate duplicates
         stmt = select(Location).where(
             Location.company_id == token_data.company_id,
             Location.warehouse_id == location_in.warehouse_id,
@@ -31,7 +31,7 @@ async def create_location(
         )
         result = await db.execute(stmt)
         if result.scalars().first():
-            raise HTTPException(status_code=400, detail="La ubicación ya existe en este almacén.")
+            raise HTTPException(status_code=400, detail="Location already exists in this warehouse.")
 
         db_location = Location(
             **location_in.model_dump(),
@@ -43,20 +43,20 @@ async def create_location(
 
         return ApiResponse(
             data=LocationResponse.from_orm(db_location),
-            message="Ubicación creada exitosamente"
+            message="Location created successfully."
         )
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=None)
+@router.get("/", response_model=None, summary="List Locations")
 async def list_locations(
-    warehouse_id: Optional[uuid.UUID] = Query(None),
+    warehouse_id: Optional[uuid.UUID] = Query(None, description="Optional warehouse ID filter"),
     db: AsyncSession = Depends(get_db),
     token_data: TokenPayload = Depends(get_current_user)
 ) -> Any:
     """
-    Lista las ubicaciones físicas, opcionalmente filtradas por almacén.
+    Lists physical locations, optionally filtered by warehouse.
     """
     stmt = select(Location).where(Location.company_id == token_data.company_id)
     if warehouse_id:
@@ -67,5 +67,5 @@ async def list_locations(
 
     return ApiResponse(
         data=[LocationResponse.from_orm(loc) for loc in locations],
-        message="Ubicaciones listadas exitosamente"
+        message="Locations listed successfully."
     )

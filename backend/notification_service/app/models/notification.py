@@ -1,6 +1,6 @@
 from sqlalchemy import String, Text, Enum as sqlalchemy_Enum, Boolean, UUID as sqlalchemy_UUID, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.models import MultiTenantBase, Base
+from common.models import MultiTenantBase
 import uuid
 import enum
 from typing import List, Optional

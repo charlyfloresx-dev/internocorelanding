@@ -3,7 +3,7 @@ from datetime import time
 from typing import Optional
 from sqlalchemy import String, Time, Boolean, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class Shift(MultiTenantBase):
     """

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKTeco ZKQR500 - Primer Test | InternoCore</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --accent: #F43F5E;
+            --bg: #0F172A;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #F1F5F9;
+            --success: #10B981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(244, 63, 94, 0.1) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: flow 3s infinite linear;
+        }
+
+        @keyframes flow {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #818CF8, #F472B6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: #94A3B8;
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+        }
+
+        .scanner-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-box {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .result-box.active {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+            transform: scale(1.02);
+        }
+
+        .placeholder-text {
+            color: #64748B;
+            font-style: italic;
+        }
+
+        .scan-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            color: #fff;
+            word-break: break-all;
+            margin-bottom: 1rem;
+        }
+
+        .scan-meta {
+            font-size: 0.75rem;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #hidden-input {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+
+        .instructions {
+            font-size: 0.85rem;
+            color: #64748B;
+            line-height: 1.6;
+        }
+
+        .kbd {
+            background: #334155;
+            color: #F1F5F9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .stat-label {
+            color: #64748B;
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <div class="scanner-status">
+                <div class="status-dot"></div>
+                DISPOSITIVO LISTO
+            </div>
+            
+            <h1>ZKTeco ZKQR500</h1>
+            <p class="subtitle">Modo HID (Teclado Emulado) - Test de Integridad</p>
+
+            <div id="display-area" class="result-box">
+                <div id="placeholder" class="placeholder-text">Escanea un código QR o tarjeta ahora...</div>
+                <div id="scan-content" class="scan-value" style="display: none;"></div>
+                <div id="scan-meta" class="scan-meta" style="display: none;"></div>
+                
+                <div id="stats-grid" class="stats" style="display: none;">
+                    <div class="stat-item">
+                        <span class="stat-label">LONGITUD</span>
+                        <span id="stat-length">0</span> carácteres
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">TIMESTAMP</span>
+                        <span id="stat-time">--:--:--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instructions">
+                Asegúrate de que esta ventana tenga el foco. <br>
+                El lector enviará los datos seguidos de un <span class="kbd">Enter</span>.
+            </div>
+
+            <input type="text" id="hidden-input" autofocus>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('hidden-input');
+        const displayArea = document.getElementById('display-area');
+        const placeholder = document.getElementById('placeholder');
+        const content = document.getElementById('scan-content');
+        const meta = document.getElementById('scan-meta');
+        const statLength = document.getElementById('stat-length');
+        const statTime = document.getElementById('stat-time');
+        const statsGrid = document.getElementById('stats-grid');
+
+        // Mantener el foco
+        document.addEventListener('click', () => input.focus());
+        setInterval(() => {
+            if (document.activeElement !== input) input.focus();
+        }, 100);
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const value = input.value;
+                if (value) {
+                    processScan(value);
+                    input.value = '';
+                }
+            }
+        });
+
+        function processScan(val) {
+            // Animación de flash
+            displayArea.style.backgroundColor = 'rgba(79, 70, 229, 0.2)';
+            setTimeout(() => {
+                displayArea.style.backgroundColor = 'rgba(15, 23, 42, 0.6)';
+            }, 200);
+
+            placeholder.style.display = 'none';
+            content.style.display = 'block';
+            meta.style.display = 'block';
+            statsGrid.style.display = 'grid';
+            displayArea.classList.add('active');
+
+            content.textContent = val;
+            
+            // Detectar tipo probable
+            let type = 'Dato Desconocido';
+            if (val.startsWith('http')) type = 'Enlace / URL';
+            else if (/^[0-9]+$/.test(val)) type = 'ID Numérico / Tarjeta RFID';
+            else if (val.includes('{')) type = 'JSON / Estructurado';
+            
+            meta.textContent = `TIPO DETECTADO: ${type}`;
+            statLength.textContent = val.length;
+            statTime.textContent = new Date().toLocaleTimeString();
+
+            // Guardar log en consola por si acaso
+            console.log('Scan:', {
+                value: val,
+                timestamp: new Date().toISOString(),
+                length: val.length
+            });
+        }
+    </script>
+</body>
+</html>

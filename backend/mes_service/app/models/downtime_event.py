@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 from sqlalchemy import Integer, ForeignKey, String, Boolean, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class DowntimeEvent(MultiTenantBase):
     """Tracks scheduled breaks and unexpected downtimes."""

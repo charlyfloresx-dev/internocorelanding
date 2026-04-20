@@ -1,0 +1,31 @@
+{
+    "nodes": [],
+    "edges": [],
+    "invariants_errors": [],
+    "compliance_report": {
+        "auth_service": 100,
+        "common": 100,
+        "currency_service": 100,
+        "hr_service": 100,
+        "inventory_service": 100,
+        "master_data_service": 100,
+        "mes_service": 100,
+        "notification_service": 100,
+        "subscription_service": 100,
+        "tickets_service": 100,
+        "viatra_service": 100,
+        "wms_service": 100
+    },
+    "inter_service_deps": {
+        "common": [
+            "master_data_service",
+            "wms_service",
+            "mes_service",
+            "auth_service",
+            "subscription_service"
+        ],
+        "master_data_service": [
+            "currency_service"
+        ]
+    }
+}

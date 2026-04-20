@@ -6,7 +6,7 @@ from sqlalchemy.schema import CreateTable, CreateIndex
 # Setup path
 sys.path.insert(0, os.getcwd())
 
-from common.models.base_models import Base
+from common.infrastructure.models.base import Base
 import app.models # Ensure all models are registered
 
 def dump(sql, *multiparams, **params):

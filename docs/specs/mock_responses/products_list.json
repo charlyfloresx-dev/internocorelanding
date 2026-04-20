@@ -1,0 +1,32 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "p1",
+      "company_id": "c1",
+      "name": "Bobina de Acero 2mm",
+      "sku": "STEEL-B-001",
+      "product_type": "GOODS",
+      "status": "ACTIVE",
+      "version_id": 1,
+      "is_active": true,
+      "created_at": "2026-03-14T18:14:48.561Z"
+    },
+    {
+      "id": "p2",
+      "company_id": "c1",
+      "name": "Viga Industrial H-12",
+      "sku": "V-IND-H12",
+      "product_type": "GOODS",
+      "status": "ACTIVE",
+      "version_id": 2,
+      "is_active": true,
+      "created_at": "2026-03-14T18:14:48.562Z"
+    }
+  ],
+  "message": "Products retrieved successfully",
+  "meta": {
+    "trace_id": "inv-789",
+    "latency": "120ms"
+  }
+}

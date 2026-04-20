@@ -54,3 +54,10 @@ app.add_middleware(AuditMiddleware)
 ```
 ## 5. Verificación de Integridad (Opcional - Fase 2)
 Para una seguridad adicional, se puede añadir un campo `log_hash` a la tabla `audit_logs`. Este hash se calcularía a partir del contenido del `old_value`, `new_value` y el `timestamp`. Cualquier alteración posterior del registro invalidaría el hash, haciendo evidente la manipulación.
+
+## 6. Validación Forense Dura (Frontend)
+El motor de auditoría se extiende al Frontend mediante **Validación Dura** para garantizar la integridad de los datos antes de que lleguen al Ledger.
+- **Bloqueo por Peso:** La transacción es bloqueada (botón deshabilitado) de forma determinista si la suma total de `peso * factor_conversion` es menor o igual a 0.
+- **Reactividad Master Data:** Los campos del documento reaccionan estrictamente a los flags definidos en la base de datos maestra (`MovementConcept`):
+  - `requires_external_entity`: Exige un 'Proveedor / Cliente' obligatorio.
+  - `requires_target_warehouse`: Habilita y exige un selector secundario de 'Almacén Destino' (Ej. para Traspasos), bloqueando la selección del mismo almacén de origen.

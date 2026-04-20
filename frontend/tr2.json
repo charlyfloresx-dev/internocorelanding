@@ -1,0 +1,293 @@
+{
+  "config": {
+    "configFile": "C:\\API\\interno\\temp_future\\playwright.config.ts",
+    "rootDir": "C:/API/interno/temp_future/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 3
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/API/interno/temp_future/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 3
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/API/interno/temp_future/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 8,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "inventory_flows.spec.ts",
+      "file": "inventory_flows.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Inventory Flows E2E Validation",
+          "file": "inventory_flows.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "UC-INV-01 (Readiness Check): Show config modal when not ready",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5824,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Configuración Pendiente')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Configuración Pendiente')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Configuración Pendiente')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Configuración Pendiente')\u001b[22m\n\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:45:79",
+                        "location": {
+                          "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                          "column": 79,
+                          "line": 45
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 43 |\u001b[39m     \u001b[90m// 4. Assert: Navigation should show the readiness overlay/modal instead of full dashboard\u001b[39m\n \u001b[90m 44 |\u001b[39m     \u001b[90m// We expect a modal or overlay with \"Configuración Pendiente\" text.\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 45 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m'Configuración Pendiente'\u001b[39m\u001b[33m,\u001b[39m { exact\u001b[33m:\u001b[39m \u001b[36mfalse\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                                                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 46 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m'Almacenes'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m 47 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 48 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                            "column": 79,
+                            "line": 45
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('Configuración Pendiente')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('Configuración Pendiente')\u001b[22m\n\n\n  43 |     // 4. Assert: Navigation should show the readiness overlay/modal instead of full dashboard\n  44 |     // We expect a modal or overlay with \"Configuración Pendiente\" text.\n> 45 |     await expect(page.getByText('Configuración Pendiente', { exact: false })).toBeVisible();\n     |                                                                               ^\n  46 |     await expect(page.getByText('Almacenes')).toBeVisible();\n  47 |   });\n  48 |\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:45:79"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "PAGE LOG: [vite] connecting...\n"
+                        },
+                        {
+                          "text": "PAGE LOG: Angular is running in development mode.\n"
+                        },
+                        {
+                          "text": "PAGE LOG: [vite] connected.\n"
+                        },
+                        {
+                          "text": "PAGE LOG: Auth Persistence Restoration\n"
+                        },
+                        {
+                          "text": "PAGE LOG: [AuthService] ✅ Session restored: charly@interno.com\n"
+                        },
+                        {
+                          "text": "PAGE LOG: console.groupEnd\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-17T18:29:09.863Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\API\\interno\\temp_future\\test-results\\inventory_flows-Inventory--db429-config-modal-when-not-ready-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                        "column": 79,
+                        "line": 45
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "225a2315461ac1ade903-09b259e20ddad298c102",
+              "file": "inventory_flows.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "UC-INV-02 (Anti-Fraude): Recibir button is disabled for self-transfers",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5888,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('button[title*=\"Restricción Anti-Fraude\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('button[title*=\"Restricción Anti-Fraude\"]')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('button[title*=\"Restricción Anti-Fraude\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('button[title*=\"Restricción Anti-Fraude\"]')\u001b[22m\n\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:93:33",
+                        "location": {
+                          "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                          "column": 33,
+                          "line": 93
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 91 |\u001b[39m     \n \u001b[90m 92 |\u001b[39m     \u001b[90m// We expect it to be visible AND disabled\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 93 |\u001b[39m     \u001b[36mawait\u001b[39m expect(receiveButton)\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 94 |\u001b[39m     \u001b[36mawait\u001b[39m expect(receiveButton)\u001b[33m.\u001b[39mtoBeDisabled()\u001b[33m;\u001b[39m\n \u001b[90m 95 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 96 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                            "column": 33,
+                            "line": 93
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('button[title*=\"Restricción Anti-Fraude\"]')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('button[title*=\"Restricción Anti-Fraude\"]')\u001b[22m\n\n\n  91 |     \n  92 |     // We expect it to be visible AND disabled\n> 93 |     await expect(receiveButton).toBeVisible();\n     |                                 ^\n  94 |     await expect(receiveButton).toBeDisabled();\n  95 |   });\n  96 |\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:93:33"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-17T18:29:09.863Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\API\\interno\\temp_future\\test-results\\inventory_flows-Inventory--99435-disabled-for-self-transfers-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                        "column": 33,
+                        "line": 93
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "225a2315461ac1ade903-6c87ce372fbddfed8659",
+              "file": "inventory_flows.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "UC-INV-03 (Money Pipe Validation): Format prices correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 5802,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('$1,500.00 USD')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('$1,500.00 USD')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('$1,500.00 USD')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('$1,500.00 USD')\u001b[22m\n\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:134:51",
+                        "location": {
+                          "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                          "column": 51,
+                          "line": 134
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 132 |\u001b[39m\n \u001b[90m 133 |\u001b[39m     \u001b[90m// 4. Assert: The value should be formatted as $1,500.00 USD\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 134 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByText(\u001b[32m'$1,500.00 USD'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 135 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 136 |\u001b[39m\n \u001b[90m 137 |\u001b[39m })\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                            "column": 51,
+                            "line": 134
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByText('$1,500.00 USD')\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByText('$1,500.00 USD')\u001b[22m\n\n\n  132 |\n  133 |     // 4. Assert: The value should be formatted as $1,500.00 USD\n> 134 |     await expect(page.getByText('$1,500.00 USD')).toBeVisible();\n      |                                                   ^\n  135 |   });\n  136 |\n  137 | });\n    at C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts:134:51"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-17T18:29:09.863Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\API\\interno\\temp_future\\test-results\\inventory_flows-Inventory--7926d-ion-Format-prices-correctly-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\API\\interno\\temp_future\\e2e\\inventory_flows.spec.ts",
+                        "column": 51,
+                        "line": 134
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "225a2315461ac1ade903-8133a6c06b52471f3e60",
+              "file": "inventory_flows.spec.ts",
+              "line": 97,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-17T18:29:08.667Z",
+    "duration": 7310.703,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

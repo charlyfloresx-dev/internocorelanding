@@ -2,115 +2,127 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
+from common.exceptions import ConflictException
+
 
 from app.schemas.uom import UOMRead, UOMCreate, UOMUpdate
 from app.services.uom_service import UOMService
 from common.responses import ApiResponse
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_uom_service
 from common.domain.entities.user_context import UserContext
-from app.db.session import get_db
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[UOMRead]], summary="Listar Unidades de Medida")
+@router.get("/", response_model=ApiResponse[List[UOMRead]], summary="List Units of Measure")
 async def list_uoms(
-    db: AsyncSession = Depends(get_db),
     current_user: UserContext = Depends(get_current_user),
+    service: UOMService = Depends(get_uom_service),
 ):
     """
-    Devuelve una lista de todas las Unidades de Medida (UM) para la compañía actual.
+    Returns a list of all Units of Measure (UOM) for the current company.
     """
     company_id = current_user.company_id
-    uoms = await UOMService.get_uoms_by_company(db, company_id=company_id)
+    uoms = await service.get_uoms_by_company(company_id=company_id)
     return ApiResponse(
         status="success",
         data=uoms,
-        message="Unidades de Medida recuperadas exitosamente."
+        message="Units of measure retrieved successfully"
     )
 
-@router.post("/", response_model=ApiResponse[UOMRead], summary="Crear Unidad de Medida")
+@router.post("/", response_model=ApiResponse[UOMRead], summary="Create Unit of Measure")
 async def create_uom(
     uom_in: UOMCreate,
-    db: AsyncSession = Depends(get_db),
     current_user: UserContext = Depends(get_current_user),
+    service: UOMService = Depends(get_uom_service),
 ):
+    if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="ACC_ERR: Only administrators can create UOMs"
+        )
     company_id = current_user.company_id
     try:
-        uom = await UOMService.create_uom(db, uom_in=uom_in, company_id=company_id)
-    except IntegrityError:
-        await db.rollback()
+        uom = await service.create_uom(uom_in=uom_in, company_id=company_id)
+    except ConflictException as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ya existe una unidad de medida con este código en la compañía."
+            detail=e.message
         )
     
     return ApiResponse(
         status="success",
         data=uom,
-        message="Unidad de Medida creada exitosamente."
+        message="Unit of measure created successfully"
     )
 
-@router.get("/{uom_id}", response_model=ApiResponse[UOMRead], summary="Obtener Unidad de Medida")
+@router.get("/{uom_id}", response_model=ApiResponse[UOMRead], summary="Get Unit of Measure")
 async def get_uom(
     uom_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
     current_user: UserContext = Depends(get_current_user),
+    service: UOMService = Depends(get_uom_service),
 ):
     company_id = current_user.company_id
-    uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
+    uom = await service.get_uom_by_id(uom_id=uom_id, company_id=company_id)
     if not uom:
-        raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")
+        raise HTTPException(status_code=404, detail="Unit of measure not found")
     
     return ApiResponse(
         status="success",
         data=uom,
-        message="Unidad de Medida recuperada."
+        message="Unit of measure retrieved successfully"
     )
 
-@router.patch("/{uom_id}", response_model=ApiResponse[UOMRead], summary="Actualizar Unidad de Medida")
+@router.patch("/{uom_id}", response_model=ApiResponse[UOMRead], summary="Update Unit of Measure")
 async def update_uom(
     uom_id: uuid.UUID,
     uom_in: UOMUpdate,
-    db: AsyncSession = Depends(get_db),
     current_user: UserContext = Depends(get_current_user),
+    service: UOMService = Depends(get_uom_service),
 ):
+    if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="ACC_ERR: Only administrators can modify UOMs"
+        )
     company_id = current_user.company_id
-    uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
+    uom = await service.get_uom_by_id(uom_id=uom_id, company_id=company_id)
     if not uom:
-        raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")
+        raise HTTPException(status_code=404, detail="Unit of measure not found")
     
     try:
-        uom = await UOMService.update_uom(db, db_obj=uom, uom_in=uom_in)
-    except IntegrityError:
-        await db.rollback()
+        uom = await service.update_uom(db_obj=uom, uom_in=uom_in)
+    except ConflictException as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ya existe una unidad de medida con este código en la compañía."
+            detail=e.message
         )
 
     return ApiResponse(
         status="success",
         data=uom,
-        message="Unidad de Medida actualizada."
+        message="Unit of measure updated successfully"
     )
 
-@router.delete("/{uom_id}", response_model=ApiResponse[None], summary="Eliminar Unidad de Medida")
+@router.delete("/{uom_id}", response_model=ApiResponse[None], summary="Delete Unit of Measure")
 async def delete_uom(
     uom_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
     current_user: UserContext = Depends(get_current_user),
+    service: UOMService = Depends(get_uom_service),
 ):
+    if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="ACC_ERR: Only administrators can remove UOMs"
+        )
     company_id = current_user.company_id
-    uom = await UOMService.get_uom_by_id(db, uom_id=uom_id, company_id=company_id)
+    uom = await service.get_uom_by_id(uom_id=uom_id, company_id=company_id)
     if not uom:
-        raise HTTPException(status_code=404, detail="Unidad de Medida no encontrada")
+        raise HTTPException(status_code=404, detail="Unit of measure not found")
     
-    await UOMService.delete_uom(db, db_obj=uom)
+    await service.delete_uom(db_obj=uom)
     
     return ApiResponse(
         status="success",
         data=None,
-        message="Unidad de Medida eliminada."
+        message="Unit of measure deleted successfully"
     )

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 from typing import Optional
-from app.models.sales_order import SalesOrderStatus
+from app.domain.entities.sales_order import SalesOrderStatus
 
 class SalesOrderBase(BaseModel):
     folio: str

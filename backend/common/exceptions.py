@@ -1,7 +1,7 @@
 class DomainException(Exception):
     """
-    Excepción base para todos los errores de lógica de negocio del sistema Interno Core.
-    Permite capturar cualquier error de dominio de forma genérica.
+    Base exception for all business logic errors in the Interno Core system.
+    Allows capturing any domain error generically.
     """
     def __init__(self, message: str, details: dict = None):
         self.message = message
@@ -10,35 +10,42 @@ class DomainException(Exception):
 
 class NotFoundException(DomainException):
     """
-    Se lanza cuando un recurso (Usuario, Empresa, Producto, etc.) 
-    no existe en la base de datos.
+    Raised when a resource (User, Company, Product, etc.) 
+    does not exist in the database.
     """
     pass
 
 class UnauthorizedException(DomainException):
     """
-    Se lanza cuando las credenciales son inválidas o el usuario 
-    no tiene permisos para realizar una acción (HTTP 401/403).
+    Raised when credentials are invalid or the user 
+    does not have permission to perform an action (HTTP 401/403).
+    """
+    pass
+
+class SelfTransferReceiptException(UnauthorizedException):
+    """
+    Security Exception: A user cannot receive a 
+    transfer that they originated themselves (Segregation of Duties).
     """
     pass
 
 class BusinessRuleException(DomainException):
     """
-    Violación de regla de negocio específica 
-    (ej. stock insuficiente, versión de producto duplicada, empresa inactiva).
+    Violation of a specific business rule 
+    (e.g., insufficient stock, duplicate product version, inactive company).
     """
     pass
 
 class ValidationException(DomainException):
     """
-    Se lanza cuando los datos de entrada no cumplen con el formato 
-    o las reglas de validación de los esquemas.
+    Raised when input data does not comply with the format 
+    or validation rules of the schemas.
     """
     pass
 
 class ConflictException(DomainException):
     """
-    Se lanza cuando hay un conflicto de estado 
-    (ej. intentar borrar un registro que tiene dependencias activas).
+    Raised when there is a state conflict 
+    (e.g., trying to delete a record with active dependencies).
     """
     pass

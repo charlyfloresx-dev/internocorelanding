@@ -1,3 +1,4 @@
+from common.security.cors_setup import setup_cors
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router
@@ -13,16 +14,9 @@ app = FastAPI(
     openapi_url="/api/v1/openapi.json"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.int_backend_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*", "x-company-id", "x-selection-token", "authorization", "x-trace-id"],
-    expose_headers=["x-trace-id"]
-)
-
 app.add_middleware(InternoCoreGlobalMiddleware)
+
+setup_cors(app)
 
 # Registrar Routers Centralizados
 app.include_router(api_router, prefix="/api/v1")

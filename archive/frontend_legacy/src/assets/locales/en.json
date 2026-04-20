@@ -1,0 +1,47 @@
+{
+    "menu": {
+        "dashboard": "Dashboard",
+        "inventory": "Inventory",
+        "inventory_dashboard": "Inventory Dashboard",
+        "inventory_central": "Central Inventory",
+        "inventory_documents": "Documents",
+        "inventory_reports": "Reports",
+        "production": "Production",
+        "production_monitor": "Resource Monitor",
+        "production_lines": "Lines",
+        "quality": "Quality",
+        "quality_inspections": "Inspections",
+        "quality_alerts": "Alertas",
+        "settings": "Settings",
+        "settings_users": "Users",
+        "settings_system": "System"
+    },
+    "auth": {
+        "login_title": "Industrial Access",
+        "login_subtitle": "Interno Core - Operations Management",
+        "email_label": "Corporate Email",
+        "password_label": "Password",
+        "login_button": "Sign In",
+        "tenant_selection_title": "Context Selection",
+        "tenant_selection_subtitle": "Select the company or plant to start operations",
+        "active_context": "Active Context",
+        "select_module": "Select Module",
+        "change_company": "Change Company",
+        "session_active": "Active Session",
+        "filter_companies": "Filter companies..."
+    },
+    "inventory": {
+        "dashboard": {
+            "title": "Inventory Control Center",
+            "subtitle": "Real-time monitoring across all warehouses and transit nodes.",
+            "warehouses": "Warehouse Nodes",
+            "ledger": "Recent Ledger"
+        }
+    },
+    "common": {
+        "refresh": "Refresh Data",
+        "join_code": "JOIN WITH CODE",
+        "create_company": "CREATE NEW COMPANY",
+        "logout_back": "LOGOUT AND GO BACK"
+    }
+}

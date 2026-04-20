@@ -1,64 +1,156 @@
-import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
-import { tenantGuard } from './core/guards/tenant.guard';
-import { godModeGuard } from './core/guards/god-mode.guard';
+import {Routes} from '@angular/router';
+import {authGuard, handshakeGuard} from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./modules/auth/login.component').then(m => m.LoginComponent)
   },
-  // RUTAS PROTEGIDAS CON LAYOUT (Sidebar + Header)
+  {
+    path: 'onboarding',
+    loadComponent: () => import('./modules/auth/onboarding.component').then(m => m.OnboardingComponent)
+  },
+  {
+    path: 'auth/select-company',
+    canActivate: [handshakeGuard],
+    loadComponent: () => import('./modules/auth/tenant-selection.component').then(m => m.TenantSelectionComponent)
+  },
+  {
+    path: 'select-company',
+    canActivate: [handshakeGuard],
+    loadComponent: () => import('./modules/auth/tenant-selection.component').then(m => m.TenantSelectionComponent)
+  },
   {
     path: '',
-    // VERIFICACIÓN: Asegúrate que el archivo esté en src/app/layout/main-layout.component.ts
-    loadComponent: () => import('./layout/main-layout.component').then(m => m.MainLayoutComponent),
-    canActivate: [authGuard, tenantGuard],
+    canActivate: [authGuard],
+    loadComponent: () => import('./shared/layouts/main-layout.component').then(m => m.MainLayoutComponent),
     children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./modules/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'monitor/resources',
+        loadComponent: () => import('./modules/monitor/resource-monitor.component').then(m => m.ResourceMonitorComponent)
+      },
+      {
+        path: 'inventory',
+        children: [
+          {
+            path: 'dashboard',
+            loadComponent: () => import('./modules/inventory/inventory-dashboard.component').then(m => m.InventoryDashboardComponent)
+          },
+          {
+            path: 'documents',
+            children: [
+              {
+                path: '',
+                loadComponent: () => import('./modules/inventory/inventory-documents.component').then(m => m.InventoryDocumentsComponent)
+              },
+              {
+                path: 'new',
+                loadComponent: () => import('./modules/inventory/components/inventory-document/inventory-document.component').then(m => m.InventoryDocumentComponent)
+              },
+              {
+                path: ':id',
+                loadComponent: () => import('./modules/inventory/components/inventory-document/inventory-document.component').then(m => m.InventoryDocumentComponent)
+              }
+            ]
+          },
+          {
+            path: 'transfers',
+            loadComponent: () => import('./modules/inventory/inventory-transfer.component').then(m => m.InventoryTransferComponent)
+          },
+          {
+            path: 'inbound',
+            loadComponent: () => import('./modules/inventory/inventory-inbound.component').then(m => m.InventoryInboundComponent)
+          },
+          {
+            path: 'picking',
+            loadComponent: () => import('./modules/inventory/inventory-picking.component').then(m => m.InventoryPickingComponent)
+          },
+          {
+            path: 'shipping',
+            loadComponent: () => import('./modules/inventory/inventory-shipping.component').then(m => m.InventoryShippingComponent)
+          },
+          {
+            path: 'put-away', // Phase 42.8: Relocation Handheld
+            loadComponent: () => import('./modules/inventory/inventory-put-away.component').then(m => m.InventoryPutAwayComponent)
+          },
+          {
+            path: 'cycle-count', // Phase 49: Auditoría Spot
+            loadComponent: () => import('./modules/inventory/cycle-count.component').then(m => m.CycleCountComponent)
+          },
+          {
+            path: 'stock',
+            loadComponent: () => import('./modules/inventory/stock-level.component').then(m => m.StockLevelComponent)
+          },
+          {
+            path: 'receive',
+            loadComponent: () => import('./modules/inventory/components/receive-material/receive-material.component').then(m => m.ReceiveMaterialComponent)
+          }
+        ]
+      },
+      {
+        path: 'catalog',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./modules/catalog/product-catalog.component').then(m => m.ProductCatalogComponent)
+          },
+          {
+            path: 'uom',
+            loadComponent: () => import('./modules/catalog/uom-catalog.component').then(m => m.UomCatalogComponent)
+          },
+          {
+            path: 'categories',
+            loadComponent: () => import('./modules/catalog/category-brand-catalog.component').then(m => m.CategoryBrandCatalogComponent)
+          },
+          {
+            path: 'warehouses',
+            loadComponent: () => import('./modules/catalog/warehouse-catalog.component').then(m => m.WarehouseCatalogComponent)
+          },
+          {
+            path: 'concepts',
+            loadComponent: () => import('./modules/catalog/concept-catalog.component').then(m => m.ConceptCatalogComponent)
+          },
+          {
+            path: 'partners',
+            loadComponent: () => import('./modules/catalog/partner-catalog.component').then(m => m.PartnerCatalogComponent)
+          }
+        ]
+      },
+      {
+        path: 'production',
+        children: [
+          {
+            path: 'dashboard',
+            loadComponent: () => import('./modules/production/dashboard/production-dashboard.component').then(m => m.ProductionDashboardComponent)
+          }
+        ]
+      },
+      {
+        path: 'admin',
+        children: [
+          {
+            path: 'users',
+            loadComponent: () => import('./modules/admin/user-management.component').then(m => m.UserManagementComponent)
+          },
+          {
+            path: 'staff',
+            loadComponent: () => import('./modules/admin/staff-management.component').then(m => m.StaffManagementComponent)
+          }
+        ]
+      },
       {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'
-      },
-      {
-        path: 'dashboard',
-        loadComponent: () => import('./modules/home/general-dashboard.component').then(m => m.GeneralDashboardComponent)
-      },
-      {
-        path: 'inventory',
-        loadChildren: () => import('./modules/inventory/inventory.routes').then(m => m.INVENTORY_ROUTES)
-      },
-      {
-        path: 'production',
-        loadChildren: () => import('./modules/production/production.routes').then(m => m.PRODUCTION_ROUTES)
-      },
-      {
-        path: 'catalog',
-        loadChildren: () => import('./modules/catalog/catalog.routes').then(m => m.CATALOG_ROUTES)
-      },
-      {
-        path: 'tickets',
-        loadChildren: () => import('./modules/tickets/tickets.routes').then(m => m.TICKETS_ROUTES)
-      },
-      {
-        path: 'admin/god-mode',
-        loadComponent: () => import('./modules/admin/admin-god-mode.component').then(m => m.AdminGodModeComponent),
-        canActivate: [godModeGuard]
       }
     ]
   },
   {
-    path: 'setup-wizard',
-    loadComponent: () => import('./modules/onboarding/onboarding-wizard.component').then(m => m.OnboardingWizardComponent),
-    canActivate: [authGuard, tenantGuard]
-  },
-  {
-    path: 'onboarding/setup-warehouse',
-    loadComponent: () => import('./modules/onboarding/setup-warehouse.component').then(m => m.SetupWarehouseComponent),
-    canActivate: [authGuard, tenantGuard]
-  },
-  {
     path: '**',
-    redirectTo: 'login'
+    redirectTo: 'dashboard'
   }
 ];

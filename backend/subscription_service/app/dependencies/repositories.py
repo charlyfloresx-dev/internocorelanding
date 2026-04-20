@@ -1,6 +1,6 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.session import get_db
+from app.dependencies import get_db
 from app.domain.repositories.subscription_repository import ISubscriptionRepository
 from app.infrastructure.repositories.sqlalchemy_subscription_repository import SQLAlchemySubscriptionRepository
 from app.infrastructure.interfaces.payment_provider import IPaymentProvider

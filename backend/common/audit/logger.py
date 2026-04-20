@@ -2,7 +2,7 @@ import uuid
 from typing import Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request
-from common.models.audit_log import AuditLog
+from common.models import AuditLog
 from common.context import request_context
 
 class AuditLogger:
@@ -53,7 +53,7 @@ class AuditLogger:
                                  request.headers.get("X-Transaction-ID")
 
         audit_log = AuditLog(
-            id=str(uuid.uuid4()),
+            id=uuid.uuid4(),
             table_name=table_name,
             record_id=record_id,
             action=action,
@@ -62,9 +62,9 @@ class AuditLogger:
             user_id=final_user_id,
             company_id=final_company_id,
             group_id=final_group_id,
-            ip_address=ip_address,
+            client_ip=ip_address,
             user_agent=user_agent,
-            trace_id=final_trace_id
+            correlation_id=final_trace_id
         )
         
         db.add(audit_log)

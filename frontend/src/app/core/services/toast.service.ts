@@ -1,11 +1,12 @@
+import {Injectable, signal} from '@angular/core';
 
-import { Injectable, signal } from '@angular/core';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface Toast {
   id: number;
-  title?: string;
   message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
+  type: ToastType;
+  title?: string;
   duration?: number;
 }
 
@@ -13,14 +14,12 @@ export interface Toast {
   providedIn: 'root'
 })
 export class ToastService {
-  toasts = signal<Toast[]>([]);
-  private counter = 0;
+  private toasts = signal<Toast[]>([]);
+  readonly activeToasts = this.toasts.asReadonly();
+  private nextId = 0;
 
-  // Added optional 'title' parameter for better context
-  show(message: string, type: Toast['type'] = 'info', title?: string, duration: number = 4000) {
-    // Simple logging as requested for debugging
-    console.log(`[Toast Service] ${type.toUpperCase()}: ${message}`);
-    const id = ++this.counter;
+  show(message: string, type: ToastType = 'info', title?: string, duration = 5000) {
+    const id = this.nextId++;
     const toast: Toast = { id, message, type, title, duration };
     
     this.toasts.update(current => [...current, toast]);
@@ -30,13 +29,23 @@ export class ToastService {
     }
   }
 
+  success(message: string, title?: string, duration?: number) {
+    this.show(message, 'success', title, duration);
+  }
+
+  error(message: string, title?: string, duration?: number) {
+    this.show(message, 'error', title, duration);
+  }
+
+  info(message: string, title?: string, duration?: number) {
+    this.show(message, 'info', title, duration);
+  }
+
+  warning(message: string, title?: string, duration?: number) {
+    this.show(message, 'warning', title, duration);
+  }
+
   remove(id: number) {
     this.toasts.update(current => current.filter(t => t.id !== id));
   }
-
-  // Helper methods with default titles based on type
-  success(msg: string, title: string = 'Operación Exitosa') { this.show(msg, 'success', title); }
-  error(msg: string, title: string = 'Error del Sistema') { this.show(msg, 'error', title, 6000); } // Longer duration for errors
-  info(msg: string, title: string = 'Información') { this.show(msg, 'info', title); }
-  warning(msg: string, title: string = 'Atención') { this.show(msg, 'warning', title); }
 }

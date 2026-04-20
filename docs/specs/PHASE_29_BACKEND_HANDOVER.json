@@ -1,0 +1,352 @@
+{
+    "search": {
+        "status": "success",
+        "data": {
+            "status": "success",
+            "data": [
+                {
+                    "id": "73acb311-dd79-5f5c-bfe8-dc872aace290",
+                    "sku": "MAT-001",
+                    "name": "Alcoa AL-6061-T6",
+                    "current_stock": "12.0000",
+                    "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                    "uom_symbol": "PZA",
+                    "abc_class": "A"
+                },
+                {
+                    "id": "73acb311-dd79-5f5c-bfe8-dc872aace290",
+                    "sku": "MAT-001",
+                    "name": "Hydro HY-EXT-6061",
+                    "current_stock": "12.0000",
+                    "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                    "uom_symbol": "PZA",
+                    "abc_class": "A"
+                },
+                {
+                    "id": "193b4104-e0c2-5e41-bac0-60d100daf26f",
+                    "sku": "MAT-002",
+                    "name": "Uline UL-STR-20IN",
+                    "current_stock": "5000.0000",
+                    "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                    "uom_symbol": "PZA",
+                    "abc_class": "A"
+                },
+                {
+                    "id": "db856803-a63d-5468-9a7c-9039702acca9",
+                    "sku": "MAT-005",
+                    "name": "3M G10-PRO-3M",
+                    "current_stock": "5000.0000",
+                    "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                    "uom_symbol": "PZA",
+                    "abc_class": "C"
+                },
+                {
+                    "id": "db856803-a63d-5468-9a7c-9039702acca9",
+                    "sku": "MAT-005",
+                    "name": "Loctite LOC-EPOXY-G10",
+                    "current_stock": "5000.0000",
+                    "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                    "uom_symbol": "PZA",
+                    "abc_class": "C"
+                }
+            ]
+        },
+        "message": "Operaci\u00f3n completada",
+        "meta": {
+            "trace_id": "ea574590-5a01-4ab1-a4c6-5949f85209f7",
+            "latency": "0.0378s"
+        }
+    },
+    "kardex": {
+        "status": "success",
+        "data": [
+            {
+                "movement_id": "268a5581-2b75-498e-8b92-a2148e3db25a",
+                "date": "2026-03-13T00:24:05.731273+00:00",
+                "document_folio": "8c021d5a-a51a-40b2-b69e-c4f778d175a1",
+                "movement_type": "OUT",
+                "quantity_delta": "-153.2617",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "-153.2617"
+            },
+            {
+                "movement_id": "d9c56451-5e38-486b-b0b1-367b7df9f4eb",
+                "date": "2026-03-13T00:42:56.524454+00:00",
+                "document_folio": "9f57719a-6c67-44b6-9f4d-f9bc7490a1a5",
+                "movement_type": "IN",
+                "quantity_delta": "155.8339",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "2.5722"
+            },
+            {
+                "movement_id": "682f4246-1b42-4f37-9752-d21c90307946",
+                "date": "2026-03-13T02:00:48.258758+00:00",
+                "document_folio": "0fcbdad4-c4af-4e55-b04d-d30ba922ed05",
+                "movement_type": "IN",
+                "quantity_delta": "196.2741",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "198.8463"
+            },
+            {
+                "movement_id": "caaeb107-9b92-4b0a-86f0-cf4d2b0b4d8e",
+                "date": "2026-03-13T02:57:28.575083+00:00",
+                "document_folio": "4c08ec40-4bbe-440d-a3de-f3c3f779c933",
+                "movement_type": "OUT",
+                "quantity_delta": "-185.5659",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "13.2804"
+            },
+            {
+                "movement_id": "ab7e18dc-a65d-406d-acd7-a14b030f5d7a",
+                "date": "2026-03-13T04:12:58.712015+00:00",
+                "document_folio": "efba1356-74d1-4249-a664-52c194d9f542",
+                "movement_type": "IN",
+                "quantity_delta": "144.9778",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "158.2582"
+            },
+            {
+                "movement_id": "6139e697-1691-477f-a880-6c7274e0814e",
+                "date": "2026-03-13T04:28:05.731273+00:00",
+                "document_folio": "49468f2d-6e66-49d3-889d-a29c11df31db",
+                "movement_type": "IN",
+                "quantity_delta": "197.4547",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "355.7129"
+            },
+            {
+                "movement_id": "e743bfd3-d472-4b48-8b39-52993f2153ee",
+                "date": "2026-03-13T04:41:05.731273+00:00",
+                "document_folio": "2726191e-e4f9-4c22-b1f8-aad9c9f8395f",
+                "movement_type": "OUT",
+                "quantity_delta": "-195.8839",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "159.8290"
+            },
+            {
+                "movement_id": "041f09d8-8498-4e37-b2bc-a68b1eb67459",
+                "date": "2026-03-13T06:02:39.062933+00:00",
+                "document_folio": "2c1b6fbc-6a50-4845-8f6b-191d625c4156",
+                "movement_type": "OUT",
+                "quantity_delta": "-199.7737",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "-39.9447"
+            },
+            {
+                "movement_id": "b414cf6c-0bd4-4c38-b406-361a9bf93584",
+                "date": "2026-03-13T08:19:56.305200+00:00",
+                "document_folio": "63b35c85-0937-4230-910c-bcccaa8958d5",
+                "movement_type": "OUT",
+                "quantity_delta": "-108.6068",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "-148.5515"
+            },
+            {
+                "movement_id": "c98275d4-b59e-41c8-86bd-83fbfdad5d7a",
+                "date": "2026-03-13T10:56:39.062933+00:00",
+                "document_folio": "2a71fbb8-7518-47dc-9074-0aa4eb33350a",
+                "movement_type": "IN",
+                "quantity_delta": "187.7691",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "39.2176"
+            },
+            {
+                "movement_id": "7bdc83e1-8ec2-4352-a17d-2f8d9efa47c3",
+                "date": "2026-03-13T14:11:39.623956+00:00",
+                "document_folio": "1d2424b3-ef7c-47d2-a758-b9e0d260943a",
+                "movement_type": "IN",
+                "quantity_delta": "104.5792",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "143.7968"
+            },
+            {
+                "movement_id": "1d4c2bf3-f498-439d-a138-bb661e33c752",
+                "date": "2026-03-13T14:30:39.062933+00:00",
+                "document_folio": "ba911612-4c2e-433b-9ece-eb4dd144d263",
+                "movement_type": "OUT",
+                "quantity_delta": "-92.7653",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "51.0315"
+            },
+            {
+                "movement_id": "5dd4cb22-4872-4420-b400-f76b4d5dcf04",
+                "date": "2026-03-13T17:53:41.507091+00:00",
+                "document_folio": "4e19e239-43c0-4fd4-83eb-0b45d63beb2b",
+                "movement_type": "IN",
+                "quantity_delta": "61.5233",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "10.0000",
+                "running_balance": "112.5548"
+            },
+            {
+                "movement_id": "fd1750cd-7370-4e53-8def-067e5b118258",
+                "date": "2026-03-13T18:17:41.507091+00:00",
+                "document_folio": "b986f3f5-3503-4063-ba40-9e9a073a70c5",
+                "movement_type": "OUT",
+                "quantity_delta": "-193.1750",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "-80.6202"
+            },
+            {
+                "movement_id": "2883daf6-2b49-4218-9c2d-092b484c4b03",
+                "date": "2026-03-13T18:38:28.575083+00:00",
+                "document_folio": "9801a1aa-2796-4c62-ad6a-2134b5152170",
+                "movement_type": "OUT",
+                "quantity_delta": "-140.7893",
+                "uom_id": "1a7444c9-40df-51d5-833b-501fc84b67bb",
+                "weight": "0.0000",
+                "unit_price": "0.0",
+                "running_balance": "-221.4095"
+            }
+        ],
+        "message": "Operation successful",
+        "meta": {
+            "trace_id": "ea574590-5a01-4ab1-a4c6-5949f85209f7",
+            "latency": "0.0178s"
+        }
+    },
+    "valuation": {
+        "status": "success",
+        "data": {
+            "product_id": "73acb311-dd79-5f5c-bfe8-dc872aace290",
+            "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+            "as_of_date": "NOW",
+            "total_units": "-221.4095",
+            "weighted_average_cost": "10.0000",
+            "total_inventory_value": "-2214.10",
+            "currency_code": "USD"
+        },
+        "message": "Operation successful",
+        "meta": {
+            "trace_id": "ea574590-5a01-4ab1-a4c6-5949f85209f7",
+            "latency": "0.0135s"
+        }
+    },
+    "abc": {
+        "status": "success",
+        "data": [
+            {
+                "product_id": "73acb311-dd79-5f5c-bfe8-dc872aace290",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "12.0000",
+                "exits_30d": "1269.8216",
+                "exits_90d": "1269.8216",
+                "rotation_index_30d": "105.8176",
+                "abc_class": "A"
+            },
+            {
+                "product_id": "193b4104-e0c2-5e41-bac0-60d100daf26f",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "7905.1033",
+                "exits_90d": "7905.1033",
+                "rotation_index_30d": "1.5810",
+                "abc_class": "A"
+            },
+            {
+                "product_id": "7d31e36e-795c-5b65-a38d-11532bbec21a",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "1160.3595",
+                "exits_90d": "1160.3595",
+                "rotation_index_30d": "0.2321",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "db856803-a63d-5468-9a7c-9039702acca9",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "854.7955",
+                "exits_90d": "854.7955",
+                "rotation_index_30d": "0.1710",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "c5609669-966d-507c-897d-a054b46b8bd1",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "852.8451",
+                "exits_90d": "852.8451",
+                "rotation_index_30d": "0.1706",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "47393fb5-92bc-5d4b-8df2-f0f3c8982a90",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "833.5149",
+                "exits_90d": "833.5149",
+                "rotation_index_30d": "0.1667",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "c3c7a2da-54a2-539c-af3b-11359fd62dc7",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "794.5346",
+                "exits_90d": "794.5346",
+                "rotation_index_30d": "0.1589",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "6e75367c-ff81-54a2-b90c-0d824eb96571",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "620.5495",
+                "exits_90d": "620.5495",
+                "rotation_index_30d": "0.1241",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "c59688fa-ac48-5ee8-9a4d-f2b5f48632c1",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "554.3588",
+                "exits_90d": "554.3588",
+                "rotation_index_30d": "0.1109",
+                "abc_class": "C"
+            },
+            {
+                "product_id": "82336a80-bc04-5f18-84ae-c0ea7f821a74",
+                "warehouse_id": "369cddc2-7b1e-5b54-8b1a-b4bc2e657f77",
+                "current_stock": "5000.0000",
+                "exits_30d": "409.5387",
+                "exits_90d": "409.5387",
+                "rotation_index_30d": "0.0819",
+                "abc_class": "C"
+            }
+        ],
+        "message": "Operation successful",
+        "meta": {
+            "trace_id": "ea574590-5a01-4ab1-a4c6-5949f85209f7",
+            "latency": "0.0157s"
+        }
+    }
+}

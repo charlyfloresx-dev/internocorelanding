@@ -145,6 +145,28 @@ class TransferCommandHandler:
         self.fifo_service = FIFODischargeService()
         self.audit_svc = TransferAuditService(self.repo) # New decoupled audit
 
+    async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
+        """
+        [Phase 49.2] The Density Guard for Transfers: Validates location capacity before reception.
+        """
+        if not location_code or quantity <= 0:
+            return
+
+        capacity = await self.repo.get_location_capacity(warehouse_id, location_code, company_id)
+        if capacity > 0:
+            occupancy = await self.repo.get_location_occupancy(warehouse_id, location_code, company_id)
+            if occupancy + quantity > capacity:
+                logger.warning(f"🚨 DENSITY_GUARDv_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
+                raise BusinessRuleException(
+                    message=f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene espacio disponible.",
+                    details={
+                        "capacity": str(capacity),
+                        "occupancy": str(occupancy),
+                        "requested": str(quantity),
+                        "excess": str((occupancy + quantity) - capacity)
+                    }
+                )
+
     # ═══════════════════════════════════════════════════════════════════════════
     # COMANDO 1: InitiateTransfer (Empresa A)
     # ═══════════════════════════════════════════════════════════════════════════
@@ -645,6 +667,15 @@ class TransferCommandHandler:
             except Exception:
                 transit_wac = transfer.unit_price
 
+            # ── 5.1 DENSITY GUARD (Phase 49.3): Validate Target Location Capacity ──
+            if cmd.destination_location:
+                await self._check_location_capacity(
+                    warehouse_id=transfer.destination_warehouse_id,
+                    location_code=cmd.destination_location,
+                    quantity=receive_qty_ok,
+                    company_id=cmd.receiver_company_id
+                )
+
             # ── 6. TRANSIT_RELEASE: Sacar del almacén lógico de tránsito ──────────
             release_movement = MovementEntity(
                 id=uuid.uuid4(),
@@ -679,6 +710,7 @@ class TransferCommandHandler:
                 document_id=cmd.transfer_id,
                 # FIFO compliance
                 available_quantity=receive_qty_ok,
+                location=cmd.destination_location, # Assign location to record
                 customs_pedimento_id=cmd.customs_pedimento_id or transfer.customs_pedimento_id
             )
             await self.repo.record_movement(in_movement)
@@ -1013,10 +1045,16 @@ class TransferCommandHandler:
             )
 
         # Validar acceso
+        logger.info(f"[ICT-DEBUG] Folio: {folio}")
+        logger.info(f"[ICT-DEBUG] DB Origin Co: {transfer.company_id} (Type: {type(transfer.company_id)})")
+        logger.info(f"[ICT-DEBUG] DB Dest Co:   {transfer.destination_company_id}")
+        logger.info(f"[ICT-DEBUG] Requester Co: {requester_company_id} (Type: {type(requester_company_id)})")
+
         if (
-            transfer.company_id != requester_company_id
-            and transfer.destination_company_id != requester_company_id
+            str(transfer.company_id) != str(requester_company_id)
+            and str(transfer.destination_company_id) != str(requester_company_id)
         ):
+            logger.warning(f"[ICT-DEBUG] ACCESS DENIED triggered for {folio}")
             raise UnauthorizedException(
                 message="ERR_TRANSFER_ACCESS_DENIED: No tiene permiso para ver este folio.",
                 details={"folio": folio},

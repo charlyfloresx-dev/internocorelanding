@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from common.models import Base, MultiTenantBase
 
-class DocumentSeries(MultiTenantBase, Base):
+class DocumentSeries(MultiTenantBase):
     """
     Custom folio generator per company and concept.
     Allows each tenant to define their own numbering sequences.

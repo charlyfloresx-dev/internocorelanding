@@ -8,13 +8,9 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgresUUID
 from common.models import MultiTenantBase, AuditBase
 from app.core.enums import SubscriptionStatus, ModuleCode
 
-class Module(MultiTenantBase):
+class Module(AuditBase):
     """Catálogo global de módulos disponibles en el sistema."""
     __tablename__ = "modules"
-
-    @declared_attr
-    def company_id(cls) -> Mapped[Optional[uuid.UUID]]:
-        return mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
 
     code: Mapped[ModuleCode] = mapped_column(String(50), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
@@ -22,13 +18,9 @@ class Module(MultiTenantBase):
     is_core: Mapped[bool] = mapped_column(Boolean, default=False)
     translation_key: Mapped[Optional[str]] = mapped_column(String(100))
 
-class Plan(MultiTenantBase):
+class Plan(AuditBase):
     """Definición de paquetes de suscripción (Basic, Pro, etc.)."""
     __tablename__ = "plans"
-
-    @declared_attr
-    def company_id(cls) -> Mapped[Optional[uuid.UUID]]:
-        return mapped_column(PostgresUUID(as_uuid=True), nullable=True, index=True)
 
     name: Mapped[str] = mapped_column(String(100), unique=True)
 

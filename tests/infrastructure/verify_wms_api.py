@@ -9,7 +9,7 @@ import uuid
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
 
 def create_test_token(company_id: str):
-    SECRET_KEY = "DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345"
+    SECRET_KEY = os.getenv("JWT_SECRET_KEY", "DEV_SECRET_KEY_FOR_LOCAL_TESTS_ONLY")
     ALGORITHM = "HS256"
     payload = {
         "sub": "test-user",

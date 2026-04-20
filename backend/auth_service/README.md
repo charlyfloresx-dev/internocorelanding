@@ -4,7 +4,7 @@ El **Auth Service** es el núcleo de identidad de **Interno Core**. Es el único
 
 ## 🛡️ Seguridad Zero-Trust
 Interno Core sigue una arquitectura **Zero-Trust**. Bajo este esquema:
-- **Firma Centralizada**: El Auth Service firma los tokens utilizando una clave compartida (`INT_SECRET_KEY`) o par de llaves.
+- **Firma Centralizada**: El Auth Service firma los tokens utilizando una clave compartida (`CORE_SECRET_KEY`) o par de llaves.
 - **Validación Criptográfica**: Los demás microservicios no consultan la base de datos de Auth; validan el JWT en cada petición para confirmar la identidad.
 - **Aislamiento de Contexto**: La identidad reside exclusivamente en el header `Authorization: Bearer <token>`.
 

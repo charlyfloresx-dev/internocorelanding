@@ -1,188 +1,309 @@
+"""
+Auth Service - Seed Script
+==================================================
+Estructura:
+  - 1 BusinessGroup: Interno Global Operations
+  - 3 Empresas:
+      * InternoCorp Enterprise  → Charly, ADMIN_SCOPES (wildcard *)
+      * Interno Logistics MX/US → Charly (MANAGER_SCOPES), Operador (OPERATOR_SCOPES)
+      * Empresa Demo (Pendiente)→ Sin usuarios activos
+  - Usuarios:
+      * charly@interno.com  / charly123
+      * operador@interno.com / ops123
+
+NOTA: Los ROLES son solo un campo FK requerido.
+      Los SCOPES en UserCompanyRole son la fuente real de accesos.
+"""
 import os
 import sys
 import asyncio
 import logging
 import uuid
-from dotenv import load_dotenv
 
-# 1. Path Normalization
-BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SERVICE_APP = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# ─── Path Setup ───────────────────────────────────────────────────────────────
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+SERVICE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+for p in [BACKEND_ROOT, SERVICE_ROOT]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+os.chdir(SERVICE_ROOT)
 
-if BACKEND_ROOT not in sys.path:
-    sys.path.insert(0, BACKEND_ROOT)
-if SERVICE_APP not in sys.path:
-    sys.path.insert(0, SERVICE_APP)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-os.chdir(SERVICE_APP) 
-load_dotenv()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+log = logging.getLogger("seed")
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# 2. Environment Setup
-load_dotenv()
-db_url = os.getenv('INT_DATABASE_URL') or os.getenv('DATABASE_URL') or "postgresql+asyncpg://user:password@localhost:5433/dbname"
-logger.info(f"Using Database URL: {db_url}")
-
-# 3. App Imports - Use ONLY app.models and avoid common.models to prevent registry conflicts
+# ─── App Imports ──────────────────────────────────────────────────────────────
+from sqlalchemy import select, text
 from app.core.database import AsyncSessionLocal
 from app.models import BusinessGroup, Company, User, Role, UserCompanyRole
 from app.core.security import hash_password
-from sqlalchemy import select
+
+# ─── IDs Fijos (idempotent) ───────────────────────────────────────────────────
+GROUP_ID       = uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")
+ENTERPRISE_ID  = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
+LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
+LOGISTICS_US_ID = uuid.UUID("777cc8a6-34f9-42df-8f29-28254e0ad277")
+DEMO_ID        = uuid.UUID("203e03c9-5d65-43ff-9e83-864ef605426c")
+CHARLY_ID      = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
+OPERATOR_ID    = uuid.UUID("74125896-1234-4bc1-bbaa-123456789abc")
+SUPERVISOR_ID  = uuid.UUID("85236974-5678-4cd2-ccbb-987654321def")
+
+# ─── Scopes (SSOT: frontend/src/app/core/services/navigation.service.ts) ──────
+# Wildcard "*" = admin bypass en el frontend (ve todo el sidebar)
+ADMIN_SCOPES = ["*"]
+
+# Manager/Logistics: Inventarios + Catálogo + WMS
+MANAGER_SCOPES = [
+    "inv:movements:manage", "inv:warehouse:manage",
+    "master:catalog:manage",
+    "wms:manage",
+]
+
+# Operador: Solo movimientos de inventario
+OPERATOR_SCOPES = ["inv:movements:manage"]
+
+
+async def get_or_create_role(db, name: str, company_id: uuid.UUID) -> Role:
+    """Busca un rol por nombre+empresa. Si no existe, lo crea."""
+    stmt = select(Role).where(Role.name == name, Role.company_id == company_id)
+    role = (await db.execute(stmt)).scalar_one_or_none()
+    if not role:
+        role = Role(name=name, company_id=company_id, tenant_id=company_id, version_id=1, is_active=True)
+        db.add(role)
+        await db.flush()
+    return role
+
 
 async def run_seed():
-    logger.info("🌱 Iniciando seeding del Auth Service (RFID & Multi-Tenant Support)...")
+    log.info("=" * 50)
+    log.info("  InternoCore Auth-Service — SEED V5")
+    log.info("=" * 50)
+
     async with AsyncSessionLocal() as db:
         try:
-            # 1. Crear Business Group (Cluster)
-            group_id = uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")
-            group_name = "InternoCorp Group"
-            stmt = select(BusinessGroup).where(BusinessGroup.id == group_id)
-            res = await db.execute(stmt)
-            corp_group = res.scalar_one_or_none()
-            
-            if not corp_group:
-                corp_group = BusinessGroup(
-                    id=group_id,
-                    name=group_name,
-                    description="Cluster de manufactura principal"
-                )
-                db.add(corp_group)
+            # ── 1. BusinessGroup ──────────────────────────────────
+            log.info("[1/5] BusinessGroup...")
+            bg = await db.get(BusinessGroup, GROUP_ID)
+            if not bg:
+                db.add(BusinessGroup(
+                    id=GROUP_ID,
+                    name="Interno Global Operations",
+                    version_id=1,
+                    is_active=True
+                ))
                 await db.flush()
-                logger.info(f"✅ Business Group '{group_name}' creado.")
+                log.info("  ✅ BusinessGroup creado.")
+            else:
+                log.info("  ℹ️  BusinessGroup ya existe.")
 
-            # 2. Definir Empresas del Cluster
-            companies_data = [
-                {
-                    "id": uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01"),
-                    "name": "InternoCorp Enterprise",
-                    "group_id": group_id,
-                    "is_new": False
-                },
-                {
-                    "id": uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242"),
-                    "name": "Interno Logistics (Tijuana Plant)",
-                    "group_id": group_id,
-                    "is_new": False
-                },
-                {
-                    "id": uuid.UUID("203e03c9-5d65-43ff-9e83-864ef605426c"),
-                    "name": "Nueva Planta Demo",
-                    "group_id": group_id,
-                    "is_new": True
-                }
+            # ── 2. Empresas ───────────────────────────────────────
+            log.info("[2/5] Empresas...")
+            companies = [
+                (ENTERPRISE_ID, "Interno Enterprise",       "ACTIVE"),
+                (LOGISTICS_MX_ID, "Interno Logistic MX",       "ACTIVE"),
+                (LOGISTICS_US_ID, "Interno Logistic US",       "ACTIVE"),
+                (DEMO_ID,       "Empresa Demo (Pendiente)",     "ACTIVE"),
             ]
-            
-            seeded_companies = []
-            for c_data in companies_data:
-                stmt = select(Company).where(Company.id == c_data["id"])
-                res = await db.execute(stmt)
-                company = res.scalar_one_or_none()
-                
-                if not company:
-                    company = Company(
-                        id=c_data["id"],
-                        name=c_data["name"],
-                        parent_group_id=c_data["group_id"],
-                        status="ACTIVE",
-                        version_id=1,
-                        is_active=True
-                    )
-                    db.add(company)
+            for cid, cname, cstatus in companies:
+                co = await db.get(Company, cid)
+                if not co:
+                    db.add(Company(
+                        id=cid, name=cname, status=cstatus,
+                        parent_group_id=GROUP_ID,
+                        version_id=1, is_active=True
+                    ))
                     await db.flush()
-                    logger.info(f"✅ Empresa '{c_data['name']}' creada.")
+                    log.info(f"  ✅ Empresa '{cname}' creada.")
                 else:
-                    logger.info(f"ℹ️ Empresa '{c_data['name']}' ya existe.")
-                seeded_companies.append((company, c_data["is_new"]))
+                    co.name = cname # Forzar actualización del nombre
+                    co.status = cstatus # Forzar actualización del estado
+                    log.info(f"  ℹ️  Empresa '{cname}' actualizada.")
 
-            # 3. Crear Roles Estándar
-            roles_to_create = ["admin", "owner", "supervisor", "member", "operator"]
-            for company, _ in seeded_companies:
-                for r_name in roles_to_create:
-                    stmt = select(Role).where(Role.name == r_name, Role.company_id == company.id)
-                    res = await db.execute(stmt)
-                    if not res.scalar_one_or_none():
-                        role = Role(
-                            name=r_name,
-                            company_id=company.id,
-                            version_id=1,
-                            is_active=True
-                        )
-                        db.add(role)
+            # ── 3. Roles (solo "admin" y "operator" — FK requerida) ──
+            log.info("[3/5] Roles base...")
+            role_ent_admin  = await get_or_create_role(db, "admin",    ENTERPRISE_ID)
+            role_log_mx_admin = await get_or_create_role(db, "admin",    LOGISTICS_MX_ID)
+            role_log_mx_op    = await get_or_create_role(db, "operator", LOGISTICS_MX_ID)
+            role_log_us_admin = await get_or_create_role(db, "admin",    LOGISTICS_US_ID)
+            role_demo_admin   = await get_or_create_role(db, "admin",    DEMO_ID)
+            log.info("  ✅ Roles OK.")
+
+            # ── 4. Usuarios ───────────────────────────────────────
+            log.info("[4/5] Usuarios...")
+
+            # Charly — empresa principal: Enterprise
+            charly = await db.get(User, CHARLY_ID)
+            if not charly:
+                db.add(User(
+                    id=CHARLY_ID,
+                    email="charly@interno.com",
+                    hashed_password=hash_password("charly123"),
+                    company_id=ENTERPRISE_ID,   # FK obligatoria
+                    tenant_id=ENTERPRISE_ID,
+                    version_id=1,
+                    is_active=True
+                ))
                 await db.flush()
-            logger.info("✅ Roles de base creados.")
+                log.info("  ✅ Usuario Charly creado.")
+            else:
+                log.info("  ℹ️  Charly ya existe.")
 
-            # 4. Crear Usuarios (Admin Charly y Operador RFID)
-            users_to_seed = [
-                {
-                    "id": uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38"),
-                    "email": "charly@interno.com",
-                    "password": "charly123",
-                    "identity_token": None,
-                    "companies": [seeded_companies[0][0], seeded_companies[1][0]], # Acceso a 2 empresas
-                    "role_name": "admin"
-                },
-                {
-                    "id": uuid.UUID("d1e2f3a4-b5c6-4d7e-8f9a-0b1c2d3e4f5a"),
-                    "email": "op01@interno.com",
-                    "password": "operator123",
-                    "identity_token": "RFID123456",
-                    "companies": [seeded_companies[1][0]], # Acceso a Tijuana
-                    "role_name": "operator"
-                }
-            ]
+            # Charly (Google OAuth) — vinculado a las mismas empresas
+            CHARLY_GOOGLE_EMAIL = "charly.flores.x@gmail.com"
+            charly_google = (await db.execute(select(User).where(User.email == CHARLY_GOOGLE_EMAIL))).scalar_one_or_none()
+            if not charly_google:
+                charly_google = User(
+                    email=CHARLY_GOOGLE_EMAIL,
+                    hashed_password=None, # Solo OAuth
+                    company_id=ENTERPRISE_ID,
+                    tenant_id=ENTERPRISE_ID,
+                    version_id=1,
+                    is_active=True
+                )
+                db.add(charly_google)
+                await db.flush()
+                log.info(f"  ✅ Usuario Google '{CHARLY_GOOGLE_EMAIL}' creado.")
+            else:
+                log.info(f"  ℹ️  Usuario Google '{CHARLY_GOOGLE_EMAIL}' ya existe.")
 
-            for u_data in users_to_seed:
-                stmt = select(User).where(User.email == u_data["email"])
-                res = await db.execute(stmt)
-                user = res.scalar_one_or_none()
-                
-                if not user:
-                    user = User(
-                        id=u_data["id"],
-                        email=u_data["email"],
-                        hashed_password=hash_password(u_data["password"]),
-                        identity_token=u_data["identity_token"],
-                        company_id=u_data["companies"][0].id,
-                        version_id=1,
-                        is_active=True
-                    )
-                    db.add(user)
-                    await db.flush()
-                    logger.info(f"✅ Usuario {u_data['email']} creado (RFID: {u_data['identity_token']}).")
-                
-                # Vincular a empresas
-                for company in u_data["companies"]:
-                    r_stmt = select(Role).where(Role.name == u_data["role_name"], Role.company_id == company.id)
-                    r_res = await db.execute(r_stmt)
-                    target_role = r_res.scalar_one()
+            # Operador — empresa principal: Logistics
+            operator = await db.get(User, OPERATOR_ID)
 
-                    link_stmt = select(UserCompanyRole).where(
-                        UserCompanyRole.user_id == user.id,
-                        UserCompanyRole.company_id == company.id
-                    )
-                    link_res = await db.execute(link_stmt)
-                    if not link_res.scalar_one_or_none():
-                        link = UserCompanyRole(
-                            user_id=user.id,
-                            company_id=company.id,
-                            role_id=target_role.id,
-                            is_new=False,
-                            version_id=1
-                        )
-                        db.add(link)
-                        logger.info(f"🔗 Vinculando {u_data['email']} a '{company.name}' como {u_data['role_name']}.")
+            if not operator:
+                db.add(User(
+                    id=OPERATOR_ID,
+                    email="operador@interno.com",
+                    hashed_password=hash_password("ops123"),
+                    company_id=LOGISTICS_MX_ID,
+                    tenant_id=LOGISTICS_MX_ID,
+                    version_id=1,
+                    is_active=True
+                ))
+                await db.flush()
+                log.info("  ✅ Usuario Operador creado.")
+            else:
+                log.info("  ℹ️  Operador ya existe.")
+
+            # Supervisor US — empresa principal: Logistics US
+            supervisor = await db.get(User, SUPERVISOR_ID)
+            if not supervisor:
+                db.add(User(
+                    id=SUPERVISOR_ID,
+                    email="supervisor_us@interno.com",
+                    hashed_password=hash_password("super123"),
+                    company_id=LOGISTICS_US_ID,
+                    tenant_id=LOGISTICS_US_ID,
+                    version_id=1,
+                    is_active=True
+                ))
+                await db.flush()
+                log.info("  ✅ Usuario Supervisor US creado.")
+            else:
+                log.info("  ℹ️  Supervisor US ya existe.")
+
+            # ── 5. Vinculaciones RBAC (scopes son la fuente de verdad) ──
+            log.info("[5/5] Vinculaciones (UserCompanyRole)...")
+
+            # Limpiar solo las vinculaciones de estos tres usuarios (incluyendo al de Google)
+            from sqlalchemy import delete
+            await db.execute(
+                delete(UserCompanyRole).where(
+                    UserCompanyRole.user_id.in_([CHARLY_ID, OPERATOR_ID, SUPERVISOR_ID, charly_google.id])
+                )
+            )
+            await db.flush()
+
+            # Charly → Enterprise (FULL ADMIN)
+            db.add(UserCompanyRole(
+                user_id=CHARLY_ID, company_id=ENTERPRISE_ID,
+                tenant_id=ENTERPRISE_ID,
+                role_id=role_ent_admin.id, scopes=ADMIN_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # Charly → Logistics MX (Inventarios + Master Data)
+            db.add(UserCompanyRole(
+                user_id=CHARLY_ID, company_id=LOGISTICS_MX_ID,
+                tenant_id=LOGISTICS_MX_ID,
+                role_id=role_log_mx_admin.id, scopes=MANAGER_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # Charly → Logistics US (Inventarios + Master Data)
+            db.add(UserCompanyRole(
+                user_id=CHARLY_ID, company_id=LOGISTICS_US_ID,
+                tenant_id=LOGISTICS_US_ID,
+                role_id=role_log_us_admin.id, scopes=MANAGER_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # Charly → Demo (Pendiente de Configuración)
+            db.add(UserCompanyRole(
+                user_id=CHARLY_ID, company_id=DEMO_ID,
+                tenant_id=DEMO_ID,
+                role_id=role_demo_admin.id, scopes=["audit:logs:view"], # Solo auditoría básica por ser pendiente
+                is_new=True, version_id=1
+            ))
+
+            # Operador → Logistics MX (Solo Inventarios)
+            db.add(UserCompanyRole(
+                user_id=OPERATOR_ID, company_id=LOGISTICS_MX_ID,
+                tenant_id=LOGISTICS_MX_ID,
+                role_id=role_log_mx_op.id, scopes=OPERATOR_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # Supervisor US → Logistics US (Logistics Scopes)
+            db.add(UserCompanyRole(
+                user_id=SUPERVISOR_ID, company_id=LOGISTICS_US_ID,
+                tenant_id=LOGISTICS_US_ID,
+                role_id=role_log_us_admin.id, scopes=MANAGER_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # [GOOGLE] Charly → Enterprise (FULL ADMIN)
+            db.add(UserCompanyRole(
+                user_id=charly_google.id, company_id=ENTERPRISE_ID,
+                tenant_id=ENTERPRISE_ID,
+                role_id=role_ent_admin.id, scopes=ADMIN_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # [GOOGLE] Charly → Logistics MX (Inventarios + Master Data)
+            db.add(UserCompanyRole(
+                user_id=charly_google.id, company_id=LOGISTICS_MX_ID,
+                tenant_id=LOGISTICS_MX_ID,
+                role_id=role_log_mx_admin.id, scopes=MANAGER_SCOPES,
+                is_new=False, version_id=1
+            ))
+
+            # [GOOGLE] Charly → Logistics US (Inventarios + Master Data)
+            db.add(UserCompanyRole(
+                user_id=charly_google.id, company_id=LOGISTICS_US_ID,
+                tenant_id=LOGISTICS_US_ID,
+                role_id=role_log_us_admin.id, scopes=MANAGER_SCOPES,
+                is_new=False, version_id=1
+            ))
 
             await db.commit()
-            logger.info("🚀 Seeding Seed v3.0 (RFID & Multi-Tenant) completado.")
-            
+
+            log.info("=" * 50)
+            log.info("  🚀 SEED COMPLETADO EXITOSAMENTE")
+            log.info("=" * 50)
+
         except Exception as e:
             await db.rollback()
-            logger.error(f"❌ Error en seed: {e}")
+            log.exception(f"❌ SEED FALLÓ: {e}")
             raise
-        finally:
-            await db.close()
+
 
 if __name__ == "__main__":
     asyncio.run(run_seed())

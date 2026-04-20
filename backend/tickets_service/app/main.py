@@ -1,3 +1,4 @@
+from common.security.cors_setup import setup_cors
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from common.config import settings
@@ -10,13 +11,7 @@ app = FastAPI(
 )
 
 # CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.int_backend_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+setup_cors(app)
 
 app.add_middleware(InternoCoreGlobalMiddleware)
 

@@ -1,32 +1,38 @@
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, AliasChoices
+from pydantic_settings import SettingsConfigDict
+from common.config import InternoSettings
 from typing import Optional
 
-class Settings(BaseSettings):
-    PROJECT_NAME: str = "Interno.Core.MES"
+class MESSettings(InternoSettings):
+    """
+    Configuración para Manufacturing Execution System (MES).
+    Hereda del núcleo central para asegurar consistencia en AWS.
+    """
+    PROJECT_NAME: str = "InternoCore MES Service"
     API_V1_STR: str = "/api/v1"
     
-    # Database
-    POSTGRES_SERVER: str = Field("postgres-db", validation_alias="POSTGRES_SERVER")
-    POSTGRES_USER: str = Field("user", validation_alias="POSTGRES_USER")
-    POSTGRES_PASSWORD: str = Field("password", validation_alias="POSTGRES_PASSWORD")
-    POSTGRES_DB: str = Field("mes_db", validation_alias="POSTGRES_DB")
-    DATABASE_URL: Optional[str] = Field(None, validation_alias="DATABASE_URL")
+    # Database (Prioridad a la URL ya construida)
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://user:password@db:5432/mes_db",
+        validation_alias=AliasChoices("CORE_DATABASE_URL", "DATABASE_URL")
+    )
     
-    # Security (Auditor compliance)
-    SECRET_KEY: str = Field("placeholder_for_auditor", validation_alias="SECRET_KEY")
-    ALGORITHM: str = Field("HS256", validation_alias="ALGORITHM")
+    SECRET_KEY: str = Field(
+        default="placeholder_security_key",
+        validation_alias=AliasChoices("CORE_SECRET_KEY", "SECRET_KEY")
+    )
 
     @property
-    def get_database_url(self) -> str:
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+    def ASYNC_DATABASE_URL(self) -> str:
+        if self.DATABASE_URL.startswith("postgresql://"):
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return self.DATABASE_URL
 
-    # AWS
-    AWS_REGION: str = "us-east-1"
-    ENV_MODE: str = "DEV"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        case_sensitive=True
+    )
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
-
-settings = Settings()
+settings = MESSettings()
+settings.load_aws_secrets()

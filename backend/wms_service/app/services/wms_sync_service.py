@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 import logging
 from typing import List, Optional
@@ -47,7 +48,7 @@ class WMSSyncService:
                         name=product.name,
                         sku=product.sku,
                         version_number=version.version_number,
-                        stock_quantity=0.0,
+                        stock_quantity=Decimal("0.0"),
                         master_product_id=product.id
                     )
                     created_count += 1
@@ -58,7 +59,7 @@ class WMSSyncService:
                     stock_data = resp.get("data", []) if isinstance(resp, dict) else []
                     p_stock = next((s for s in stock_data if uuid.UUID(str(s["product_id"])) == product.id), None)
                     if p_stock:
-                        item.stock_quantity = float(p_stock["total_quantity"])
+                        item.stock_quantity = Decimal(str(p_stock["total_quantity"]))
                 except Exception as e:
                     logger.warning(f"Could not sync stock for {product.sku}: {e}")
 

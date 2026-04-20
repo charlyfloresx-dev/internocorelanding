@@ -1,0 +1,16 @@
+{
+  "name": "Interno Moments",
+  "short_name": "Interno",
+  "theme_color": "#FFD700",
+  "background_color": "#000000",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

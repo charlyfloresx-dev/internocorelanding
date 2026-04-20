@@ -1,23 +1,31 @@
-import { ApplicationConfig, provideExperimentalZonelessChangeDetection } from '@angular/core';
-import { provideRouter, withHashLocation } from '@angular/router';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import {ApplicationConfig, provideZonelessChangeDetection, APP_INITIALIZER} from '@angular/core';
+import {provideRouter} from '@angular/router';
+import {provideHttpClient, withInterceptors, withFetch} from '@angular/common/http';
 
-import { routes } from './app.routes';
+import {routes} from './app.routes';
+import {AuthService} from './core/services/auth.service';
+import { multiTenantInterceptor } from './core/interceptors/multi-tenant.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { imageInterceptor } from './core/interceptors/image.interceptor';
 
-import { authInterceptor } from '@core/interceptors/auth.interceptor';
-import { multiTenantInterceptor } from '@core/interceptors/multi-tenant.interceptor';
-import { apiInterceptor } from '@core/interceptors/api.interceptor';
+export function initializeApp(authService: AuthService) {
+  return () => authService.restoreSession();
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideExperimentalZonelessChangeDetection(),
-    provideRouter(routes, withHashLocation()),
+    provideZonelessChangeDetection(),
+    provideRouter(routes),
     provideHttpClient(
-      withInterceptors([
-        authInterceptor,
-        multiTenantInterceptor,
-        apiInterceptor
-      ])
-    )
-  ]
+      withInterceptors([multiTenantInterceptor, errorInterceptor, imageInterceptor]),
+      withFetch()
+    ),
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeApp,
+      deps: [AuthService],
+      multi: true
+    }
+  ],
 };
+

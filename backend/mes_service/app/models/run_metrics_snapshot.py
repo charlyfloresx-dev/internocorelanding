@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import ForeignKey, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class RunMetricsSnapshot(MultiTenantBase):
     """Immutable Read Model tracking final performance KPIs for closed runs."""

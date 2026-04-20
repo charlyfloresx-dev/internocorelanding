@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:4200",
+      "localStorage": [
+        {
+          "name": "_ic_auth_ctx",
+          "value": "{\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzQ0NjYyODksInN1YiI6IjY5YWE1ZGRjLWJiYWEtNDZlNi1hN2YwLWFlYjRiOTJiNmQzOCIsImNvbXBhbnlfaWQiOiJhZDZjYzhhNi0zNGY5LTQyZGYtOGYyOS0yODI1NGUwYWQyNDIiLCJncm91cF9pZCI6bnVsbCwicm9sZV9uYW1lcyI6WyJhZG1pbiJdLCJzY29wZXMiOltdLCJtb2R1bGVzIjpbImF1dGhfY29yZSIsImludmVudG9yeV9jb3JlIl0sInN0YXR1cyI6IlRSSUFMIiwicmVhZG9ubHkiOmZhbHNlLCJjb3JyZWxhdGlvbl9pZCI6IjcwNWI1ZTMwLTBkNTEtNDA5YS05ZWU4LTlkMGQ5YzEzNThjNSJ9.uRfMyBMZwHLpgeP16-rbWN0NbqfCL_ZWxr06TrSGTrY\",\"token_type\":\"bearer\",\"user_id\":\"69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38\",\"company_id\":\"ad6cc8a6-34f9-42df-8f29-28254e0ad242\",\"group_id\":null,\"roles\":[\"admin\"],\"permissions\":[],\"scopes\":[]}"
+        }
+      ]
+    }
+  ]
+}

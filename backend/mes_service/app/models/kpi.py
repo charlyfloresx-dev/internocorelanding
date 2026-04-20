@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import String, ForeignKey, DateTime, Integer, Float, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class Goal(MultiTenantBase):
     """Meta horaria por recurso."""

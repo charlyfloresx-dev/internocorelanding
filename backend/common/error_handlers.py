@@ -4,8 +4,8 @@ from .exceptions import DomainException
 
 async def domain_exception_handler(request: Request, exc: DomainException):
     """
-    Global Exception Handler para capturar errores de dominio y
-    transformarlos en el formato estándar ApiResponse.
+    Global Exception Handler to capture domain errors and
+    transform them into the standard ApiResponse format.
     """
     return JSONResponse(
         status_code=exc.status_code,
@@ -21,4 +21,4 @@ async def domain_exception_handler(request: Request, exc: DomainException):
         }
     )
 
-# Nota: Registrar en main.py con app.add_exception_handler(DomainException, domain_exception_handler)
+# Note: Register in main.py with app.add_exception_handler(DomainException, domain_exception_handler)

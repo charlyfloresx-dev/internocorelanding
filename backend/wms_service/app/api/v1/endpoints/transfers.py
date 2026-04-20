@@ -21,38 +21,40 @@ class InterCompanyTransferRequest(BaseModel):
     quantity: float
     target_warehouse_id: UUID4
 
-@router.post("/inter-company", status_code=status.HTTP_201_CREATED)
+@router.post("/inter-company", status_code=status.HTTP_201_CREATED, summary="Create Inter-Company Transfer")
 async def create_inter_company_transfer(
     transfer: InterCompanyTransferRequest,
     db: AsyncSession = Depends(get_db)
 ) -> typing.Any:
+    """
+    Creates an inter-company transfer between two companies in the same cluster.
+    """
     ctx = request_context.get()
     if not ctx or not ctx.group_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Operación permitida solo para usuarios con contexto de Cluster (group_id)."
+            detail="Operation allowed only for users with Cluster (group_id) context."
         )
 
-    # 1. Validar que ambas empresas pertenecen al mismo Cluster/Grupo
-    # Buscamos ambas empresas en la DB para verificar su group_id
+    # 1. Validate that both companies belong to the same Cluster/Group
     id_list = [transfer.source_company_id, transfer.target_company_id]
     result = await db.execute(select(Company).where(Company.id.in_(id_list)))
     companies = result.scalars().all()
 
     if len(companies) < 2 and transfer.source_company_id != transfer.target_company_id:
-        raise HTTPException(status_code=404, detail="Una o ambas empresas no encontradas.")
+        raise HTTPException(status_code=404, detail="One or both companies not found.")
 
     for comp in companies:
         if comp.parent_group_id != ctx.group_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"La empresa {comp.name} no pertenece a su cluster autorizado."
+                detail=f"The company {comp.name} does not belong to your authorized cluster."
             )
 
-    # 2. Generar el Documento de Inventario y Movimientos (Simplificado para el ejemplo)
-    # En un caso real, esto requeriría lógica de negocio compleja (salida de uno, entrada de otro)
+    # 2. Generate the Inventory Document and Movements (Simplified for example)
+    # In a real scenario, this would require complex business logic (out from one, in to another)
     
-    # Auditamos la acción
+    # Audit the action
     await AuditLogger.log_action(
         db=db,
         action="INV_INTER_COMPANY_TRANSFER",
@@ -67,6 +69,6 @@ async def create_inter_company_transfer(
 
     return {
         "status": "success",
-        "message": "Transferencia inter-company registrada exitosamente.",
+        "message": "Inter-company transfer registered successfully.",
         "meta": {"trace_id": ctx.trace_id}
     }

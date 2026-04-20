@@ -23,6 +23,24 @@ class InventoryTransactionService:
         self.repository = repo
         self.md_client = md_client
 
+    async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
+        """
+        [Phase 58.2] Density Guard: Validates that adding 'quantity' to 'location_code' doesn't exceed its max capacity.
+        """
+        if not location_code or quantity <= 0:
+            return
+
+        capacity = await self.repository.get_location_capacity(warehouse_id, location_code, company_id)
+        if capacity > 0:
+            # We use a safety buffer (density coefficient) if needed, but here we use strict capacity.
+            occupancy = await self.repository.get_location_occupancy(warehouse_id, location_code, company_id)
+            if occupancy + quantity > capacity:
+                logger.warning(f"🚨 DENSITY_GUARD_VIOLATION: Location {location_code} overflows in WH {warehouse_id}. Cap: {capacity}, Current: {occupancy}, New: {quantity}")
+                raise ValueError(
+                    f"ERR_LOCATION_OVERFLOW: La ubicación {location_code} no tiene capacidad suficiente. "
+                    f"Capacidad: {capacity}, Ocupación actual: {occupancy}, Exceso: {(occupancy + quantity) - capacity}"
+                )
+
     async def create_transaction(
         self,
         stmt: InventoryTransactionCreate,
@@ -161,7 +179,16 @@ class InventoryTransactionService:
         except:
              pass
 
-        # 2. Create Movement Entity
+        # 2. Density Guard Validation (Phase 58.3)
+        if cmd.movement_type in ["IN", "ADJUSTMENT"] and getattr(cmd, 'location', None) and cmd.quantity > 0:
+             await self._check_location_capacity(
+                 warehouse_id=cmd.warehouse_id,
+                 location_code=cmd.location,
+                 quantity=Decimal(str(cmd.quantity)),
+                 company_id=company_id
+             )
+
+        # 3. Create Movement Entity
         movement = MovementEntity(
             id=uuid.uuid4(),
             warehouse_id=cmd.warehouse_id,
@@ -216,6 +243,10 @@ class InventoryTransactionService:
         for item in payload.items:
             if item.difference == 0:
                 continue
+
+            # 1. Density Guard Validation (Reality Correction also adheres to physical capacity)
+            if item.difference > 0:
+                await self._check_location_capacity(warehouse_id, payload.location, Decimal(str(item.difference)), company_id)
 
             movement = MovementEntity(
                 id=uuid.uuid4(),

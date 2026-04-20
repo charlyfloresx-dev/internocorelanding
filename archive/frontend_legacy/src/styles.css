@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* LIGHT MODE RGB (Exact temp_future Industrial Palette) */
+    --color-surface-bg: 241 245 249;    /* #F1F5F9 */
+    --color-surface-card: 255 255 255;  /* #FFFFFF */
+    --color-surface-border: 0 0 0;      /* Use with opacity 0.08 in tailwind */
+    --color-surface-text: 15 23 42;     /* #0F172A */
+    --color-surface-text-muted: 100 116 139; /* #64748B */
+    --color-primary: 2 132 199;         /* #0284C7 */
+    --color-primary-dark: 3 105 161;    /* #0369A1 */
+
+    --color-nav-bar: 255 255 255;       /* #FFFFFF */
+    --color-nav-panel: 241 245 249;     /* Slate 100 for subtle contrast */
+
+    /* Fixed Industrial Palette RGB */
+    --color-ic-dark: 5 11 20;
+    --color-ic-slate: 10 22 40;
+    --color-ic-cyan: 0 229 255;
+    --color-ic-blue: 0 163 255;
+    --color-ic-muted: 100 116 139;
+    --color-ic-white: 248 250 252;
+
+    /* Neon Accents RGB */
+    --color-neon-cyan: 0 229 255;
+    --color-neon-green: 0 255 157;
+    --color-neon-blue: 0 163 255;
+  }
+
+  .dark {
+    /* DARK MODE OVERRIDES RGB */
+    --color-surface-bg: 5 11 20;
+    --color-surface-card: 10 22 40;
+    --color-surface-border: 0 229 255;
+    --color-surface-text: 248 250 252;
+    --color-surface-text-muted: 148 163 184;
+    --color-primary: 0 229 255;
+    --color-primary-dark: 0 163 255;
+    --color-nav-bar: 5 11 20;
+    --color-nav-panel: 10 22 40;
+  }
+
+  body {
+    @apply bg-surface-bg text-surface-text font-sans antialiased transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .industrial-card {
+    @apply bg-surface-card border border-surface-border/[0.08] rounded-xl shadow-sm backdrop-blur-md relative overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/30;
+  }
+
+  .dark .industrial-card {
+    @apply shadow-2xl shadow-primary/5 bg-surface-card/40;
+  }
+
+  .industrial-card::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent;
+  }
+
+  .glow-border {
+    @apply border-primary/30 shadow-[0_0_15px_rgba(0,229,255,0.1)];
+  }
+
+  .glow-text {
+    @apply text-primary drop-shadow-[0_0_8px_rgba(0,229,255,0.5)];
+  }
+
+  .btn-primary {
+    @apply bg-primary/10 border border-primary/30 text-primary hover:bg-primary hover:text-ic-dark px-6 py-3 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center gap-2;
+  }
+
+  .input-industrial {
+    @apply bg-surface-bg border border-surface-border/[0.08] rounded-lg px-4 py-3 text-surface-text focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-surface-text-muted;
+  }
+
+  .glass-card {
+    @apply bg-surface-card/30 backdrop-blur-industrial border border-white/10 shadow-2xl relative overflow-hidden;
+  }
+
+  .neon-glow-cyan {
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+  }
+
+  /* Scan-line Effect (Sutile) */
+  .scan-line-overlay {
+    @apply absolute inset-0 pointer-events-none opacity-[0.03] overflow-hidden;
+    background: linear-gradient(to bottom, transparent, rgba(0, 229, 255, 0.5), transparent);
+    background-size: 100% 4px;
+    animation: scan-line 4s linear infinite;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20;
+  }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes width-full {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-width-full {
+  animation: width-full 1s ease-out forwards;
+}

@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from typing import Optional
 from sqlalchemy import String, Numeric, Boolean, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,6 +28,8 @@ class ItemVariant(MultiTenantBase):
     volume: Mapped[Decimal] = mapped_column(Numeric(15, 4), nullable=True) # m3
     
     is_preferred: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    photo_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("company_id", "internal_sku", "mfg_part_number", name="uq_variant_per_company"),

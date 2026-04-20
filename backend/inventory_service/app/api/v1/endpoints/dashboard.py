@@ -151,7 +151,17 @@ async def get_wac_valuation_report(
     )
     if not result:
         raise HTTPException(status_code=404, detail="No movements found for this product/warehouse.")
-    return ApiResponse(data=result, meta={"trace_id": trace_id})
+    
+    # Map from domain entity (Money) to API Schema (Decimal) to avoid Pydantic validation errors
+    mapped_data = WACValuationRow(
+        product_id=result.product_id,
+        total_units=result.total_units,
+        weighted_average_cost=result.wac.amount,
+        total_inventory_value=result.total_inventory_value.amount,
+        currency_code=result.wac.currency
+    )
+    
+    return ApiResponse(data=mapped_data, meta={"trace_id": trace_id})
 
 @router.get("/reports/abc", response_model=ApiResponse[List[ABCRotationRow]])
 async def get_abc_rotation_report(

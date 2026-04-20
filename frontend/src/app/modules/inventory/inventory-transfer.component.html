@@ -1,0 +1,683 @@
+<div class="space-y-8 animate-fade-in pb-20">
+      
+  <!-- Header Section (Contexto de Almacén Actual) -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-[60]">
+    <div class="flex items-center gap-5 w-full md:w-auto">
+      <div class="w-16 h-16 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center text-primary shadow-[0_0_20px_rgba(16,185,129,0.15)] shrink-0">
+        <mat-icon class="text-3xl">location_on</mat-icon>
+      </div>
+      <div class="flex-1">
+        <p class="text-primary font-black text-[10px] tracking-[0.3em] uppercase mb-1">
+          Contexto Operativo (Salida)
+        </p>
+        <div class="relative w-full md:w-[450px]">
+          <!-- Clickable Trigger -->
+          <div 
+            (click)="toggleContextDropdown()"
+            class="w-full bg-transparent text-2xl md:text-3xl font-black text-surface-text tracking-tighter uppercase italic border-b-2 border-surface-border hover:border-primary outline-none focus:border-primary transition-all pb-1 cursor-pointer flex justify-between items-center group"
+          >
+            <span [class.text-surface-text-muted]="!originWarehouseId()" [class.text-surface-text]="originWarehouseId()">
+              {{ selectedWarehouseName() || 'SELECCIONE CONTEXTO...' }}
+            </span>
+            <mat-icon class="text-surface-text-muted group-hover:text-primary transition-transform duration-300" 
+                      [class.rotate-180]="isContextDropdownOpen()">keyboard_arrow_down</mat-icon>
+          </div>
+
+          <!-- Invisible overlay to detect click-outside -->
+          @if (isContextDropdownOpen()) {
+            <div class="fixed inset-0 z-40" (click)="isContextDropdownOpen.set(false)"></div>
+            
+            <!-- Expanded Dropdown Menu -->
+            <div class="absolute top-full left-0 mt-2 w-full md:w-[450px] bg-surface-card border border-surface-border shadow-2xl rounded-xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 ring-1 ring-black/5 dark:ring-white/5">
+              <div class="max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-surface-border">
+                @for (co of filteredOriginCompanies(); track co.id) {
+                  <div class="px-5 py-2.5 bg-surface-bg/80 border-y border-surface-border backdrop-blur-xl sticky top-0 z-10 flex items-center gap-2">
+                    <mat-icon class="text-[16px] text-surface-text-muted">domain</mat-icon>
+                    <span class="text-[10px] tracking-[0.2em] uppercase font-black text-surface-text-muted">{{ co.label }}</span>
+                  </div>
+                  <div class="flex flex-col py-1 bg-surface-card/90 backdrop-blur-xl">
+                    @for (wh of getWarehousesByCompany(co.id); track wh.id) {
+                      <button 
+                        (click)="selectOriginContext(wh)"
+                        class="w-full text-left px-5 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group"
+                        [class.bg-primary/5]="originWarehouseId() === wh.id"
+                      >
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm tracking-widest uppercase font-bold transition-colors"
+                            [ngClass]="originWarehouseId() === wh.id ? 'text-primary' : 'text-surface-text group-hover:text-primary'">
+                            {{ wh.name }} <span class="ml-2 font-medium opacity-40">({{ wh.country_code }})</span>
+                          </span>
+                          @if (wh.is_production_resource) {
+                            <span class="bg-ic-blue/10 text-ic-blue text-[7px] px-1.5 py-0.5 rounded border border-ic-blue/30 font-black uppercase tracking-tighter">WIP RESOURCE</span>
+                          }
+                        </div>
+                        @if (originWarehouseId() === wh.id) {
+                          <mat-icon class="text-primary text-[18px]">check_circle</mat-icon>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 shrink-0">
+      <button 
+        (click)="onInitiateTransfer()"
+        [disabled]="complianceStatus() === 'BLOCKED' || isProcessing()"
+        class="py-3 px-8 text-[10px] uppercase tracking-[0.2em] disabled:opacity-50 rounded-xl font-black flex items-center gap-2 transition-all duration-300 shadow-xl active:scale-95"
+        [ngClass]="{
+          'bg-rose-600 text-white shadow-rose-900/20 cursor-not-allowed': complianceStatus() === 'BLOCKED',
+          'bg-amber-500 text-slate-950 shadow-amber-900/30 hover:bg-amber-400': complianceStatus() === 'WARNING',
+          'bg-emerald-600 text-white shadow-emerald-900/30 hover:bg-emerald-500': complianceStatus() === 'SAFE'
+        }"
+      >
+        <mat-icon class="text-sm">
+          {{ isProcessing() ? 'sync' : (complianceStatus() === 'BLOCKED' ? 'block' : (complianceStatus() === 'WARNING' ? 'warning' : 'send')) }}
+        </mat-icon>
+        {{ isProcessing() ? 'Procesando...' : (complianceStatus() === 'BLOCKED' ? 'BLOQUEADO (Faltan Datos)' : (complianceStatus() === 'WARNING' ? 'Dispatch (Con Advertencias)' : 'Iniciar Transferencia')) }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuración de Ruta de Envío (Destino) -->
+  @if (originWarehouseId()) {
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-500">
+      
+      <!-- Box 1: EMPRESA RECEPTORA (Modern Dropdown) -->
+      <div class="industrial-card p-8 flex flex-col items-center text-center space-y-6 border-2 transition-all duration-500"
+           [class.border-ic-blue]="!destinationCompanyId()"
+           [class.border-surface-border]="destinationCompanyId()">
+        <span class="text-[10px] font-black text-ic-blue uppercase tracking-[0.3em] flex items-center gap-2">
+          <mat-icon class="text-sm">domain</mat-icon> 1. EMPRESA RECEPTORA
+        </span>
+        
+        <div class="relative w-full h-[140px] flex flex-col items-center justify-center">
+          <mat-icon class="absolute left-6 top-1/2 -translate-y-1/2 text-ic-blue text-3xl z-10 pointer-events-none">corporate_fare</mat-icon>
+          <select 
+            [ngModel]="destinationCompanyId()"
+            (ngModelChange)="setDestinationCompany($event)"
+            class="w-full h-full bg-surface-bg border-2 border-surface-border rounded-2xl pl-20 pr-8 text-xl md:text-2xl font-black uppercase tracking-tighter outline-none focus:border-ic-blue transition-all appearance-none cursor-pointer shadow-xl text-left"
+          >
+            <option value="" disabled selected>SELECCIONE EMPRESA...</option>
+            <optgroup label="TRASPASO INTERNO">
+              @for (co of internalCos(); track co.id) {
+                <option [value]="co.id">{{ co.label }} (INTERNO)</option>
+              }
+            </optgroup>
+            <optgroup label="GRUPO / LOGÍSTICA" *ngIf="viatraCos().length > 0">
+              @for (co of viatraCos(); track co.id) {
+                <option [value]="co.id">{{ co.label }}</option>
+              }
+            </optgroup>
+
+          </select>
+          <mat-icon class="absolute right-6 top-1/2 -translate-y-1/2 text-surface-text-muted pointer-events-none text-2xl">arrow_drop_down</mat-icon>
+        </div>
+        
+        @if (destinationCompanyId()) {
+          <div class="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+            <span class="text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded"
+                  [class.bg-ic-blue/10]="!isInterCompanyTransfer()"
+                  [class.text-ic-blue]="!isInterCompanyTransfer()"
+                  [class.bg-amber-500/10]="isInterCompanyTransfer()"
+                  [class.text-amber-500]="isInterCompanyTransfer()">
+              {{ isInterCompanyTransfer() ? 'Venta Inter-Company Detectada' : 'Movimiento Interno Detectado' }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Box 2: ALMACÉN DE DESCARGA -->
+      <div class="industrial-card p-8 flex flex-col items-center text-center space-y-6 border-2 transition-all duration-500"
+           [class.border-emerald-500]="destinationCompanyId() && !destinationWarehouseId()"
+           [class.border-surface-border]="!destinationCompanyId() || destinationWarehouseId()">
+        <span class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] flex items-center gap-2">
+          <mat-icon class="text-sm">local_shipping</mat-icon> 2. ¿EN QUÉ ALMACÉN?
+        </span>
+
+        @if (destinationCompanyId() && destinationCompanyId() === originCompanyId()) {
+           <!-- Intra-Company: Select Target Warehouse -->
+           <div class="relative w-full h-full flex flex-col items-center justify-center">
+             <mat-icon class="absolute left-6 top-1/2 -translate-y-1/2 text-emerald-500 text-3xl z-10 pointer-events-none">hub</mat-icon>
+             <select 
+               [ngModel]="destinationWarehouseId()"
+               (ngModelChange)="setDestinationWarehouse($event)"
+               class="w-full h-[140px] bg-surface-bg border-2 border-surface-border rounded-2xl pl-20 pr-8 text-xl md:text-2xl font-black uppercase tracking-tighter outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer shadow-xl text-left"
+             >
+               <option value="" disabled selected>SELECCIONE ALMACÉN...</option>
+               @for (wh of filteredDestWarehouses(); track wh.id) {
+                 <option [value]="wh.id">{{ wh.name }}</option>
+               }
+             </select>
+           </div>
+        } @else if (destinationCompanyId() && destinationCompanyId() !== originCompanyId()) {
+           <!-- Inter-Company: Locked out -->
+           <div class="w-full h-[140px] flex-1 bg-amber-500/10 border-[3px] border-dashed border-amber-500/40 text-amber-500 rounded-2xl flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300 p-6">
+             <mat-icon class="text-5xl">lock_open</mat-icon>
+             <div class="flex flex-col text-center">
+               <span class="text-base font-black uppercase tracking-widest leading-relaxed">DELEGADO A RECEPTOR</span>
+               <span class="text-[10px] font-bold uppercase tracking-widest opacity-80 mt-1">La empresa externa procesará la ubicación final</span>
+             </div>
+           </div>
+        } @else {
+           <!-- Empty State -->
+           <div class="w-full h-[140px] flex-1 bg-surface-bg border-2 border-dashed border-surface-border rounded-2xl flex flex-col items-center justify-center gap-4 text-surface-text-muted/40 animate-in fade-in">
+             <mat-icon class="text-5xl">touch_app</mat-icon>
+             <span class="text-xs font-black uppercase tracking-widest">SELECCIONE EMPRESA PRIMERO</span>
+           </div>
+        }
+      </div>
+    </div>
+
+    <!-- Compliance & Audit Analytics -->
+    @if (isBinational() || isInterCompanyTransfer()) {
+      <div class="mt-8 pt-8 border-t border-surface-border animate-in slide-in-from-top-4 duration-500">
+         
+         <div class="flex flex-col xl:flex-row items-start gap-8">
+            <!-- Audit Alert Card & Analytics -->
+            <div class="space-y-4 transition-all duration-500" [class.xl:w-full]="!isBinational()" [class.xl:w-1/3]="isBinational()">
+              <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 relative overflow-hidden h-fit shadow-lg transition-all"
+                   [class.border-emerald-500/40]="complianceStatus() === 'SAFE'"
+                   [class.bg-emerald-500/5]="complianceStatus() === 'SAFE'">
+                 <div class="absolute top-0 left-0 w-1.5 h-full transition-colors" [class.bg-amber-500]="complianceStatus() !== 'SAFE'" [class.bg-emerald-500]="complianceStatus() === 'SAFE'"></div>
+                 <mat-icon class="text-3xl mb-4 transition-colors" [class.text-amber-500]="complianceStatus() !== 'SAFE'" [class.text-emerald-500]="complianceStatus() === 'SAFE'">{{ complianceStatus() === 'SAFE' ? 'verified_user' : 'gavel' }}</mat-icon>
+                 <h3 class="text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2 transition-colors" [class.text-amber-500]="complianceStatus() !== 'SAFE'" [class.text-emerald-500]="complianceStatus() === 'SAFE'">
+                   {{ complianceStatus() === 'SAFE' ? 'Compliance Verificado' : 'Auditoría en Curso' }}
+                   @if (isBinational()) {
+                      <span class="px-2 py-0.5 bg-amber-500 text-white text-[8px] rounded-full">BINACIONAL</span>
+                   }
+                 </h3>
+                 <p class="text-[10px] font-bold uppercase tracking-widest leading-relaxed transition-colors" [class.text-amber-500/80]="complianceStatus() !== 'SAFE'" [class.text-emerald-500/80]="complianceStatus() === 'SAFE'">
+                   {{ complianceStatus() === 'SAFE' 
+                      ? 'Todos los requerimientos de Anexo 24 / 30 han sido satisfechos. Documento de transferencia listo para emisión.' 
+                      : isBinational() 
+                        ? 'Se requiere validación de documentos aduaneros y precios para autorizar la salida de territorio nacional.'
+                        : 'Se requiere validación de precios de transferencia para autorizar la venta Inter-Company local.'
+                   }}
+                 </p>
+              </div>
+
+            </div>
+           
+           <!-- Binational Fields (Only if crossing borders) -->
+           @if (isBinational()) {
+             <div class="xl:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 md:p-8 bg-surface-bg/50 border-2 border-amber-500/20 rounded-3xl h-full shadow-sm animate-in zoom-in-95 duration-300">
+              <!-- Régimen -->
+              <div class="space-y-3">
+                <label class="text-[9px] font-black text-amber-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                   <mat-icon class="text-sm">policy</mat-icon> Régimen Aduanero
+                </label>
+                <div class="flex gap-2">
+                   <button 
+                     (click)="customsRegime.set('TEMPORAL')"
+                     [class.bg-amber-500]="customsRegime() === 'TEMPORAL'"
+                     [class.text-slate-950]="customsRegime() === 'TEMPORAL'"
+                     [class.border-amber-500]="customsRegime() === 'TEMPORAL'"
+                     [class.bg-surface-bg]="customsRegime() !== 'TEMPORAL'"
+                     [class.text-surface-text-muted]="customsRegime() !== 'TEMPORAL'"
+                     [class.border-surface-border]="customsRegime() !== 'TEMPORAL'"
+                     class="flex-1 py-3 px-2 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all hover:border-amber-500/50"
+                   >
+                     Temporal (IMMEX)
+                   </button>
+                   <button 
+                     (click)="customsRegime.set('DEFINITIVO')"
+                     [class.bg-emerald-500]="customsRegime() === 'DEFINITIVO'"
+                     [class.text-slate-950]="customsRegime() === 'DEFINITIVO'"
+                     [class.border-emerald-500]="customsRegime() === 'DEFINITIVO'"
+                     [class.bg-surface-bg]="customsRegime() !== 'DEFINITIVO'"
+                     [class.text-surface-text-muted]="customsRegime() !== 'DEFINITIVO'"
+                     [class.border-surface-border]="customsRegime() !== 'DEFINITIVO'"
+                     class="flex-1 py-3 px-2 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all hover:border-emerald-500/50"
+                   >
+                     Definitiva
+                   </button>
+                </div>
+              </div>
+
+              <!-- Clave Pedimento -->
+              <div class="space-y-3">
+                <label class="text-[9px] font-black text-surface-text-muted uppercase tracking-[0.3em] flex items-center gap-2">
+                   <mat-icon class="text-sm">key</mat-icon> Clave de Pedimento
+                </label>
+                <div class="relative w-full">
+                   <select 
+                     [ngModel]="customsPedimentoKey()"
+                     (ngModelChange)="customsPedimentoKey.set($event)"
+                     class="w-full h-[52px] bg-surface-bg border-2 border-surface-border rounded-xl pl-4 pr-10 text-xs font-black text-surface-text focus:border-amber-500 outline-none uppercase tracking-widest transition-all appearance-none cursor-pointer"
+                   >
+                     <option value="" disabled selected>SELECCIONE CLAVE...</option>
+                     <option value="IM" [hidden]="customsRegime() === 'DEFINITIVO'">IM - Importación Temporal (Materia Prima)</option>
+                     <option value="AF" [hidden]="customsRegime() === 'DEFINITIVO'">AF - Activo Fijo (Maquinaria)</option>
+                     <option value="A1" [hidden]="customsRegime() === 'TEMPORAL'">A1 - Importación Definitiva</option>
+                     <option value="RT" [hidden]="customsRegime() === 'DEFINITIVO'">RT - Retorno de Mercancía</option>
+                     <option value="V1">V1 - Transferencias Virtuales / Venta</option>
+                     <option value="EXPORT_ENTRY">US Export Entry (EEI)</option>
+                   </select>
+                   <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-surface-text-muted pointer-events-none text-sm">arrow_drop_down</mat-icon>
+                </div>
+              </div>
+
+              <!-- Número Export Entry/Pedimento -->
+              <div class="col-span-1 md:col-span-2 space-y-3 pt-2">
+                <label class="text-[9px] font-black text-surface-text-muted uppercase tracking-[0.3em] flex items-center gap-2">
+                   <mat-icon class="text-sm">tag</mat-icon> Folio o EEI
+                </label>
+                <input 
+                  type="text" 
+                  [ngModel]="customsPedimento()"
+                  (ngModelChange)="customsPedimento.set($event.toUpperCase())"
+                  placeholder="Ej. 24 47 3950 4001234..."
+                  class="w-full bg-surface-bg border-2 rounded-xl py-4 px-6 text-xl font-mono font-black text-surface-text outline-none placeholder:text-surface-text-muted/30 uppercase tracking-widest text-center transition-all"
+                  [class.border-emerald-500]="customsPedimento() && isFormValid()"
+                  [class.border-rose-500]="customsPedimento() && !isFormValid()"
+                  [class.border-surface-border]="!customsPedimento()"
+                >
+                @if (customsPedimento() && !isFormValid() && isBinational()) {
+                  <p class="text-[8px] text-rose-500 font-black uppercase tracking-widest mt-1 text-center animate-pulse">Formato Inválido (Recomendado 15-21 dígitos)</p>
+                }
+              </div>
+
+              <!-- Tipo de Cambio DOF (Obligatorio para binacionales) -->
+              <div class="col-span-1 space-y-3 pt-2">
+                <label class="text-[9px] font-black text-amber-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                   <mat-icon class="text-sm">currency_exchange</mat-icon> T.C. DOF (MXN/USD) *
+                </label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  [ngModel]="exchangeRateDof()"
+                  (ngModelChange)="exchangeRateDof.set($event)"
+                  placeholder="Ej. 20.15"
+                  class="w-full bg-surface-bg border-2 border-amber-500/50 rounded-xl py-3 px-5 text-lg font-mono font-black text-surface-text focus:border-amber-500 outline-none placeholder:text-surface-text-muted/30"
+                >
+                <p class="text-[8px] text-amber-500/70 font-bold uppercase tracking-widest">Tasa oficial DOF al día del despacho. Requerida para conversión USD espejo.</p>
+              </div>
+
+              <!-- Clave Sugerida por Agente (si aplica) -->
+              @if (suggestedCustomsKey()) {
+                <div class="col-span-1 flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                  <mat-icon class="text-emerald-500 text-sm">auto_awesome</mat-icon>
+                  <div class="flex flex-col">
+                    <span class="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Clave Sugerida por Agente</span>
+                    <span class="text-sm font-black text-surface-text">{{ suggestedCustomsKey() }}</span>
+                  </div>
+                </div>
+              }
+           </div>
+           }
+         </div>
+         
+         <!-- Risk Acknowledgment (si Agente detecta pedimento por vencer) -->
+         @if (requiresRiskAck()) {
+           <div class="mt-6 p-5 bg-amber-500/10 border-2 border-amber-500/50 rounded-2xl flex items-start gap-4 animate-in slide-in-from-top-2 duration-300">
+             <input 
+               type="checkbox" 
+               id="risk-ack-checkbox"
+               [checked]="riskAcknowledged()"
+               (change)="riskAcknowledged.set(!riskAcknowledged())"
+               class="mt-1 w-5 h-5 accent-amber-500 cursor-pointer shrink-0"
+             >
+             <label for="risk-ack-checkbox" class="cursor-pointer flex flex-col gap-1">
+               <span class="text-sm font-black text-amber-500 uppercase tracking-tight">⚠️ Confirmación de Riesgo Aduanero</span>
+               <span class="text-[10px] font-bold text-amber-500/80 leading-relaxed">
+                 El material a despachar tiene su estancia legal próxima a vencer (Anexo 24). Al marcar esta casilla, autorizo el despacho y acepto la responsabilidad aduanera correspondiente. Esta acción quedará registrada en el log de auditoría con mi nombre de usuario.
+               </span>
+             </label>
+           </div>
+         }
+      </div>
+    }
+  }
+
+
+  <!-- Transfer Ledger -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-50">
+    <div class="lg:col-span-2">
+      <div class="industrial-card overflow-visible">
+        <div class="p-6 border-b border-surface-border flex items-center justify-between">
+          <h2 class="text-[10px] font-black text-surface-text uppercase tracking-[0.2em]">Items a Transferir</h2>
+          <button 
+            (click)="addItem()"
+            class="text-[9px] font-black text-primary uppercase tracking-widest hover:underline"
+          >
+            + Agregar Item (Alt + A)
+          </button>
+        </div>
+        <div class="overflow-visible pb-24">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 z-20 bg-surface-bg shadow-sm">
+              <tr>
+                <th class="px-4 py-3 text-[9px] font-black text-surface-text-muted uppercase tracking-widest bg-surface-bg/95 backdrop-blur">SKU / Material</th>
+                <th class="px-4 py-3 text-[9px] font-black text-surface-text-muted uppercase tracking-widest text-center bg-surface-bg/95 backdrop-blur w-28">Disponible</th>
+                <th class="px-4 py-3 text-[9px] font-black text-surface-text-muted uppercase tracking-widest text-center bg-surface-bg/95 backdrop-blur w-32">Cantidad</th>
+                <th class="px-4 py-3 text-[9px] font-black text-surface-text-muted uppercase tracking-widest text-center bg-surface-bg/95 backdrop-blur w-32">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-border">
+              @for (item of items(); track item.id; let i = $index) {
+                <tr class="hover:bg-white/5 transition-colors group">
+                  <td class="px-4 py-3 align-top">
+                    <app-item-search [disabled]="!originWarehouseId()" [warehouseId]="originWarehouseId()" (itemSelected)="onItemSelected(item, $event)"></app-item-search>
+                    <div class="mt-2 pl-2 border-l-2 border-surface-border flex flex-col">
+                      <span class="text-[9px] text-surface-text-muted uppercase font-bold leading-tight">
+                        {{ item.name || 'Seleccione un material...' }}
+                        @if (item.variant) {
+                          <span class="text-primary/70 ml-1 italic inline-block">• {{ item.variant }}</span>
+                        }
+                      </span>
+                      @if (isBinational() && item.sku) {
+                        <div class="mt-1 flex items-center gap-1.5 bg-amber-500/10 w-fit px-2 py-0.5 rounded border border-amber-500/20">
+                          <mat-icon class="text-[10px] text-amber-500">account_tree</mat-icon>
+                          <span class="text-[8px] font-black text-amber-600 uppercase tracking-widest">
+                            Vinculado a Saldo de Pedimento
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 align-top">
+                    <div class="h-[46px] flex items-center justify-center">
+                      <div class="bg-surface-bg border border-surface-border border-dashed px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <span class="text-sm font-black" [class.text-rose-500]="item.available === 0" [class.text-surface-text]="item.available > 0">
+                          {{ item.available }}
+                        </span>
+                        <span class="text-[8px] font-bold text-surface-text-muted uppercase tracking-widest">PZ</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 align-top">
+                    <div class="h-[46px] flex items-center justify-center">
+                      <input 
+                        type="number" 
+                        [(ngModel)]="item.quantity"
+                        class="bg-surface-bg border border-surface-border rounded-lg px-3 py-2 text-sm font-black text-center w-full outline-none focus:border-primary transition-all focus:scale-105 shadow-inner"
+                        [class.border-red-500]="item.quantity > item.available"
+                        (keydown.enter)="onQuantityEnter(i)"
+                        placeholder="0"
+                      >
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 align-top">
+                    <div class="h-[46px] flex items-center justify-between gap-1 px-2">
+                       <div class="flex-1 flex justify-center">
+                         @if (item.quantity > item.available) {
+                           <div class="flex flex-col items-center">
+                             <mat-icon class="text-rose-500 text-sm">warning</mat-icon>
+                             <span class="text-[7px] font-black text-rose-500 uppercase tracking-tighter animate-pulse text-center">Sin Stock</span>
+                           </div>
+                         } @else if (item.quantity > 0 && item.sku) {
+                           <mat-icon class="text-emerald-500 text-sm">check_circle</mat-icon>
+                         } @else {
+                           <mat-icon class="text-surface-text-muted text-sm" title="Pendiente">pending</mat-icon>
+                         }
+                       </div>
+                       
+                       <button 
+                         (click)="removeItem(i)" 
+                         class="w-8 h-8 rounded-md bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center opacity-70 hover:opacity-100 shrink-0 shadow-sm"
+                         title="Eliminar Partida"
+                       >
+                         <mat-icon class="text-sm">delete_outline</mat-icon>
+                       </button>
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- FIFO Picking Detail Row (Phase 42.5) -->
+                @if (item.sku && fifoPreviews()[item.id]) {
+                  <tr class="bg-surface-bg/30 border-none">
+                    <td colspan="4" class="px-4 py-0">
+                      <div class="ml-12 mb-3 p-3 bg-ic-blue/5 border-x border-b border-ic-blue/20 rounded-b-xl animate-in slide-in-from-top-1 duration-300">
+                         <div class="flex items-center gap-2 mb-2 text-ic-blue">
+                           <mat-icon class="text-[14px]">fact_check</mat-icon>
+                           <span class="text-[9px] font-black uppercase tracking-widest">Sugerencia de Picking (FIFO/Ubicación)</span>
+                         </div>
+                         
+                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                           @for (batch of fifoPreviews()[item.id]; track batch.movement_id) {
+                             <div 
+                               (click)="toggleBatchSelection(item, batch)"
+                               [class.border-ic-blue]="item.selected_batch_id === batch.movement_id"
+                               [class.bg-ic-blue/10]="item.selected_batch_id === batch.movement_id"
+                               class="flex flex-col p-2 bg-surface-card border border-surface-border rounded-lg shadow-sm group cursor-pointer hover:border-ic-blue/40 transition-all">
+                               <div class="flex justify-between items-center mb-1">
+                                  <div class="flex items-center gap-2">
+                                    @if (item.selected_batch_id === batch.movement_id) {
+                                      <mat-icon class="text-ic-blue text-[14px]">check_circle</mat-icon>
+                                    }
+                                    <span class="text-[10px] font-mono font-black border-active text-ic-blue hover:underline">{{ batch.pedimento_number }}</span>
+                                  </div>
+                                  <span class="text-[10px] font-black text-surface-text">{{ batch.quantity }} PZ</span>
+                               </div>
+                               <div class="flex items-center gap-1.5 opacity-60">
+                                  <mat-icon class="text-[10px]">location_on</mat-icon>
+                                  <span class="text-[8px] font-bold uppercase tracking-widest">{{ batch.location || 'SIN UBICACIÓN' }}</span>
+                                  <span class="ml-auto text-[7px] font-medium opacity-50">{{ batch.date | date:'dd/MM/yy' }}</span>
+                               </div>
+                             </div>
+                           } @empty {
+                             <div class="col-span-full py-2 flex items-center gap-2 text-surface-text-muted italic">
+                               <mat-icon class="text-sm">info</mat-icon>
+                               <span class="text-[8px] font-bold uppercase">No se encontraron lotes específicos (Stock General)</span>
+                             </div>
+                           }
+                         </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Tracker / Summary -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="p-6 border-b border-surface-border">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-[10px] font-black text-surface-text uppercase tracking-[0.2em]">Nivel de Preparación del Despacho</h2>
+            <span class="text-xs font-mono font-black" [class.text-emerald-500]="readinessPercentage() === 100" [class.text-amber-500]="readinessPercentage() < 100">
+              {{ readinessPercentage() }}%
+            </span>
+          </div>
+          <div class="w-full h-1.5 bg-surface-bg rounded-full overflow-hidden border border-surface-border p-[1px] shadow-inner">
+            <div 
+              class="h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+              [class.bg-emerald-500]="readinessPercentage() === 100"
+              [class.bg-amber-500]="readinessPercentage() < 100"
+              [style.width.%]="readinessPercentage()"
+            ></div>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 flex items-center justify-between">
+          <h2 class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">Resumen de Carga</h2>
+        
+        <div class="space-y-4">
+          <div class="flex items-center justify-between p-4 bg-surface-bg rounded-xl border border-surface-border">
+            <span class="text-[9px] font-bold text-surface-text-muted uppercase">Total Items</span>
+            <span class="text-lg font-black text-surface-text">{{ items().length }}</span>
+          </div>
+          <div class="flex items-center justify-between p-4 bg-surface-bg rounded-xl border border-surface-border">
+            <span class="text-[9px] font-bold text-surface-text-muted uppercase">Compañía Destino</span>
+            <span class="text-[10px] font-black text-ic-blue uppercase tracking-tight">{{ destCompanyLabel() || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-surface-border">
+          <h3 class="text-[9px] font-black text-surface-text uppercase tracking-widest mb-4 italic">Estado de Preparación</h3>
+          <div class="space-y-6 relative">
+            <div class="absolute left-3 top-2 bottom-2 w-0.5 bg-surface-border"></div>
+            
+            <div class="flex items-center gap-4 relative">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 transition-all duration-500 shadow-sm"
+                   [class.bg-emerald-500]="originWarehouseId() && destinationCompanyId()"
+                   [class.bg-surface-border]="!(originWarehouseId() && destinationCompanyId())">
+                <mat-icon class="text-[12px]" [class.text-white]="originWarehouseId() && destinationCompanyId()" [class.text-surface-text-muted]="!(originWarehouseId() && destinationCompanyId())">{{ originWarehouseId() && destinationCompanyId() ? 'check' : 'radio_button_unchecked' }}</mat-icon>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-[10px] font-black text-surface-text uppercase tracking-tight">Ruta de Envío</span>
+                <span class="text-[8px] font-bold uppercase transition-colors" [class.text-emerald-500]="originWarehouseId() && destinationCompanyId()" [class.text-surface-text-muted]="!(originWarehouseId() && destinationCompanyId())">
+                  {{ originWarehouseId() && destinationCompanyId() ? 'LISTO' : 'PENDIENTE' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4 relative">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 transition-all duration-500 shadow-sm"
+                   [class.bg-emerald-500]="isBinational() ? (customsPedimento() && customsPedimentoKey()) : (originWarehouseId() && destinationCompanyId())"
+                   [class.bg-amber-500]="isBinational() && (!customsPedimento() || !customsPedimentoKey())"
+                   [class.bg-surface-border]="!destinationCompanyId()">
+                <mat-icon class="text-[12px]" [class.text-white]="isInterCompanyTransfer()">{{ (isBinational() ? (customsPedimento() && customsPedimentoKey()) : isInterCompanyTransfer()) ? 'check' : 'gavel' }}</mat-icon>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-[10px] font-black text-surface-text uppercase tracking-tight">Compliance Legal</span>
+                <span class="text-[8px] font-bold uppercase transition-colors" 
+                      [class.text-emerald-500]="isBinational() ? (customsPedimento() && customsPedimentoKey()) : isInterCompanyTransfer()"
+                      [class.text-amber-500]="isBinational() && (!customsPedimento() || !customsPedimentoKey())">
+                  @if (isBinational() && (!customsPedimento() || !customsPedimentoKey())) {
+                    PENDIENTE (ADUANA)
+                  } @else if (isBinational() || (isInterCompanyTransfer() && !isBinational())) {
+                    LISTO {{ !isBinational() ? '(NACIONAL)' : '(ADUANA)' }}
+                  } @else {
+                    NO REQUERIDO
+                  }
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4 relative">
+              <div class="w-6 h-6 rounded-full flex items-center justify-center z-10 transition-all duration-500 shadow-sm"
+                   [class.bg-emerald-500]="items().length > 0 && isFormValid()"
+                   [class.bg-surface-border]="!(items().length > 0 && isFormValid())">
+                <mat-icon class="text-[12px]" [class.text-white]="items().length > 0 && isFormValid()">{{ (items().length > 0 && isFormValid()) ? 'check' : 'inventory_2' }}</mat-icon>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-[10px] font-black text-surface-text uppercase tracking-tight">Inventario Validado</span>
+                <span class="text-[8px] font-bold uppercase transition-colors" [class.text-emerald-500]="items().length > 0 && isFormValid()">
+                  {{ (items().length > 0 && isFormValid()) ? 'STOCK CONFIRMADO' : 'PENDIENTE' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map / Route Visualization -->
+  <div class="industrial-card p-10 overflow-hidden mb-8">
+    <div class="relative flex items-center justify-between max-w-4xl mx-auto">
+      <!-- Source -->
+      <div class="flex flex-col items-center gap-4 z-10">
+        <div 
+          class="w-24 h-24 rounded-full bg-surface-bg border-4 flex items-center justify-center shadow-xl relative group transition-all duration-500"
+          [class.border-primary]="originWarehouseId()"
+          [class.border-surface-border]="!originWarehouseId()"
+          [class.shadow-primary/30]="originWarehouseId()"
+        >
+          <mat-icon class="text-4xl" [class.text-primary]="originWarehouseId()" [class.text-surface-text-muted]="!originWarehouseId()">business</mat-icon>
+          @if (selectedOrigin()) {
+            <div class="absolute -top-2 -right-2 bg-primary text-ic-dark text-[10px] font-black px-2 py-1 rounded-lg">{{ selectedOrigin()?.country_code }}</div>
+          }
+        </div>
+        <div class="text-center">
+          <span class="text-xs font-black text-surface-text uppercase tracking-widest">{{ selectedOrigin()?.name || 'Origen no seleccionado' }}</span>
+          <p class="text-[9px] text-surface-text-muted uppercase font-bold">Warehouse Origin</p>
+        </div>
+      </div>
+
+      <!-- Connection Line -->
+      <div class="flex-1 h-1 bg-surface-border relative mx-4">
+        <div 
+          class="absolute inset-0 bg-gradient-to-r from-primary to-ic-blue transition-opacity duration-1000"
+          [class.opacity-100]="originWarehouseId() && destinationCompanyId()"
+          [class.opacity-0]="!(originWarehouseId() && destinationCompanyId())"
+        ></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-surface-bg border border-surface-border flex items-center justify-center shadow-xl">
+          <mat-icon 
+            class="transition-colors duration-500"
+            [class.text-primary]="originWarehouseId() && destinationCompanyId()"
+            [class.text-surface-text-muted]="!(originWarehouseId() && destinationCompanyId())"
+            [class.animate-bounce-x]="originWarehouseId() && destinationCompanyId()"
+          >arrow_forward</mat-icon>
+        </div>
+      </div>
+
+      <!-- Destination -->
+      <div class="flex flex-col items-center gap-4 z-10">
+        <div 
+          class="w-24 h-24 rounded-full bg-surface-bg border-4 flex items-center justify-center shadow-xl relative transition-all duration-500"
+          [class.border-ic-blue]="destinationCompanyId()"
+          [class.border-surface-border]="!destinationCompanyId()"
+          [class.shadow-ic-blue/30]="destinationCompanyId()"
+        >
+          <!-- Inter-company: show company building icon; Intra-company: show warehouse hub -->
+          <mat-icon class="text-4xl" [class.text-ic-blue]="destinationCompanyId()" [class.text-surface-text-muted]="!destinationCompanyId()">
+            {{ isInterCompanyTransfer() ? 'corporate_fare' : 'hub' }}
+          </mat-icon>
+          @if (destinationCompanyId()) {
+            <div class="absolute -top-2 -right-2 bg-ic-blue text-white text-[10px] font-black px-2 py-1 rounded-lg">
+              {{ destCompanyCountry() }}
+            </div>
+          }
+        </div>
+        <div class="text-center">
+          <span class="text-xs font-black text-surface-text uppercase tracking-widest">
+            {{ selectedDest()?.name || destCompanyLabel() || 'Destino no seleccionado' }}
+          </span>
+          <p class="text-[9px] text-surface-text-muted uppercase font-bold">
+            {{ isInterCompanyTransfer() ? 'EMPRESA RECEPTORA (Asigna Almacén)' : 'Warehouse Destination' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animated Footer - Industrial Flow -->
+  <div class="pt-12 pb-8 border-t border-surface-border relative">
+    <div class="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent animate-pulse-slow"></div>
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+       <div class="flex items-center gap-4">
+          <div class="flex gap-1">
+             <div class="w-1 h-3 bg-primary rounded-full animate-bar-1"></div>
+             <div class="w-1 h-5 bg-ic-blue rounded-full animate-bar-2"></div>
+             <div class="w-1 h-2 bg-slate-400 rounded-full animate-bar-3"></div>
+          </div>
+          <div class="flex flex-col">
+             <span class="text-[9px] font-black text-surface-text uppercase tracking-[0.3em]">Operational Readiness</span>
+             <span class="text-[8px] font-mono text-emerald-500 uppercase tracking-widest">Global Handshake Active</span>
+          </div>
+       </div>
+       
+       <div class="hidden md:flex items-center gap-12">
+         <div class="flex flex-col items-end">
+           <span class="text-[8px] font-black text-surface-text-muted uppercase tracking-widest">Network Latency</span>
+           <span class="text-[9px] font-mono text-surface-text uppercase font-bold">0.0042s - Stable</span>
+         </div>
+         <div class="flex flex-col items-end">
+           <span class="text-[8px] font-black text-surface-text-muted uppercase tracking-widest">Ledger Sync</span>
+           <div class="flex items-center gap-2">
+             <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse"></div>
+             <span class="text-[9px] font-mono text-surface-text uppercase font-bold text-emerald-500">Live</span>
+           </div>
+         </div>
+       </div>
+    </div>
+
+    <div class="mt-8 flex justify-center">
+       <div class="w-48 h-1 bg-surface-border rounded-full relative overflow-hidden">
+         <div class="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-primary to-transparent animate-shimmer"></div>
+       </div>
+    </div>
+  </div>
+
+</div>

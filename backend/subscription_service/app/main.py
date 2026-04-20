@@ -1,7 +1,8 @@
+from common.security.cors_setup import setup_cors
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from app.api.v1.endpoints import internal, admin, billing
+from app.api.v1.endpoints import internal, admin, billing, wallet
 from app.infrastructure.database import get_db_session as get_db
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,20 +18,16 @@ app = FastAPI(
 )
 
 # Configuración de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.int_backend_cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.add_middleware(InternoCoreGlobalMiddleware)
+
+# Configuración de CORS
+setup_cors(app)
 
 # Rutas
 app.include_router(internal.router, prefix="/internal", tags=["Internal"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
+app.include_router(wallet.router, prefix="/api/v1/wallet", tags=["Wallet Kiosk"])
 
 @app.on_event("startup")
 async def startup_event():
@@ -48,7 +45,7 @@ async def startup_event():
         except Exception as e:
             print(f"⚠️ Stripe Error: No se pudo validar la conexión. {str(e)}")
     else:
-        print("⚠️ Stripe: INT_STRIPE_SECRET_KEY no configurada.")
+        print("⚠️ Stripe: CORE_STRIPE_SECRET_KEY no configurada.")
 
 @app.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):

@@ -1,0 +1,92 @@
+{
+  "version": "1.1.0",
+  "service": "inventory-service",
+  "name": "Inventory Dashboard API Specification",
+  "last_updated": "2026-03-15",
+  "base_path": "/api/v1/dashboard",
+  "envelope": {
+    "status": "string (success|error)",
+    "data": "object|array",
+    "message": "string (optional)",
+    "meta": "object (pagination, trace_id, telemetry)"
+  },
+  "endpoints": [
+    {
+      "path": "/summary",
+      "method": "GET",
+      "description": "Returns aggregated counts for the top dashboard cards (24h window).",
+      "headers": [
+        { "name": "X-Company-ID", "required": true, "type": "UUID" }
+      ],
+      "response": {
+        "status": 200,
+        "type": "ApiResponse[InventorySummary]"
+      }
+    },
+    {
+      "path": "/movements",
+      "method": "GET",
+      "description": "Returns a paginated and filtered list of inventory documents (Ledger).",
+      "headers": [
+        { "name": "X-Company-ID", "required": true, "type": "UUID" }
+      ],
+      "query_params": [
+        { "name": "limit", "default": 50, "type": "integer" },
+        { "name": "offset", "default": 0, "type": "integer" },
+        { "name": "page", "type": "integer", "description": "UI synonym for offset (page * size)" },
+        { "name": "page_size", "type": "integer", "description": "UI synonym for limit" },
+        { "name": "type", "required": false, "type": "string", "options": ["ENTRY", "EXIT", "TRANSFER"] }
+      ],
+      "response": {
+        "status": 200,
+        "type": "ApiResponse[List[MovementDocumentRow]]",
+        "meta": { "total_records": "integer" }
+      }
+    },
+    {
+      "path": "/mission-control",
+      "method": "GET",
+      "description": "Consolidated dashboard data. Includes valuation, hourly series, and alerts.",
+      "query_params": [
+        { "name": "warehouse_id", "required": true, "type": "UUID" }
+      ],
+      "response": {
+        "status": 200,
+        "type": "ApiResponse[DashboardDTO]"
+      }
+    },
+    {
+      "path": "/reports/kardex",
+      "method": "GET",
+      "description": "Kardex ledger with running balance. Supports forensic X-Trace-ID.",
+      "headers": [
+        { "name": "x-correlation-id", "required": false, "type": "UUID" }
+      ],
+      "query_params": [
+        { "name": "product_id", "required": true, "type": "UUID" },
+        { "name": "warehouse_id", "required": true, "type": "UUID" },
+        { "name": "limit", "default": 200, "type": "integer" }
+      ],
+      "response": {
+        "status": 200,
+        "type": "ApiResponse[List[KardexRow]]",
+        "headers": { "X-Trace-ID": "UUID (echoes correlation-id)" },
+        "meta": { "trace_id": "UUID", "product_id": "UUID", "count": "integer" }
+      }
+    }
+  ],
+  "schemas": {
+    "DashboardDTO": {
+      "valuation": { "total_usd": "decimal", "variation_percentage": "decimal" },
+      "critical_alerts": "List[StockAlert]",
+      "movement_series": "List[HourlyMovement]",
+      "recent_activity": "List[ActivityLog]"
+    },
+    "InventorySummary": {
+      "entries_24h": "integer",
+      "outputs_24h": "integer",
+      "transfers_24h": "integer",
+      "pending_docs": "integer"
+    }
+  }
+}

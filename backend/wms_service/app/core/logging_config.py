@@ -4,7 +4,7 @@ import sys
 # Asumiendo que JsonFormatter está definido en el paquete common
 # Si no, se puede usar una implementación estándar de python-json-logger
 try:
-    from common.logging import JsonFormatter
+    from common.logger import JsonFormatter
 except ImportError:
     # Fallback a una clase dummy si no se encuentra para evitar errores de importación
     # En un entorno real, esto debería estar garantizado por el paquete common.

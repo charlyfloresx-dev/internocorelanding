@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Optional
 
 @dataclass
@@ -10,5 +11,5 @@ class ItemEntity:
     name: str
     sku: Optional[str] = None
     version_number: Optional[int] = None
-    stock_quantity: float = 0.0
+    stock_quantity: Decimal = Decimal("0.0")
     master_product_id: Optional[uuid.UUID] = None

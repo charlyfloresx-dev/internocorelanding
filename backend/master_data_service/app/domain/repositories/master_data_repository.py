@@ -11,7 +11,7 @@ class IMasterDataRepository(ABC):
 
     # --- Product ---
     @abstractmethod
-    async def get_products(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+    async def get_products(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None, q: Optional[str] = None, warehouse_id: Optional[uuid.UUID] = None) -> List[Any]:
         ...
 
     @abstractmethod
@@ -24,6 +24,14 @@ class IMasterDataRepository(ABC):
 
     @abstractmethod
     async def approve_version(self, product_id: uuid.UUID, version_number: int, company_id: uuid.UUID) -> Any:
+        ...
+
+    @abstractmethod
+    async def update_product(self, product_id: uuid.UUID, company_id: uuid.UUID, update_data: dict) -> Any:
+        ...
+
+    @abstractmethod
+    async def delete_product(self, product_id: uuid.UUID, company_id: uuid.UUID) -> None:
         ...
 
     # --- Brand ---
@@ -40,11 +48,11 @@ class IMasterDataRepository(ABC):
         ...
 
     @abstractmethod
-    async def update_brand(self, brand_id: uuid.UUID, update_data: dict) -> Any:
+    async def update_brand(self, brand_id: uuid.UUID, company_id: uuid.UUID, update_data: dict) -> Any:
         ...
 
     @abstractmethod
-    async def delete_brand(self, brand_id: uuid.UUID) -> None:
+    async def delete_brand(self, brand_id: uuid.UUID, company_id: uuid.UUID) -> None:
         ...
 
     # --- Category ---
@@ -61,11 +69,11 @@ class IMasterDataRepository(ABC):
         ...
 
     @abstractmethod
-    async def update_category(self, category_id: uuid.UUID, update_data: dict) -> Any:
+    async def update_category(self, category_id: uuid.UUID, company_id: uuid.UUID, update_data: dict) -> Any:
         ...
 
     @abstractmethod
-    async def delete_category(self, category_id: uuid.UUID) -> None:
+    async def delete_category(self, category_id: uuid.UUID, company_id: uuid.UUID) -> None:
         ...
 
     # --- UOM ---
@@ -81,7 +89,24 @@ class IMasterDataRepository(ABC):
     async def create_uom(self, uom_data: dict, company_id: uuid.UUID) -> Any:
         ...
 
+    @abstractmethod
+    async def update_uom(self, uom_id: uuid.UUID, company_id: uuid.UUID, update_data: dict) -> Any:
+        ...
+
+    @abstractmethod
+    async def delete_uom(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> None:
+        ...
+
     # --- Sync ---
     @abstractmethod
     async def get_all_master_data(self, company_id: uuid.UUID) -> dict:
+        ...
+
+    # --- Product Price ---
+    @abstractmethod
+    async def upsert_product_price(self, price_data: dict, company_id: uuid.UUID) -> Any:
+        ...
+
+    @abstractmethod
+    async def get_product_prices(self, product_id: uuid.UUID, company_id: uuid.UUID) -> List[Any]:
         ...

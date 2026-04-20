@@ -1,29 +1,16 @@
-# Etapa 1: Construcción (Build)
+# frontend/Dockerfile - Production Build for Interno Core
+# Phase 1: Build
 FROM node:20-alpine AS build
-
 WORKDIR /app
-
-# Instalación de dependencias
 COPY package*.json ./
 RUN npm install
-
-# Copia de código y compilación
 COPY . .
-RUN npx ng build --configuration=production
+RUN npm run build -- --configuration development
 
-# Etapa 2: Servidor de Producción (Nginx)
-FROM nginx:alpine
-
-# Limpieza de archivos por defecto
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copia de los archivos compilados
+# Phase 2: Serve
+FROM nginx:stable-alpine
+# Copy custom nginx config for SPA support
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/app/browser /usr/share/nginx/html
-
-# --- INTEGRACIÓN FUNCIONAL ---
-# Copiar la configuración del Reverse Proxy
-COPY nginx.conf /etc/nginx/nginx.conf
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

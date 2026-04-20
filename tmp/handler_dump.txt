@@ -1,0 +1,1150 @@
+   1: """
+   2: TransferCommandHandler — CQRS Handler
+   3: ======================================
+   4: Handler principal para el flujo de Transferencia Inter-Company.
+   5: 
+   6: Implementa el patrón de Entidad Intermediaria de Tránsito (Trusted Broker):
+   7:   - InitiateTransfer (Empresa A): Descuenta stock de A, acredita en tránsito.
+   8:   - CompleteTransfer (Empresa B): Descuenta tránsito, acredita en almacén de B.
+   9:   - CancelTransfer  (Empresa A): Revierte la operación de despacho si no recibido.
+  10: 
+  11: Principios de Clean Architecture:
+  12:   - Usa IInventoryRepository para acceso a datos (inversión de dependencias).
+  13:   - Usa TransferService para la mecánica de movimientos atómicos.
+  14:   - Lanza excepciones de dominio (DomainException) en vez de HTTP exceptions.
+  15:   - La lógica de seguridad (Zero-Trust) reside aquí, no en la capa API.
+  16: """
+  17: 
+  18: import uuid
+  19: import logging
+  20: from datetime import datetime, timezone
+  21: from decimal import Decimal
+  22: from typing import Optional
+  23: from common.domain.value_objects import Money
+  24: 
+  25: from sqlalchemy.ext.asyncio import AsyncSession
+  26: from sqlalchemy import select, and_
+  27: import sqlalchemy as sa
+  28: 
+  29: from common.services.audit_service import AuditService
+  30: 
+  31: from app.domain.entities.transfer_entities import (
+  32:     InitiateTransferCommand,
+  33:     CompleteTransferCommand,
+  34:     CancelTransferCommand,
+  35:     TransferDocumentEntity,
+  36:     TransferPartyEntity,
+  37:     PendingTransferEntity,
+  38:     TransferStatusEnum,
+  39:     MovementType,
+  40: )
+  41: from common.messaging import EventPublisher
+  42: from app.domain.entities.inventory_item import MovementEntity
+  43: from app.domain.repositories.inventory_repository import IInventoryRepository
+  44: from app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
+  45: from app.models.document import InventoryDocument, DocumentStatus
+  46: from app.models.movement import Movement
+  47: from app.models.warehouse import Warehouse
+  48: from app.domain.services.fifo_discharge_service import FIFODischargeService
+  49: from app.domain.services.transfer_audit_service import TransferAuditService
+  50: from common.exceptions import (
+  51:     DomainException,
+  52:     NotFoundException,
+  53:     UnauthorizedException,
+  54:     BusinessRuleException,
+  55:     ConflictException,
+  56:     SelfTransferReceiptException,
+  57: )
+  58: 
+  59: logger = logging.getLogger(__name__)
+  60: 
+  61: 
+  62: def _generate_folio() -> str:
+  63:     """
+  64:     Genera un folio determinístico para el documento de transferencia inter-company.
+  65:     Formato: ICT-{YYYYMMDD}-{SHORT_UUID}
+  66:     """
+  67:     today = datetime.now(timezone.utc).strftime("%Y%m%d")
+  68:     short_id = str(uuid.uuid4()).replace("-", "")[:8].upper()
+  69:     return f"ICT-{today}-{short_id}"
+  70: 
+  71: 
+  72: def _transit_warehouse_id(destination_warehouse_id: uuid.UUID) -> uuid.UUID:
+  73:     """
+  74:     Genera el UUID determinístico del almacén lógico de tránsito.
+  75:     Consistente con el TransferService existente.
+  76:     """
+  77:     return uuid.uuid5(uuid.NAMESPACE_OID, f"{destination_warehouse_id}_transit")
+  78: 
+  79: 
+  80: async def _resolve_transfer_price(
+  81:     requested_price: Optional[Decimal],
+  82:     current_wac: Decimal,
+  83:     product_id: uuid.UUID,
+  84:     origin_company_id: uuid.UUID,
+  85:     destination_company_id: uuid.UUID,
+  86: ) -> tuple[Decimal, str, Optional[str]]:
+  87:     """
+  88:     Resuelve el precio de transferencia con 3 niveles de fallback.
+  89:     Retorna: (price, source, warning_message)
+  90: 
+  91:     Nivel 1 — EXPLICIT:
+  92:       El despachador proveyó un `transfer_price` explícito.
+  93:       Es el caso ideal: el precio está pactado y es el contrato financiero.
+  94: 
+  95:     Nivel 2 — WAC_FALLBACK:
+  96:       No hay precio explícito. Usamos el WAC actual de Empresa A.
+  97:       Esto significa que A vende "a costo", sin margen.
+  98:       Se genera una ADVERTENCIA para que el usuario sepa que no hay margen.
+  99: 
+ 100:     Nivel 3 — DEFAULT_FALLBACK:
+ 101:       El WAC también es cero (sin historial de entradas con precio).
+ 102:       Usamos 1.0 como precio mínimo para evitar que el stock viaje con costo cero
+ 103:       y arruine el WAC de la Empresa B.
+ 104:       Se genera una ADVERTENCIA CRITICA.
+ 105:     """
+ 106:     # Nivel 1: Precio explícito del despachador
+ 107:     if requested_price and requested_price > 0:
+ 108:         return requested_price, "EXPLICIT", None
+ 109: 
+ 110:     # Nivel 2: WAC de Empresa A como fallback
+ 111:     if current_wac > 0:
+ 112:         warning = (
+ 113:             f"TRANSFER_PRICE_WARNING: No se proporcionó un precio de transferencia explícito. "
+ 114:             f"Usando WAC de Empresa A ({current_wac}) como costo de entrada para Empresa B. "
+ 115:             f"Esto implica que Empresa A vende a costo sin margen. "
+ 116:             f"Se recomienda definir una lista de precios inter-company."
+ 117:         )
+ 118:         logger.warning(f"[ICT][PRICING] {warning} | product={product_id}")
+ 119:         return current_wac, "WAC_FALLBACK", warning
+ 120: 
+ 121:     # Nivel 3: DEFAULT_FALLBACK crítico
+ 122:     MIN_TRANSFER_PRICE = Decimal("1.0")
+ 123:     warning = (
+ 124:         f"TRANSFER_PRICE_CRITICAL: No hay precio explícito NI WAC disponible para "
+ 125:         f"Producto {product_id} de Empresa {origin_company_id}. "
+ 126:         f"Usando precio mínimo de seguridad ({MIN_TRANSFER_PRICE}) para evitar WAC=0 en Empresa B. "
+ 127:         f"ACCIÓN REQUERIDA: Definir precios inter-company o registrar entradas con costo."
+ 128:     )
+ 129:     logger.error(f"[ICT][PRICING] {warning}")
+ 130:     return MIN_TRANSFER_PRICE, "DEFAULT_FALLBACK", warning
+ 131: 
+ 132: 
+ 133: class TransferCommandHandler:
+ 134:     """
+ 135:     Handler CQRS para todos los comandos del flujo inter-company.
+ 136: 
+ 137:     Dependencias:
+ 138:       - session: AsyncSession de SQLAlchemy (Unit of Work pattern)
+ 139:       - repo: IInventoryRepository para acceder a stock y movimientos
+ 140:     """
+ 141: 
+ 142:     def __init__(self, session: AsyncSession, repo: IInventoryRepository):
+ 143:         self.session = session
+ 144:         self.repo = repo
+ 145:         self.fifo_service = FIFODischargeService()
+ 146:         self.audit_svc = TransferAuditService(self.repo) # New decoupled audit
+ 147: 
+ 148:     # ═══════════════════════════════════════════════════════════════════════════
+ 149:     # COMANDO 1: InitiateTransfer (Empresa A)
+ 150:     # ═══════════════════════════════════════════════════════════════════════════
+ 151: 
+ 152:     async def initiate_transfer(
+ 153:         self, cmd: InitiateTransferCommand
+ 154:     ) -> TransferDocumentEntity:
+ 155:         """
+ 156:         Empresa A inicia la transferencia:
+ 157:         1. Valida stock disponible en origin_warehouse.
+ 158:         2. Registra TRANSFER_OUT en Kardex de A (stock físico disminuye).
+ 159:         3. Registra en almacén lógico IN_TRANSIT vinculado a Empresa B.
+ 160:         4. Crea el documento InterCompanyTransfer con status=SHIPPED.
+ 161: 
+ 162:         Seguridad Zero-Trust:
+ 163:           - origin_company_id es extraído del JWT en la capa API, nunca del body.
+ 164:           - El handler valida que origin_warehouse pertenece a origin_company.
+ 165:         """
+ 166:         logger.info(
+ 167:             f"[ICT] InitiateTransfer: Company {cmd.origin_company_id} → "
+ 168:             f"Company {cmd.destination_company_id} | "
+ 169:             f"Product {cmd.product_id} | Qty {cmd.quantity}"
+ 170:         )
+ 171: 
+ 172:         # Pre-initialize variables used after the transaction block
+ 173:         # to avoid UnboundLocalError if an exception is raised inside.
+ 174:         transfer_id = uuid.uuid4()
+ 175:         transfer_doc = None
+ 176:         transfer_price = None
+ 177:         price_source = "UNKNOWN"
+ 178: 
+ 179: 
+ 180:         async with self.session.begin():
+ 181:             # ── 0. Validaciones de Almacén ──────────────────────────
+ 182:             # Resolver almacén de destino si se envió el genérico de "Delegado" (UUID de ceros)
+ 183:             EMPTY_UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
+ 184: 
+ 185:             is_delegated = cmd.destination_warehouse_id == EMPTY_UUID
+ 186:             
+ 187:             if is_delegated:
+ 188:                 # Buscar el primer almacén físico disponible de la empresa destino
+ 189:                 stmt_fallback = select(Warehouse).filter_by(
+ 190:                     company_id=cmd.destination_company_id, 
+ 191:                     is_transit=False
+ 192:                 ).limit(1)
+ 193:                 fallback_wh = (await self.session.execute(stmt_fallback)).scalar_one_or_none()
+ 194:                 if not fallback_wh:
+ 195:                     raise BusinessRuleException(f"ERR_WAREHOUSE_NOT_FOUND: La empresa receptora no tiene almacenes físicos configurados.")
+ 196:                 
+ 197:                 # Actualizar el comando y la variable local para que el resto de la lógica use este ID real
+ 198:                 cmd.destination_warehouse_id = fallback_wh.id
+ 199:                 dest_wh = fallback_wh
+ 200:                 logger.info(f"[ICT] Destination delegated. Resolved to {dest_wh.name} ({dest_wh.id})")
+ 201:             else:
+ 202:                 stmt_dest = select(Warehouse).filter_by(id=cmd.destination_warehouse_id, company_id=cmd.destination_company_id)
+ 203:                 dest_wh = (await self.session.execute(stmt_dest)).scalar_one_or_none()
+ 204:                 if not dest_wh:
+ 205:                     raise BusinessRuleException(f"ERR_WAREHOUSE_NOT_FOUND: Almacén de destino {cmd.destination_warehouse_id} no existe.")
+ 206: 
+ 207:             # ── 0.A Resolver almacén de origen ────────────────────────────────
+ 208:             stmt_origin = select(Warehouse).filter_by(id=cmd.origin_warehouse_id, company_id=cmd.origin_company_id)
+ 209:             origin_wh = (await self.session.execute(stmt_origin)).scalar_one_or_none()
+ 210:             if not origin_wh:
+ 211:                 raise BusinessRuleException(f"ERR_WAREHOUSE_NOT_FOUND: Almacén de origen {cmd.origin_warehouse_id} no existe.")
+ 212: 
+ 213:             # ── 0.B AGENTE DE AUDITORÍA PRE-VUELO ─────────────────────────────
+ 214:             # Audit is now decoupled from session, uses repo.
+ 215:             audit_result = await self.audit_svc.execute_preflight_audit(cmd, origin_wh, dest_wh)
+ 216: 
+ 217:             if audit_result.is_rejected():
+ 218:                 raise BusinessRuleException(
+ 219:                     message=f"ERR_PREFLIGHT_REJECTED: La auditoría pre-vuelo rechazó la transferencia.",
+ 220:                     details=audit_result.to_dict()
+ 221:                 )
+ 222: 
+ 223:             if audit_result.warnings:
+ 224:                 logger.warning(
+ 225:                     f"[ICT][AUDIT] Transferencia con advertencias de cumplimiento: "
+ 226:                     f"{[w.code for w in audit_result.warnings]}"
+ 227:                 )
+ 228: 
+ 229:             # LÓGICA COMPLIANCE BINACIONAL:
+ 230:             is_binational = audit_result.is_binational
+ 231:             logger.info(f"[ICT][AUDIT] Compliance Status resolved: is_binational={is_binational} | pending_fin={audit_result.pending_financial_valuation}")
+ 232:             
+ 233:             if is_binational and not cmd.customs_pedimento and not audit_result.pending_financial_valuation:
+ 234:                 raise BusinessRuleException(
+ 235:                     message=(
+ 236:                         f"ERR_CUSTOMS_REQUIRED: La transferencia internacional entre empresas "
+ 237:                         f"requiere número de Pedimento o Export Entry para cumplir con el Anexo 24/30. "
+ 238:                         f"Clave sugerida: {audit_result.suggested_customs_key}"
+ 239:                     )
+ 240:                 )
+ 241: 
+ 242:             # ── 0. Forensic Check: Asegurar que los almacenes existen localmente ──
+ 243:             transit_wh_id = _transit_warehouse_id(cmd.destination_warehouse_id)
+ 244:             
+ 245:             # Verificar tránsito
+ 246:             stmt_wh = select(Warehouse).filter_by(id=transit_wh_id, company_id=cmd.destination_company_id)
+ 247:             res_wh = await self.session.execute(stmt_wh)
+ 248:             if not res_wh.scalar_one_or_none():
+ 249:                 logger.info(f"[ICT] Creando almacén lógico de tránsito {transit_wh_id} para Empresa B.")
+ 250:                 transit_wh = Warehouse(
+ 251:                     id=transit_wh_id,
+ 252:                     company_id=cmd.destination_company_id,
+ 253:                     tenant_id=cmd.destination_company_id, # Simplified Multi-tenancy
+ 254:                     code="TRANSIT",
+ 255:                     name="Virtual Transit Warehouse",
+ 256:                     location="INTER-SERVICE-NETWORK",
+ 257:                     is_transit=True  # Segmentación física clara
+ 258:                 )
+ 259:                 self.session.add(transit_wh)
+ 260:                 await self.session.flush()
+ 261: 
+ 262:             # ── 1. Validar stock disponible en Empresa A ───────────────────────────
+ 263:             try:
+ 264:                 current_stock = await self.repo.get_stock(
+ 265:                     warehouse_id=cmd.origin_warehouse_id,
+ 266:                     product_id=cmd.product_id,
+ 267:                     company_id=cmd.origin_company_id,
+ 268:                 )
+ 269:             except Exception as e:
+ 270:                 raise BusinessRuleException(
+ 271:                     message=f"ERR_STOCK_ACCESS_DENIED: No se pudo verificar el stock de origen.",
+ 272:                     details={"warehouse_id": str(cmd.origin_warehouse_id), "error": str(e)},
+ 273:                 )
+ 274: 
+ 275:             available_qty = (
+ 276:                 current_stock.quantity - current_stock.reserved_quantity
+ 277:                 if current_stock
+ 278:                 else Decimal("0.0")
+ 279:             )
+ 280: 
+ 281:             if available_qty < cmd.quantity:
+ 282:                 raise BusinessRuleException(
+ 283:                     message=(
+ 284:                         f"ERR_INSUFFICIENT_STOCK: Stock disponible insuficiente para la transferencia. "
+ 285:                         f"Disponible: {available_qty}, Solicitado: {cmd.quantity}"
+ 286:                     ),
+ 287:                     details={
+ 288:                         "available": str(available_qty),
+ 289:                         "requested": str(cmd.quantity),
+ 290:                         "product_id": str(cmd.product_id),
+ 291:                         "warehouse_id": str(cmd.origin_warehouse_id),
+ 292:                     },
+ 293:                 )
+ 294: 
+ 295:             # ── 2. Obtener WAC actual de Empresa A (costo real de A) ────
+ 296:             try:
+ 297:                 wac_data = await self.repo.get_wac_valuation(
+ 298:                     product_id=cmd.product_id,
+ 299:                     warehouse_id=cmd.origin_warehouse_id,
+ 300:                     company_id=cmd.origin_company_id,
+ 301:                 )
+ 302:                 current_wac = wac_data.wac if wac_data else Money(Decimal("0.0"), cmd.currency)
+ 303:             except Exception:
+ 304:                 current_wac = Money(Decimal("0.0"), cmd.currency)
+ 305:                 logger.warning(f"[ICT] WAC no disponible para {cmd.product_id} en {cmd.origin_warehouse_id}.")
+ 306: 
+ 307:             # ── 3. Precio de Transferencia — Compliance Aware ──────────────────
+ 308:             # Si el Agente detectó MISSING_PRICE, usamos $0.00 y marcamos como deuda.
+ 309:             # Si hay precio explícito o WAC, lo utilizamos como base financiera.
+ 310:             explicit_price = getattr(cmd, "transfer_price", None)
+ 311:             if explicit_price and Decimal(str(explicit_price)) > 0:
+ 312:                 transfer_price_val = Decimal(str(explicit_price))
+ 313:                 price_source = "EXPLICIT"
+ 314:             elif audit_result.pending_financial_valuation:
+ 315:                 transfer_price_val = Decimal("0.0")  # Deuda administrativa
+ 316:                 price_source = "PENDING_VALUATION"
+ 317:             elif current_wac.amount > 0:
+ 318:                 transfer_price_val = current_wac.amount
+ 319:                 price_source = "WAC_A"
+ 320:             else:
+ 321:                 transfer_price_val = Decimal("0.0")
+ 322:                 price_source = "DEFAULT_ZERO"
+ 323: 
+ 324:             # Conversión FX si es binacional (precio en USD para la entidad espejo)
+ 325:             if audit_result.is_binational and audit_result.applied_fx_rate:
+ 326:                 transfer_price_usd = TransferAuditService.compute_usd_amount(
+ 327:                     transfer_price_val, cmd.currency, audit_result.applied_fx_rate
+ 328:                 )
+ 329:                 mirror_currency = "USD"
+ 330:             else:
+ 331:                 transfer_price_usd = transfer_price_val
+ 332:                 mirror_currency = cmd.currency
+ 333: 
+ 334:             transfer_price = Money(amount=transfer_price_val, currency=cmd.currency)
+ 335: 
+ 336:             # Calcular ingresos de A y margen interno
+ 337:             transfer_revenue_a = Money(amount=(cmd.quantity * transfer_price.amount).quantize(Decimal("0.0001")), currency=cmd.currency)
+ 338:             margin_a = (transfer_revenue_a.amount - (cmd.quantity * current_wac.amount)).quantize(Decimal("0.0001"))
+ 339:             transfer_margin_a = Money(amount=margin_a, currency=cmd.currency)
+ 340: 
+ 341:             logger.info(
+ 342:                 f"[ICT][PRICING] Precio resuelto: {transfer_price} ({price_source}) | "
+ 343:                 f"WAC_A={current_wac} | Revenue_A={transfer_revenue_a} | Margen_A={transfer_margin_a}"
+ 344:             )
+ 345:             # Resolve pricing warning for entity response
+ 346:             price_warning = None
+ 347:             if audit_result.warnings:
+ 348:                 price_warning = "; ".join([f"{w.code}: {w.msg}" for w in audit_result.warnings])
+ 349: 
+ 350:             transfer_id = uuid.uuid4()
+ 351:             
+ 352:             # ── 4. Movimiento(s) TRANSFER_OUT en Empresa A (Partición FIFO Anexo 24) ──
+ 353:             try:
+ 354:                 logger.debug(f"[ICT][FIFO] Requesting discharge plan: product={cmd.product_id}, qty={cmd.quantity}, strict={audit_result.is_binational}")
+ 355:                 discharge_plan = await self.fifo_service.get_discharge_plan(
+ 356:                     inventory_repo=self.repo,
+ 357:                     product_id=cmd.product_id,
+ 358:                     warehouse_id=cmd.origin_warehouse_id,
+ 359:                     requested_qty=cmd.quantity,
+ 360:                     company_id=cmd.origin_company_id,
+ 361:                     strict=audit_result.is_binational,
+ 362:                     selected_batch_id=cmd.selected_batch_id
+ 363:                 )
+ 364:             except BusinessRuleException as e:
+ 365:                 raise e
+ 366:             except Exception as e:
+ 367:                 logger.error(f"[FIFO] Fallo al calcular plan de descargo: {str(e)}")
+ 368:                 raise DomainException(f"ERR_FIFO_PLAN_FAILURE: No se pudo calcular la partición de lotes/pedimentos.")
+ 369: 
+ 370:             first_out_movement_id = None
+ 371:             primary_pedimento_id = None
+ 372:             
+ 373:             for instr in discharge_plan:
+ 374:                 out_movement_id = uuid.uuid4()
+ 375:                 if not first_out_movement_id:
+ 376:                     first_out_movement_id = out_movement_id
+ 377:                     primary_pedimento_id = instr.customs_pedimento_id
+ 378:                     
+ 379:                 out_movement = MovementEntity(
+ 380:                     id=out_movement_id,
+ 381:                     warehouse_id=cmd.origin_warehouse_id,
+ 382:                     product_id=cmd.product_id,
+ 383:                     company_id=cmd.origin_company_id,
+ 384:                     quantity=-instr.quantity_to_discharge,
+ 385:                     uom_id=cmd.uom_id,
+ 386:                     weight=cmd.weight * (instr.quantity_to_discharge / cmd.quantity),
+ 387:                     price=transfer_price,
+ 388:                     movement_type=MovementType.TRANSFER_OUT.value,
+ 389:                     document_type="ICT_DISPATCH",
+ 390:                     document_id=transfer_id,
+ 391:                     source_movement_id=instr.source_movement_id,
+ 392:                     customs_pedimento_id=instr.customs_pedimento_id
+ 393:                 )
+ 394: 
+ 395:                 await self.repo.record_movement(out_movement)
+ 396:                 
+ 397:                 # CONSUMIR SALDO (Phase 42.0: Skip if Ghost Stock)
+ 398:                 if instr.source_movement_id:
+ 399:                     stmt_update = (
+ 400:                         sa.update(Movement)
+ 401:                         .where(Movement.id == instr.source_movement_id)
+ 402:                         .values(available_quantity=Movement.available_quantity - instr.quantity_to_discharge)
+ 403:                     )
+ 404:                     await self.session.execute(stmt_update)
+ 405:                 else:
+ 406:                     logger.warning(f"[FIFO] Outbound movement {out_movement_id} recorded WITHOUT source consumption (Ghost Stock).")
+ 407: 
+ 408:             # ── 5. Movimiento TRANSIT_HOLD (Entrada al limbo) ──────────────────────
+ 409:             transit_movement = MovementEntity(
+ 410:                 id=uuid.uuid4(),
+ 411:                 warehouse_id=transit_wh_id,
+ 412:                 product_id=cmd.destination_product_id or cmd.product_id,
+ 413:                 company_id=cmd.destination_company_id,
+ 414:                 quantity=cmd.quantity,
+ 415:                 uom_id=cmd.uom_id,
+ 416:                 weight=cmd.weight,
+ 417:                 price=transfer_price,
+ 418:                 movement_type=MovementType.TRANSIT_HOLD.value,
+ 419:                 document_type="ICT_TRANSIT_IN",
+ 420:                 document_id=transfer_id,
+ 421:             )
+ 422: 
+ 423:             await self.repo.record_movement(transit_movement, allow_negative=True)
+ 424: 
+ 425:             # ── 6. Auditoría y Compliance Data ──────────────────────────────────────
+ 426:             import json
+ 427:             audit_notes_json = json.dumps(audit_result.to_dict()) if (audit_result.warnings or audit_result.pending_financial_valuation) else None
+ 428: 
+ 429:             # ── 7. Crear documento InterCompanyTransfer ────────────────────────────────
+ 430:             folio_base = _generate_folio()
+ 431:             transfer_doc = InterCompanyTransfer(
+ 432:                 id=transfer_id,
+ 433:                 folio=folio_base,
+ 434:                 company_id=cmd.origin_company_id,
+ 435:                 tenant_id=cmd.origin_company_id,
+ 436:                 destination_company_id=cmd.destination_company_id,
+ 437:                 origin_warehouse_id=cmd.origin_warehouse_id,
+ 438:                 destination_warehouse_id=cmd.destination_warehouse_id,
+ 439:                 transit_warehouse_id=transit_wh_id,
+ 440:                 product_id=cmd.product_id,
+ 441:                 uom_id=cmd.uom_id,
+ 442:                 quantity=cmd.quantity,
+ 443:                 weight=cmd.weight,
+ 444:                 currency=cmd.currency,
+ 445:                 unit_price=transfer_price,
+ 446:                 wac_origin=current_wac,
+ 447:                 revenue_a=transfer_revenue_a,
+ 448:                 status=TransferStatus.SHIPPED,
+ 449:                 shipped_at=datetime.now(timezone.utc),
+ 450:                 shipped_by=cmd.initiated_by,
+ 451:                 origin_sku=cmd.origin_sku,
+ 452:                 destination_sku=cmd.destination_sku,
+ 453:                 destination_product_id=cmd.destination_product_id,
+ 454:                 notes=cmd.notes,
+ 455:                 external_reference=cmd.external_reference,
+ 456:                 customs_pedimento=cmd.customs_pedimento,
+ 457:                 customs_pedimento_id=primary_pedimento_id, # Formal ID
+ 458:                 customs_doc_type=cmd.customs_doc_type,
+ 459:                 dispatch_movement_id=first_out_movement_id,
+ 460:                 created_by=cmd.initiated_by,
+ 461:                 # Phase 40 Fields
+ 462:                 pending_financial_valuation=audit_result.pending_financial_valuation,
+ 463:                 audit_notes=audit_notes_json,
+ 464:                 exchange_rate_dof=audit_result.applied_fx_rate,
+ 465:             )
+ 466: 
+ 467:             # ── 8. LÓGICA ESPEJO (Phase 33.5): Documentos de Auditoría ──────────────
+ 468:             out_doc_id = uuid.uuid4()
+ 469:             out_doc = InventoryDocument(
+ 470:                 id=out_doc_id,
+ 471:                 company_id=cmd.origin_company_id,
+ 472:                 tenant_id=cmd.origin_company_id,
+ 473:                 folio=f"STR-{folio_base}",
+ 474:                 document_type="ICT_OUT",
+ 475:                 status=DocumentStatus.PROCESSED,
+ 476:                 origin_name="STOCK",
+ 477:                 destination_name=f"TRANSFER TO {cmd.destination_company_id}",
+ 478:                 total_items=1,
+ 479:                 total_weight=cmd.weight,
+ 480:                 total_amount=transfer_revenue_a,
+ 481:                 external_reference=f"OUT-{transfer_id}",
+ 482:                 created_by=cmd.initiated_by,
+ 483:                 pending_financial_valuation=audit_result.pending_financial_valuation,
+ 484:                 audit_notes=audit_notes_json,
+ 485:             )
+ 486: 
+ 487:             # Monto espejo en USD si es binacional
+ 488:             mirror_amount = Money(amount=transfer_price_usd * cmd.quantity, currency=mirror_currency)
+ 489: 
+ 490:             mirror_doc_id = uuid.uuid4()
+ 491:             mirror_folio = f"IN-{folio_base}"
+ 492:             mirror_doc = InventoryDocument(
+ 493:                 id=mirror_doc_id,
+ 494:                 company_id=cmd.destination_company_id,
+ 495:                 tenant_id=cmd.destination_company_id,
+ 496:                 folio=mirror_folio,
+ 497:                 document_type="ICT_IN",
+ 498:                 status=DocumentStatus.DRAFT,
+ 499:                 origin_name=f"TRANSFER FROM {cmd.origin_company_id}",
+ 500:                 destination_name="STOCK",
+ 501:                 total_items=1,
+ 502:                 total_weight=cmd.weight,
+ 503:                 total_amount=mirror_amount,
+ 504:                 external_reference=f"IN-{transfer_id}",
+ 505:                 created_by=cmd.initiated_by,
+ 506:                 pending_financial_valuation=audit_result.pending_financial_valuation,
+ 507:                 audit_notes=audit_notes_json,
+ 508:             )
+ 509:             
+ 510:             transfer_doc.mirror_document_id = mirror_doc_id
+ 511:             transfer_doc.inbound_folio = mirror_folio
+ 512: 
+ 513:             self.session.add(transfer_doc)
+ 514:             self.session.add(out_doc)
+ 515:             self.session.add(mirror_doc)
+ 516:             # await self.session.flush() # Not strictly needed with async with begin() but safe
+ 517: 
+ 518:         # ── 8. Publicar Evento de Dominio ─────────────────────────────────────
+ 519:         # Guard: si la transacción fue interrumpida (BusinessRuleException), no publicar.
+ 520:         if not transfer_doc:
+ 521:             return None
+ 522: 
+ 523:         publisher = EventPublisher()
+ 524:         await publisher.publish("TransferInitiatedEvent", {
+ 525:             "transfer_id": str(transfer_id),
+ 526:             "origin_company": str(cmd.origin_company_id),
+ 527:             "dest_company": str(cmd.destination_company_id),
+ 528:             "folio": transfer_doc.folio
+ 529:         })
+ 530: 
+ 531: 
+ 532:         await AuditService.log_action(
+ 533:             db=self.session,
+ 534:             action="CREATE_INTER_COMPANY_TRANSFER",
+ 535:             user_id=cmd.initiated_by,
+ 536:             entity_name="InterCompanyTransfer",
+ 537:             entity_id=str(transfer_doc.id),
+ 538:             details=str({"folio": transfer_doc.folio, "transfer_price": str(transfer_price)})
+ 539:         )
+ 540: 
+ 541:         logger.info(
+ 542:             f"[ICT] InterCompanyTransfer creado: folio={transfer_doc.folio} | "
+ 543:             f"status={transfer_doc.status} | ID={transfer_id} | "
+ 544:             f"transfer_price={transfer_price} ({price_source})"
+ 545:         )
+ 546: 
+ 547:         entity = self._to_document_entity(transfer_doc)
+ 548:         # Inyectar campos de auditoría de precio que no están en el modelo
+ 549:         entity.price_source = price_source
+ 550:         entity.transfer_price_warning = price_warning
+ 551:         entity.transfer_margin_a = transfer_margin_a
+ 552:         return entity
+ 553: 
+ 554:     # ═══════════════════════════════════════════════════════════════════════════
+ 555:     # COMANDO 2: CompleteTransfer (Empresa B)
+ 556:     # ═══════════════════════════════════════════════════════════════════════════
+ 557: 
+ 558:     async def complete_transfer(
+ 559:         self, cmd: CompleteTransferCommand
+ 560:     ) -> TransferDocumentEntity:
+ 561:         """
+ 562:         Empresa B confirma la recepción del inventario en tránsito:
+ 563:         1. Valida que transfer.destination_company_id == receiver_company_id (Zero-Trust).
+ 564:         2. Saca stock del almacén lógico IN_TRANSIT.
+ 565:         3. Acredita en destination_warehouse de Empresa B.
+ 566:         4. Registra TRANSFER_IN en Kardex de B.
+ 567:         5. Actualiza el documento a status=DELIVERED.
+ 568: 
+ 569:         El handler rechaza si:
+ 570:           - El transfer no existe o ya fue procesado (idempotencia).
+ 571:           - El receiver_company_id no coincide con destination_company_id.
+ 572:           - El estado no es SHIPPED.
+ 573:         """
+ 574:         async with self.session.begin():
+ 575:             # ── 1. Recuperar el documento de tránsito ─────────────────────────────
+ 576:             stmt = select(InterCompanyTransfer).where(
+ 577:                 InterCompanyTransfer.id == cmd.transfer_id
+ 578:             )
+ 579:             result = await self.session.execute(stmt)
+ 580:             transfer = result.scalar_one_or_none()
+ 581: 
+ 582:             if not transfer:
+ 583:                 raise NotFoundException(
+ 584:                     message=f"ERR_TRANSFER_NOT_FOUND: No existe un documento de transferencia con ID {cmd.transfer_id}.",
+ 585:                     details={"transfer_id": str(cmd.transfer_id)},
+ 586:                 )
+ 587: 
+ 588:             # ── 2. ZERO-TRUST: Validar que el receptor pertenece a la Empresa B ───
+ 589:             if transfer.destination_company_id != cmd.receiver_company_id:
+ 590:                 logger.warning(
+ 591:                     f"[ICT][SECURITY] ACCESO NO AUTORIZADO al transfer {cmd.transfer_id}. "
+ 592:                     f"Empresa del receptor: {cmd.receiver_company_id}, "
+ 593:                     f"Empresa destino del transfer: {transfer.destination_company_id}"
+ 594:                 )
+ 595:                 raise UnauthorizedException(
+ 596:                     message=(
+ 597:                         "ERR_UNAUTHORIZED_RECEIVER: La empresa del usuario no es la destinataria "
+ 598:                         "de esta transferencia. Acceso denegado."
+ 599:                     ),
+ 600:                     details={
+ 601:                         "transfer_id": str(cmd.transfer_id),
+ 602:                         "expected_company": str(transfer.destination_company_id),
+ 603:                         "provided_company": str(cmd.receiver_company_id),
+ 604:                     },
+ 605:                 )
+ 606: 
+ 607:             # ── 2.1. ANTI-FRAUDE: Segregación de Funciones (SoD) ──────────────────
+ 608:             if transfer.created_by == cmd.received_by:
+ 609:                 logger.error(
+ 610:                     f"[ICT][SECURITY] Intento de auto-recepción bloqueado. "
+ 611:                     f"User={cmd.received_by} intentó recibir transfer={transfer.id}"
+ 612:                 )
+ 613:                 raise BusinessRuleException(
+ 614:                     message="ERR_SELF_RECEIPT_NOT_ALLOWED: Por seguridad, "
+ 615:                             "un traspaso no puede ser recibido por el mismo usuario que lo inició.",
+ 616:                     details={"transfer_id": str(cmd.transfer_id), "user_id": str(cmd.received_by)}
+ 617:                 )
+ 618: 
+ 619:             # ── 3. Validar estado del documento ───────────────────────────────────
+ 620:             if transfer.status == TransferStatus.DELIVERED:
+ 621:                 raise ConflictException(f"ERR_ALREADY_RECEIVED: La transferencia {transfer.folio} ya fue recibida.")
+ 622: 
+ 623:             if transfer.status == TransferStatus.CANCELLED:
+ 624:                 raise BusinessRuleException(f"ERR_CANCELLED_TRANSFER: La transferencia {transfer.folio} fue cancelada.")
+ 625: 
+ 626:             # ── 4. Determinar cantidad efectiva a recibir ──────────────────────────
+ 627:             receive_qty_ok = cmd.received_quantity or transfer.quantity
+ 628:             total_out_transit = receive_qty_ok + cmd.damaged_quantity
+ 629: 
+ 630:             if total_out_transit > transfer.quantity:
+ 631:                 raise BusinessRuleException(
+ 632:                     message=f"ERR_QUANTITY_EXCESS: No se puede procesar más de lo despachado.",
+ 633:                     details={"dispatched": str(transfer.quantity), "received_total": str(total_out_transit)}
+ 634:                 )
+ 635: 
+ 636:             # ── 5. Resolver WAC del tránsito ───────────────────────────────────────
+ 637:             transit_product_id = transfer.destination_product_id or transfer.product_id
+ 638:             try:
+ 639:                 val_transit = await self.repo.get_wac_valuation(
+ 640:                     product_id=transit_product_id,
+ 641:                     warehouse_id=transfer.transit_warehouse_id,
+ 642:                     company_id=cmd.receiver_company_id,
+ 643:                 )
+ 644:                 transit_wac = val_transit.wac if val_transit else transfer.unit_price
+ 645:             except Exception:
+ 646:                 transit_wac = transfer.unit_price
+ 647: 
+ 648:             # ── 6. TRANSIT_RELEASE: Sacar del almacén lógico de tránsito ──────────
+ 649:             release_movement = MovementEntity(
+ 650:                 id=uuid.uuid4(),
+ 651:                 warehouse_id=transfer.transit_warehouse_id,
+ 652:                 product_id=transit_product_id,
+ 653:                 company_id=cmd.receiver_company_id,
+ 654:                 quantity=-total_out_transit,
+ 655:                 uom_id=transfer.uom_id,
+ 656:                 weight=transfer.weight,
+ 657:                 price=transit_wac,
+ 658:                 movement_type=MovementType.TRANSIT_RELEASE.value,
+ 659:                 document_type="ICT_TRANSIT_OUT",
+ 660:                 document_id=cmd.transfer_id,
+ 661:             )
+ 662:             await self.repo.record_movement(release_movement, allow_negative=True)
+ 663: 
+ 664:             # ── 7. TRANSFER_IN: Acreditar en almacén físico de Empresa B ──────────────
+ 665:             sealed_transfer_price = transfer.unit_price
+ 666:             acquisition_cost_b = Money(amount=(receive_qty_ok * sealed_transfer_price.amount).quantize(Decimal("0.0001")), currency=transfer.currency)
+ 667: 
+ 668:             in_movement = MovementEntity(
+ 669:                 id=uuid.uuid4(),
+ 670:                 warehouse_id=transfer.destination_warehouse_id,
+ 671:                 product_id=transit_product_id,
+ 672:                 company_id=cmd.receiver_company_id,
+ 673:                 quantity=receive_qty_ok,
+ 674:                 uom_id=transfer.uom_id,
+ 675:                 weight=transfer.weight,
+ 676:                 price=sealed_transfer_price,
+ 677:                 movement_type=MovementType.TRANSFER_IN.value,
+ 678:                 document_type="ICT_RECEIVE",
+ 679:                 document_id=cmd.transfer_id,
+ 680:                 # FIFO compliance
+ 681:                 available_quantity=receive_qty_ok,
+ 682:                 customs_pedimento_id=cmd.customs_pedimento_id or transfer.customs_pedimento_id
+ 683:             )
+ 684:             await self.repo.record_movement(in_movement)
+ 685: 
+ 686:             # ── 8. Actualizar documento de transferencia ───────────────────────────
+ 687:             transfer.status = TransferStatus.DELIVERED
+ 688:             transfer.received_at = datetime.now(timezone.utc)
+ 689:             transfer.received_by = cmd.received_by
+ 690:             transfer.received_quantity = receive_qty_ok
+ 691:             transfer.damaged_quantity = cmd.damaged_quantity
+ 692:             transfer.receive_movement_id = in_movement.id
+ 693:             transfer.cost_b = acquisition_cost_b
+ 694:             if cmd.notes:
+ 695:                 transfer.notes = (transfer.notes or "") + f"\n[RECEPCIÓN] {cmd.notes}"
+ 696: 
+ 697:             self.session.add(transfer)
+ 698:             
+ 699:             # ── 9. Actualizar Documento Espejo (PROCESSED) ─────────────────────────
+ 700:             if transfer.mirror_document_id:
+ 701:                 mirror_stmt = select(InventoryDocument).where(InventoryDocument.id == transfer.mirror_document_id)
+ 702:                 mirror_res = await self.session.execute(mirror_stmt)
+ 703:                 mirror_doc = mirror_res.scalar_one_or_none()
+ 704:                 if mirror_doc:
+ 705:                     mirror_doc.status = DocumentStatus.PROCESSED
+ 706:                     mirror_doc.total_amount = acquisition_cost_b
+ 707:                     self.session.add(mirror_doc)
+ 708: 
+ 709:             # ── 10. Publicar Evento de Dominio ─────────────────────────────────────
+ 710:             publisher = EventPublisher()
+ 711:             await publisher.publish("TransferCompletedEvent", {
+ 712:                 "transfer_id": str(transfer.id),
+ 713:                 "folio": transfer.folio,
+ 714:                 "received_qty": str(receive_qty_ok)
+ 715:             })
+ 716: 
+ 717:             await AuditService.log_action(
+ 718:                 db=self.session,
+ 719:                 action="RECEIVING_ICT",
+ 720:                 user_id=cmd.received_by,
+ 721:                 entity_name="InterCompanyTransfer",
+ 722:                 entity_id=str(transfer.id),
+ 723:                 details=str({"folio": transfer.folio, "qty": str(receive_qty_ok)})
+ 724:             )
+ 725:             
+ 726:             await self.session.flush()
+ 727: 
+ 728:         return self._to_document_entity(transfer)
+ 729: 
+ 730:     # ═══════════════════════════════════════════════════════════════════════════
+ 731:     # COMANDO 3: CancelTransfer (Empresa A)
+ 732:     # ═══════════════════════════════════════════════════════════════════════════
+ 733: 
+ 734:     async def cancel_transfer(
+ 735:         self, cmd: CancelTransferCommand
+ 736:     ) -> TransferDocumentEntity:
+ 737:         """
+ 738:         Cancela una transferencia que aún no ha sido recibida.
+ 739:         Revierte los movimientos: devuelve el stock del tránsito al almacén de A.
+ 740:         """
+ 741:         async with self.session.begin():
+ 742:             logger.info(
+ 743:                 f"[ICT] CancelTransfer Transaction: transfer_id={cmd.transfer_id} | "
+ 744:                 f"Requester={cmd.requester_company_id}"
+ 745:             )
+ 746: 
+ 747:             stmt = select(InterCompanyTransfer).where(
+ 748:                 InterCompanyTransfer.id == cmd.transfer_id
+ 749:             )
+ 750:             result = await self.session.execute(stmt)
+ 751:             transfer = result.scalar_one_or_none()
+ 752: 
+ 753:             if not transfer:
+ 754:                 raise NotFoundException(f"ERR_TRANSFER_NOT_FOUND: Transfer {cmd.transfer_id} no existe.")
+ 755: 
+ 756:             # ── 1. Seguridad y Estado ─────────────────────────────────────────────
+ 757:             if transfer.company_id != cmd.requester_company_id:
+ 758:                 raise UnauthorizedException("ERR_CANCEL_UNAUTHORIZED: Solo el originador puede cancelar.")
+ 759: 
+ 760:             if transfer.status == TransferStatus.DELIVERED:
+ 761:                 raise ConflictException("ERR_ALREADY_DELIVERED: No se puede cancelar una entrega realizada.")
+ 762: 
+ 763:             if transfer.status == TransferStatus.CANCELLED:
+ 764:                 return self._to_document_entity(transfer) # Idempotencia
+ 765: 
+ 766:             # ── 2. RESTAURACIÓN FIFO (Legal Compliance) ──────────────────────────
+ 767:             # Revertimos el consumo de saldo de todos los movimientos de salida vinculados
+ 768:             stmt_outs = select(Movement).where(
+ 769:                 and_(
+ 770:                     Movement.document_id == transfer.id,
+ 771:                     Movement.movement_type == MovementType.TRANSFER_OUT.value
+ 772:                 )
+ 773:             )
+ 774:             res_outs = await self.session.execute(stmt_outs)
+ 775:             out_movements = res_outs.scalars().all()
+ 776:             
+ 777:             for m in out_movements:
+ 778:                 if m.source_movement_id:
+ 779:                     # RESTAURAR SALDO en la capa (layer) original
+ 780:                     stmt_restore = (
+ 781:                         sa.update(Movement)
+ 782:                         .where(Movement.id == m.source_movement_id)
+ 783:                         .values(available_quantity=Movement.available_quantity + abs(m.quantity))
+ 784:                     )
+ 785:                     await self.session.execute(stmt_restore)
+ 786:                     logger.info(f"[FIFO] Saldo restaurado en origen: {m.source_movement_id} (+{abs(m.quantity)})")
+ 787: 
+ 788:             # ── 3. Contra-asiento: TRANSIT_RELEASE (sacar de hold de B) ──────────
+ 789:             transit_product_id = transfer.destination_product_id or transfer.product_id
+ 790:             cancel_transit = MovementEntity(
+ 791:                 id=uuid.uuid4(),
+ 792:                 warehouse_id=transfer.transit_warehouse_id,
+ 793:                 product_id=transit_product_id,
+ 794:                 company_id=transfer.destination_company_id,
+ 795:                 quantity=-transfer.quantity,
+ 796:                 uom_id=transfer.uom_id,
+ 797:                 weight=transfer.weight,
+ 798:                 price=transfer.unit_price if transfer.unit_price else Money(Decimal("0.0"), transfer.currency),
+ 799:                 movement_type=MovementType.TRANSIT_RELEASE.value,
+ 800:                 document_type="ICT_CANCEL_TRANSIT",
+ 801:                 document_id=cmd.transfer_id,
+ 802:             )
+ 803:             await self.repo.record_movement(cancel_transit, allow_negative=True)
+ 804: 
+ 805:             # ── 4. TRANSFER_IN: Regresar al almacén físico de Empresa A ────────
+ 806:             # REGISTRAR DEVOLUCIÓN: available_quantity=0 para no duplicar saldo (ya restaurado arriba)
+ 807:             restore_movement = MovementEntity(
+ 808:                 id=uuid.uuid4(),
+ 809:                 warehouse_id=transfer.origin_warehouse_id,
+ 810:                 product_id=transfer.product_id,
+ 811:                 company_id=transfer.company_id,
+ 812:                 quantity=transfer.quantity,
+ 813:                 uom_id=transfer.uom_id,
+ 814:                 weight=transfer.weight,
+ 815:                 price=transfer.unit_price if transfer.unit_price else Money(Decimal("0.0"), transfer.currency),
+ 816:                 movement_type=MovementType.TRANSFER_IN.value,
+ 817:                 document_type="ICT_CANCEL_RETURN",
+ 818:                 document_id=cmd.transfer_id,
+ 819:                 available_quantity=Decimal("0.0") 
+ 820:             )
+ 821:             await self.repo.record_movement(restore_movement)
+ 822: 
+ 823:             # ── 5. Actualizar Documentos ──────────────────────────────────────────
+ 824:             transfer.status = TransferStatus.CANCELLED
+ 825:             transfer.notes = (transfer.notes or "") + f"\n[CANCELACIÓN] {cmd.reason or 'Sin motivo.'}"
+ 826:             self.session.add(transfer)
+ 827:             
+ 828:             if transfer.mirror_document_id:
+ 829:                 mirror_stmt = select(InventoryDocument).where(InventoryDocument.id == transfer.mirror_document_id)
+ 830:                 mirror_res = await self.session.execute(mirror_stmt)
+ 831:                 mirror_doc = mirror_res.scalar_one_or_none()
+ 832:                 if mirror_doc:
+ 833:                     mirror_doc.status = DocumentStatus.CANCELLED
+ 834:                     self.session.add(mirror_doc)
+ 835: 
+ 836:             await AuditService.log_action(
+ 837:                 db=self.session,
+ 838:                 action="CANCEL_INTER_COMPANY_TRANSFER",
+ 839:                 user_id=cmd.requester_id,
+ 840:                 entity_name="InterCompanyTransfer",
+ 841:                 entity_id=str(transfer.id),
+ 842:                 details=str({"folio": transfer.folio, "reason": cmd.reason})
+ 843:             )
+ 844:             
+ 845:             await self.session.flush()
+ 846: 
+ 847:         return self._to_document_entity(transfer)
+ 848: 
+ 849:     # ═══════════════════════════════════════════════════════════════════════════
+ 850:     # COMANDO 4: RevertTransfer (Empresa A — Reclamación de Orphaned Transfer)
+ 851:     # ═══════════════════════════════════════════════════════════════════════════
+ 852: 
+ 853:         async with self.session.begin():
+ 854:             logger.info(
+ 855:                 f"[ICT] RevertTransfer Transaction: transfer_id={cmd.transfer_id} | "
+ 856:                 f"Requester={cmd.requester_company_id}"
+ 857:             )
+ 858: 
+ 859:             stmt = select(InterCompanyTransfer).where(InterCompanyTransfer.id == cmd.transfer_id)
+ 860:             result = await self.session.execute(stmt)
+ 861:             transfer = result.scalar_one_or_none()
+ 862: 
+ 863:             if not transfer:
+ 864:                 raise NotFoundException(f"ERR_TRANSFER_NOT_FOUND: Transfer {cmd.transfer_id} no existe.")
+ 865: 
+ 866:             if transfer.company_id != cmd.requester_company_id:
+ 867:                 raise UnauthorizedException("ERR_REVERT_UNAUTHORIZED: Solo el originador puede reclamar el stock huérfano.")
+ 868: 
+ 869:             if transfer.status == TransferStatus.DELIVERED:
+ 870:                 raise ConflictException("ERR_ALREADY_DELIVERED: No se puede revertir una transferencia ya entregada.")
+ 871:             if transfer.status == TransferStatus.CANCELLED:
+ 872:                 return self._to_document_entity(transfer)
+ 873: 
+ 874:             # ── 1. RESTAURACIÓN FIFO (Legal Restoral) ─────────────────────────────
+ 875:             stmt_outs = select(Movement).where(
+ 876:                 and_(
+ 877:                     Movement.document_id == transfer.id,
+ 878:                     Movement.movement_type == MovementType.TRANSFER_OUT.value
+ 879:                 )
+ 880:             )
+ 881:             res_outs = await self.session.execute(stmt_outs)
+ 882:             out_movements = res_outs.scalars().all()
+ 883:             
+ 884:             for m in out_movements:
+ 885:                 if m.source_movement_id:
+ 886:                     # RESTAURAR SALDO en la capa origen
+ 887:                     stmt_restore = (
+ 888:                         sa.update(Movement)
+ 889:                         .where(Movement.id == m.source_movement_id)
+ 890:                         .values(available_quantity=Movement.available_quantity + abs(m.quantity))
+ 891:                     )
+ 892:                     await self.session.execute(stmt_restore)
+ 893: 
+ 894:             # ── 2. Cancelar Documento Espejo (DRAFT) de Empresa B ─────────────────────
+ 895:             if transfer.mirror_document_id:
+ 896:                 mirror_stmt = select(InventoryDocument).where(InventoryDocument.id == transfer.mirror_document_id)
+ 897:                 mirror_res = await self.session.execute(mirror_stmt)
+ 898:                 mirror_doc = mirror_res.scalar_one_or_none()
+ 899:                 if mirror_doc:
+ 900:                     mirror_doc.status = DocumentStatus.CANCELLED
+ 901:                     self.session.add(mirror_doc)
+ 902: 
+ 903:             # ── 3. Contra-asiento: TRANSIT_RELEASE (sacar del hold de B) ──────────
+ 904:             transit_product_id = transfer.destination_product_id or transfer.product_id
+ 905:             sealed_price = transfer.unit_price if transfer.unit_price else Money(Decimal("0.0"), transfer.currency)
+ 906: 
+ 907:             cancel_transit = MovementEntity(
+ 908:                 id=uuid.uuid4(),
+ 909:                 warehouse_id=transfer.transit_warehouse_id,
+ 910:                 product_id=transit_product_id,
+ 911:                 company_id=transfer.destination_company_id,
+ 912:                 quantity=-transfer.quantity,
+ 913:                 uom_id=transfer.uom_id,
+ 914:                 weight=transfer.weight,
+ 915:                 price=sealed_price,
+ 916:                 movement_type=MovementType.TRANSIT_RELEASE.value,
+ 917:                 document_type="ICT_REVERT_TRANSIT",
+ 918:                 document_id=cmd.transfer_id,
+ 919:                 comments="Reclamación de Transferencia No Entregada",
+ 920:             )
+ 921:             await self.repo.record_movement(cancel_transit, allow_negative=True)
+ 922: 
+ 923:             # ── 4. TRANSFER_IN: Devolver al almacén físico de Empresa A ────────
+ 924:             restore_movement = MovementEntity(
+ 925:                 id=uuid.uuid4(),
+ 926:                 warehouse_id=transfer.origin_warehouse_id,
+ 927:                 product_id=transfer.product_id,
+ 928:                 company_id=transfer.company_id,
+ 929:                 quantity=transfer.quantity,
+ 930:                 uom_id=transfer.uom_id,
+ 931:                 weight=transfer.weight,
+ 932:                 price=sealed_price,
+ 933:                 movement_type=MovementType.TRANSFER_IN.value,
+ 934:                 document_type="ICT_REVERT_RETURN",
+ 935:                 document_id=cmd.transfer_id,
+ 936:                 comments="Reclamación de Transferencia No Entregada",
+ 937:                 # Compliance: Saldo 0 porque restauramos el original
+ 938:                 available_quantity=Decimal("0.0")
+ 939:             )
+ 940:             await self.repo.record_movement(restore_movement)
+ 941: 
+ 942:             # ── 5. Cerrar documento ICT ──────────────────────────────────────
+ 943:             transfer.status = TransferStatus.CANCELLED
+ 944:             transfer.notes = (transfer.notes or "") + (
+ 945:                 f"\n[REVERSIÓN] Reclamado por Empresa A. Motivo: {cmd.reason or 'Expiración/Abandonado'}"
+ 946:             )
+ 947:             self.session.add(transfer)
+ 948: 
+ 949:             await AuditService.log_action(
+ 950:                 db=self.session,
+ 951:                 action="REVERT_INTER_COMPANY_TRANSFER",
+ 952:                 user_id=getattr(cmd, "requester_id", getattr(cmd, "requested_by", None)),
+ 953:                 entity_name="InterCompanyTransfer",
+ 954:                 entity_id=str(transfer.id),
+ 955:                 details=str({"folio": transfer.folio, "reason": cmd.reason})
+ 956:             )
+ 957:             
+ 958:             await self.session.flush()
+ 959: 
+ 960:         logger.info(f"[ICT] Transfer REVERTED (Orphan reclaimed): folio={transfer.folio}")
+ 961:         return self._to_document_entity(transfer)
+ 962: 
+ 963:     # ═══════════════════════════════════════════════════════════════════════════
+ 964: 
+ 965:     async def get_transfer_by_id(
+ 966:         self, transfer_id: uuid.UUID, requester_company_id: uuid.UUID
+ 967:     ) -> TransferDocumentEntity:
+ 968:         """
+ 969:         Recupera un documento de tránsito por su ID único.
+ 970:         Ambas empresas (A y B) pueden consultar el documento si están involucradas.
+ 971:         """
+ 972:         stmt = select(InterCompanyTransfer).where(
+ 973:             InterCompanyTransfer.id == transfer_id
+ 974:         )
+ 975:         result = await self.session.execute(stmt)
+ 976:         transfer = result.scalar_one_or_none()
+ 977: 
+ 978:         if not transfer:
+ 979:             raise NotFoundException(
+ 980:                 message=f"ERR_TRANSFER_NOT_FOUND: Transfer {transfer_id} no existe.",
+ 981:                 details={"transfer_id": str(transfer_id)},
+ 982:             )
+ 983: 
+ 984:         # Validar acceso: debe ser Empresa A o Empresa B
+ 985:         if (
+ 986:             transfer.company_id != requester_company_id
+ 987:             and transfer.destination_company_id != requester_company_id
+ 988:         ):
+ 989:             raise UnauthorizedException(
+ 990:                 message="ERR_TRANSFER_ACCESS_DENIED: No pertenece a esta transferencia.",
+ 991:                 details={"transfer_id": str(transfer_id)},
+ 992:             )
+ 993: 
+ 994:         return self._to_document_entity(transfer)
+ 995: 
+ 996:     async def get_transfer_by_folio(
+ 997:         self, folio: str, requester_company_id: uuid.UUID
+ 998:     ) -> TransferDocumentEntity:
+ 999:         """
+1000:         Recupera un documento de tránsito por su número de folio (útil para escaneos).
+1001:         Limitado a las empresas involucradas en la transferencia.
+1002:         """
+1003:         stmt = select(InterCompanyTransfer).where(
+1004:             InterCompanyTransfer.folio == folio
+1005:         )
+1006:         result = await self.session.execute(stmt)
+1007:         transfer = result.scalar_one_or_none()
+1008: 
+1009:         if not transfer:
+1010:             raise NotFoundException(
+1011:                 message=f"ERR_TRANSFER_NOT_FOUND: No existe transferencia con el folio {folio}.",
+1012:                 details={"folio": folio},
+1013:             )
+1014: 
+1015:         # Validar acceso
+1016:         if (
+1017:             transfer.company_id != requester_company_id
+1018:             and transfer.destination_company_id != requester_company_id
+1019:         ):
+1020:             raise UnauthorizedException(
+1021:                 message="ERR_TRANSFER_ACCESS_DENIED: No tiene permiso para ver este folio.",
+1022:                 details={"folio": folio},
+1023:             )
+1024: 
+1025:         return self._to_document_entity(transfer)
+1026: 
+1027:     async def list_pending_for_company_b(
+1028:         self, company_b_id: uuid.UUID, limit: int = 50, offset: int = 0
+1029:     ) -> list[PendingTransferEntity]:
+1030:         """
+1031:         Lista todas las transferencias pendientes de recepción para la Empresa B.
+1032:         Solo expone documentos en estado SHIPPED dirigidos a esta empresa.
+1033:         """
+1034:         stmt = (
+1035:             select(InterCompanyTransfer)
+1036:             .where(
+1037:                 and_(
+1038:                     InterCompanyTransfer.destination_company_id == company_b_id,
+1039:                     InterCompanyTransfer.status == TransferStatus.SHIPPED,
+1040:                 )
+1041:             )
+1042:             .order_by(InterCompanyTransfer.shipped_at.desc())
+1043:             .limit(limit)
+1044:             .offset(offset)
+1045:         )
+1046:         result = await self.session.execute(stmt)
+1047:         transfers = result.scalars().all()
+1048: 
+1049:         return [
+1050:             PendingTransferEntity(
+1051:                 id=t.id,
+1052:                 folio=t.folio,
+1053:                 status=TransferStatusEnum(t.status.value),
+1054:                 origin_company_id=t.company_id,
+1055:                 product_id=t.product_id,
+1056:                 quantity=t.quantity,
+1057:                 weight=t.weight,
+1058:                 shipped_at=t.shipped_at,
+1059:                 external_reference=t.external_reference,
+1060:                 notes=t.notes,
+1061:                 origin_sku=t.origin_sku,
+1062:                 destination_sku=t.destination_sku,
+1063:             )
+1064:             for t in transfers
+1065:         ]
+1066: 
+1067:     async def list_outbound_for_company_a(
+1068:         self, company_a_id: uuid.UUID, limit: int = 50, offset: int = 0
+1069:     ) -> list[TransferDocumentEntity]:
+1070:         """
+1071:         Lista todas las transferencias enviadas por la Empresa A.
+1072:         """
+1073:         stmt = (
+1074:             select(InterCompanyTransfer)
+1075:             .where(InterCompanyTransfer.company_id == company_a_id)
+1076:             .order_by(InterCompanyTransfer.created_at.desc())
+1077:             .limit(limit)
+1078:             .offset(offset)
+1079:         )
+1080:         result = await self.session.execute(stmt)
+1081:         transfers = result.scalars().all()
+1082:         return [self._to_document_entity(t) for t in transfers]
+1083: 
+1084:     # ═══════════════════════════════════════════════════════════════════════════
+1085:     # MAPPERS
+1086:     # ═══════════════════════════════════════════════════════════════════════════
+1087: 
+1088:     def _to_document_entity(self, t: InterCompanyTransfer) -> TransferDocumentEntity:
+1089:         """
+1090:         Mapea el ORM a la entidad de respuesta API.
+1091:         Incluye el bloque financiero completo:
+1092:           - unit_price_at_dispatch: precio pactado (sellado)
+1093:           - wac_at_dispatch:        costo real de A
+1094:           - transfer_revenue_a:     ingreso de A (calculado al despacho)
+1095:           - acquisition_cost_b:     costo de B (calculado al recibir)
+1096:           - transfer_margin_a:      margen bruto de A (dinámico)
+1097:         """
+1098:         # Calcular margen dinámico (sólo disponible si tenemos ambos valores)
+1099:         transfer_margin_a: Optional[Money] = None
+1100:         if t.revenue_a and t.wac_origin:
+1101:             wac_cost_a = (t.quantity * t.wac_origin.amount).quantize(Decimal("0.0001"))
+1102:             margin_val = (t.revenue_a.amount - wac_cost_a).quantize(Decimal("0.0001"))
+1103:             transfer_margin_a = Money(amount=margin_val, currency=t.currency)
+1104: 
+1105:         return TransferDocumentEntity(
+1106:             id=t.id,
+1107:             folio=t.folio,
+1108:             status=TransferStatusEnum(t.status.value),
+1109:             origin=TransferPartyEntity(
+1110:                 company_id=t.company_id,
+1111:                 warehouse_id=t.origin_warehouse_id,
+1112:                 sku=t.origin_sku,
+1113:                 product_id=t.product_id,
+1114:             ),
+1115:             destination=TransferPartyEntity(
+1116:                 company_id=t.destination_company_id,
+1117:                 warehouse_id=t.destination_warehouse_id,
+1118:                 sku=t.destination_sku,
+1119:                 product_id=t.destination_product_id or t.product_id,
+1120:             ),
+1121:             product_id=t.product_id,
+1122:             uom_id=t.uom_id,
+1123:             quantity=t.quantity,
+1124:             weight=t.weight,
+1125:             currency=t.currency,
+1126:             # ── Bloque financiero (Money VO) ────
+1127:             unit_price_at_dispatch=t.unit_price,
+1128:             wac_at_dispatch=t.wac_origin,
+1129:             transfer_revenue_a=t.revenue_a,
+1130:             acquisition_cost_b=t.cost_b,
+1131:             transfer_margin_a=transfer_margin_a,
+1132:             # price_source y transfer_price_warning se inyectan en initiate si aplica
+1133:             # ────────────────────────
+1134:             received_quantity=t.received_quantity,
+1135:             notes=t.notes,
+1136:             external_reference=t.external_reference,
+1137:             # Phase 40: Compliance & Audit
+1138:             pending_financial_valuation=t.pending_financial_valuation,
+1139:             audit_notes=t.audit_notes,
+1140:             exchange_rate_dof=t.exchange_rate_dof,
+1141:             customs_pedimento=t.customs_pedimento,
+1142:             customs_pedimento_id=t.customs_pedimento_id,
+1143:             customs_doc_type=t.customs_doc_type,
+1144:             # Trazabilidad
+1145:             dispatch_movement_id=t.dispatch_movement_id,
+1146:             receive_movement_id=t.receive_movement_id,
+1147:             created_at=t.created_at,
+1148:             shipped_at=t.shipped_at,
+1149:             received_at=t.received_at
+1150:         )

@@ -8,3 +8,8 @@ class UserContext(BaseModel):
     group_id: Optional[uuid.UUID] = None
     trace_id: Optional[str] = None
     token: Optional[str] = None
+    
+    # ── RBAC & Geographic Security (Phase 33.5) ───────────────────
+    role: str = "OPERATOR"
+    role_names: list[str] = []
+    accessible_warehouses: list[uuid.UUID] = []

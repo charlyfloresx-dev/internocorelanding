@@ -1,0 +1,44 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - img [ref=e8]
+    - heading "InternoCore" [level=1] [ref=e14]
+    - paragraph [ref=e15]: Industrial Operations OS
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - button "Office / Admin" [ref=e18]
+      - button "Plant Floor" [ref=e19]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - img [ref=e23]: email
+          - textbox "Email Address" [ref=e24]
+        - generic [ref=e25]:
+          - img [ref=e26]: lock
+          - textbox "Password" [ref=e27]
+          - button [ref=e28]:
+            - img [ref=e29]: visibility
+      - button "Forgot Password?" [ref=e31]
+      - button "Sign In" [ref=e32]:
+        - generic [ref=e33]: Sign In
+        - img [ref=e34]: arrow_forward
+      - generic [ref=e35]:
+        - paragraph [ref=e36]: Or sign in with
+        - generic [ref=e37]:
+          - button "Google" [ref=e38]:
+            - img [ref=e39]
+            - generic [ref=e44]: Google
+          - button "Microsoft" [ref=e45]:
+            - img [ref=e46]
+            - generic [ref=e48]: Microsoft
+      - generic [ref=e49]:
+        - 'button "Join with Code #" [ref=e50]':
+          - img [ref=e51]: qr_code_2
+          - text: "Join with Code #"
+        - button "Create New Company" [ref=e52]:
+          - img [ref=e53]: add_business
+          - text: Create New Company
+  - paragraph [ref=e55]: © 2026 Interno Core. Industrial SaaS Multitenant v2.1.0
+```

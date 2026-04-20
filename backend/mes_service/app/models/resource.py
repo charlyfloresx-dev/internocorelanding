@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class Resource(MultiTenantBase):
     """Work Center / Production Line."""

@@ -1,0 +1,5 @@
+SKU,Nombre,Nivel,Moneda,Monto,IVA_Flag,IEPS_Flag,Entidad_ID,Tipo_Entidad
+MAT-001,Aluminio Industrial 6061-T6,COMPRA,MXN,150.00,SI,NO,,
+MAT-001,Aluminio Industrial 6061-T6,1,MXN,280.00,SI,NO,,
+MAT-002,Película Stretch 20" Especial,2,MXN,85.00,NO,NO,,
+MAT-003,Ahesivo de Contacto Industrial,ACUERDO,USD,15.00,NO,NO,2bf6f678-cde0-45c4-ba17-046f69648c9c,CUSTOMER

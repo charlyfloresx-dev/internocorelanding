@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 from sqlalchemy import String, Numeric
 from sqlalchemy.orm import Mapped, mapped_column
-from common.models.base_models import MultiTenantBase
+from common.infrastructure.models.base import MultiTenantBase
 
 class StandardTime(MultiTenantBase):
     """Standard routing/operation time for a product."""

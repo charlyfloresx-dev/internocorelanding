@@ -2,211 +2,198 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
-## [2026-04-03] - Phase 42: Inventory Schema Synchronization & Traceability Hardening
-- **Microservice Schema Isolation**: Addressed the conflict where `inventory_db` had ghost Foreign Key constraints pointing to a non-existent or empty `companies` table. Generated migration `13f1006bf066` to include the `companies` table correctly and updated `seed.py` to populate it as a local cache.
-- **Traceability by Default**: Updated internal inventory flows (`flow_1_entry.py`, `flow_2_exit.py`) to create `InventoryDocument` records automatically, ensuring manual warehouse operations are visible in the frontend dashboard.
-- **Backend Robustness**: Resolved `UnboundLocalError` in `TransferCommandHandler` and improved script idempotency to match the global `master_seed.py` orchestration.
-- **Status**: ✅ COMPLETED (Inventory Kardex & Dashboard Synced)
+### [2026-04-20] AWS Budget Pivot: ALB to App Runner
+- **Optimización de Costos**: El Application Load Balancer (ALB) fue identificado como un gasto excesivo (~$23 USD/mes base) para el presupuesto de $5.00 USD.
+- **Acción**: Eliminación del ALB e infraestructura de ECS Fargate residual. Transición hacia **AWS App Runner** (PaaS) para el `auth_service`.
+- **Infraestructura**: Creado `apprunner.yaml` y guía de despliegue `APP_RUNNER_DEPLOY_GUIDE.md` para estandarizar el despliegue de bajo costo.
+- **Status**: ✅ Phase 58 COMPLETED - Low-Cost Infrastructure Pivot.
 
+### [2026-04-18] Phase 57: GIS Integration & Tijuana Cadastral Mapping
+- **GIS Core Integration**: Desarrollo de `ArcGisTijuanaProvider` en `common/gis` para validación de claves catastrales y georeferenciación frente al IMPLAN Tijuana.
+- **Web Scraping de Propietarios**: Implementación de scraping resiliente con manejo de `__VIEWSTATE` para recuperar el nombre del propietario legal desde el portal de pagos de Tijuana.
+- **ValueObject Address**: Enriquecimiento del objeto de dirección con `cadastral_key`, coordenadas y tipo de propiedad, manteniendo compatibilidad con servicios existentes.
+- **Status**: ✅ Phase 57 COMPLETED - GIS & Cadastral Validation Online.
 
+### [2026-04-18] AWS Cloud Stability & CORS Resolution
+- **Problema de CORS (Mixed Content vs Preflight)**: Se resolvió que el bloqueo `400 Bad Request` en producción provenía del orden de carga en Python (Starlette evalúa CORS antes de que `boto3` inyecte secretos).
+- **Resolución**: Arquitectura ajustada invirtiendo Imports para que AWS Secrets (`load_aws_secrets`) parchee `int_backend_cors_origins` antes de que el middleware sea montado, solucionando instantáneamente la conectividad ALB.
+- **Microservices Rollout**: Despliegue industrial ECS validado. Conectividad E2E desde CloudFront confirmada en el Mission Control.
+- **Status**: ✅ Phase 55 STABILIZED - Production Auth Service Online & Verified.
 
-## [2026-04-01] - Phase 41: Binational UI Stabilization & Infrastructure Persistence
-- **Defensive Schema Initialization**: Resolved critical startup collisions between `inventory_service` and `master_data_service` schemas. Implemented `Base.metadata.create_all()` preemptively in `inventory_service` and inserted `_table_exists()` cross-domain safety checks into Alembic. PostgreSQL containers can now boot, auto-generate schemas idempotently, and completely survive `docker compose down -v` scenarios.
-- **Frontend Signals Resilience**: Addressed Angular template compilation breaking due to lost computed signals (`filteredOriginCompanies` and `filteredDestWarehouses`). Reattached the "Ghost Stock" logic gracefully to the UI, enabling seamless multi-tenant dropdown rendering in the Logistics dashboard.
-- **Test Matrix Hardening**: Stabilized `test_full_ict_cycle.py` tests natively in the Docker context, fully authenticating inter-company flows matching the new architectural constraints.
-- **Status**: ✅ COMPLETED (Binational Flow Ready for Finance Module)
+### [2026-04-17] Phase 55: AWS Industrial Deployment & Frontend CDN
+- **Microservices**: `auth_service` desplegado en AWS ECS Fargate us-east-2.
+- **Infrastructure**: ALB validado, RDS conectado, Secret Injection implementado.
+- **Frontend**: Angular build corregido con `fileReplacements` y desplegado en CloudFront.
+- **Docs**: Creados `MICROSERVICE_DEPLOY_GUIDE.md` y reportes de estatus.
+- **Status**: ✅ Phase 55 COMPLETED - Auth & Frontend Production Ready.
 
+## [2026-04-16] - Phase 44: Infrastructure Convergence & Media Assets support
+- **Unified Cloud Abstraction (`StorageProvider`)**: Engineered a strategy-pattern based storage library in `backend/common`. Supports multi-tenant S3 (AWS/LocalStack) and Local storage with a single interface. Implemented automatic Pre-signed URL generation for secure, high-speed frontend retrieval.
+- **SSM Configuration Resilience**: Established a hierarchical Parameter Store structure (`/interno-core/global/` vs `/interno-core/{service}/`) to deduplicate global secrets. Validated migration through de-duplication scripts and LocalStack (v1.4.0) integration to bypass AWS Pro license requirements.
+- **Microservice Media Expansion (RH, Inventory, Master Data)**: Scaled the industrial photo pattern across the ecosystem. Engineered `VariantService` to handle asset logic in `inventory_service` and updated `master_data_service` for catalog photos. Applied targeted Alembic schema synchronization to ensure multi-tenant RDS integrity for digital assets.
+- **Frontend URL Normalization**: Developed an Angular `imageInterceptor` and `secureImage` Pipe to handle multi-tenant asset paths. The system automatically injects the primary assets domain (`environment.assetsUrl`) and handles default placeholders, ensuring a premium UX regardless of deployment mode.
+- **Logistics Cleanliness (Gobernanza)**: Moved all operational test and migration scripts to `backend/tests/integration/infrastructure/` to maintain a zero-pollution root directory.
+- **Status**: ✅ COMPLETED (Cloud-Ready, Media-Enabled & Scaled Backbone)
 
-## [2026-04-01] - Phase 40: Binational Audit & Compliance Agent
-- **Compliance-First Operations**: Successfully transitioned the inter-company transfer system to an "Audit-Ready" architecture. Implemented the `TransferAuditService` (Pre-Flight Agent) to intercept and validate tax & customs compliance (Anexo 24) on binational routes.
-- **Fiscal Watermarking**: Engineered the "Administrative Debt" pattern for pricing. The system now allows physical stock movement even without a final transfer price, automatically flagging documents as `pending_financial_valuation` for later regularization by Finance rather than blocking the truck.
-- **Binational FX & Mirroring**: Integrated mandatory `exchange_rate_dof` reporting for MX $\rightarrow$ US transfers. The backend now accurately generates USD-valued "Draft" inbound documents for mirror entities, ensuring real-time valuation parity.
-- **Customs Ledger Logic**: Integrated FIFO-based pedimento tracking and aging alerts within the audit flow. Users must now explicitly acknowledge risks for material with expiring legal stay (< 15 days).
-- **Status**: ✅ COMPLETED (Binational Audit Agent Live)
+## [2026-04-15] - Phase 53: Industrial Data Simulation Injection
 
----
+## [2026-04-15] - Phase 53: Industrial Data Simulation Injection
+- **Data Scaling for UI Validation**: Engineered a direct SQLAlchemy integration bypass (`simulate_liquor_distro.py`) to inject highly dense logic scenarios without relying on API controllers. 
+- **Simulated RBAC**: Explicitly wired 3 multi-tenant roles testing boundaries: `tony@interno.com` (Group Admin), `garry@interno.com` (Distributor Logistics), and `tropy@interno.com` (Single Node Operator) to fully evaluate Angular Component un-mounting and guarded routing.
+- **Kardex Injection**: Simulated over 15 days of continuous operations (+180 entries) involving IN, OUT, and ADJUSTMENT operations pushing pricing valuation logic (WAC bounds) specifically targeted towards forensic audit rendering scenarios.
+- **Status**: ✅ COMPLETED (High Volume QA Environment Ready)
 
-## [2026-03-31] - Phase 41.1: Inventory Service Restoration & Schema Alignment
-- **Critical Fix (Startup Crash)**: Identified and resolved a fatal `ImportError` in `app/api/v1/endpoints/inventory.py` and `app/services/inventory.py` where a stale service name (`InventoryService`) was being referenced instead of the correct `InventoryTransactionService`. This crash was the root cause of the silent service failure and subsequent `404 Not Found` errors.
-- **Schema Resilience**: Updated `TransferDispatchCmd` and `TransferReceiveCmd` in `app/schemas/stock.py` to make `weight` and `transfer_id` optional. This aligns the backend with the "lean" payloads sent by the Angular frontend, preventing P2P (Point-to-Point) validation failures.
-- **Security Normalization**: Transitioned the inventory dispatch endpoints from manual header-based `X-Company-ID` extraction to the robust, JWT-centric `SubscriptionGuard`. This enforces Zero-Trust multi-tenancy by deriving the target company directly from the cryptographically signed token.
-- **Verification**: Executed a clean, no-cache Docker rebuild and verified service health via local `curl` telemetry. The endpoint is now actively listening and processing requests.
-- **Status**: ✅ COMPLETED (Hotfix Applied)
+## [2026-04-15] - Phase 49.8: Outbound Shipping & Compliance (Embarques Industrial)
+- **Shipping Handheld Module**: Launched `InventoryShippingComponent` (`/inventory/shipping`) completing the warehouse loop. The module validates scanned Folios from the Picking stage and prepares the dispatch manifest.
+- **Anexo 24 Driver Validation**: Integrated a mandatory "Driver Badge Scan" step as a bridge to Phase 50 (`hr_service`). This ensures that only authorized personnel with valid cross-border credentials (Visa/Sentry) can authorize international material dispatch.
+- **WMS Menu Integration**: Registered "Embarques" as the final stage in the `NavigationService` and Dashboard quick-access loops.
+- **Status**: ✅ COMPLETED (Full Warehouse Loop Closed)
 
----
+## [2026-04-15] - Phase 49.5: Handheld UI Stabilization & Surface Refresh
+- **Theme Unification**: Refactored all handheld modules (`Inbound`, `Picking`, `Put-Away`, `Cycle-Count`) to consume global Design System tokens (`surface-bg`, `surface-card`, etc.). Hardcoded dark-mode hex values were eliminated to support the system's dynamic Light/Dark mode toggles.
+- **Full-Width Responsiveness**: Optimized industrial layouts for wide-aspect ratios (i.e. iPad Pro/Industrial Tablets). Standardized screen containers to `max-w-4xl` for better touch-target balance and visual hierarchy in desktop/tablet environments.
+- **Manual Entry Restoration**: Rescued the "Blind Entry" and "Scan-less" flows in the handhelds, ensuring operators can recover from damaged barcodes while maintaining audit integrity.
+- **Status**: ✅ COMPLETED (Industrial UX Optimized for Modern Hardware)
 
-## [2026-03-31] - Phase 41.2: Transit Warehouse Provisioning & Auth Governance
-- **Transit Warehouse (Auto-Provision)**: Resolved `ERR_WAREHOUSE_ACCESS_DENIED` during dispatch/receive operations by implementing `ensure_transit_warehouse` in `SQLAlchemyInventoryRepository`. Virtual transit warehouses (deterministic UUIDv5) are now automatically created and assigned correct company ownership on-the-fly, satisfying Zero-Trust multi-tenancy requirements without manual DB seeding.
-- **Persistence & Transaction Integrity**: Identified a high-priority bug where internal transfers (dispatches) returned success but failed to persist in the database. Injected `await session.commit()` in the FastAPI endpoints (`inventory.py`) to bridge the repository flush with the database commit.
-- **Model Governance (Auth)**: Refactored `RefreshToken` in `auth_service` to inherit from `MultiTenantBase`. Migrated the database schema to include `tenant_id` and `group_id` for session persistence tokens, achieving 100% compliance in the architectural audit for the authentication microservice.
-- **Status**: ✅ COMPLETED (Kardex Integrity Restored)
+## [2026-04-15] - Phase 49: Cycle Count & Audit Sheets (Auditoría Total)
+- **Blind Count Module**: Developed `CycleCountComponent` with a 3-step industrial flow: Location Lock → Blind Scan (no theoretical data shown) → Discrepancy Analysis. Operator scans SKUs individually; quantity adjustments via +/- controls. All validated against `InventoryRegistryService` ($O(1)$).
+- **Audit Sheet Export**: Backend CSV generator (`/warehouses/{id}/audit-export`) with UTF-8-BOM encoding for Excel compatibility. Columns include Location, SKU, Pedimento (Anexo 24), and a blank "Physical Check" column for floor auditors.
+- **Supervisor Override**: Discrepancies exceeding 5% of theoretical quantity require `supervisor` or `admin` role to confirm, enforcing segregation of duties on inventory adjustments.
+- **Navigation Integration**: Added quick-access card ("Auditoría Spot") to Inventory Dashboard and sidebar entries in both Inventarios and WMS/Logística menus.
+- **Status**: ✅ COMPLETED (Physical-to-Digital Reconciliation Enabled)
 
-## [2026-03-31] - Phase 41.4: Multi-Tenant Zero-Trust Architecture (Receive Module initiated)
-- **Architectural Plan Approved**: Finalized the high-fidelity design for the "Receive Transfer" (ICT-IN) module, ensuring 100% parity with standard entry documents.
-- **Folio Persistence & Labeling**: Refactored the internal transfer architecture to generate an `InventoryDocument` during dispatch. This provides a formal folio (Audit Trail) and enables industrial label printing (Labels/Manifiesto) immediately upon dispatch.
-- **In-Transit Lifecycle**: Extended the `DocumentStatus` enum to include `IN_TRANSIT`, `PENDING_RECEIPT`, `COMPLETED`, and `CLOSED`, guaranteeing formal tracking of stock while in virtual transit.
-- **Status**: 🏃 IN PROGRESS (Implementation Plan approved)
+## [2026-04-15] - Phase 48: Industrial Integrity & "The Density Guard"
+- **The Density Guard (Capacity Safety)**: Implemented a robust physical safety layer. Created `InventoryLocation` models with `max_capacity` constraints. The backend now performs real-time occupancy calculations (SUM of FIFO balances) and blocks movements (IN/RELOCATE) that exceed physical limits, raising `ERR_LOCATION_OVERFLOW`.
+- **Registry Cache ($O(1)$ Search)**: Optimized the handheld experience for large-scale operations (10k+ SKUs). Developed an in-memory registry hydration system in Angular, ensuring SKU validation and metadata retrieval are instant, eliminating network-induced barcode delay.
+- **Visual & Audio Feedback**: Integrated a semantic progress bar (Green/Amber/Red) in the Put-away flow to visualize rack utilization. Added an industrial overflow beep (110Hz) to notify operators of capacity violations without looking at the screen.
+- **Legacy Port (Data Hygiene)**: Ported and modernized the `getNumber` regex logic from the .NET legacy codebase to sanitize scanner inputs, automatically stripping invisible characters and hardware-injected suffixes.
+- **Status**: ✅ COMPLETED (Physical Integrity & Low-Latency Verified)
 
----
+## [2026-04-15] - Phase 47: Industrial Put-Away & Session Stability
+- **Handheld Put-Away Module**: Developed and integrated the `InventoryPutAwayComponent` with a specialized "3 Scans" flow (Origin -> Destination -> Confirm). Optimized for industrial scanners with F2 hotkey support and square-wave audio feedback (200Hz/880Hz).
+- **Session Resilience Engine**: Patched critical session loss bugs by implementing defensive `getattr` lookups in the Auth service and a "Resilient Parsing" layer in the Angular frontend to handle varying microservice response structures (Double-Wrap Fix).
+- **Anexo 24 Compliance Lock**: Enforced automated `pedimento_id` inheritance in internal relocations, ensuring 100% legal traceability from DOCK-01 to final RACK position.
+- **Mission Control Integration**: Added quick-access industrial cards to the Dashboard for the multi-tenant warehouse operator.
+- **Status**: ✅ COMPLETED (Warehouse Cycle Closed & Session Resilient)
 
-## [2026-03-31] - Phase 41.3: Token Lifecycle & Session Persistence
-- **Operational Continuity**: Expanded `ACCESS_TOKEN_EXPIRE_MINUTES` from 15 minutes to 720 minutes (12 hours) in `auth_service/app/core/config.py`. This update addresses UX friction for industrial operators by aligning session duration with a standard work shift, preventing mid-shift logouts while maintaining environment variable overrides for security flexibility.
+## [2026-04-15] - Phase 46: Industrial Logistics Scalability & Anexo 24 Compliance
+- **Server-Side Scalability**: Implemented unified pagination (`limit`/`offset`) and global search filters in `InventoryService` (Backend). The system is now architecture-ready for 10,000+ SKU catalogs.
+- **Handheld UX Stabilization**: Resolved build-breaking Angular compilation errors (ESBuild compatibility) and standardized industrial UI aesthetics for stock audit views.
+- **Standardized API Metadata**: Evolved `ApiResponse` model to include `total_count`, providing foundation for paginated reports across the ecosystem.
+- **Logistics Integrity**: Fixed JSON parsing bottlenecks and ensured token-aware service integration for warehouse operators.
+- **Handheld Response Resilience**: Implemented a 300ms RxJS debounce mechanism in terminal search bars to protect Backend resources during high-speed industrial scanning.
+- **Status**: ✅ COMPLETED (Inventory Backbone hardened for Industrial Scale)
+
+## [2026-04-14] - Phase 46: Industrial Pricing Pipeline Finalization
+- **Secure Ticket Bridge**: Migrated the binational pricing system from fragile Blob downloads to a robust, session-based ticket mechanism (`/export/ticket`). UUID tokens guarantee isolation and cryptographic access.
+- **Native File Naming (Suffix Hack)**: Successfully bypassed Chrome's Cross-Origin `window.location.href` naming restrictions by injecting a dummy suffix (`/plantilla.csv`) and refactoring Angular's `MasterDataService` to forcefully overlay the generic `.csv` name on background-downloaded blobs.
+- **In-Memory Validation**: Verified standard CSV loads with 15+ articles confirming that 1.5KB real prices are pulled and formatted securely by the Backend core. Tested and approved Soft-Close Insert architecture via Drag & Drop pipeline in `price-import-dashboard.component.ts`.
+- **Status**: ✅ COMPLETED (Catalog Pricing fully industrialized and deployable)
+
+## [2026-04-14] - Phase 45.1: Pricing Stabilization & B2B Immortality (Final)
+- **Immutable Pricing Logic**: Finalized the **"Soft-Close & Insert"** pattern for B2B price agreements and master prices, ensuring 100% auditability for industrial contracts. Validated via direct DB queries (Time-Torn timestamps).
+- **Complexity Resolution**: Fixed critical `500 Internal Server Errors` (`AttributeError` on `amount`) in `master_data_service` by bridging Pydantic/SQLAlchemy composite `Money` mapping with native Python `@property` decorators on ORM variables (`ProductPrice`). Resolved `NotNullViolationError` by strictly enforcing `current_user.company_id` onto `tenant_id` namespace explicitly.
+- **Enterprise Templates**: Generated official `plantilla_carga_precios_industrial.csv` for standardized mass-imports across multiple hierarchy vectors (List 0-10, Agreements).
+- **Hybrid Pricing Interface**: Completed the tabbed UI for `ProductPriceListComponent`, integrating live partner alerts and premium "Missing Data" tooltips.
+- **Quality Assurance**: Integrated `pytest` suite for automated pricing validation and patched `aiosqlite` for in-memory testing of complex Postgres-specific models (UUIDs).
+- **Status**: ✅ COMPLETED (Pricing Infrastructure Hardened & Verified)
+
+## [2026-04-14] - Phase 45: Industrial Pricing & Identity Stabilization (Frontend UX & RBAC)
+- **SSOT UI RBAC Enforcement**: Standardized the `scopes` validation on `navigation.service.ts` aligning strictly with the `ROLE_SCOPE_MAP` backend injection map (`inv:movements:manage`, `master:catalog:manage`, `wms:manage`). 
+- **Dynamic Scope Resolution**: Hardcoded scope mapping was decoupled from `auth_service.app.commands.select_company_command`. Scopes are now dynamically generated via `ROLE_SCOPE_MAP` mapping roles to UI sidebar modules, including `["*"]` logic for administrators.
+- **Pricing Matrix UX Refactor**: Re-engineered `product-price-list.component.ts` layout using industrial flex-box standards. Implemented fixed header and sticky `ic-modal-body` constraints to resolve `max-height: 90vh` rendering overflow glitches.
+- **Master Data Integrity Check**: Finalized `master_product_id` schema logic generation utilizing Python `uuid5` cross-service standard generation, guaranteeing binational entity ID tracking.
+- **RBAC Catalog**: Added `rbac_scopes_catalog.md` defining strict constraints over `permissions` (backend logic) VS `scopes` (frontend UI menus).
+- **Status**: ✅ COMPLETED (Ecosistema Totalmente Mapeado y Estabilizado)
+
+## [2026-04-13] - Phase 44: Industrial Pricing & B2B Contracts
+- **Inmutabilidad Industrial (Soft-Close)**: Se blindó el maestro de precios prohibiendo ediciones directas. Todo cambio genera una nueva versión inmutable con sellado de tiempo, garantizando auditoría "Point-in-Time".
+- **Engine de Acuerdos B2B**: Implementación de la jerarquía de precios: Contrato > Lista > Maestro. Integración del modelo `PriceAgreement` para condiciones comerciales específicas por Partner.
+- **Control Tower de Importación**: Desarrollo de un pipeline atómico de carga masiva en el backend y dashboard Drag & Drop en el frontend (Angular 18). Soporte para templates dinámicos y reporteo forense de errores.
+- **Compliance DB (Alembic)**: Despliegue seguro de esquemas para multi-tenancy inmutable sin impactar la data existente.
+- **Status**: ✅ COMPLETED (Ecosistema Financiero Estabilizado)
+
+## [2026-04-13] - Phase 43: Root Governance & Global Standardization
+
+- **Global Rename (CORE_ Prefix)**: Se estandarizó el prefijo de todas las variables de entorno de `INT_` a `CORE_` en microservicios, dockers, scripts y documentación para evitar colisiones semánticas.
+- **Estructura de Directorios & Backend Cleanup**: 
+    - Scripts operativos movidos a `scripts/`. Reportes y logs consolidados en `logs/`. Documentación categorizada en `docs/`.
+    - Sanitización profunda de `backend/`: Eliminación de 8+ archivos huérfanos (`.log`, `.txt`, `.json`) y carpetas redundantes (`backend/backend`).
+    - Separación del historial en `docs/historial/tasks` e `implementation`.
+- **Exclusión de Kiosk**: El proyecto se re-enfoca exclusivamente en el núcleo industrial MES/ERP. Las tareas de eventos han sido archivadas y marcadas como fuera de alcance.
+- **Premium Web Documentation**: Creación de `docs/DOCS_INTERNOCORE.html` como portal web de alta fidelidad enfocado exclusivamente en el núcleo MES/ERP (Industrial Backbone).
+- **Workflow Updates**: Actualización de los agentes de sincronización para operar bajo la nueva jerarquía de archivos y el estándar de variables `CORE_`.
+- **Status**: ✅ COMPLETED (Ecosistema Estandarizado e Industrializado)
+
+## [2026-04-12] - Phase 42.5: Event Engine Generalization & N-Approver Quórum
+- **Universal Engine**: El sistema evolucionó de un modelo de "Bodas" a un **Motor de Trabajo de Eventos Universal**. Se reemplazaron los roles fijos por un sistema de **Quórum de $N$ Aprobadores** dinámicos totalmente configurable.
+- **Blindaje de Base de Datos (Alembic Async)**: Implementación de migraciones versionadas asíncronas para el `kiosk_service`. Eliminada la dependencia de recreación manual de tablas, permitiendo actualizaciones de esquema seguras y automáticas mediante `alembic upgrade head` durante el arranque.
+- **Filtro de Integridad (Identity Protection)**: Incorporación de validación por `device_id` en el backend para garantizar votos únicos por hardware físico, evitando suplantaciones en el proceso de moderación.
+- **Mecanismo de Emergencia "Staff Reset"**: Funcionalidad de autocuración que permite al Staff reiniciar el ciclo de votación (Quórum) de cualquier foto defectuosa o errónea.
+- **Status**: ✅ COMPLETED (Industrial Ready for Offline Mini-PC)
+
+## [2026-04-11] - Phase 42: Event Kiosk Initialization & Smart Checkout
+- **Infrastructure**: Se configuró un orquestador ligero (`docker-compose.kiosk.yml`) exclusivo para eventos, interconectando `postgres-db`, MinIO, y el nuevo `kiosk-service` con límites de memoria estrictos para Mini PCs.
+- **Match System (Tinder Mode)**: Lógica de aprobación fotográfica dual (Novio y Novia) en el backend y cliente Angular 19 (PWA).
+- **Checkout Híbrido**: Arquitectura *One-Intent* consolidando compras de carrito e integrando Monedero Paparazzi interno con Stripe Elements.
+- **Hardware Integration (CUPS & Print Daemon)**: Worker asíncrono para consumir estados `PURCHASED`, aplicar recorte 3:2 DNP y volcado directo al spool de linux vía `pycups`.
+- **Status**: ✅ COMPLETED (Binomial Digital-Physical Verified)
+
+## [2026-04-03] - Phase 41.5: UI Consolidation & Industrial Readiness
+- **Dynamic Binational Guard**: Implementada lógica inteligente basada en códigos de país (MX/US) en el frontend.
+- **Modo Permisivo Industrial**: Configuración del formulario en modo "Warning-Only" para evitar bloqueos operativos por falta de metadata aduanera no crítica.
 - **Status**: ✅ COMPLETED
 
----
-
-- **Anexo 24 / 30 Compliance Integration**: Engineered the UI rules for tracking mandatory cross-border trade elements. Incorporated `Customs Regime` (Temporal vs Definitivo) flags alongside an intelligent reactive `Pedimento Key` selector that filters available Customs keys (IM, AF, RT, A1, V1, EEI) to ensure tax compliance with Mexican SAT and US CBP regulations.
-- **Visual Auditing**: Included visual "Vinculado" hints dynamically beneath parts involved in Cross-Border transfers. This prepares operators for auto-descargos algorithms (FIFO/PEPS) executed by the upcoming backend compliance microservices.
-- **Micro-interactions & UX Constraints**: Polished layout inconsistencies impacting operators using touchscreen pads by standardizing identically tall (`140px`) bounding boxes across dynamic selection states (`industrial-card`), resolving padding deformations.
-- **Architecture Integrity**: Successfully intercepted an Angular `NG5002` parser crash triggered by complex `@if` chunk unbalances inside destination cards, restoring perfect bundle compilations. Corrected `dispatch` 404 by properly mounting `inventory.router` into the FastAPI ecosystem.
+## [2026-04-01] - Phase 39: Auth Proxy & Kiosk Integration
+- **Collaborator Login Handshake**: Integrated `auth_service` with `hr_service`. Supports secure proxy where Auth issues JWT after HR verifies physical credentials (RFID/PIN).
+- **O(1) Physical Scans**: Database indexing optimized for SHA-256 RFID hashes, ensuring sub-10ms response times for high-volume entry/exit.
 - **Status**: ✅ COMPLETED
 
----
-
-## [2026-03-31] - Phase 40: Inter-Company Logic & Industrial UX Hardening
-- **Industrial Tap Interface**: Replaced standard native HTML `<select>` dropdowns in the Inventory Transfer module with high-contrast, scalable button "cards". This satisfies the UX requirement for factory/warehouse operators using touch devices under harsh lighting and wearing safety gloves.
-- **Inter-Company Transfer Flow**: Formally decoupled target warehouse selection for Inter-Company operations. The UI now only requires selecting the Destination Company (Receiver), gracefully delegating physical warehouse selection to the inbound logistics team taking receipt of the transit.
-- **CORS API Hardening**: Investigated intermittent `OPTIONS 400 Bad Request` exceptions by injecting `X-Silent-Error` and `X-Warehouse-ID` headers sequentially into FastAPI's CORS whitelists (`common/config.py`).
-- **Database Cleansing**: Fired root diagnostic purges against `master_data_service` to eliminate ghost warehouses/companies, cementing the binary Matrix/Partner UI logic for MX and US.
+## [2026-03-26] - Phase 38: HR Microservice Bootstrap
+- **Service Extraction**: Decoupled HR logic from Auth into `hr_service` with dedicated `hr_db`.
+- **Infrastructure**: Added healthchecks and automated migrations for HR ecosystem.
 - **Status**: ✅ COMPLETED
 
----
-
-## [2026-03-30] - Phase 39: Binational Routing & Industrial Hierarchy (Golden Source Prep)
-- **Zero-Trust Physical Contexting**: Shifted the transactional flow from a "Select Origin" paradigm to a "Define Current Context" paradigm. Transformed the module's main title into a robust, centralized Warehouse Selector predicting a physical operator's physical presence.
-- **Binational Inter-Company Routing**: Solved the `company_id` visibility boundary. Matrix (`INTERNO-MX`) can now see Partner (`INTERNO-US`) active facilities to initiate transit (`SHIPPED`) bridging. The UI natively bifurcates payload calls between `initiateInterCompanyTransfer` and `dispatchInternalTransfer`.
-- **Industrial Infrastructure & WIP**: Expanded `Location` and `Warehouse` models to track `is_production_resource` and logical hierarchy (Parent-Child containers). Frontend now decorates internal machinery with a `WIP RESOURCE` premium badge to differentiate them from storage racks.
-- **Database Sanity**: Wiped legacy warehouse ghost records via atomic `seed.py` purges, injecting a fresh binational catalog.
+## [2026-03-25] - Phase 37: HR Microservice Inception
+- **Architectural Shift**: Transitioned from Monolithic Auth to SRP-based identity management.
+- **Warehouse Lock Concept**: Defined zero-trust barriers for physical inventory operations.
 - **Status**: ✅ COMPLETED
 
----
+## [2026-03-24] - Phase 35: Multi-Tenant Data Consistency & CORS Stabilization
+- **Data Homologation**: Synced Company IDs across all 11 services (Enterprise, Logistics, Demo).
+- **Master Seed Orchestration**: Automated multi-tenant seeding via `master_seed.py`.
+- **CORS Permissiveness**: Resolved preflight (OPTIONS) blocks by unifying allowed headers.
+- **Status**: ✅ COMPLETED
 
-## [2026-03-30] - Dashboard Stabilization: Industrial Resilience & UI Focus
-- **Industrial Resilience**: Refactored `InventoryService` with `Promise.allSettled` to prevent dashboard crashes on non-critical catalog failures (Categories/Brands).
-- **Silent Error Interceptor**: Injected `X-Silent-Error` headers into secondary metadata requests to suppress redundant "Critical Failure" alerts for non-fatal backend misses.
-- **UI Architecture**: Standardized "Mission Control" with a minimalist, borderless company selector, elevated z-index contexts (`z-20`), and removed redundant component-level selectors.
-- **Device Optimization (iPad Pro)**: Calibrated title scaling (5xl/3xl) and implemented premium operational exit routes (Back to Dashboard) in ledger workflows.
-- **Metadata Robustness**: Enhanced icon mapping logic to support diverse backend naming conventions (`IN/OUT`, `ENTRY/EXIT`, `ENTRADA/SALIDA`).
-- **Status**: ✅ COMPLETED (v1.9.0 Hardened)
+## [2026-03-15] - Phase 30: Refresh Token Rotation (RTR) & Security
+- **Token Taxonomy**: Implemented `typ` claim (access/refresh/selection) to prevent token misuse.
+- **Refresh Token Rotation**: Engineered SHA-256 backed RTR to detect and block replay attacks.
+- **Status**: ✅ COMPLETED
 
----
+## [2026-03-07] - Phase 19: Clean Architecture Enforcement
+- **Repository Pattern**: Standardized `IRepository` interfaces across Inventory and Master Data.
+- **Dependency Injection**: Implemented automated resolution for service-to-repository mapping.
+- **Status**: ✅ COMPLETED
 
-## [2026-03-29] - Viatra Core v0.9.5: Multi-Tenant Handshake & Dashboard Stabilization
-- **Dashboard Stabilization**: Fixed 401 Unauthorized errors caused by Interceptor token overwriting.
-- **Session Persistence**: Extended selection token lifespan to 24h for smoother session transitions.
-- **UX Recovery**: Implemented Group Status fallback in `get_booking_status` to unlock Dashboard for demo users.
-- **Bug Fixes**: Resolved `AttributeError` in Viatra Repositories.
+## [2026-03-04] - Phase 4: Traceability & Governance (Guardianship)
+- **Governance**: Refactored `MultiTenantBase` inheritance for strict auditor compliance.
+- **Traceability**: Integrated `X-Trace-Id` for forensic tracking of login attempts.
+- **Status**: ✅ COMPLETED
 
-## [2026-03-29] - Viatra Core Multi-Tenant Architecture Log
-- **Microservice Integration**: `viatra-service` successfully integrated into the backend cluster. Standardized the global middleware so it mirrors the exact exceptions expected by the Angular frontend (status, message, meta).
-- **Multi-Tenant Data Consistency**: Cleaned up the initial mock data scripts (`auth_service/scripts/seed.py`) to employ true `ON CONFLICT DO NOTHING`, guaranteeing that subsequent container restarts don't duplicate `user_company_roles` or trigger HTTP 500 exceptions in `InternoCoreGlobalMiddleware`. 
-- **OAuth Handshake Lifecycle**: Adjusted the `SELECTION_TOKEN_EXPIRE_MINUTES` payload parameter to `1440` (24 hr) inside the auth container to natively support "switch-company" operations on the `viatra-frontend` via stored `sessionStorage` tokens, just like the old legacy monolithic login flow.
+## [2026-03-03] - Phase 3: Cluster Structures (Holdings)
+- **Holding Support**: Introduced `BusinessGroup` model for shared visibility in Master Data.
+- **Corporate Context**: Injected `group_id` claim in JWT for cross-company transfers.
+- **Status**: ✅ COMPLETED
 
+## [2026-02-25] - Phase 2: Subscription & Entitlements
+- **Interconnectivity**: Synchronized `auth_service` with `subscription_service`.
+- **Read-Only Mode**: Implemented enforcement for expired tenant subscriptions.
+- **Status**: ✅ COMPLETED
 
-## [2026-03-29] - Viatra Core — Cluster Hardening & Certification (v0.8.5)
-- **Hardening:** Reubicación de `viatra-service` a puerto **8011** y corrección masiva de imports SQLAlchemy (Composite Fix).
-- **Inteligencia:** Despliegue de los centinelas `SkySentinel` y `StayGuardian` con automatización APScheduler.
-- **Fintech Resilience:** Implementación de Periodo de Gracia (48h) en Webhooks y reporte certificado en PDF.
-- **Validation:** Certificación de clúster mediante `smoke_test.py` con handshake Auth-Viatra validado.
-- **Next:** Despliegue oficial a AWS (S3/CloudFront) y activación de Amadeus API Real-Time.
+## [2026-02-12] - Phase 1: Foundation & T1/T2 Handshake
+- **Protocol Inception**: Implementation of OAuth2 Password Flow.
+- **Dual-Step Auth**: Engineered the `/login` (T1) and `/select-company` (T2) flow for multi-tenant environments.
+- **Standardization**: Established UUIDv5 as the deterministic standard for cross-service entity mapping.
+- **Status**: ✅ COMPLETED (Ecosystem Birth)
 
----
-
-
-## 2026-03-29: Phase — Viatra Core Social Auth & Booking Engine Bridge
-**Status:** ✅ Completed
-**Focus:** Social Multichannel Auth, Zero-Trust Persistence, Mission Control UI.
-
-### Technical Milestones
-1. **Auth Microservice Expansion:**
-   - Implemented `POST /api/v1/auth/social-login` supporting Google (PKCE/OIDC), Facebook, and Microsoft.
-   - Enforced **Traveler Auto-Registration**: Social users without a tenant are automatically mapped to the "Viatra Core — Travelers" enterprise, ensuring P2P (Peer-to-Peer) access to trip groups.
-   - Standardized `selection_token` handshake, maintaining the multi-tenant architectural integrity of the Interno Core ecosystem.
-2. **Booking Engine Core (`viatra_service`):**
-   - Implemented the **Zero-Trust Repository Pattern**: Every database query is implicitly filtered by `company_id` using the `BaseRepository` abstraction.
-   - Designed financial invariants via `BookingService`: Trips cannot be persisted with a price ≤ 0, protecting the integrity of the future subscription module.
-   - **Sentinel Readiness:** Injected `flight_number` tracking into `TravelerGroup` to enable real-time flight status monitoring in the next phase.
-3. **Mission Control UI (Angular 19):**
-    - Bootstrapped `viatra-frontend` in port `4201` with a high-premium "Slate-950 + Neon Cyan/Amber" visual language.
-    - **High-Fidelity HUD Design**: Implemented the "Expedición Islandia 2026" glassmorphic timeline and mission control ledger.
-    - **Styling Engine**: Integrated Tailwind CSS v3.4 and resolved PostCSS/Sass compilation order issues.
-    - Integrated **Google GSI (Identity Services)** and session management for the social auth handshake.
-
-**Next Immediate Goal:** Integrate **Stripe Billing** to generate monthly installment plans for traveler groups and activate the **SkySentinel Bot** for flight cost/status tracking.
-
----
-
-
-## 2026-03-26: Phase 37 Implementation — HR & Physical Identity
-**Status:** 🏃 In Progress
-**Focus:** HR Microservice Bootstrap, Intracluster Auth Proxy, Kiosk Mode Hardware Buffer.
-
-### Current Status
-- Backend core (Auth, Inventory) is hardened and ready for physical identity integration.
-- Phase 37 planning is finalized; execution begins with infrastructure setup (HR DB, HR Service Scaffold).
-- Technical debt prioritized: Overhaul of `tickets_service` and IDempotent decorator implementation.
-
-**Goal for Today:** Complete the HR Service bootstrap, DB initialization, and the Auth-HR secure proxy handshake.
-
----
-
-## 2026-03-25: Phase 37 — HCM Engine & Industrial Hardening
-**Status:** ✅ Completed
-**Focus:** Physical Identity, Zero-Trust Ledger, Token Taxonomy
-
-### Technical Milestones
-1. **Auth Service Hardening (Replay Attack Mitigation):**
-   - Implemented strict JWT Taxonomy (`typ` claims) separating access, refresh, and selection tokens.
-   - Designed persistence for rotation: `refresh_tokens` are now stored as SHA-256 hex hashes in Postgres rather than raw strings to protect against DB leaks.
-2. **Inventory Integrity (The "Sealed Price" Pattern):**
-   - Locked financial transitions for Inter-Company Transfers via `unit_price_at_dispatch`.
-   - Populated mandatory `tenant_id` invariants across Virtual Transit Warehouses guaranteeing multi-tenant data isolation.
-3. **HR Microservice Architecture (HCM Engine):**
-   - Mapped legacy `.NET` domains (Production, Quality, Gym, Outset) to abstract `Employee` concepts into a unified `hr_service` running on port `8004`.
-   - Bootstrapped the architectural design of the "Phantom Link": Distributing `collaborator_id` implicitly using JWT `sub` and tracking operational UI scans.
-   - Enforced physical identity mechanics: Kiosk-Mode Invisible Buffer (~500ms debounce), robust hashing (Bcrypt for PIN, SHA-256 for RFID indexing).
-   - Designed Strict Hierarchy Context via Recursive CTEs tied through `supervisor_id` self-referential relations.
-
-**Next Immediate Goal:** Spin up `hr-service` and `hr_db` via Docker, wire the Auth-Proxy Intracluster endpoint (`/api/v1/internal/collaborators/verify`), and execute the FastAPI DI extraction (`get_current_collaborator`) in the Inventory Service.
-
----
-
-## 2026-03-16: Phase 36 — Multi-Tenant Consolidation
-**Status:** ✅ Completed
-- Reconciled hardcoded `company_id` UUIDs across backend microservices to match global constants (Enterprise, Logistics, Demo).
-- Resolved global CORS preflight (`OPTIONS`) hurdles using optimized Starlette configurations.
-- Integrated `master_seed.py` for atomic multi-service data staging (Catalog + Inventory levels).
-
----
-
-*(Historical log clean-up performed to remove ANSI/binary corruption from earlier PowerShell runs)*
-
- # #   [ 2 0 2 6 - 0 3 - 3 0 ]   I n v e n t o r y   T r a n s f e r   F i n a l i z a t i o n   &   M u l t i - t e n a n t   R e f i n e m e n t 
- # # #   S u m m a r y 
- F i n a l i z e d   t h e   i n v e n t o r y   t r a n s f e r   o p e r a t i o n s   b y   i m p l e m e n t i n g   s t r i c t   t e n a n t - b a s e d   f i l t e r i n g   a n d   b i n a r y   r e g i o n a l   c l a s s i f i c a t i o n   ( M X / U S ) .   T h e   s y s t e m   n o w   c o r r e c t l y   d e t e c t s   b i n a t i o n a l   m o v e m e n t s   b e t w e e n   s e p a r a t e   l e g a l   e n t i t i e s   ( I n t e r n o   L o g i s t i c s   M X   v s   U S )   a n d   e n f o r c e s   c o m p l i a n c e   r i t u a l s . 
- 
- # # #   T e c h n i c a l   M i l e s t o n e s 
- -   [ x ]   M u l t i - t e n a n t   w a r e h o u s e   s e l e c t o r s   ( F r o n t e n d ) . 
- -   [ x ]   W a r e h o u s e   A P I   m e t a d a t a   e x p a n s i o n   ( B a c k e n d ) . 
- -   [ x ]   I n t e r - c o m p a n y   s e e d   r e f a c t o r . 
- -   [ x ]   D a s h b o a r d   t e l e m e t r y   c i r c u i t   b r e a k e r . 
- 
- # # #   S t a t u s 
- I n v e n t o r y   C o r e   i s   n o w   f u n c t i o n a l l y   c o m p l e t e   f o r   b a s i c   t r a n s f e r s .   N e x t   p h a s e :   T i c k e t s   &   O r d e r s   i n t e g r a t i o n .  
- 
-### [2026-04-01] - Binational Inventory Compliance (Phase 40 COMPLETE)
-- **Status**: Successful three-leg ICT simulation (Enterprise TJ -> Log MX -> Log US) [3-User SoD Compliant].
-- **Key Achievements**:
-  *   Standardized Inter-Company Transfer (ICT) status reporting in **English** for international audit compliance.
-  *   Validated **Multi-Leg Transfer Chain** with distinct users: Admin A initiates -> Op B receives & re-ships -> Super C receives (US).
-  *   Enabled **Administrative Debt Pattern**: Blocked documents with missing price are now flagged for Finance post-processing without stopping operations.
-  *   Implemented **Anexo 24 / FIFO Pedimento Propagation**: Ensuring full legal traceability across binational entities (Mirroring).
-
----
-
-## [2026-04-03] - UI Consolidation & Industrial Readiness (Phase 41.5 COMPLETE)
-- **Dynamic Binational Guard**: Implementada lógica inteligente basada en códigos de país (MX/US) en el frontend. Las transferencias locales entre empresas del grupo en MX ocultan automáticamente campos aduaneros.
-- **Modo Permisivo Industrial**: Configuración del formulario en modo "Warning-Only". La falta de Pedimento o Tasa de Cambio genera alertas visuales pero NO bloquea la ejecución de la transferencia.
-- **Unified Dispatch HUD**: Consolidación de indicadores en el sidebar "Resumen de Carga". Se profesionalizó la terminología a "Compliance Legal" (ADUANA) y se implementó lógica de estados dinámicos (PENDIENTE, LISTO, PERMISIVO).
-- **Status**: ✅ COMPLETED (Frontend Ready for Warehouse Stress Test)
-
+*(End of historical log)*

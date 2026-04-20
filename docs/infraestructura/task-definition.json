@@ -1,0 +1,39 @@
+{
+  "family": "interno-auth-service-task",
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam::584094645491:role/InternoCore-ECS-ExecutionRole",
+  "taskRoleArn": "arn:aws:iam::584094645491:role/InternoCore-Auth-TaskRole",
+  "containerDefinitions": [
+    {
+      "name": "auth-service",
+      "image": "584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/auth-service:latest",
+      "cpu": 256,
+      "memory": 512,
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "ENV_MODE", "value": "production" },
+        { "name": "CORE_ENV_MODE", "value": "aws" },
+        { "name": "AWS_REGION", "value": "us-east-2" },
+        { "name": "AWS_SECRET_ID", "value": "interno-core/auth-service/prod" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/interno-core-auth",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512"
+}

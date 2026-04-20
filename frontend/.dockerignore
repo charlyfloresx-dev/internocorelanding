@@ -1,9 +1,9 @@
 node_modules
-.angular
 dist
+.angular
 .git
-.gitignore
-*.md
-Dockerfile
-.dockerignore
-npm-debug.log
+e2e
+playwright-report
+test-results
+*.log
+.vscode

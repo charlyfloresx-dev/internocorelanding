@@ -4,56 +4,47 @@
 
 Esta sección documenta los componentes de infraestructura y las directrices de hardware que forman la base del ecosistema InternoCore, garantizando la observabilidad, el rendimiento y la viabilidad tanto en despliegues On-Premise como en la nube.
 
-*   **Trazabilidad y Auditoría (Cloud Logging):** Se empleará **Cloud Logging** de forma nativa para la ingesta y análisis de logs. Este servicio es fundamental para la auditoría de eventos de seguridad, el monitoreo del comportamiento del sistema y el cumplimiento de normativas. Todos los microservicios generarán logs estructurados que serán centralizados en esta plataforma.
+*   **Trazabilidad y Auditoría (Standardized Logging):** A partir de la Fase 43, todo log generado por el sistema se centraliza en el directorio `/logs`. Se emplean logs estructurados (JSON) para facilitar la ingesta en servicios como **AWS CloudWatch** o herramientas de análisis local. Este sistema garantiza la trazabilidad forense inmutable de todas las mutaciones mediante herencia de `AuditBase`.
 
-*   **Optimización Conceptual de Datos (Silk Platform):** **Silk Platform** se establece como una directriz conceptual para la optimización del rendimiento en la capa de persistencia. Aunque no se realizará una integración directa en esta fase, sus principios de virtualización y desacoplamiento de la capa de datos inspirarán las decisiones de arquitectura para maximizar la eficiencia de I/O.
+*   **Persistencia y Rendimiento (PostgreSQL Async):** InternoCore ha estandarizado su persistencia en **PostgreSQL 15+** utilizando controladores asíncronos (`asyncpg`). El puerto estándar de operación en contenedores es el **5433**, permitiendo el aislamiento de instancias locales de base de datos.
 
-*   **Hardware Objetivo (On-Premise):** Para garantizar un rendimiento fluido en despliegues locales, el servidor dedicado objetivo deberá contar con un mínimo de **12 GB de RAM** y una CPU de 4 núcleos. Esta configuración está diseñada para soportar la ejecución concurrente de los microservicios contenerizados y la base de datos MySQL.
+*   **Hardware Objetivo (On-Premise Industrial):** 
+    - **Servidor ERP:** Mínimo **12 GB de RAM** y CPU de 4 núcleos.
+    - **Modo Kiosco (Edge):** Mini-PCs industriales (ej. Intel NUC) con **8-16 GB de RAM** y almacenamiento SSD de alta velocidad para la gestión de caché de imágenes en MinIO.
 
 ---
 
 ## 2. 📋 Checklist de Configuración de Entorno (`.env`)
 
-Para mantener la flexibilidad entre un entorno de desarrollo local (On-Premise) y uno de producción en la nube, se utilizarán archivos de entorno `.env` específicos. A continuación, se detalla la estructura requerida.
+El sistema utiliza una arquitectura **Zero Root Pollution**. Las configuraciones globales residen en el archivo `.env` en la raíz, mientras que configuraciones específicas pueden inyectarse por microservicio.
 
-### `.env.local` (Para despliegue On-Premise con MySQL)
-
-```env
-# Configuración del motor de base de datos
-DB_ENGINE=mysql
-DB_DIALECT=mysql+pymysql
-
-# Credenciales de conexión a MySQL
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=internocore_user
-DB_PASSWORD=tu_password_seguro_local
-DB_NAME=internocore_db
-
-# Cadena de conexión para SQLAlchemy
-DATABASE_URL="${DB_DIALECT}://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-
-# Clave secreta para JWT
-SECRET_KEY=tu_clave_secreta_para_desarrollo
-```
-
-### `.env.cloud` (Para despliegue en Cloud con PostgreSQL)
+### `.env.standard` (Configuración PostgreSQL Async)
 
 ```env
 # Configuración del motor de base de datos
 DB_ENGINE=postgresql
-DB_DIALECT=postgresql+psycopg2
+DB_DIALECT=postgresql+asyncpg
 
-# Credenciales de conexión a PostgreSQL (ej. AWS RDS)
-DB_HOST=tu_endpoint_de_rds.amazonaws.com
-DB_PORT=5432
-DB_USER=internocore_admin
-DB_PASSWORD=tu_password_seguro_de_produccion
-DB_NAME=internocore_prod_db
+# Credenciales de conexión (Puerto 5433 por defecto en Docker)
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=user
+DB_PASSWORD=password
+DB_NAME=dbname
 
-# Cadena de conexión para SQLAlchemy
-DATABASE_URL="${DB_DIALECT}://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+# Cadena de conexión para SQLAlchemy Async
+CORE_DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-# Clave secreta para JWT (Debe cargarse desde un gestor de secretos)
-SECRET_KEY=tu_clave_secreta_obtenida_de_secrets_manager
+# Clave secreta para JWT
+CORE_SECRET_KEY=tu_clave_secreta_industrial_12345
 ```
+
+---
+
+## 3. 🛡️ Gobernanza de Desarrollo (Phase 43)
+
+Todo desarrollo dentro de la tesis de InternoCore debe cumplir con los siguientes pilares arquitectónicos:
+
+1.  **Zero Trust & Multi-tenancy:** Uso mandatorio de `company_id` capturado del JWT. No se permite la visualización de datos sin el header `X-Company-ID` válido.
+2.  **Clean Architecture:** Separación estricta de lógica de negocio (Servicios) y persistencia (Repositorios).
+3.  **Universal Engine:** Para el ecosistema de eventos, se utiliza el motor de quórum de $N$ aprobadores, permitiendo una escalabilidad lógica sin precedentes en el manejo de contenido.

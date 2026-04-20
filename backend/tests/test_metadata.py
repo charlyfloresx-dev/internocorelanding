@@ -8,7 +8,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 sys.path.insert(0, os.path.join(current_dir, "mes_service"))
 
-from common.models.base_models import Base
+from common.infrastructure.models.base import Base
 import app.models 
 
 print("Tabelas registradas em Base.metadata:", list(Base.metadata.tables.keys()))

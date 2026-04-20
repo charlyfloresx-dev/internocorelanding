@@ -2,6 +2,7 @@ import uuid
 from typing import List, Optional, Any
 from app.domain.repositories.master_data_repository import IMasterDataRepository
 from app.schemas.uom import UOMCreate
+from common.exceptions import ConflictException
 
 
 class UOMService:

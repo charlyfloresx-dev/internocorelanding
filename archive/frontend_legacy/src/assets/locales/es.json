@@ -1,0 +1,47 @@
+{
+    "menu": {
+        "dashboard": "Panel de Control",
+        "inventory": "Inventarios",
+        "inventory_dashboard": "Dashboard de Inventarios",
+        "inventory_central": "Inventario Central",
+        "inventory_documents": "Documentos",
+        "inventory_reports": "Reportes",
+        "production": "Producción",
+        "production_monitor": "Monitor de Recursos",
+        "production_lines": "Líneas",
+        "quality": "Calidad",
+        "quality_inspections": "Inspecciones",
+        "quality_alerts": "Alertas",
+        "settings": "Configuración",
+        "settings_users": "Usuarios",
+        "settings_system": "Sistema"
+    },
+    "auth": {
+        "login_title": "Acceso Industrial",
+        "login_subtitle": "Interno Core - Gestión de Operaciones",
+        "email_label": "Correo Electrónico",
+        "password_label": "Contraseña",
+        "login_button": "Iniciar Sesión",
+        "tenant_selection_title": "Selección de Contexto",
+        "tenant_selection_subtitle": "Seleccione la empresa o planta para iniciar operaciones",
+        "active_context": "Contexto Activo",
+        "select_module": "Seleccione Módulo",
+        "change_company": "Cambiar Empresa",
+        "session_active": "Sesión Activa",
+        "filter_companies": "Filtrar empresas..."
+    },
+    "inventory": {
+        "dashboard": {
+            "title": "Centro de Control de Inventarios",
+            "subtitle": "Monitoreo en tiempo real de almacenes y nodos de tránsito.",
+            "warehouses": "Nodos de Almacén",
+            "ledger": "Libro Mayor Reciente"
+        }
+    },
+    "common": {
+        "refresh": "Actualizar Datos",
+        "join_code": "JOIN WITH CODE",
+        "create_company": "CREATE NEW COMPANY",
+        "logout_back": "CERRAR SESIÓN Y VOLVER"
+    }
+}

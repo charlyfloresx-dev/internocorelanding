@@ -154,9 +154,9 @@ Configuradas vía `common.config.InternoSettings`:
 
 | Variable | Default |
 |---|---|
-| `INT_DATABASE_URL` | `postgresql+asyncpg://user:password@localhost/dbname` |
-| `INT_SECRET_KEY` | `local-dev-secret-key-InternoCore` |
-| `INT_ALGORITHM` | `HS256` |
+| `CORE_DATABASE_URL` | `postgresql+asyncpg://user:password@localhost/dbname` |
+| `CORE_SECRET_KEY` | `local-dev-secret-key-InternoCore` |
+| `CORE_ALGORITHM` | `HS256` |
 
 ## Dependencias
 

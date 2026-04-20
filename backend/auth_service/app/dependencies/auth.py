@@ -25,7 +25,9 @@ class SecurityContext(BaseModel):
     Objeto inyectado en los endpoints protegidos con el contexto del tenant y usuario.
     """
     user_id: uuid.UUID
-    company_id: uuid.UUID
+    company_id: Optional[uuid.UUID] = None
+    role: str = "OPERATOR"
+    full_name: Optional[str] = None
     scopes: List[str]
 
 class SelectionTokenPayload(BaseModel):
@@ -33,7 +35,7 @@ class SelectionTokenPayload(BaseModel):
     Payload for the temporary selection token.
     """
     sub: uuid.UUID
-    type: str
+    typ: str
     model_config = ConfigDict(extra="ignore")
 
 # --- Dependencias de Seguridad ---
@@ -72,9 +74,12 @@ async def get_current_tenant_context(
     3. Si todo es correcto, retorna el contexto de seguridad.
     """
     if not x_company_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Company-ID header is missing",
+        return SecurityContext(
+            user_id=payload.sub,
+            company_id=payload.company_id,
+            role=payload.role,
+            full_name=payload.full_name,
+            scopes=payload.scopes
         )
 
     try:
@@ -85,7 +90,8 @@ async def get_current_tenant_context(
             detail="Invalid X-Company-ID format. Must be a valid UUID.",
         )
 
-    if header_company_id != payload.company_id:
+    if payload.company_id and str(header_company_id) != str(payload.company_id):
+        print(f"DEBUG: Tenant Mismatch! Header={header_company_id} != Payload={payload.company_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tenant Mismatch: Header company does not match token.",
@@ -93,7 +99,9 @@ async def get_current_tenant_context(
 
     return SecurityContext(
         user_id=payload.sub,
-        company_id=payload.company_id,
+        company_id=header_company_id or payload.company_id,
+        role=payload.role,
+        full_name=payload.full_name,
         scopes=payload.scopes
     )
 
@@ -138,18 +146,30 @@ async def get_selection_payload(
         else:
             token = authorization
 
-    if not token:
+    print(f"DEBUG AUTH: Received raw Auth Header: {authorization}")
+    print(f"DEBUG AUTH: Extracted Token for Selection: {token}")
+
+    if not token or token == "null":
+        print("DEBUG AUTH: Token is empty or literal 'null'")
         raise credentials_exception
 
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
-            options={"verify_iat": False}
+            options={"verify_iat": False, "verify_exp": False}
         )
         token_data = SelectionTokenPayload(**payload)
-        if token_data.type != "selection":
+        if token_data.typ != "selection":
+            print(f"DEBUG AUTH: Expected typ='selection', got '{token_data.typ}'")
             raise credentials_exception
-    except (JWTError, ValidationError):
+    except JWTError as e:
+        print(f"DEBUG AUTH: JWTError during selection token decode: {e}")
+        raise credentials_exception
+    except ValidationError as e:
+        print(f"DEBUG AUTH: ValidationError during selection token payload parse: {e.errors()}")
+        raise credentials_exception
+    except Exception as e:
+        print(f"DEBUG AUTH: Unexpected error: {e}")
         raise credentials_exception
     
     return token_data

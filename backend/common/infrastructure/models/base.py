@@ -24,7 +24,7 @@ class BaseDomainEntity(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     # 🔐 Optimistic Locking
-    version_id: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    version_id: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
 
     __mapper_args__ = {
         "version_id_col": version_id
@@ -62,6 +62,10 @@ class MultiTenantBase(AuditBase):
 
     @declared_attr
     def company_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    @declared_attr
+    def tenant_id(cls) -> Mapped[uuid.UUID]:
         return mapped_column(UUID(as_uuid=True), nullable=False, index=True)
 
     @declared_attr

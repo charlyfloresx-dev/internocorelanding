@@ -11,11 +11,28 @@ class TenantSecurityMiddleware(BaseHTTPMiddleware):
     """
     async def dispatch(self, request: Request, call_next):
         # 1. Rutas Blancas (Exclusiones)
-        # Rutas que NO requieren validación de X-Company-ID ni correspondencia de token
-        path = request.url.path
-        if path.startswith(
-            ("/api/v1/auth/login", "/api/v1/auth/select-company", "/docs", "/openapi.json")
-        ) or path == "/":
+        path = request.url.path.rstrip("/")
+        normalized_path = path.lower()
+        
+        WHITELIST = [
+            "/api/v1/auth/login",
+            "/api/v1/auth/social-login",
+            "/api/v1/auth/select-company",
+            "/api/v1/auth/collaborator/login",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/request-password-reset",
+            "/api/v1/auth/confirm-password-reset",
+            "/api/v1/health/demo",
+            "/docs",
+            "/openapi.json"
+        ]
+        
+        # DEBUG AGRESIVO
+        # print(f"DEBUG: Middleware Checking Path='{normalized_path}'")
+        
+        is_exempt = any(normalized_path.endswith(w.lower()) for w in WHITELIST) or normalized_path in ["", "/", "/api/v1", "/api/v2"]
+
+        if is_exempt:
             return await call_next(request)
 
         # 2. Obtener Header y Token
@@ -45,11 +62,17 @@ class TenantSecurityMiddleware(BaseHTTPMiddleware):
 
         # 3. Validación Cruzada (Solo si el token tiene company_id)
         # Nota: Los tokens de selección no tienen company_id, pero esas rutas están en la lista blanca.
-        if "company_id" in payload and payload["company_id"] != x_company_id:
-             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content={"status": "error", "message": "Tenant Mismatch: Header company does not match token."}
-            )
+        
+        # [GOD MODE] Si el token tiene el claim de bypass, permitimos cualquier tenant
+        if payload.get("bypass_tenant") is True:
+            return await call_next(request)
+
+        if "company_id" in payload and payload.get("company_id") and x_company_id:
+            if str(payload["company_id"]).lower() != str(x_company_id).lower():
+                 return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content={"status": "error", "message": f"Tenant Mismatch: Header company {x_company_id} does not match token {payload['company_id']}."}
+                )
 
         return await call_next(request)
 

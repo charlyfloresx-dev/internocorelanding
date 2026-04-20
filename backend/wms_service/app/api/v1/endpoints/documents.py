@@ -10,7 +10,6 @@ from common.security.auth_payload import TokenPayload
 from common.responses import ApiResponse
 from common.exceptions import BusinessRuleException, NotFoundException
 
-# Imports movidos a nivel de funci\u00f3n para evitar PydanticSchemaGenerationError
 import logging
 
 logger = logging.getLogger("wms.api")
@@ -30,14 +29,14 @@ class GoodsReceiptRequest(BaseModel):
     concept_id: str
     items: List[GoodsReceiptItem]
 
-@router.post("/goods-receipt", response_model=None)
+@router.post("/goods-receipt", response_model=None, summary="Finalize Goods Receipt")
 async def create_goods_receipt(
     request: GoodsReceiptRequest,
     db: AsyncSession = Depends(get_db)
 ) -> typing.Any:
     """
-    Endpoint de bloque: Crea, llena y confirma una recepci\u00f3n de mercanc\u00eda.
-    Dispara autom\u00e1ticamente el asiento en el Inventory Service.
+    Creates, fills, and confirms a goods receipt (GR).
+    Automatically triggers the inventory record in the Inventory Service.
     """
     print(f"[*] RECEIVING GOODS RECEIPT REQUEST: {request.folio}", flush=True)
     from app.application.handlers import (
@@ -50,7 +49,7 @@ async def create_goods_receipt(
         AddMovementCommand, 
         ConfirmDocumentCommand
     )
-    from datetime import datetime # Added datetime import
+    from datetime import datetime
     
     try:
         # 1. Create Document

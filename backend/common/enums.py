@@ -19,14 +19,14 @@ class ProductStatus(str, Enum):
     DISCONTINUED = "DISCONTINUED"
 
 class VersionStatus(str, Enum):
-    # Ciclo de Vida de Ingeniería y Diseño
-    DESIGN = "DESIGN"             # Etapa inicial de dibujo/especificación
-    EXPERIMENTAL = "EXPERIMENTAL" # Prototipos y pruebas técnicas
-    UNDER_REVIEW = "UNDER_REVIEW" # En proceso de validación/QA
-    PUBLISHED = "PUBLISHED"       # Versión oficial para producción/ventas
-    DEPRECATED = "DEPRECATED"     # Versión antigua, se mantiene por stock pero no se fabrica
-    ARCHIVED = "ARCHIVED"         # Fuera de uso total
-    DRAFT = "DRAFT"               # Borrador inicial
+    # Engineering and Design Life Cycle
+    DESIGN = "DESIGN"             # Initial drawing/specification stage
+    EXPERIMENTAL = "EXPERIMENTAL" # Prototypes and technical testing
+    UNDER_REVIEW = "UNDER_REVIEW" # In validation/QA process
+    PUBLISHED = "PUBLISHED"       # Official version for production/sales
+    DEPRECATED = "DEPRECATED"     # Old version, maintained for stock but not manufactured
+    ARCHIVED = "ARCHIVED"         # Out of use entirely
+    DRAFT = "DRAFT"               # Initial draft
 
 class ProductType(str, Enum):
     GOODS = "GOODS"
@@ -37,7 +37,12 @@ class CurrencyType(str, Enum):
     MXN = "MXN"
     EUR = "EUR"
 
-# --- Agregados desde Interno.Domain.Enum (.NET) ---
+class PartnerType(str, Enum):
+    CUSTOMER = "CUSTOMER"
+    SUPPLIER = "SUPPLIER"
+    BOTH = "BOTH"
+
+# --- Added from Interno.Domain.Enum (.NET) ---
 
 class AddressType(str, Enum):
     Home = "Home"
@@ -63,4 +68,16 @@ class StatusType(str, Enum):
     Canceled = "Canceled"
     Damaged = "Damaged"
     Closed = "Closed"
-    DRAFT = "DRAFT"
+
+class MovementType(str, Enum):
+    ENTRY = "ENTRY"
+    OUTPUT = "OUTPUT"
+    TRANSFER = "TRANSFER"
+    ADJUSTMENT = "ADJUSTMENT"
+
+class WarehouseType(str, Enum):
+    PHYSICAL = "PHYSICAL"
+    VIRTUAL = "VIRTUAL"
+    TRANSIT = "TRANSIT"
+    RESOURCE = "RESOURCE"  # Machine/station acting as WIP warehouse
+    EXT_PARTNER = "EXT_PARTNER" # Customer/Supplier managed location

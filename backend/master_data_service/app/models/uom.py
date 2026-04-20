@@ -13,6 +13,7 @@ class UOM(MultiTenantBase):
     company_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
 
     code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    abbreviation: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     plural: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     conversion_factor: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 8), nullable=True, default=1.0)
@@ -22,6 +23,4 @@ class UOM(MultiTenantBase):
         UniqueConstraint('code', 'company_id', name='uq_uom_code_company'),
     )
 
-    __mapper_args__ = {
-        "version_id_col": None # Disable optimistic locking to avoid collision with 'ver' column if present
-    }
+    # Enable Standard Optimistic Locking

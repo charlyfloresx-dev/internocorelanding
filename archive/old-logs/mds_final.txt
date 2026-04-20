@@ -1,0 +1,26 @@
+ðŸš€ Master Data Service starting...
+
+INFO:     âž• Producto: MAT-006
+INFO:     âž• Producto: MAT-007
+INFO:     âž• Producto: MAT-008
+INFO:     âž• Producto: MAT-009
+INFO:     âž• Producto: MAT-010
+INFO:     âž• Concepto: ENT-PUR
+INFO:     âž• Concepto: ENT-ADJ
+INFO:     âž• Concepto: SAL-VEN
+INFO:     âž• Concepto: SAL-ADJ
+INFO:     âž• AlmacÃ©n: WH-TIJ
+INFO:     âž• AlmacÃ©n: WH-SDY
+INFO:     âž• AlmacÃ©n: WH-QUARANTINE
+INFO:     âž• AlmacÃ©n: WH-ENS
+INFO:     âž• AlmacÃ©n: WH-OTY
+INFO:   [MD] Cargando Listas de Precios para company: ad6cc8a6-34f9-42df-8f29-28254e0ad242
+INFO:     âž• Precio 1 para MAT-001 (GLOBAL)
+INFO:     âž• Precio 1 para MAT-002 (GLOBAL)
+INFO:     âž• Precio 1 para MAT-001 (WH-TIJ)
+INFO:     âž• Precio 1 para MAT-002 (WH-SDY)
+INFO: âœ… Seeding completado con Ã©xito.
+INFO:     Started server process [13]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)

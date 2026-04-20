@@ -1,0 +1,163 @@
+services:
+  # --- BASE DE DATOS ---
+  postgres-db:
+    image: postgres:15
+    container_name: kiosk-postgres
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dbname
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+    networks:
+      - interno-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d dbname" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- AUTH SERVICE (Mantiene la gestión de sesiones) ---
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth_service/Dockerfile
+    container_name: kiosk-auth-service
+    image: interno-backend-auth-service:kiosk
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend/auth_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - PYTHONPATH=/app:/app/common
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- MINIO STORAGE (S3 Local para fotos ultra rápidas) ---
+  minio:
+    image: minio/minio
+    container_name: kiosk-minio
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Console Port
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - interno-network
+
+  # --- KIOSK SERVICE (El Core fotográfico) ---
+  kiosk-service:
+    build:
+      context: ./backend
+      dockerfile: kiosk_service/Dockerfile
+    container_name: kiosk-image-service
+    image: interno-kiosk-service:latest
+    ports:
+      - "8020:8000"
+    volumes:
+      - ./backend/kiosk_service/app:/app/app
+      - ./backend/common:/app/common
+      # Volumen para pruebas locales de Pillow si Minio no es usado temporalmente
+      - ./backend/uploads:/app/uploads 
+      # Montar socket local de la impresora de linux (DNP/Hiti via CUPS)
+      - /var/run/cups/cups.sock:/var/run/cups/cups.sock
+      - ./certs:/app/certs
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/kiosk_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/kiosk_db
+      - PYTHONPATH=/app:/app/common
+      # Configuración MinIO
+      - MINIO_URL=http://minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password123
+      - MINIO_BUCKET_NAME=kiosk-events
+      # Configuración Stripe (Modo Sandbox por ahora)
+      - STRIPE_SECRET_KEY=sk_test_tu_clave_aqui
+      - STRIPE_WEBHOOK_SECRET=whsec_tu_webhook_aqui
+      - CORE_KIOSK_LAN_IP=${CORE_KIOSK_LAN_IP:-127.0.0.1}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    command: sh -c "cd /app/app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=/app/certs/momentos.com+2-key.pem --ssl-certfile=/app/certs/momentos.com+2.pem"
+    networks:
+      - interno-network
+
+  # --- SUBSCRIPTION SERVICE (Maneja el Wallet de Gamificación) ---
+  subscription-service:
+    build:
+      context: ./backend
+      dockerfile: subscription_service/Dockerfile
+    container_name: kiosk-subscription-service
+    image: interno-subscription-service:kiosk
+    ports:
+      - "8008:8000"
+    volumes:
+      - ./backend/subscription_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - PYTHONPATH=/app:/app/common
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # --- NOTIFICATION SERVICE (Maneja Alertas en Tiempo Real) ---
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification_service/Dockerfile
+    container_name: kiosk-notification-service
+    image: interno-notification-service:kiosk
+    ports:
+      - "8009:8000"
+    volumes:
+      - ./backend/notification_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - PYTHONPATH=/app:/app/common
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  interno-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:

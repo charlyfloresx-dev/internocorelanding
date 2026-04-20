@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from common.schemas import ApiResponse
-from app.db.session import get_db
+from common.responses import ApiResponse
+from app.dependencies.database import get_db
 from app.models import Notification, NotificationRecipient
 from app.models.event_log import ProcessedEvent
 from app.services.preference_service import PreferenceService
-from app.services.providers import get_provider
-from app.services.template_service import TemplateService
+from app.infrastructure.providers import get_provider
+from app.infrastructure.template_service import TemplateService
 import uuid
 import logging
 
@@ -167,6 +167,52 @@ async def consume_event(
 
         except Exception as exc:
             logger.error(f"Error procesando SubscriptionActivatedEvent: {str(exc)}")
+            return ApiResponse(message="Error interno", status_code=500)
+
+    # ── Dispatch: UserInvitationEvent ────────────────────────────────────────
+    if event_type == "UserInvitationEvent":
+        user_email = payload.get("user_email")
+        invitation_code = payload.get("invitation_code")
+        company_name = payload.get("company_name", "Interno Core")
+
+        if not user_email or not invitation_code:
+            logger.error("UserInvitationEvent incompleto. Abortando.")
+            return ApiResponse(message="Faltan datos requeridos", status_code=400)
+
+        try:
+            # 1. Renderizar contenido
+            content = f"Has sido invitado a colaborar con {company_name}. Tu código de acceso es: {invitation_code}"
+            html_content = template_service.render_notification(
+                content=content,
+                company_id=str(x_company_id)
+            )
+
+            # 2. Despachar
+            provider = get_provider("EMAIL")
+            if provider:
+                success = await provider.send(
+                    recipient=user_email,
+                    title=f"📩 Invitación a {company_name}",
+                    message=html_content,
+                    metadata={"company_id": x_company_id, "event_type": event_type}
+                )
+                
+            # 3. Auditoría
+            notification = Notification(
+                company_id=x_company_id,
+                event_id=event_id,
+                type="UserInvitation",
+                title="Invitación Enviada",
+                message=f"Invitación para {user_email} con código {invitation_code}",
+                priority="HIGH",
+                channel="EMAIL",
+                status="SENT" if success else "FAILED"
+            )
+            db.add(notification)
+            await db.commit()
+
+        except Exception as exc:
+            logger.error(f"Error procesando UserInvitationEvent: {str(exc)}")
             return ApiResponse(message="Error interno", status_code=500)
 
     return ApiResponse(message="Event Accepted", data={"event_id": event_id})

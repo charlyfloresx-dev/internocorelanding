@@ -1,7 +1,8 @@
 {
   "name": "Interno Core MES",
-  "description": "Modular MES Platform featuring RBAC, Multi-tenant Context, and Standardized API Contracts.",
+  "description": "Industrial Manufacturing Execution System with Multi-tenant Ledger Engine and WMS capabilities.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "geolocation"
   ]
 }

@@ -3,129 +3,548 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InternoCore | Documentación Técnica</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>InternoCore | Industrial MES & ERP Thesis</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
-        .sidebar-link:hover { background-color: #f3f4f6; border-left: 4px solid #3b82f6; }
-        .decision-card:hover { transform: translateY(-2px); transition: all 0.3s ease; }
+        :root {
+            --primary: #00D1FF; /* Cyber Blue / Industrial Tech */
+            --primary-glow: rgba(0, 209, 255, 0.3);
+            --bg-deep: #05070A;
+            --bg-card: rgba(13, 17, 23, 0.9);
+            --text-main: #F0F6FC;
+            --text-dim: #8B949E;
+            --accent: #58A6FF;
+            --glass: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --industrial-dark: #0D1117;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        h1, h2, h3, .heading-font {
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* --- Layout --- */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* --- Sidebar --- */
+        aside {
+            width: 280px;
+            background: var(--industrial-dark);
+            border-right: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding: 2.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .logo-section {
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo-text {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-links {
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        .nav-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-links a:hover {
+            background: var(--glass);
+            color: var(--primary);
+            transform: translateX(8px);
+        }
+
+        .nav-links a.active {
+            background: rgba(0, 209, 255, 0.05);
+            color: var(--primary);
+            border-left: 4px solid var(--primary);
+        }
+
+        /* --- Main Content --- */
+        main {
+            flex-grow: 1;
+            padding: 5rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 8rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .badge {
+            background: rgba(0, 209, 255, 0.1);
+            color: var(--primary);
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            border: 1px solid rgba(0, 209, 255, 0.2);
+            letter-spacing: 1.5px;
+        }
+
+        h2 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #FFF, #8B949E);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+
+        p.lead {
+            font-size: 1.3rem;
+            color: var(--text-dim);
+            margin-bottom: 2.5rem;
+            max-width: 850px;
+            font-weight: 300;
+        }
+
+        /* --- Grid & Cards --- */
+        .grid-container {
+            display: grid;
+            grid-template-cols: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px -20px rgba(0,0,0,0.7);
+            transform: translateY(-8px);
+        }
+
+        .card i {
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 0 10px var(--primary-glow));
+        }
+
+        .card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 1.25rem;
+            color: #fff;
+        }
+
+        .card p {
+            color: var(--text-dim);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        /* --- Industrial Features List --- */
+        .feature-list {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .feature-list li {
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-list li:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--accent);
+        }
+
+        .feature-list li .icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(88, 166, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        /* --- Code Snippets --- */
+        pre {
+            background: #010409;
+            padding: 2rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            color: #C9D1D9;
+            overflow-x: auto;
+            border: 1px solid var(--glass-border);
+            margin: 2rem 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            padding: 120px 0 80px 0;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: var(--primary-glow);
+            filter: blur(150px);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        /* --- Animations --- */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: rgba(0, 209, 255, 0.05);
+            animation: scanline 8s linear infinite;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 4rem 0;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 1024px) {
+            .app-container { flex-direction: column; }
+            aside { width: 100%; height: auto; position: relative; padding: 1.5rem; }
+            main { padding: 3rem 1.5rem; }
+            h2 { font-size: 2.5rem; }
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body>
 
-    <div class="flex min-h-screen">
-        <aside class="w-64 bg-white border-r hidden md:block sticky top-0 h-screen">
-            <div class="p-6">
-                <h1 class="text-2xl font-bold text-blue-600">InternoCore</h1>
-                <p class="text-xs text-gray-400 font-mono">v2.1 Architecture</p>
+    <div class="scanline"></div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside>
+            <div class="logo-section">
+                <div class="logo-text">
+                    <i class="fas fa-layer-group"></i>
+                    INTERNO CORE
+                </div>
+                <div style="font-size: 0.6rem; color: var(--text-dim); margin-top: 0.4rem; font-family: monospace; letter-spacing: 2px;">
+                    INDUSTRIAL_BACKBONE_2.5
+                </div>
             </div>
-            <nav class="mt-4">
-                <a href="#vision" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-eye mr-3"></i>Visión General</a>
-                <a href="#decisiones" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-gavel mr-3"></i>Historial de Decisiones</a>
-                <a href="#configuracion" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-cogs mr-3"></i>Configuración Local</a>
-                <a href="#herramientas" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-tools mr-3"></i>Stack Tecnológico</a>
-                <a href="#tesis" class="sidebar-link block py-3 px-6 text-sm font-medium transition-all"><i class="fas fa-book mr-3"></i>Notas para Tesis</a>
-            </nav>
+            
+            <ul class="nav-links">
+                <li><a href="#abstract" class="active"><i class="fas fa-info-circle"></i> Abstract</a></li>
+                <li><a href="#mes"><i class="fas fa-industry"></i> MES Engine</a></li>
+                <li><a href="#wms"><i class="fas fa-warehouse"></i> WMS & Logistics</a></li>
+                <li><a href="#multitenancy"><i class="fas fa-users-cog"></i> Architecture</a></li>
+                <li><a href="#auth"><i class="fas fa-id-card-alt"></i> Auth & RBAC</a></li>
+                <li><a href="#governance"><i class="fas fa-shield-alt"></i> Governance</a></li>
+                <li><a href="#stack"><i class="fas fa-code-branch"></i> Core Stack</a></li>
+            </ul>
+
+            <div style="margin-top: auto; padding-top: 2rem; font-size: 0.7rem; color: var(--text-dim); border-top: 1px solid var(--glass-border);">
+                UNIFIED INDUSTRIAL REPOSITORY<br>2026 ENGINEERING THESIS
+            </div>
         </aside>
 
-        <main class="flex-1 p-8 md:p-12 overflow-y-auto">
+        <!-- Main Content -->
+        <main>
             
-            <section id="vision" class="mb-16">
-                <h2 class="text-4xl font-extrabold mb-6">Visión de Arquitectura</h2>
-                <div class="bg-blue-600 text-white p-8 rounded-2xl shadow-lg">
-                    <p class="text-lg leading-relaxed">
-                        InternoCore es un sistema MES (Manufacturing Execution System) diseñado bajo el paradigma de <strong>Microservicios Multi-tenant</strong>. El objetivo es centralizar la gestión industrial permitiendo que múltiples fábricas operen sobre el mismo núcleo pero con total aislamiento de datos.
+            <!-- Abstract -->
+            <section id="abstract" class="visible hero">
+                <div class="badge">Industrial Excellence</div>
+                <h2>The Neural Network of <span style="color: var(--primary);">Manufacturing</span></h2>
+                <p class="lead">
+                    InternoCore es la columna vertebral digital para entornos industriales binacionales. Diseñado como un sistema integrado de <strong>MES & WMS</strong>, combina la trazabilidad absoluta de la producción con la eficiencia logística en tiempo real.
+                </p>
+                <div class="card">
+                    <p style="font-style: italic; color: var(--accent); font-weight: 500;">
+                        "Optimizar la planta no es suficiente; la verdadera ventaja industrial reside en la sincronización de la cadena de suministro con el ciclo de vida del producto en un entorno Multi-tenant seguro."
                     </p>
                 </div>
             </section>
 
-            <section id="decisiones" class="mb-16">
-                <h3 class="text-3xl font-bold mb-8 flex items-center">
-                    <i class="fas fa-history text-blue-500 mr-4"></i>Historial de Toma de Decisiones (ADR)
-                </h3>
-                <div class="grid grid-cols-1 gap-6">
-                    
-                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-blue-500 shadow-sm">
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-xl font-bold">ADR-001: Shared Domain Kernel</h4>
-                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
-                        </div>
-                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Duplicidad de lógica de roles y estados en microservicios separados.</p>
-                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Creación de la carpeta <code>/common</code>. Todos los microservicios heredan modelos, enums y seguridad de este núcleo.</p>
+            <!-- MES Section -->
+            <section id="mes">
+                <div class="badge">Manufacturing Execution System</div>
+                <h2>Control de Planta en Tiempo Real</h2>
+                <p class="lead">
+                    El motor MES de InternoCore captura la telemetría de producción, gestionando la eficiencia operativa (OEE) y la trazabilidad de componentes críticos.
+                </p>
+                
+                <div class="grid-container">
+                    <div class="card">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Métricas OEE</h3>
+                        <p>Cálculo en tiempo real de Disponibilidad, Rendimiento y Calidad para líneas de producción densas.</p>
                     </div>
-
-                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-green-500 shadow-sm">
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-xl font-bold">ADR-002: Motor de Persistencia PostgreSQL</h4>
-                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
-                        </div>
-                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Necesidad de indexado eficiente para UUIDs en entornos multi-tenant.</p>
-                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Migración de MySQL a PostgreSQL 15 debido a su manejo nativo del tipo de dato UUID y robustez en transacciones concurrentes.</p>
+                    <div class="card">
+                        <i class="fas fa-stopwatch"></i>
+                        <h3>Downtime Intelligence</h3>
+                        <p>Detección automática de paros de línea con escalación jerárquica vía microservicio de Tickets.</p>
                     </div>
-
-                    <div class="decision-card bg-white p-6 rounded-xl border-l-4 border-purple-500 shadow-sm">
-                        <div class="flex justify-between items-start mb-4">
-                            <h4 class="text-xl font-bold">ADR-003: Seguridad Basada en Suscripción</h4>
-                            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Ene 2026</span>
-                        </div>
-                        <p class="text-gray-600 mb-4"><strong>Problema:</strong> Control de accesos dinámico basado en pagos.</p>
-                        <p class="text-gray-700 italic"><strong>Decisión:</strong> Middleware universal en <code>security.py</code> que intercepta cada request y valida si la empresa tiene una suscripción <code>active</code> o <code>trial</code>.</p>
-                    </div>
-
-                </div>
-            </section>
-
-            <section id="configuracion" class="mb-16">
-                <h3 class="text-3xl font-bold mb-8">Configuración del Entorno Local</h3>
-                <div class="bg-gray-900 rounded-xl p-6 text-gray-300 font-mono text-sm shadow-2xl">
-                    <p class="text-blue-400 mb-2"># Paso 1: Levantar infraestructura</p>
-                    <p class="mb-4">docker-compose up --build -d</p>
-                    <p class="text-blue-400 mb-2"># Paso 2: Ejecutar migraciones de base de datos</p>
-                    <p class="mb-4">docker-compose exec auth-service alembic -c auth_service/alembic.ini upgrade head</p>
-                    <p class="text-blue-400 mb-2"># Paso 3: Provisionamiento IA (Tenant Admin)</p>
-                    <p>docker-compose exec auth-service python auth_service/app/provision_tenant.py</p>
-                </div>
-            </section>
-
-            <section id="herramientas" class="mb-16">
-                <h3 class="text-3xl font-bold mb-8">Stack Tecnológico</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
-                        <i class="fab fa-python text-3xl text-yellow-500 mb-2"></i>
-                        <p class="text-sm font-bold">FastAPI</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
-                        <i class="fas fa-database text-3xl text-blue-500 mb-2"></i>
-                        <p class="text-sm font-bold">PostgreSQL 15</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
-                        <i class="fab fa-docker text-3xl text-blue-400 mb-2"></i>
-                        <p class="text-sm font-bold">Docker & Compose</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg text-center shadow-sm border">
-                        <i class="fab fa-aws text-3xl text-orange-500 mb-2"></i>
-                        <p class="text-sm font-bold">AWS S3 (Ready)</p>
+                    <div class="card">
+                        <i class="fas fa-barcode"></i>
+                        <h3>Serial Traceability</h3>
+                        <p>Historial inmutable de cada pieza vinculada a operarios, máquinas y órdenes de producción (Fase 35).</p>
                     </div>
                 </div>
             </section>
 
-            <section id="tesis" class="bg-yellow-50 border-2 border-yellow-200 p-8 rounded-2xl">
-                <h3 class="text-2xl font-bold text-yellow-800 mb-4">Resumen para Documentación de Tesis</h3>
-                <ul class="list-disc list-inside space-y-3 text-yellow-900 italic">
-                    <li>Implementación de <strong>Clean Architecture</strong> para separar dominio de infraestructura.</li>
-                    <li>Uso de <strong>Agnostic UUIDs</strong> para garantizar la portabilidad entre motores de base de datos.</li>
-                    <li>Automatización de DevOps mediante herramientas de <strong>Model Context Protocol (MCP)</strong>.</li>
-                    <li>Seguridad perimetral multi-tenant con validación de <strong>Claims de Suscripción</strong> en JWT.</li>
+            <!-- WMS Section -->
+            <section id="wms">
+                <div class="badge">Warehouse Management System</div>
+                <h2>Logística Binacional & WMS</h2>
+                <p class="lead">
+                    Gestión avanzada de inventarios distribuidos en múltiples entidades legales (MX/US) con cumplimiento fiscal automatizado.
+                </p>
+                
+                <ul class="feature-list">
+                    <li>
+                        <div class="icon"><i class="fas fa-exchange-alt"></i></div>
+                        <div>
+                            <strong>Inter-Company Transfers (ICT)</strong>
+                            <div style="font-size: 0.9rem; color: var(--text-dim);">Transferencias espejeadas atómicas entre almacenes de diferentes tenants (TIJ <-> SDY).</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon"><i class="fas fa-calculator"></i></div>
+                        <div>
+                            <strong>WAC Auditing</strong>
+                            <div style="font-size: 0.9rem; color: var(--text-dim);">Precisión matemática de 4 decimales en la valoración de stock mediante capas FIFO.</div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="icon"><i class="fas fa-globe-americas"></i></div>
+                        <div>
+                            <strong>Fiscal Integration</strong>
+                            <div style="font-size: 0.9rem; color: var(--text-dim);">Soporte nativo para códigos SAT (México) e HTS (Estados Unidos) en el catálogo maestro.</div>
+                        </div>
+                    </li>
                 </ul>
+            </section>
+
+            <!-- Auth & RBAC -->
+            <section id="auth">
+                <div class="badge">Identity & Access Management</div>
+                <h2>Auth Service & RBAC Distribuido</h2>
+                <p class="lead">
+                    El servicio de autenticación (`auth_service`) es el guardián de la identidad corporativa, gestionando una jerarquía compleja de permisos adaptada a la estructura multi-empresa.
+                </p>
+                
+                <div class="card" style="border-right: 4px solid var(--primary);">
+                    <h3>Handshake Flow (Doble Factor de Contexto)</h3>
+                    <p style="margin-top: 1rem;">
+                        InternoCore no emite un token final tras el login inicial. El proceso se divide en:
+                    </p>
+                    <ul style="margin-top: 1rem; color: var(--text-dim); padding-left: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <li><strong>1. Handshake JWT:</strong> Valida identidad y retorna las empresas (Tenants) asociadas.</li>
+                        <li><strong>2. Context Selection:</strong> El usuario elige empresa y el sistema emite el JWT Final con los roles específicos.</li>
+                    </ul>
+                </div>
+
+                <div class="grid-container" style="margin-top: 2rem;">
+                    <div class="card">
+                        <i class="fas fa-id-badge"></i>
+                        <h3>Global RBAC</h3>
+                        <p>Roles granulares (SuperAdmin, Admin, Operator, Viewer) que cambian dinámicamente según el tenant seleccionado.</p>
+                    </div>
+                    <div class="card">
+                        <i class="fas fa-history"></i>
+                        <h3>Audit Trails</h3>
+                        <p>Registro automático de cada login, selección de empresa y cambio de privilegios en el log de auditoría global.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Governance -->
+            <section id="governance">
+                <div class="badge">Governance</div>
+                <h2>Política "Zero Root Pollution"</h2>
+                <p class="lead">
+                    Establecemos un estándar de repositorio industrial donde el orden estructural es tan importante como la calidad del código.
+                </p>
+                
+                <div class="card">
+                    <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: var(--primary);">/scripts/</h4>
+                            <p style="font-size: 0.85rem;">Automatización total: desde el alta de tenants hasta auditorías de integridad.</p>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: var(--primary);">/logs/</h4>
+                            <p style="font-size: 0.85rem;">Centralización forense: Telemetría de microservicios y reportes de ejecución.</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--glass-border);">
+                        <p style="font-size: 0.9rem; color: var(--text-dim);">Toda nueva documentación debe residir en <code>docs/</code> bajo sus respectivos dominios: <strong>specs, architecture, audit, infraestructura</strong>.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stack -->
+            <section id="stack">
+                <div class="badge">Technologies</div>
+                <h2>Industrial Core Stack</h2>
+                <div class="grid-container">
+                    <div class="card" style="text-align: center;">
+                        <i class="fab fa-python"></i>
+                        <h3>FastAPI</h3>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <i class="fas fa-database"></i>
+                        <h3>PostgreSQL</h3>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <i class="fab fa-angular"></i>
+                        <h3>Angular 21</h3>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <i class="fab fa-docker"></i>
+                        <h3>Docker</h3>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Conclusion -->
+            <section id="conclusion" style="text-align: center; margin-bottom: 2rem;">
+                <div class="badge">Phase 43 Active</div>
+                <h2>The Future of Industrial ERP</h2>
+                <p class="lead" style="margin: 0 auto 3rem auto;">
+                    InternoCore redefine la gestión empresarial como un organismo digital síncrono, seguro y auditable.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 2rem; opacity: 0.6;">
+                    <span>UNIFIED SSOT</span>
+                    <span>•</span>
+                    <span>INDUSTRIAL STANDARDS</span>
+                    <span>•</span>
+                    <span>2026</span>
+                </div>
             </section>
 
         </main>
     </div>
 
-    <footer class="bg-white border-t py-6 text-center text-gray-400 text-xs">
-        &copy; 2026 InternoCore MES Project. Generado para documentación de Tesis de Ingeniería.
+    <footer>
+        &copy; 2026 INTERNOCORE PROJECT • INDUSTRIAL EXCELLENCE THROUGH ARCHITECTURE
     </footer>
 
+    <script>
+        // Intersection Observer for scroll animations
+        const sections = document.querySelectorAll('section');
+        const options = { threshold: 0.15 };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Update active link
+                    document.querySelectorAll('.nav-links a').forEach(a => {
+                        a.classList.remove('active');
+                        if (a.getAttribute('href') === '#' + entry.target.id) {
+                            a.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, options);
+
+        sections.forEach(s => observer.observe(s));
+    </script>
 </body>
 </html>

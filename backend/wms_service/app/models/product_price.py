@@ -6,15 +6,16 @@ from typing import Optional
 
 from sqlalchemy import String, Boolean, Numeric, Enum, DateTime, func, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, composite
 
-from common.models import MultiTenantBase, AuditBase
+from common.models import MultiTenantBase
+from common.domain.value_objects import Money
 
 class PriceType(str, enum.Enum):
-    PURCHASE = "PURCHASE"
-    SALE = "SALE"
+    LIST = "LIST"
+    PROMOTION = "PROMOTION"
+    CONTRACT = "CONTRACT"
     TRANSFER = "TRANSFER"
-    COST = "COST"
 
 class PriceOriginType(str, enum.Enum):
     MANUAL = "MANUAL"
@@ -22,19 +23,26 @@ class PriceOriginType(str, enum.Enum):
     AUTO = "AUTO"           # Calculated by system
     SEED = "SEED"           # Initial data
 
-class ProductPrice(MultiTenantBase, AuditBase):
+class ProductPrice(MultiTenantBase):
     __tablename__ = "product_prices"
 
     product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True, nullable=False)
+    # VINCULACIÓN CON ACUERDO/CONTRATO
+    agreement_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), 
+        index=True, 
+        nullable=True
+    )
+    
     warehouse_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), index=True, nullable=True)
     channel_code: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
     customer_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), index=True, nullable=True)
     
-    price_type: Mapped[PriceType] = mapped_column(Enum(PriceType), default=PriceType.SALE, nullable=False)
+    price_type: Mapped[PriceType] = mapped_column(Enum(PriceType), default=PriceType.LIST, nullable=False)
     
-    amount: Mapped[Decimal] = mapped_column(Numeric(15, 4), server_default="0", default=0)
-    
-    currency_code: Mapped[str] = mapped_column(String(3), server_default="USD", default="USD")
+    _amount: Mapped[Decimal] = mapped_column("_amount", Numeric(18, 4), server_default="0", default=0)
+    _currency: Mapped[str] = mapped_column("_currency", String(3), server_default="USD", default="USD")
+    price: Mapped[Money] = composite(Money, _amount, _currency)
     
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     change_reason: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -1,0 +1,21 @@
+SKU,Nombre,Nivel,Moneda,Monto,IVA_Flag,IEPS_Flag,Entidad_ID,Tipo_Entidad
+MAT-001,Aluminio Industrial 6061-T6,COMPRA,MXN,150.00,SI,NO,,
+MAT-001,Aluminio Industrial 6061-T6,1,MXN,295.00,SI,NO,,
+MAT-001,Aluminio Industrial 6061-T6,2,MXN,260.00,SI,NO,,
+MAT-001,Aluminio Industrial 6061-T6,1,USD,16.50,NO,NO,,
+MAT-002,Película Stretch 20" Especial,COMPRA,MXN,45.00,SI,NO,,
+MAT-002,Película Stretch 20" Especial,1,MXN,90.00,SI,NO,,
+MAT-002,Película Stretch 20" Especial,1,USD,5.00,NO,NO,,
+MAT-003,Ahesivo de Contacto Industrial,COMPRA,MXN,120.50,SI,NO,,
+MAT-003,Ahesivo de Contacto Industrial,1,MXN,220.00,SI,NO,,
+MAT-004,Empaque Corrugado Reforzado,COMPRA,MXN,12.00,SI,NO,,
+MAT-004,Empaque Corrugado Reforzado,1,MXN,25.00,SI,NO,,
+MAT-005,Resina Epóxica Grado Pro,COMPRA,MXN,450.00,SI,NO,,
+MAT-005,Resina Epóxica Grado Pro,1,MXN,890.00,SI,NO,,
+MAT-006,Sensor Capacitivo M18,COMPRA,MXN,1200.00,SI,NO,,
+MAT-006,Sensor Capacitivo M18,1,MXN,1950.00,SI,NO,,
+MAT-001,Aluminio Industrial 6061-T6,ACUERDO,MXN,245.00,SI,NO,2bf6f678-cde0-45c4-ba17-046f69648c9c,CUSTOMER
+MAT-002,Película Stretch 20" Especial,ACUERDO,MXN,75.00,SI,NO,2bf6f678-cde0-45c4-ba17-046f69648c9c,CUSTOMER
+MAT-003,Ahesivo de Contacto Industrial,ACUERDO,MXN,195.00,SI,NO,2bf6f678-cde0-45c4-ba17-046f69648c9c,CUSTOMER
+MAT-007,Cinta de Enmascarar Industrial,COMPRA,MXN,25.00,SI,NO,,
+MAT-007,Cinta de Enmascarar Industrial,1,MXN,55.00,SI,NO,,

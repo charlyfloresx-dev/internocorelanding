@@ -9,12 +9,12 @@ T = TypeVar("T", bound=BaseEntity)
 
 class BaseRepository(Generic[T]):
     """
-    Repositorio Base Genérico.
-    IMPLEMENTA:
-    - Aislamiento Multi-tenant Automático (vía ContextVar).
-    - Gestión de Soft Delete (is_active).
-    - Consultas parametrizadas (SQLAlchemy 2.0).
-    - Auditoría Automática (created_by, updated_by).
+    Generic Base Repository.
+    IMPLEMENTS:
+    - Automatic Multi-tenant Isolation (via ContextVar).
+    - Soft Delete Management (is_active).
+    - Parameterized queries (SQLAlchemy 2.0).
+    - Automatic Auditing (created_by, updated_by).
     """
 
     def __init__(self, model: Type[T], db: AsyncSession):
@@ -22,20 +22,20 @@ class BaseRepository(Generic[T]):
         self.db = db
 
     def _get_context(self):
-        """Recupera el contexto del usuario actual desde el middleware."""
+        """Retrieves the current user context from the middleware."""
         return request_context.get()
 
     def _apply_tenant_filter(self, query, bypass_tenant: bool = False):
         """
-        Aplica el filtro de compañía automáticamente si existe contexto.
-        Secure by Default: Solo se omite si bypass_tenant=True.
+        Applies company filter automatically if context exists.
+        Secure by Default: Only omitted if bypass_tenant=True.
         """
         if bypass_tenant:
             return query
             
         context = self._get_context()
         if context and context.company_id and hasattr(self.model, "company_id"):
-            # PERMITE ver tanto registros de la compañía como registros globales (NULL)
+            # ALLOW viewing both company records and global records (NULL)
             from sqlalchemy import or_
             return query.where(
                 or_(
@@ -46,7 +46,7 @@ class BaseRepository(Generic[T]):
         return query
 
     async def get(self, id: uuid.UUID, bypass_tenant: bool = False) -> Optional[T]:
-        """Obtiene un registro por ID asegurando el contexto de tenant (salvo bypass)."""
+        """Gets a record by ID ensuring tenant context (unless bypass)."""
         query = select(self.model).where(self.model.id == id)
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
@@ -57,7 +57,7 @@ class BaseRepository(Generic[T]):
         return result.scalars().first()
 
     async def get_by_email(self, email: str, bypass_tenant: bool = False) -> Optional[T]:
-        """Busca por email dentro del tenant (salvo bypass)."""
+        """Searches by email within the tenant (unless bypass)."""
         if not hasattr(self.model, "email"):
             return None
             
@@ -71,7 +71,7 @@ class BaseRepository(Generic[T]):
         return result.scalars().first()
 
     async def get_by_name(self, name: str, bypass_tenant: bool = False) -> Optional[T]:
-        """Busca por nombre (salvo bypass)."""
+        """Searches by name (unless bypass)."""
         if not hasattr(self.model, "name"):
             return None
             
@@ -85,7 +85,7 @@ class BaseRepository(Generic[T]):
         return result.scalars().first()
 
     async def list(self, skip: int = 0, limit: int = 100, bypass_tenant: bool = False) -> List[T]:
-        """Lista registros activos aplicando el tenant filter automático (salvo bypass)."""
+        """Lists active records applying automatic tenant filter (unless bypass)."""
         query = select(self.model)
         if hasattr(self.model, "is_active"):
             query = query.where(self.model.is_active == True)
@@ -97,28 +97,28 @@ class BaseRepository(Generic[T]):
         return result.scalars().all()
 
     async def create(self, obj_in: Any) -> T:
-        """Crea un nuevo registro inyectando company_id y created_by del contexto."""
+        """Creates a new record injecting company_id and created_by from context."""
         obj_data = obj_in.model_dump() if hasattr(obj_in, "model_dump") else obj_in
         
         db_obj = self.model(**obj_data)
         
         context = self._get_context()
         if context:
-            # Inyección de Tenant
+            # Tenant Injection
             if hasattr(db_obj, "company_id") and context.company_id:
                 db_obj.company_id = context.company_id
-            
-            # Inyección de Auditoría
+                
+            # Audit Injection
             if hasattr(db_obj, "created_by") and context.user_id:
                 db_obj.created_by = context.user_id
-            
+                
         self.db.add(db_obj)
         await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj
 
     async def update(self, db_obj: T, obj_in: Any) -> T:
-        """Actualiza un registro existente inyectando updated_by."""
+        """Updates an existing record injecting updated_by."""
         obj_data = obj_in.model_dump(exclude_unset=True) if hasattr(obj_in, "model_dump") else obj_in
         
         for field in obj_data:
@@ -135,8 +135,8 @@ class BaseRepository(Generic[T]):
         return db_obj
 
     async def delete(self, id: uuid.UUID) -> bool:
-        """Soft Delete (si existe is_active) o Hard Delete."""
-        # Primero obtenemos el objeto para asegurar que pertenece al tenant (vía get())
+        """Soft Delete (if is_active exists) or Hard Delete."""
+        # First get the object to ensure it belongs to the tenant (via get())
         db_obj = await self.get(id)
         if not db_obj:
             return False

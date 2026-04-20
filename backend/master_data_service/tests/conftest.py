@@ -5,9 +5,42 @@ from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-from app.main import app
-from common.domain import Base
-from app.db.session import get_db
+from unittest.mock import patch
+with patch("common.config.settings.DATABASE_URL", "sqlite+aiosqlite:///:memory:"):
+    from app.main import app
+    from common.domain import Base
+    from app.db.session import get_db
+
+# Patch UUID for SQLite tests
+import sqlalchemy
+from sqlalchemy.types import TypeDecorator, CHAR
+import uuid
+
+class GUID(TypeDecorator):
+    impl = CHAR
+    cache_ok = True
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'sqlite':
+            return dialect.type_descriptor(CHAR(36))
+        else:
+            return dialect.type_descriptor(sqlalchemy.types.UUID())
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            return uuid.UUID(value)
+
+# Patch both sqlalchemy.types and sqlalchemy.dialects.postgresql
+sqlalchemy.types.UUID = GUID
+import sqlalchemy.dialects.postgresql
+sqlalchemy.dialects.postgresql.UUID = GUID
 
 # DB de prueba en memoria
 DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -27,9 +60,11 @@ async def db_engine():
     engine = create_async_engine(DATABASE_URL)
     
     # IMPORTANTE: Asegurar el orden para que las FKs se resuelvan al cargar el metadata
-    from app.models.um import UM
-    from app.models.category import ProductCategory
+    from app.models.uom import UOM
+    from app.models.product_category import ProductCategory
     from app.models.product import Product, ProductVersion
+    from app.models.product_price import ProductPrice
+    from app.models.price_agreement import PriceAgreement
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -66,21 +101,32 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
 # --- Factories ---
 
 @pytest.fixture
-async def um_factory(db):
-    from app.models.um import UM
+async def uom_factory(db):
+    from app.models.uom import UOM
     async def _create(code: str = "EA", name: str = "Each"):
-        um = UM(code=code, name=name, company_id=uuid.uuid4())
-        db.add(um)
+        uom = UOM(code=code, name=name, company_id=uuid.uuid4())
+        db.add(uom)
         await db.flush()
-        return um
+        return uom
     return _create
 
 @pytest.fixture
 async def category_factory(db):
-    from app.models.category import ProductCategory
+    from app.models.product_category import ProductCategory
     async def _create(name: str = "Electronics"):
         cat = ProductCategory(name=name, company_id=uuid.uuid4())
         db.add(cat)
         await db.flush()
         return cat
     return _create
+
+@pytest.fixture
+def mock_user():
+    from common.domain.entities.user_context import UserContext
+    return UserContext(
+        user_id=uuid.uuid4(),
+        company_id=uuid.uuid4(),
+        role_names=["admin"],
+        scopes=["*"],
+        status="ACTIVE"
+    )

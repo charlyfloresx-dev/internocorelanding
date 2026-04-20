@@ -22,7 +22,7 @@ class DocumentStatus(str, enum.Enum):
     CANCELLED = "CANCELLED"
 
 # Al heredar de MultiTenantBase, ya tienes ID, CreatedAt, UpdatedAt y CompanyId
-class InventoryDocument(MultiTenantBase, Base):
+class InventoryDocument(MultiTenantBase):
     __tablename__ = "inventory_documents"
     
     # ... (el resto igual)

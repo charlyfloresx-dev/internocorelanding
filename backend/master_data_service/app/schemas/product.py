@@ -22,6 +22,7 @@ class ProductRead(BaseModel):
     description: Optional[str] = None
     product_type: ProductType
     status: ProductStatus
+    base_uom_id: Optional[uuid.UUID] = None
     group_id: Optional[uuid.UUID] = None
     
     # Auditoría
@@ -31,6 +32,14 @@ class ProductRead(BaseModel):
     updated_by: Optional[uuid.UUID] = None
     version_id: int
     is_active: bool
+    
+    # Media Assets (Phase 44)
+    photo_path: Optional[str] = None
+    product_url: Optional[str] = None # Virtual field for frontend
+    
+    # Financial Metadata (Phase 33.5)
+    last_price: Optional[float] = None
+    currency: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,4 +53,30 @@ class ProductCreate(BaseModel):
     product_type: ProductType
     uom_id: uuid.UUID
     category_id: Optional[uuid.UUID] = None
+    brand_id: Optional[uuid.UUID] = None
     group_id: Optional[uuid.UUID] = None
+    # Physical tracking
+    requires_batch: bool = False
+    requires_expiration: bool = False
+    # Fiscal compliance (Phase 33.5)
+    sat_product_code: Optional[str] = Field(None, max_length=20)
+    hts_code: Optional[str] = Field(None, max_length=20)
+    is_taxable: bool = True
+    allow_price_override: bool = True
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    product_type: Optional[ProductType] = None
+    category_id: Optional[uuid.UUID] = None
+    brand_id: Optional[uuid.UUID] = None
+    status: Optional[ProductStatus] = None
+    is_active: Optional[bool] = None
+    photo_path: Optional[str] = None
+    # Physical
+    requires_batch: Optional[bool] = None
+    requires_expiration: Optional[bool] = None
+    # Fiscal
+    sat_product_code: Optional[str] = Field(None, max_length=20)
+    hts_code: Optional[str] = Field(None, max_length=20)
+    is_taxable: Optional[bool] = None
+    allow_price_override: Optional[bool] = None

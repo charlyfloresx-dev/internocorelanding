@@ -1,141 +1,151 @@
-import { Component, inject, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { AuthService } from '@services/auth.service';
-import { UserCompanyAccess } from '@models/api.types';
+import {Component, inject, PLATFORM_ID, computed} from '@angular/core';
+import {isPlatformBrowser} from '@angular/common';
+import {CommonModule} from '@angular/common';
+import {Router} from '@angular/router';
+import {AuthService} from '../../core/services/auth.service';
+import {ToastService} from '../../core/services/toast.service';
+import {MatIconModule} from '@angular/material/icon';
+import {TranslatePipe} from '../../shared/pipes/translate.pipe';
+import {FormsModule} from '@angular/forms';
 
 @Component({
   selector: 'app-tenant-selection',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule, TranslatePipe, FormsModule],
   template: `
-    <div class="w-full max-w-lg mx-auto bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-fade-in-up">
-      
-      <div class="p-8 pb-6 text-center border-b border-slate-700/50 relative">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-500 via-purple-500 to-sky-500 opacity-50"></div>
-        
-        <div class="relative inline-block mb-4">
-          <div class="w-24 h-24 rounded-full p-1 bg-slate-900 border-2 border-slate-700 shadow-inner overflow-hidden">
-            <img [src]="auth.currentUser()?.avatar || 'https://ui-avatars.com/api/?name=' + auth.currentUser()?.email" 
-                 class="w-full h-full rounded-full object-cover"
-                 alt="User Avatar">
-          </div>
-          <div class="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-slate-800 rounded-full"></div>
-        </div>
-
-        <h2 class="text-2xl font-bold text-white tracking-tight">Selecciona tu Empresa</h2>
-        <p class="text-slate-400 text-sm mt-1">Elige el entorno donde deseas trabajar</p>
+    <div class="min-h-screen bg-surface-bg flex items-center justify-center p-6 relative overflow-hidden transition-colors duration-300">
+      <!-- Background Effects -->
+      <div class="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 blur-[120px] rounded-full animate-pulse-glow"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-ic-blue/10 blur-[120px] rounded-full animate-pulse-glow" style="animation-delay: 1s"></div>
       </div>
 
-      <div class="p-6 bg-slate-800/50 max-h-[450px] overflow-y-auto custom-scrollbar">
-        <div class="space-y-6">
-          
-          @for (group of groupedAccesses(); track group.name) {
-            <div class="space-y-3">
-              <!-- Cluster Header -->
-              <div class="flex items-center gap-3 px-1">
-                <div class="h-[1px] flex-1 bg-slate-700"></div>
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] whitespace-nowrap">
-                  {{ group.name }}
-                </span>
-                <div class="h-[1px] flex-1 bg-slate-700"></div>
+      <div class="max-w-5xl w-full relative z-10 animate-slide-in-right">
+        <div class="text-center mb-12">
+          <h2 class="text-4xl font-black text-surface-text tracking-tighter uppercase italic glow-text">{{ 'auth.tenant_selection_title' | translate:'Selección de Contexto' }}</h2>
+          <p class="text-surface-text-muted mt-2 font-mono text-[10px] tracking-widest uppercase">{{ 'auth.tenant_selection_subtitle' | translate:'Seleccione la empresa o planta para iniciar operaciones' }}</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="max-w-md mx-auto mb-10 relative group">
+          <mat-icon class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-text-muted group-focus-within:text-primary transition-colors">search</mat-icon>
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            placeholder="Filtrar empresas..."
+            class="w-full bg-surface-card/50 backdrop-blur-md border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm text-surface-text outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          >
+        </div>
+
+        <!-- Company Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (access of filteredAccesses(); track access.company_id) {
+            <button 
+              (click)="onSelect(access.company_id)"
+              class="glass-card p-8 text-left rounded-3xl hover:border-primary/50 hover:shadow-primary/10 hover:scale-[1.02] transition-all group relative animate-fade-in"
+            >
+              <div class="flex items-start justify-between mb-6">
+                <div class="w-16 h-16 bg-surface-bg/50 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-primary/30 group-hover:shadow-[0_0_20px_rgba(0,229,255,0.1)] transition-all duration-500">
+                  <mat-icon class="text-surface-text-muted group-hover:text-primary transition-colors text-3xl w-8 h-8">business</mat-icon>
+                </div>
+                @if (access.is_new) {
+                  <span class="bg-primary/20 text-primary text-[10px] font-black px-3 py-1 rounded-full border border-primary/30 uppercase tracking-widest">
+                    Nueva
+                  </span>
+                }
+              </div>
+              
+              <h3 class="text-xl font-black text-surface-text mb-2 uppercase tracking-tighter group-hover:text-primary transition-colors">{{ access.company_name }}</h3>
+              
+              <div class="flex flex-wrap gap-2 mt-6">
+                @for (role of access.role_names; track role) {
+                  <span class="text-[9px] font-black bg-white/5 text-surface-text-muted px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-[0.2em] group-hover:border-primary/20 group-hover:text-primary/80 transition-all">
+                    {{ role }}
+                  </span>
+                }
               </div>
 
-              @for (item of group.items; track item.company.id) {
-                <div (click)="selectCompany(item)"
-                     [class.opacity-50]="isLoading || (selectedId && selectedId !== item.company.id)"
-                     [class.pointer-events-none]="isLoading"
-                     class="group relative flex items-center gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer transition-all duration-200 hover:bg-slate-700/50 hover:border-slate-600 hover:shadow-lg hover:-translate-y-0.5">
-                  
-                  <!-- Logo/Avatar de la Empresa -->
-                  <div class="w-12 h-12 flex-shrink-0 rounded-lg bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 group-hover:border-slate-500 transition-colors">
-                    @if (item.company.logo) {
-                      <img [src]="item.company.logo" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" [alt]="item.company.name">
-                    } @else {
-                      <span class="text-slate-500 font-bold text-lg group-hover:text-white">{{ item.company.name.charAt(0) }}</span>
-                    }
-                  </div>
-
-                  <!-- Información de la Empresa -->
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <h4 class="font-bold text-white text-base truncate group-hover:text-sky-400 transition-colors">{{ item.company.name }}</h4>
-                      <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-600 uppercase">{{ item.role.name }}</span>
-                    </div>
-                    
-                    <div class="flex items-center gap-3 mt-1.5">
-                      <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 border border-slate-700 px-1.5 py-0.5 rounded bg-slate-800">ACTIVE</span>
-                      
-                      <!-- Badge para empresas nuevas -->
-                      @if (item.company.is_new) {
-                        <span class="text-[10px] font-bold text-sky-400 flex items-center gap-1.5">
-                          <i class="fa-solid fa-wand-magic-sparkles"></i>
-                          <span>Configuración Requerida</span>
-                        </span>
-                      }
-                    </div>
-                  </div>
-
-                  <!-- Spinner / Chevron -->
-                  <div class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-500 group-hover:bg-sky-500 group-hover:text-white transition-all">
-                    @if (isLoading && selectedId === item.company.id) {
-                      <i class="fa-solid fa-circle-notch fa-spin"></i>
-                    } @else {
-                      <i class="fa-solid fa-chevron-right text-sm"></i>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
+              <!-- Hover Glow Effect -->
+              <div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+              <div class="absolute bottom-0 left-0 w-full h-1 bg-primary transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+            </button>
           }
-
         </div>
-      </div>
 
-      <div class="p-4 bg-slate-900 border-t border-slate-800 text-center">
-        <button (click)="logout.emit()" class="text-slate-500 hover:text-red-400 text-sm font-medium transition-colors flex items-center justify-center gap-2 w-full py-2">
-          <i class="fa-solid fa-power-off"></i> Cerrar Sesión
-        </button>
+        <!-- Back to Login -->
+        <div class="mt-16 flex flex-col items-center gap-6">
+          <div class="flex items-center gap-8">
+            <button (click)="onJoinWithCode()" class="text-[10px] font-black text-primary uppercase tracking-widest hover:underline transition-all">
+              Join with Code
+            </button>
+            <div class="w-1 h-1 bg-white/20 rounded-full"></div>
+            <button (click)="onCreateCompany()" class="text-[10px] font-black text-primary uppercase tracking-widest hover:underline transition-all">
+              Create New Company
+            </button>
+          </div>
+
+          <button 
+            (click)="logout()" 
+            class="px-8 py-3 bg-white/5 border border-white/10 rounded-full text-surface-text-muted hover:text-primary hover:border-primary/30 flex items-center gap-3 mx-auto transition-all font-black text-[10px] uppercase tracking-[0.2em]"
+          >
+            <mat-icon class="text-sm">logout</mat-icon>
+            Cerrar sesión y volver
+          </button>
+        </div>
       </div>
     </div>
   `
 })
 export class TenantSelectionComponent {
-  public auth = inject(AuthService);
+  authService = inject(AuthService);
+  private toastService = inject(ToastService);
   private router = inject(Router);
-  logout = output<void>();
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
-  isLoading = false;
-  selectedId: string | null = null;
+  searchQuery = '';
 
-  /**
-   * Agrupa los accesos disponibles por el nombre del grupo (Cluster)
-   */
-  groupedAccesses = computed(() => {
-    const accesses = this.auth.availableAccesses();
-    const groups: { [key: string]: UserCompanyAccess[] } = {};
-
-    accesses.forEach(a => {
-      const gName = a.company.group_name || 'Corporativo Local';
-      if (!groups[gName]) groups[gName] = [];
-      groups[gName].push(a);
-    });
-
-    return Object.entries(groups).map(([name, items]) => ({ name, items }));
+  filteredAccesses = computed(() => {
+    const query = this.searchQuery.toLowerCase();
+    const all = this.authService.availableAccesses();
+    console.log('[TenantSelector] 🔍 Filtering companies:', { count: all.length, query });
+    return all.filter(a => 
+      a.company_name.toLowerCase().includes(query)
+    );
   });
 
-  /**
-   * Maneja la selección de empresa
-   * Llama a auth.selectCompany(companyId) que:
-   * 1. Envía selection_token al backend
-   * 2. Recibe access_token
-   * 3. Redirige a /dashboard o /onboarding según is_new
-   */
-  selectCompany(access: UserCompanyAccess) {
-    this.isLoading = true;
-    this.selectedId = access.company.id;
+  onJoinWithCode() {
+    const code = prompt('Enter Invitation Code:');
+    if (code) {
+      this.toastService.info('Validando código...', 'Invitación');
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
-    // Llamar al AuthService para manejar la selección
-    this.auth.selectCompany(access.company.id);
+  onCreateCompany() {
+    this.router.navigate(['/onboarding']);
+  }
+
+  async onSelect(id: string) {
+    console.group('Tenant Selection Flow');
+    const access = this.authService.availableAccesses().find(a => a.company_id === id);
+    console.log('[TenantSelector] 🏢 Company Selected:', { id, name: access?.company_name });
+    
+    this.toastService.info(`Cargando entorno: ${access?.company_name}`, 'Sistema');
+    
+    try {
+      await this.authService.selectCompany(id);
+      this.toastService.success('Entorno cargado correctamente', 'Éxito');
+      console.groupEnd();
+    } catch (err) {
+      console.error('[TenantSelector] ❌ API selectCompany failed:', err);
+      this.toastService.error('No se pudo establecer conexión con el backend. Verifique su red.', 'Fallo de conectividad');
+      console.groupEnd();
+    }
+  }
+
+  logout() {
+    this.toastService.info('Cerrando sesión...', 'Sistema');
+    this.authService.logout();
   }
 }

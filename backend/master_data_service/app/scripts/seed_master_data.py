@@ -1,57 +1,68 @@
-import asyncio
+﻿import asyncio
 import os
 import sys
+import uuid
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 
-# 1. Ajuste de Path para Docker: /app es la raíz en el contenedor
+# 1. Path fix for Docker and Local
 sys.path.insert(0, "/app")
+sys.path.append(os.getcwd())
 
-# 2. Importación corregida: El archivo es 'um.py' y la clase es 'UM'
-from app.models.um import UM 
+# 2. Correct Model Import
+from app.models.uom import UOM
 
-# DATABASE_URL para el contenedor
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@interno-db:5432/interno_db")
+# 3. Compliance Constants
+SYSTEM_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000000")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/interno_db")
 
 UOM_DATA = [
-    {"code": "KG", "name": "KILOGRAM", "factor": 1.0},
-    {"code": "UN", "name": "UNIT", "factor": 1.0},
-    {"code": "GL", "name": "GALLON", "factor": 1.0},
-    {"code": "LB", "name": "POUND", "factor": 1.0}
+    {"code": "KG", "name": "KILOGRAM", "factor": 1.0, "key": "uom.kg"},
+    {"code": "UN", "name": "UNIT", "factor": 1.0, "key": "uom.unit"},
+    {"code": "GL", "name": "GALLON", "factor": 3.78541, "key": "uom.gallon"},
+    {"code": "LB", "name": "POUND", "factor": 0.453592, "key": "uom.pound"},
+    {"code": "M", "name": "METER", "factor": 1.0, "key": "uom.meter"},
+    {"code": "PZA", "name": "PIEZA", "factor": 1.0, "key": "uom.pieza"}
 ]
 
 async def seed_master_data():
-    print(f"🚀 [Interno Core] Iniciando Seed en: {DATABASE_URL}")
+    print(f"🚀 [Interno Core] Remediation Seed: {DATABASE_URL}")
     engine = create_async_engine(DATABASE_URL)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as db:
         try:
             for data in UOM_DATA:
-                # Buscamos registros globales (company_id is None)
-                stmt = select(UM).where(UM.code == data["code"], UM.company_id == None)
+                # Global check (company_id is None)
+                stmt = select(UOM).where(UOM.code == data["code"], UOM.company_id == None)
                 result = await db.execute(stmt)
                 exists = result.scalars().first()
                 
                 if not exists:
-                    uom = UM(
-                        company_id=None, # Registro global para modo demo/base
+                    uom = UOM(
+                        company_id=None,
                         code=data["code"],
                         name=data["name"],
-                        conversion_factor=data["factor"]
-                        # is_active viene por defecto en True desde BaseDomainEntity
+                        translation_key=data["key"],
+                        conversion_factor=data["factor"],
+                        created_by=SYSTEM_USER_ID,
+                        updated_by=SYSTEM_USER_ID
                     )
                     db.add(uom)
-                    print(f"✅ Agregado: {data['code']}")
+                    print(f"✅ Created Global UOM: {data['code']}")
                 else:
-                    print(f"⏩ Saltando (ya existe): {data['code']}")
+                    # Upgrade existing (ensure system user is owner)
+                    exists.created_by = SYSTEM_USER_ID
+                    exists.updated_by = SYSTEM_USER_ID
+                    exists.translation_key = data["key"]
+                    print(f"🆙 Updated Global UOM: {data['code']}")
             
             await db.commit()
-            print("🏁 Seed completado con éxito.")
+            print("🏁 Master Data Remediation Seed complete.")
         except Exception as e:
             await db.rollback()
-            print(f"❌ Error durante el seed: {e}")
+            print(f"❌ Seed Error: {e}")
         finally:
             await db.close()
 

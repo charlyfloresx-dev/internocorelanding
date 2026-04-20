@@ -1,0 +1,130 @@
+timestamp,message
+1776457656239,'"========================================"
+1776457656239,  InternoCore Auth-Service Bootstrap
+1776457656239,'"========================================"
+1776457656239,>> [1/3] Ejecutando migraciones Alembic...
+1776457663646,Traceback (most recent call last):
+1776457663646,"  File ""<frozen runpy>"", line 198, in _run_module_as_main"
+1776457663646,"  File ""<frozen runpy>"", line 88, in _run_code"
+1776457663646,"  File ""/usr/local/lib/python3.11/site-packages/alembic/__main__.py"", line 4, in <module>"
+1776457663647,"    main(prog=""alembic"")"
+1776457663647,"  File ""/usr/local/lib/python3.11/site-packages/alembic/config.py"", line 641, in main"
+1776457663648,    CommandLine(prog=prog).main(argv=argv)
+1776457663648,"  File ""/usr/local/lib/python3.11/site-packages/alembic/config.py"", line 631, in main"
+1776457663649,"    self.run_cmd(cfg, options)"
+1776457663649,"  File ""/usr/local/lib/python3.11/site-packages/alembic/config.py"", line 608, in run_cmd"
+1776457663649,    fn(
+1776457663649,"  File ""/usr/local/lib/python3.11/site-packages/alembic/command.py"", line 403, in upgrade"
+1776457663650,    script.run_env()
+1776457663650,"  File ""/usr/local/lib/python3.11/site-packages/alembic/script/base.py"", line 583, in run_env"
+1776457663652,"    util.load_python_file(self.dir, ""env.py"")"
+1776457663652,"  File ""/usr/local/lib/python3.11/site-packages/alembic/util/pyfiles.py"", line 95, in load_python_file"
+1776457663693,"    module = load_module_py(module_id, path)"
+1776457663693,             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663693,"  File ""/usr/local/lib/python3.11/site-packages/alembic/util/pyfiles.py"", line 113, in load_module_py"
+1776457663693,    spec.loader.exec_module(module)  # type: ignore
+1776457663693,    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663693,"  File ""<frozen importlib._bootstrap_external>"", line 940, in exec_module"
+1776457663693,"  File ""<frozen importlib._bootstrap>"", line 241, in _call_with_frames_removed"
+1776457663693,"  File ""/app/alembic/env.py"", line 82, in <module>"
+1776457663693,    asyncio.run(run_migrations_online())
+1776457663693,"  File ""/usr/local/lib/python3.11/asyncio/runners.py"", line 190, in run"
+1776457663694,    return runner.run(main)
+1776457663694,           ^^^^^^^^^^^^^^^^
+1776457663694,"  File ""/usr/local/lib/python3.11/asyncio/runners.py"", line 118, in run"
+1776457663694,    return self._loop.run_until_complete(task)
+1776457663694,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663694,"  File ""/usr/local/lib/python3.11/asyncio/base_events.py"", line 654, in run_until_complete"
+1776457663695,    return future.result()
+1776457663695,           ^^^^^^^^^^^^^^^
+1776457663695,"  File ""/app/alembic/env.py"", line 73, in run_migrations_online"
+1776457663695,    async with connectable.connect() as connection:
+1776457663695,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/base.py"", line 121, in __aenter__"
+1776457663695,    return await self.start(is_ctxmanager=True)
+1776457663695,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663695,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/engine.py"", line 273, in start"
+1776457663695,    await greenlet_spawn(self.sync_engine.connect)
+1776457663695,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py"", line 201, in greenlet_spawn"
+1776457663696,    result = context.throw(*sys.exc_info())
+1776457663696,             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663696,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py"", line 3276, in connect"
+1776457663697,    return self._connection_cls(self)
+1776457663697,           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663697,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py"", line 146, in __init__"
+1776457663697,    self._dbapi_connection = engine.raw_connection()
+1776457663697,                             ^^^^^^^^^^^^^^^^^^^^^^^
+1776457663697,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py"", line 3300, in raw_connection"
+1776457663698,    return self.pool.connect()
+1776457663698,           ^^^^^^^^^^^^^^^^^^^
+1776457663698,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 449, in connect"
+1776457663698,    return _ConnectionFairy._checkout(self)
+1776457663698,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663698,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 1263, in _checkout"
+1776457663699,    fairy = _ConnectionRecord.checkout(pool)
+1776457663699,            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663699,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 712, in checkout"
+1776457663699,    rec = pool._do_get()
+1776457663699,          ^^^^^^^^^^^^^^
+1776457663699,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/impl.py"", line 308, in _do_get"
+1776457663700,    return self._create_connection()
+1776457663700,           ^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663700,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 390, in _create_connection"
+1776457663700,    return _ConnectionRecord(self)
+1776457663700,           ^^^^^^^^^^^^^^^^^^^^^^^
+1776457663700,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 674, in __init__"
+1776457663700,    self.__connect()
+1776457663700,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 900, in __connect"
+1776457663701,    with util.safe_reraise():
+1776457663701,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py"", line 146, in __exit__"
+1776457663701,    raise exc_value.with_traceback(exc_tb)
+1776457663701,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py"", line 896, in __connect"
+1776457663701,    self.dbapi_connection = connection = pool._invoke_creator(self)
+1776457663701,                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663701,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/create.py"", line 643, in connect"
+1776457663702,"    return dialect.connect(*cargs, **cparams)"
+1776457663702,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663702,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py"", line 620, in connect"
+1776457663702,"    return self.loaded_dbapi.connect(*cargs, **cparams)"
+1776457663702,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663702,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py"", line 937, in connect"
+1776457663703,"    await_only(creator_fn(*arg, **kw)),"
+1776457663703,    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663703,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py"", line 131, in await_only"
+1776457663703,    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+1776457663703,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663703,"  File ""/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py"", line 196, in greenlet_spawn"
+1776457663703,    value = await result
+1776457663703,            ^^^^^^^^^^^^
+1776457663703,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connection.py"", line 2329, in connect"
+1776457663705,    return await connect_utils._connect(
+1776457663705,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663705,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py"", line 1017, in _connect"
+1776457663707,    raise last_error or exceptions.TargetServerAttributeNotMatched(
+1776457663707,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py"", line 991, in _connect"
+1776457663708,    conn = await _connect_addr(
+1776457663708,           ^^^^^^^^^^^^^^^^^^^^
+1776457663708,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py"", line 828, in _connect_addr"
+1776457663708,"    return await __connect_addr(params, True, *args)"
+1776457663708,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663708,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py"", line 873, in __connect_addr"
+1776457663708,"    tr, pr = await connector"
+1776457663708,             ^^^^^^^^^^^^^^^
+1776457663708,"  File ""/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py"", line 744, in _create_ssl_connection"
+1776457663709,"    tr, pr = await loop.create_connection("
+1776457663709,             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663709,"  File ""/usr/local/lib/python3.11/asyncio/base_events.py"", line 1046, in create_connection"
+1776457663709,    infos = await self._ensure_resolved(
+1776457663709,            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663709,"  File ""/usr/local/lib/python3.11/asyncio/base_events.py"", line 1420, in _ensure_resolved"
+1776457663710,"    return await loop.getaddrinfo(host, port, family=family, type=type,"
+1776457663710,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663710,"  File ""/usr/local/lib/python3.11/asyncio/base_events.py"", line 868, in getaddrinfo"
+1776457663710,    return await self.run_in_executor(
+1776457663710,           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663710,"  File ""/usr/local/lib/python3.11/concurrent/futures/thread.py"", line 58, in run"
+1776457663710,"    result = self.fn(*self.args, **self.kwargs)"
+1776457663711,             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663711,"  File ""/usr/local/lib/python3.11/socket.py"", line 974, in getaddrinfo"
+1776457663711,"    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):"
+1776457663711,               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1776457663711,socket.gaierror: [Errno -2] Name or service not known

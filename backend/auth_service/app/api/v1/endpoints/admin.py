@@ -11,6 +11,10 @@ from app.models.role import Role
 from common.config import settings
 from common.repository import BaseRepository
 from common.responses import ApiResponse
+from app.core.security import create_admin_god_token
+import logging
+
+audit_logger = logging.getLogger("auth_service.admin_audit")
 
 router = APIRouter()
 
@@ -112,4 +116,32 @@ async def force_role_update(
         status="success",
         message="User role updated successfully via God Mode",
         data={"transaction_id": transaction_id}
+    )
+
+@router.post("/handshake", dependencies=[Depends(verify_admin_master_key)], response_model=ApiResponse)
+async def god_mode_handshake(
+    user_id: uuid.UUID,
+    request: Request
+):
+    """
+    [GOD MODE] Intercambia el Master Key por un JWT de Rescate Técnico.
+    El token emitido permite el bypass de tenant por 30 minutos.
+    """
+    transaction_id = getattr(request.state, "transaction_id", str(uuid.uuid4()))
+    
+    # REGISTRO INMUTABLE (Simulado con Logger específico de Auditoría)
+    audit_logger.warning(
+        f"[AUDIT][GOD_MODE_HANDSHAKE] | User: {user_id} | TX: {transaction_id} | IP: {request.client.host}"
+    )
+
+    token = create_admin_god_token(subject=user_id, correlation_id=transaction_id)
+    
+    return ApiResponse(
+        status="success",
+        message="God Mode Handshake successful. Token generated.",
+        data={
+            "access_token": token,
+            "token_type": "bearer",
+            "expires_in": 1800
+        }
     )

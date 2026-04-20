@@ -1,0 +1,34 @@
+{
+    "nodes": [
+        {
+            "id": "generate_code_graph.py:CodeGraphGenerator",
+            "type": "Generic",
+            "metadata": {
+                "name": "CodeGraphGenerator",
+                "file": "generate_code_graph.py",
+                "microservice": "common",
+                "is_multitenant": false,
+                "security_level": "Basic",
+                "value_object_usage": false,
+                "anti_fraud_handshake": "N/A",
+                "test_readiness": "MISSING",
+                "is_testable": true,
+                "external_imports_count": 10,
+                "db_leak_detected": false,
+                "uses_interfaces_only": false
+            }
+        }
+    ],
+    "edges": [],
+    "invariants_errors": [],
+    "compliance_report": {
+        "architecture_score": 100,
+        "security_score": 100,
+        "test_coverage_index": 0.0
+    },
+    "technical_debt": {
+        "hardcoded_secrets": [],
+        "missing_money_vo": [],
+        "missing_anti_fraud": []
+    }
+}

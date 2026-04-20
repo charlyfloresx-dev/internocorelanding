@@ -1,0 +1,219 @@
+<div class="h-full flex flex-col bg-surface-bg text-surface-text">
+  
+  <!-- Header Minimalista (Z-20) -->
+  <header class="h-16 border-b border-surface-border bg-surface-bg/50 backdrop-blur-md flex items-center justify-between px-6 z-20">
+    <div class="flex items-center gap-4">
+      <button routerLink="/inventory/dashboard" class="p-2 hover:bg-primary/10 rounded-lg transition-colors text-surface-text-muted hover:text-primary">
+        <!-- SVG Back Arrow -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </button>
+      <h1 class="text-xl font-black tracking-tight">{{ 'inventory.receive.title' | translate:'RECEIVE MATERIALS' | uppercase }}</h1>
+    </div>
+    
+    <!-- State Badges & Mode Toggle -->
+    <div class="flex items-center gap-6">
+      <div class="flex items-center bg-surface-bg/50 border border-surface-border rounded-xl p-1">
+        <button 
+          (click)="mode = 'TRANSFER_RECEIPT'"
+          [class.bg-amber-500]="mode === 'TRANSFER_RECEIPT'"
+          [class.text-slate-900]="mode === 'TRANSFER_RECEIPT'"
+          [class.text-surface-text-muted]="mode !== 'TRANSFER_RECEIPT'"
+          class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+          Folio ICT
+        </button>
+        <button 
+          (click)="mode = 'NORMAL_ENTRY'"
+          [class.bg-primary]="mode === 'NORMAL_ENTRY'"
+          [class.text-slate-900]="mode === 'NORMAL_ENTRY'"
+          [class.text-surface-text-muted]="mode !== 'NORMAL_ENTRY'"
+          class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+          Entrada Manual
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span *ngIf="mode === 'TRANSFER_RECEIPT'" class="hidden md:inline-flex px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-xs font-black uppercase tracking-wider">
+          ICT INBOUND
+        </span>
+        <span *ngIf="mode === 'NORMAL_ENTRY'" class="hidden md:inline-flex px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-black uppercase tracking-wider">
+          STANDARD ENTRY
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 overflow-y-auto p-6 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+
+      <!-- Scanner Input Frame -->
+      <section class="p-1 rounded-2xl bg-surface-bg border border-surface-border shadow-2xl overflow-hidden relative group">
+        <!-- Esquina Neon Glow -->
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/20 blur-3xl rounded-full opacity-50 transition-opacity"></div>
+        
+        <div class="bg-surface-bg p-6 md:p-8 rounded-xl relative z-10">
+          <h2 class="text-[10px] font-black text-primary mb-6 uppercase tracking-[0.3em] flex items-center gap-2">
+            <!-- barcode icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h1v1H5zM3 13a1 1 0 011-1h3a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3zm2 2v-1h1v1H5zM13 3a1 1 0 00-1 1v3a1 1 0 001 1h3a1 1 0 001-1V4a1 1 0 00-1-1h-3zm1 2v1h1V5h-1z" clip-rule="evenodd" />
+              <path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 9a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM11 15a1 1 0 10-2 0v1a1 1 0 102 0v-1zM10 12a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM13 13a1 1 0 00-1 1v1a1 1 0 002 0v-1a1 1 0 00-1-1z" />
+            </svg>
+            {{ 'inventory.receive.ready_to_scan' | translate:'AUTO CATCH (SCAN UUID/FOLIO)' }}
+          </h2>
+          
+          <div class="relative">
+            <input 
+              type="text" 
+              #scannerInput
+              (input)="onScanInput($event)"
+              [placeholder]="'inventory.receive.waiting_scan' | translate:'Awaiting Scanner Input...'"
+              class="w-full bg-surface-bg border-2 border-surface-border rounded-xl p-6 text-center text-3xl font-mono text-primary outline-none focus:border-primary transition-all shadow-inner"
+              [disabled]="loading"
+              autocomplete="off"
+              autofocus>
+            <div *ngIf="loading" class="absolute right-6 top-1/2 -translate-y-1/2">
+              <div class="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Grid (Only when Transfer is Loaded or Manual Mode) -->
+      <section *ngIf="transferData || mode === 'NORMAL_ENTRY'" class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        <!-- Transfer Metadata -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="p-4 bg-surface-bg shadow-md border border-surface-border rounded-xl">
+            <p class="text-[9px] text-surface-text-muted uppercase font-black tracking-widest mb-1">Folio Espejo</p>
+            <p class="text-lg font-mono font-black text-surface-text">{{ transferData.mirror_folio || transferData.inbound_folio || transferData.folio }}</p>
+          </div>
+          <div class="p-4 bg-surface-bg shadow-md border border-surface-border rounded-xl">
+            <p class="text-[9px] text-surface-text-muted uppercase font-black tracking-widest mb-1">Empresa Origen</p>
+            <p class="text-sm font-black text-surface-text">{{ transferData.company_id | slice:0:8 }}...</p>
+          </div>
+          <div class="p-4 bg-surface-bg shadow-md border border-surface-border rounded-xl">
+            <p class="text-[9px] text-surface-text-muted uppercase font-black tracking-widest mb-1">Cant. Esperada</p>
+            <p class="text-xl font-black text-primary">{{ transferData.quantity }}</p>
+          </div>
+          <div class="p-4 bg-surface-bg shadow-md border border-surface-border rounded-xl">
+            <p class="text-[9px] text-surface-text-muted uppercase font-black tracking-widest mb-1">Pedimento</p>
+            <p class="text-sm font-mono font-black text-amber-500">{{ transferData.customs_pedimento || 'N/A' }}</p>
+          </div>
+        </div>
+
+        <!-- The Receive Line Item / Form -->
+        <div class="bg-surface-bg border border-surface-border shadow-xl rounded-2xl overflow-hidden" [formGroup]="receiveForm">
+          <div class="px-6 py-4 border-b border-surface-border bg-surface-bg/50">
+            <h3 class="font-black text-sm uppercase tracking-widest text-surface-text">{{ 'inventory.receive.transfer_info' | translate:'Línea de Recepción' }}</h3>
+          </div>
+          
+          <div class="p-6 md:p-8 space-y-8">
+            <!-- Product Identity / Manual Search -->
+            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-surface-border/50">
+              <div class="h-16 w-16 rounded-xl border border-surface-border bg-surface-bg flex items-center justify-center text-primary shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              
+              <div class="flex-1 space-y-4">
+                <div *ngIf="mode === 'TRANSFER_RECEIPT'">
+                  <p class="text-sm font-mono font-black text-surface-text-muted mb-1">ITEM: {{ getProductName() | slice:0:13 }}</p>
+                  <p class="text-surface-text font-bold">Recepción de Mercancía vinculada a Folio</p>
+                </div>
+
+                <div *ngIf="mode === 'NORMAL_ENTRY'" class="grid md:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="block text-[8px] font-black text-primary uppercase tracking-[0.2em]">Búsqueda de SKU Maestro</label>
+                    <div class="flex gap-2">
+                      <input 
+                        formControlName="sku" 
+                        placeholder="ESCRIBIR SKU..."
+                        (keydown.enter)="lookupManualSku()"
+                        class="flex-1 bg-surface-bg border border-surface-border rounded-lg px-4 py-2 text-sm font-black text-primary outline-none focus:border-primary transition-all uppercase">
+                      <button (click)="lookupManualSku()" class="p-2 bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary/30 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="block text-[8px] font-black text-amber-500 uppercase tracking-[0.2em]">Sello Jurídico (Pedimento)</label>
+                    <input 
+                      formControlName="pedimento" 
+                      placeholder="ADUANA-XX-XXX..."
+                      class="w-full bg-surface-bg border border-surface-border rounded-lg px-4 py-2 text-sm font-black text-amber-500 outline-none focus:border-amber-500 transition-all uppercase">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Validation Counters -->
+            <div class="grid md:grid-cols-2 gap-8">
+              
+              <!-- Recibido OK -->
+              <div class="space-y-4">
+                <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-[0.3em]">
+                  Recibido OK
+                </label>
+                <div class="relative">
+                  <input type="number" formControlName="receivedQuantity" min="0" 
+                    class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-4 pl-6 text-2xl font-black text-surface-text outline-none focus:border-primary transition-colors">
+                  <div class="absolute inset-y-0 right-0 pr-6 flex items-center pointer-events-none">
+                    <span class="text-surface-text-muted font-black tracking-[0.2em] text-sm">/ {{ getExpectedQuantity() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dañado / Red Tag -->
+              <div class="space-y-4">
+                <label class="block text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                  </svg>
+                  Dañado / Faltante
+                </label>
+                <div class="relative">
+                  <input type="number" formControlName="damagedQuantity" min="0" 
+                    class="w-full bg-surface-bg border-2 border-rose-500/30 rounded-xl py-4 pl-6 text-2xl font-black text-rose-500 outline-none focus:border-rose-500/50 transition-colors">
+                  <div class="absolute right-4 top-1/2 -translate-y-1/2 bg-rose-500/10 text-rose-500 text-[10px] px-2 py-1 rounded-md font-black uppercase tracking-widest">
+                    RED TAG
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Notes -->
+            <div class="space-y-3">
+              <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-[0.3em]">
+                Comentarios / Justificación
+              </label>
+              <textarea formControlName="notes" rows="3" 
+                class="w-full bg-surface-bg border border-surface-border rounded-xl p-4 text-surface-text text-sm font-bold outline-none focus:border-primary resize-none"
+                placeholder="Indique motivo si hay discrepancia..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submission Actions -->
+        <div class="flex justify-end pt-4">
+          <button 
+            type="button"
+            (click)="submitReception()"
+            [disabled]="loading || receiveForm.invalid"
+            class="px-8 py-4 bg-primary disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 text-slate-900 font-black rounded-xl text-sm uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary/20">
+            <span *ngIf="loading" class="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></span>
+             {{ loading ? 'PROCESANDO...' : 'CONFIRMAR RECEPCIÓN' }}
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>

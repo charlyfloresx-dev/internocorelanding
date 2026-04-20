@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  localstack:
+    container_name: localstack
+    image: localstack/localstack:1.4.0
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # External services port range
+    environment:
+      - SERVICES=s3,ssm
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      # Automatic initialization script mapping
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      # Startup scripts
+      - ./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+    networks:
+      - interno-network
+
+  # Prometheus as previously defined
+  prometheus:
+    build:
+      context: ./telemetry/prometheus
+      dockerfile: Dockerfile
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - interno-network
+
+volumes:
+  prometheus-data:
+
+networks:
+  interno-network:
+    name: interno_interno-network
+    external: true

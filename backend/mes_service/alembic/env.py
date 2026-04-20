@@ -29,15 +29,8 @@ print("="*50 + "\n")
 # ------------------------------------------------------------------------
 # Importación de Modelos y Metadata
 # ------------------------------------------------------------------------
-try:
-    from common.models.base_models import Base
-    import app.models 
-except ImportError as e:
-    print(f"❌ Error de Importación en MES: {e}")
-    # Fallback si PYTHONPATH no está bien configurado
-    sys.path.append("/app")
-    from common.models.base_models import Base
-    import app.models
+from common.infrastructure.models.base import Base
+import app.models
 
 # ------------------------------------------------------------------------
 # Configuración de Alembic

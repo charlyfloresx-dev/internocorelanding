@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH="/app:/app/tickets_service"
+ENV PYTHONPATH="/app:/app/notification_service"
 
 WORKDIR /app
 
@@ -12,18 +12,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 2. Install Python dependencies
 COPY common/requirements.txt /app/common/requirements.txt
-COPY tickets_service/requirements.txt /app/tickets_service/requirements.txt
+COPY notification_service/requirements.txt /app/notification_service/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /app/common/requirements.txt && \
-    pip install --no-cache-dir -r /app/tickets_service/requirements.txt
+    pip install --no-cache-dir -r /app/notification_service/requirements.txt
 
 # 3. Copy service structure
 COPY common /app/common
-COPY tickets_service/app /app/tickets_service/app
+COPY notification_service/app /app/notification_service/app
 
 # 4. Final Workdir
-WORKDIR /app/tickets_service
+WORKDIR /app/notification_service
 
 # 5. Security - Non-root user
 RUN addgroup --system app && adduser --system --group app && \

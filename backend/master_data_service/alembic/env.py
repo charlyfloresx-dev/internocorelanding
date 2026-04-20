@@ -16,11 +16,8 @@ if config.config_file_name is not None:
 
 # 2. IMPORTACIÓN DE LA BASE Y MODELOS
 from common.models import MultiTenantBase
-# Importar modelos para que Alembic los detecte
-from app.models.uom import UOM
-from app.models.product_category import ProductCategory
-from app.models.product_brand import ProductBrand
-from app.models.product import Product, ProductVersion
+# Importar todos los modelos desde el registry para que Alembic los detecte
+import app.models  # noqa: F401
 target_metadata = MultiTenantBase.metadata
 
 def get_url():

@@ -10,32 +10,31 @@ if TYPE_CHECKING:
     from .inventory_document import InventoryDocument
     from .inventory_snapshot import InventorySnapshot
 
-class WarehouseType(MultiTenantBase, Base):
+class WarehouseType(MultiTenantBase):
     __tablename__ = "warehouse_types"
     
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-class WarehouseGroup(MultiTenantBase, Base):
+class WarehouseGroup(MultiTenantBase):
     __tablename__ = "warehouse_groups"
     
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
 
-class Warehouse(MultiTenantBase, Base):
+from common.models import BaseWarehouse
+
+class Warehouse(BaseWarehouse):
     """
     Traducido del legacy Warehouse.cs.
     Gestión de bodegas físicas y lógicas.
     """
     __tablename__ = "warehouses"
 
-    code: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(500))
     
     capacity: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0)
     unit_code: Mapped[Optional[str]] = mapped_column(String(10))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Jerarquía
     warehouse_type_id: Mapped[Optional[UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouse_types.id"))
@@ -52,7 +51,7 @@ class Warehouse(MultiTenantBase, Base):
         UniqueConstraint("company_id", "code", name="uq_warehouse_company_code"),
     )
 
-class Zone(MultiTenantBase, Base):
+class Zone(MultiTenantBase):
     """
     Representa una zona lógica dentro de un almacén (p.e. Recepción, Almacenamiento, Calidad).
     """

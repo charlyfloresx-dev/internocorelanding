@@ -1,0 +1,24 @@
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'interno-microservices'
+    metrics_path: '/metrics'
+    scheme: 'http'
+    # Scrape metrics every 15 seconds
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'auth-service-api:8000'
+          - 'currency-service-api:8000'
+          - 'hr-service-api:8000'
+          - 'inventory-service-api:8000'
+          - 'kiosk-service-api:8000'
+          - 'master-data-service-api:8000'
+          - 'mes-service-api:8000'
+          - 'notification-service-api:8000'
+          - 'subscription-service-api:8000'
+          - 'tickets-service-api:8000'
+          - 'viatra-service-api:8000'
+          - 'wms-service-api:8000'

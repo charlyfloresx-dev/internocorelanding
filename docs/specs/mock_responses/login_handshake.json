@@ -1,0 +1,34 @@
+{
+  "status": "success",
+  "data": {
+    "selection_token": "handshake_token_v2_xyz",
+    "user_id": "u-789",
+    "is_new": false,
+    "companies": [
+      {
+        "company_id": "c1",
+        "company_name": "Logistic Tijuana WH",
+        "role_names": [
+          "Admin",
+          "Manager"
+        ],
+        "is_new": false,
+        "group_id": "g1"
+      },
+      {
+        "company_id": "c2",
+        "company_name": "San Diego Hub",
+        "role_names": [
+          "Operator"
+        ],
+        "is_new": false,
+        "group_id": "g1"
+      }
+    ]
+  },
+  "message": "Authentication successful. Please select a company.",
+  "meta": {
+    "trace_id": "auth-123",
+    "latency": "45ms"
+  }
+}

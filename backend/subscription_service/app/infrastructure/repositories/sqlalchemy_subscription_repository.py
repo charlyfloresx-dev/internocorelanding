@@ -19,10 +19,11 @@ class SQLAlchemySubscriptionRepository(ISubscriptionRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_plan_by_stripe_product(self, stripe_product_id: str) -> Optional[Any]:
+    async def get_plan_by_stripe_product(self, stripe_product_id: str, company_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         # En el modelo actual no veo stripe_product_id, asumo que 'name' o una columna similar se mapea
         # Para el refactor usaré una lógica basada en el nombre del plan si el campo no existe.
         stmt = select(Plan).where(Plan.name == stripe_product_id)
+        # Plan is global but we accept company_id for compliance consistency
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -33,8 +34,10 @@ class SQLAlchemySubscriptionRepository(ISubscriptionRepository):
         await self.db.refresh(subscription)
         return subscription
 
-    async def update_subscription(self, stripe_subscription_id: str, update_data: dict) -> Any:
+    async def update_subscription(self, stripe_subscription_id: str, update_data: dict, company_id: Optional[uuid.UUID] = None) -> Any:
         stmt = select(Subscription).where(Subscription.stripe_subscription_id == stripe_subscription_id)
+        if company_id:
+             stmt = stmt.where(Subscription.company_id == company_id)
         result = await self.db.execute(stmt)
         subscription = result.scalar_one_or_none()
         if subscription:
@@ -44,8 +47,9 @@ class SQLAlchemySubscriptionRepository(ISubscriptionRepository):
             await self.db.refresh(subscription)
         return subscription
 
-    async def get_active_plans(self) -> List[Any]:
+    async def get_active_plans(self, company_id: Optional[uuid.UUID] = None) -> List[Any]:
         stmt = select(Plan)
+        # Plan is global but company_id is provided for structural interface consistency
         result = await self.db.execute(stmt)
         return result.scalars().all()
 

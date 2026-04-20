@@ -1,0 +1,15 @@
+{
+    "nodes": [],
+    "edges": [],
+    "invariants_errors": [],
+    "compliance_report": {
+        "architecture_score": 100,
+        "security_score": 100,
+        "test_coverage_index": 0
+    },
+    "technical_debt": {
+        "hardcoded_secrets": [],
+        "missing_money_vo": [],
+        "missing_anti_fraud": []
+    }
+}

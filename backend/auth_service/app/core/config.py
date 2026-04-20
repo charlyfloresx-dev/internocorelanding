@@ -1,29 +1,49 @@
-from common.config import settings as base_settings
-from typing import List
+from pydantic import Field, AliasChoices
+from pydantic_settings import SettingsConfigDict
+from common.config import InternoSettings
+from typing import Optional
 
-class AuthSettingsWrapper:
-    def __init__(self, base):
-        if not base:
-            # Fallback for initialization phase if necessary, though base should exist
-            self._base = None
-            self.DATABASE_URL = ""
-            self.SECRET_KEY = "changeme"
-        else:
-            self._base = base
-            # Mapping required by auth_service
-            self.DATABASE_URL = getattr(base, "DATABASE_URL", "")
-            self.SECRET_KEY = getattr(base, "SECRET_KEY", "changeme")
-        
-        self.ALGORITHM = "HS256"
-        self.ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
-        self.SELECTION_TOKEN_EXPIRE_MINUTES = 5
-        self.BACKEND_CORS_ORIGINS = getattr(base, "int_backend_cors_origins", ["*"])
-        self.SUBSCRIPTION_SERVICE_URL = "http://subscription-service:8000"
+class AuthSettings(InternoSettings):
+    """
+    Configuración escalable para Auth Service.
+    Hereda de InternoSettings para asegurar consistencia en AWS y carga de secretos.
+    """
+    PROJECT_NAME: str = "InternoCore Auth Service"
+    API_V1_STR: str = "/api/v1"
+    
+    # Token Lifetimes
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 720
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 days
+    SELECTION_TOKEN_EXPIRE_MINUTES: int = 5
+    
+    # Service URLs
+    SUBSCRIPTION_SERVICE_URL: str = Field(
+        default="http://subscription-service:8000",
+        validation_alias=AliasChoices("CORE_SUBSCRIPTION_URL", "SUBSCRIPTION_SERVICE_URL")
+    )
+    HR_SERVICE_URL: str = Field(
+        default="http://hr-service:8000",
+        validation_alias=AliasChoices("CORE_HR_URL", "HR_SERVICE_URL")
+    )
+    
+    # OAuth
+    GOOGLE_CLIENT_ID: str = Field(default="", validation_alias=AliasChoices("CORE_GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_ID"))
+    FB_APP_ID: str = Field(default="", validation_alias=AliasChoices("CORE_FB_APP_ID", "FB_APP_ID"))
+    FB_APP_SECRET: str = ""
+    AZURE_CLIENT_ID: str = ""
 
-    def __getattr__(self, name):
-        if self._base:
-            return getattr(self._base, name)
-        raise AttributeError(f"AuthSettingsWrapper has no attribute {name}")
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        if self.DATABASE_URL.startswith("postgresql://"):
+            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return self.DATABASE_URL
 
-# Create the singleton wrapper
-settings = AuthSettingsWrapper(base_settings)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        case_sensitive=True
+    )
+
+# Singleton instantiation with automatic AWS secret loading
+settings = AuthSettings()
+settings.load_aws_secrets()

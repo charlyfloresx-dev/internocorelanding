@@ -4,9 +4,9 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from common.models import BaseDomainEntity, AuditBase, MultiTenantBase
+from common.models import MultiTenantBase
 
-class ProductionSession(BaseDomainEntity, AuditBase, MultiTenantBase):
+class ProductionSession(MultiTenantBase):
     __tablename__ = "production_sessions"
 
     resource_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)

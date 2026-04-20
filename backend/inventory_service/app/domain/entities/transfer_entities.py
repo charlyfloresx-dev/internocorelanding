@@ -221,6 +221,10 @@ class CompleteTransferCommand(BaseModel):
         None,
         description="Observaciones de recepción (daños, faltantes, etc.)"
     )
+    destination_location: Optional[str] = Field(
+        "RECEPTION",
+        description="Ubicación física final en el almacén de destino (Density Guard check)."
+    )
     customs_pedimento_id: Optional[uuid.UUID] = Field(
         None,
         description="ID del Pedimento (Anexo 24) vinculado formalmente al momento de recibir (opcional)"

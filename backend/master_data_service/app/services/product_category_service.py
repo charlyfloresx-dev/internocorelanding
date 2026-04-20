@@ -17,8 +17,8 @@ class ProductCategoryService:
     async def create_category(self, category_in: CategoryCreate, company_id: uuid.UUID) -> Any:
         return await self.repo.create_category(category_in.model_dump(), company_id)
 
-    async def update_category(self, category_id: uuid.UUID, category_in: CategoryUpdate) -> Any:
-        return await self.repo.update_category(category_id, category_in.model_dump(exclude_unset=True))
+    async def update_category(self, category_id: uuid.UUID, company_id: uuid.UUID, category_in: CategoryUpdate) -> Any:
+        return await self.repo.update_category(category_id, company_id, category_in.model_dump(exclude_unset=True))
 
     async def delete_category(self, category_id: uuid.UUID) -> None:
         await self.repo.delete_category(category_id)

@@ -1,4 +1,5 @@
 from app.core.config import settings
+from common.security.cors_setup import setup_cors
 from app.api.v1.endpoints import scan, dashboard, labor, downtime, work_order, sync, resource, shift
 from common.middleware import InternoCoreGlobalMiddleware
 from common.error_handlers import domain_exception_handler
@@ -28,13 +29,7 @@ app.include_router(resource.router, prefix=f"{settings.API_V1_STR}/mes/resources
 app.include_router(shift.router, prefix=f"{settings.API_V1_STR}/mes/shifts", tags=["MES Shifts"])
 
 # CORS CloudFront/Frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:4200"], # CORS strictly for Angular Dev
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+setup_cors(app)
 
 @app.get("/")
 async def root():

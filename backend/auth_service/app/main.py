@@ -1,3 +1,5 @@
+from app.core.config import settings  # AWS SECRETS MUST LOAD FIRST
+from common.security.cors_setup import setup_cors
 import asyncio
 import uuid
 import time
@@ -12,6 +14,8 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from slowapi.errors import RateLimitExceeded
+from common.security.limiter import limiter
 
 # --- CONFIGURACIÓN DE LOGGING ---
 LOGGING_CONFIG = {
@@ -48,7 +52,6 @@ from app.models import Base, User
 from common.responses import ApiResponse
 from app.api.v1.api import api_router
 from app.api.v2.api import api_router as v2_api_router
-from app.core.config import settings
 
 # Middlewares
 from common.middleware import InternoCoreGlobalMiddleware
@@ -79,14 +82,6 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
         logger.info("✅ Esquema sincronizado.")
 
-    logger.info("Verificando existencia de usuarios...")
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User))
-        if not result.scalars().first():
-            logger.warning("⚠️ Base de datos vacía. Se recomienda ejecutar scripts/seed.py manualmente si el CMD falló.")
-        else:
-            logger.info("ℹ️ Base de datos ya poblada.")
-
     yield
     logger.info("🛑 Apagando InternoCore Auth-Service...")
 
@@ -99,26 +94,15 @@ app = FastAPI(
     docs_url="/docs",
     openapi_url="/openapi.json"
 )
+app.state.limiter = limiter
 
-# --- MIDDLEWARES (Orden: De afuera hacia adentro) ---
+# --- MIDDLEWARES (Orden: El último añadido es el primero en ejecutarse) ---
 
-# 1. CORS (Siempre el primero para peticiones del navegador)
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"], 
-        allow_credentials=True, 
-        allow_methods=["*"], 
-        allow_headers=["*", "x-company-id", "x-selection-token", "authorization", "x-transaction-id"],
-        expose_headers=["x-selection-token", "x-company-id"],
-    )
-
-# 2. Global Middleware (Formateo y bypass de rutas públicas)
+# 4. Global Middleware (Formateo, Tracing y Seguridad de Tenant Unificada)
 app.add_middleware(InternoCoreGlobalMiddleware)
 
-# 3. Seguridad de Negocio (Solo se ejecutan si el Global Middleware da paso)
-app.add_middleware(BlacklistMiddleware)
-app.add_middleware(TenantSecurityMiddleware)
+# 2. CORS (DEBE SER EL ÚLTIMO EN AÑADIRSE PARA SER EL PRIMERO EN PROCESAR PREFLIGHTS)
+setup_cors(app)
 
 # --- RUTAS ---
 app.include_router(api_router, prefix="/api/v1")
@@ -135,6 +119,21 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             "message": exc.detail,
             "meta": {"trace_id": trace_id}
         }
+    )
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    trace_id = getattr(request.state, "transaction_id", "not-available")
+    # Usamos la clase ApiResponse.error para mantener consistencia con el ecosistema
+    response = ApiResponse.error(
+        message="Has superado el límite de intentos permitidos. Por favor, espera un momento.",
+        code="RATE_LIMIT_EXCEEDED",
+        trace_id=trace_id,
+        data={"limit": exc.detail}
+    )
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content=response.model_dump()
     )
 
 @app.get("/", tags=["Health"])

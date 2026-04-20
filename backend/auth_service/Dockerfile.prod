@@ -13,8 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalamos dependencias
-COPY auth_service/requirements.txt .
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+COPY common/requirements.txt ./common/requirements.txt
+COPY auth_service/requirements.txt ./auth_service/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r ./common/requirements.txt && \
+    pip install --no-cache-dir -r ./auth_service/requirements.txt
 
 # Stage 2: Runner
 FROM python:3.11-slim-buster as runner

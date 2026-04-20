@@ -1,153 +1,167 @@
-import { Injectable, signal } from '@angular/core';
+import {Injectable, signal, computed, inject, PLATFORM_ID} from '@angular/core';
+import {isPlatformBrowser} from '@angular/common';
+import {AuthService} from './auth.service';
+import {TranslationService} from './translation.service';
+
+export interface SubMenuItem {
+  id: string;
+  label: string;
+  translation_key?: string;
+  route: string;
+  permissions?: string[];
+}
 
 export interface MenuItem {
   id: string;
-  title: string;
+  label: string;
+  translation_key?: string;
   icon: string;
-  link?: string;
-  children?: MenuItem[];
-  requiredRoles?: string[]; // Roles necesarios para ver este item
+  route?: string;
+  permissions?: string[];
+  subItems?: SubMenuItem[];
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class NavigationService {
-  // Signal para la reactividad del menú
-  readonly menuItems = signal<MenuItem[]>([]);
+  private authService = inject(AuthService);
+  private translationService = inject(TranslationService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
-  constructor() {
-    // Inicialización automática para asegurar que el menú se muestre
-    this.generateMenu([]);
+  // Master Blueprint
+  private readonly blueprint: MenuItem[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      translation_key: 'menu.dashboard',
+      icon: 'show_chart',
+      route: '/dashboard'
+    },
+    {
+      id: 'production',
+      label: 'Producción',
+      translation_key: 'menu.production',
+      icon: 'precision_manufacturing',
+      permissions: ['mes:admin', 'production:manage'],
+      subItems: [
+        { id: 'prod-dash', label: 'Dashboard Producción', translation_key: 'menu.production_dashboard', route: '/production/dashboard' },
+        { id: 'prod-monitor', label: 'Monitor de Línea', translation_key: 'menu.production_monitor', route: '/monitor/resources' },
+        { id: 'prod-orders', label: 'Órdenes de Trabajo', translation_key: 'menu.production_lines', route: '/production/orders' }
+      ]
+    },
+    {
+      id: 'inventory',
+      label: 'Inventarios',
+      translation_key: 'menu.inventory',
+      icon: 'inventory_2',
+      permissions: ['inv:movements:manage', 'inv:warehouse:manage', 'inventory:admin'],
+      subItems: [
+        { id: 'inv-dash', label: 'Dashboard Global', translation_key: 'menu.inventory_dashboard', route: '/inventory/dashboard' },
+        { id: 'inv-stock', label: 'Stock por Almacén', translation_key: 'menu.inventory_stock', route: '/inventory/stock' },
+        { id: 'inv-receive', label: 'Recibir Materiales', translation_key: 'menu.inventory_receive', route: '/inventory/receive' },
+        { id: 'inv-docs', label: 'Movimientos', translation_key: 'menu.inventory_documents', route: '/inventory/documents' },
+        { id: 'inv-trans', label: 'Transferencias ICT', translation_key: 'menu.inventory_transfers', route: '/inventory/transfers' },
+        { id: 'inv-cycle', label: 'Auditoría Spot', translation_key: 'menu.inventory_cycle_count', route: '/inventory/cycle-count' }
+      ]
+    },
+    {
+      id: 'catalog',
+      label: 'Catálogo',
+      translation_key: 'menu.catalog',
+      icon: 'category',
+      permissions: ['master:catalog:manage', 'catalog:admin'],
+      subItems: [
+        { id: 'cat-master', label: 'Catálogo Maestro', translation_key: 'menu.catalog_master', route: '/catalog' },
+        { id: 'cat-uom', label: 'Unidades de Medida', translation_key: 'menu.catalog_uom', route: '/catalog/uom' },
+        { id: 'cat-categories', label: 'Categorías y Marcas', translation_key: 'menu.catalog_categories', route: '/catalog/categories' },
+        { id: 'cat-warehouses', label: 'Almacenes', translation_key: 'menu.catalog_warehouses', route: '/catalog/warehouses' },
+        { id: 'cat-concepts', label: 'Conceptos', translation_key: 'menu.catalog_concepts', route: '/catalog/concepts' },
+        { id: 'cat-partners', label: 'Socios de Negocio', translation_key: 'menu.catalog_partners', route: '/catalog/partners' }
+      ]
+    },
+    {
+      id: 'wms',
+      label: 'WMS / Logística',
+      translation_key: 'menu.wms',
+      icon: 'conveyor_belt',
+      permissions: ['wms:admin', 'wms:manage', 'inv:warehouse:manage'],
+      subItems: [
+        { id: 'wms-receiving', label: 'Recibo', translation_key: 'menu.wms_receiving', route: '/inventory/inbound' },
+        { id: 'wms-picking', label: 'Picking', translation_key: 'menu.wms_picking', route: '/inventory/picking' },
+        { id: 'wms-putaway', label: 'Put-Away', translation_key: 'menu.wms_putaway', route: '/inventory/put-away' },
+        { id: 'wms-cycle', label: 'Conteo Cíclico', translation_key: 'menu.wms_cycle_count', route: '/inventory/cycle-count' },
+        { id: 'wms-shipping', label: 'Embarques', translation_key: 'menu.wms_shipping', route: '/inventory/shipping' }
+      ]
+    },
+    {
+      id: 'system',
+      label: 'Sistema',
+      translation_key: 'menu.settings',
+      icon: 'settings',
+      permissions: ['admin', 'auth:user:manage', 'auth:roles:manage'],
+      subItems: [
+        { id: 'sys-users', label: 'Usuarios', translation_key: 'menu.settings_users', route: '/admin/users' },
+        { id: 'sys-staff', label: 'Personal de Planta', translation_key: 'menu.settings_staff', route: '/admin/staff' },
+        { id: 'sys-config', label: 'Configuración', translation_key: 'menu.settings_system', route: '/system/config' }
+      ]
+    }
+  ];
+
+  // Helper to translate items
+  translateLabel(item: MenuItem | SubMenuItem): string {
+    return this.translationService.translate(item.translation_key || '', item.label);
   }
 
-  generateMenu(roleNames: string[] = []): void {
-    console.log('[NavigationService] 🚀 generateMenu invocado. Roles entrada:', roleNames);
+  // Signal for filtered menu items based on RBAC
+  menuItems = computed(() => {
+    const permissions = this.authService.permissions();
+    const roles = this.authService.roles();
+    const isAuthenticated = this.authService.isAuthenticated();
 
-    // === PROTECCIÓN DE CONTEXTO ===
-    // Si recibimos roles débiles (vacío o 'viewer') que suelen venir de inicializaciones por defecto,
-    // intentamos recuperar los permisos reales (scopes) del localStorage para no perder el menú.
-    const isWeakRole = roleNames.length === 0 || (roleNames.length === 1 && roleNames[0] === 'viewer');
+    if (!isAuthenticated) return [];
 
-    if (isWeakRole) {
-      try {
-        const savedCtx = localStorage.getItem('interno_auth_ctx');
-        if (savedCtx) {
-          const ctx = JSON.parse(savedCtx);
-          if (ctx.permissions && Array.isArray(ctx.permissions) && ctx.permissions.length > 0) {
-            // Solo sobreescribimos si lo que hay en storage NO es 'viewer'
-            const storedPerms = ctx.permissions;
-            const isStoredWeak = storedPerms.length === 1 && storedPerms[0] === 'viewer';
-            
-            if (!isStoredWeak) {
-              roleNames = storedPerms;
-              console.log('[NavigationService] 🛡️ Contexto protegido. Ignorando rol débil:', isWeakRole, '-> Usando permisos de storage:', roleNames);
-            }
-          }
-        }
-      } catch (e) { console.warn('[NavigationService] Fallo al recuperar permisos locales', e); }
-    }
+    console.log('[NavigationService] 🛠 Calculating menu for:', { roles, permissions });
 
-    // Definición de la estructura de navegación con roles requeridos
-    const allMenuItems: MenuItem[] = [
-      {
-        id: 'dashboard',
-        title: 'Dashboard',
-        icon: 'fas fa-chart-line',
-        link: '/dashboard',
-        requiredRoles: ['admin', 'Admin Enterprise', 'operator', 'Operador de Inventario', 'inventory:admin', 'catalog:admin', 'production_mes:admin'] // Todos pueden ver
-      },
-      {
-        id: 'production',
-        title: 'Producción',
-        icon: 'fas fa-industry',
-        requiredRoles: ['admin', 'Admin Enterprise', 'production_mes:admin'], // Solo admin
-        children: [
-          { id: 'prod-orders', title: 'Órdenes de Trabajo', icon: 'fas fa-clipboard-list', link: '/production/orders' }
-        ]
-      },
-      {
-        id: 'inventory',
-        title: 'Inventarios',
-        icon: 'fas fa-boxes-stacked',
-        requiredRoles: ['admin', 'Admin Enterprise', 'operator', 'Operador de Inventario', 'inventory:admin', 'inventory:read'], // Todos
-        children: [
-          { id: 'inv-dash', title: 'Resumen', icon: 'fas fa-chart-pie', link: '/inventory' },
-          { id: 'inv-docs', title: 'Documentos', icon: 'fas fa-file-invoice', link: '/inventory/documents', requiredRoles: ['admin', 'Admin Enterprise', 'inventory:admin'] },
-          { id: 'inv-warehouses', title: 'Almacenes', icon: 'fas fa-warehouse', link: '/inventory/warehouses', requiredRoles: ['admin', 'Admin Enterprise', 'inventory:admin'] },
-          { id: 'inv-partners', title: 'Socios', icon: 'fas fa-handshake', link: '/inventory/partners', requiredRoles: ['admin', 'Admin Enterprise', 'inventory:admin'] }
-        ]
-      },
-      {
-        id: 'catalog',
-        title: 'Catálogo Maestro',
-        icon: 'fa-solid fa-boxes-stacked',
-        requiredRoles: ['admin', 'Admin Enterprise', 'operator', 'catalog:admin'],
-        children: [
-          { id: 'cat-products', title: 'Productos', icon: 'fa-solid fa-box', link: '/catalog/products' },
-          { id: 'cat-uoms', title: 'Unidades de Medida', icon: 'fa-solid fa-ruler-combined', link: '/catalog/uoms', requiredRoles: ['admin', 'Admin Enterprise', 'catalog:admin'] },
-          { id: 'cat-categories', title: 'Categorías', icon: 'fa-solid fa-layer-group', link: '/catalog/categories', requiredRoles: ['admin', 'Admin Enterprise', 'catalog:admin'] },
-          { id: 'cat-brands', title: 'Marcas', icon: 'fa-solid fa-tag', link: '/catalog/brands', requiredRoles: ['admin', 'Admin Enterprise', 'catalog:admin'] }
-        ]
-      },
-      {
-        id: 'system',
-        title: 'Sistema',
-        icon: 'fas fa-cogs',
-        requiredRoles: ['admin', 'Admin Enterprise'], // Solo admin
-        children: [
-          { id: 'sys-snapshots', title: 'Snapshots', icon: 'fas fa-camera', link: '/system/snapshots' }
-        ]
-      }
-    ];
+    // Admin bypass - check for 'admin' in roles or permissions
+    const isAdmin = roles.some((r: string) => r.toLowerCase().includes('admin')) || 
+                    permissions.some((p: string) => p.toLowerCase().includes('admin') || p === '*' || p === 'auth:user:manage');
 
-    // Filtrar menú según roles del usuario
-    const filteredMenu = this.filterMenuByRoles(allMenuItems, roleNames);
-    
-    console.log('[NavigationService] 🔍 Resultado del filtro:', {
-      rolesAplicados: roleNames,
-      itemsVisibles: filteredMenu.map(i => i.id)
+    // Filter items
+    const filtered = this.blueprint.filter(item => {
+      // Always show items without permissions (like Dashboard)
+      if (!item.permissions || item.permissions.length === 0) return true;
+      
+      // Show everything for admins
+      if (isAdmin) return true;
+      
+      const hasPermission = item.permissions.some((p: string) => permissions.includes(p));
+      console.log(`[NavigationService] Checking item: ${item.id}`, { required: item.permissions, userHas: permissions, allowed: hasPermission });
+      return hasPermission;
     });
 
-    if (filteredMenu.length === 0 && roleNames.length > 0) {
-      console.error('[NavigationService] ❌ Error: Menú vacío. Roles recibidos:', roleNames, 'Se requiere al menos uno de los roles definidos en allMenuItems');
+    // FAIL-SAFE: If results are empty but user is authenticated, at least show Dashboard
+    if (filtered.length === 0 && isAuthenticated) {
+      console.warn('[NavigationService] ⚠️ No menu items allowed by RBAC. Forcing Dashboard (Fail-Safe).');
+      return this.blueprint.filter(item => item.id === 'dashboard');
     }
 
-    this.menuItems.set(filteredMenu);
+    return filtered;
+  });
+
+  // State for active submenu
+  activeSubMenuId = signal<string | null>(null);
+
+  toggleSubMenu(id: string) {
+    if (this.activeSubMenuId() === id) {
+      this.activeSubMenuId.set(null);
+    } else {
+      this.activeSubMenuId.set(id);
+    }
   }
 
-  /**
-   * Filtra recursivamente los items del menú según los roles del usuario
-   */
-  private filterMenuByRoles(items: MenuItem[], roleNames: string[]): MenuItem[] {
-    const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('Admin Enterprise');
-
-    return items
-      .filter(item => {
-        // Jerarquía de Poder: Si es admin global, tiene acceso a todo.
-        if (isGlobalAdmin) {
-          return true;
-        }
-
-        // Si no hay requiredRoles específicados, mostrar a todos
-        if (!item.requiredRoles || item.requiredRoles.length === 0) {
-          return true;
-        }
-        // Si hay requiredRoles, verificar si el usuario tiene alguno
-        return roleNames.some(role => item.requiredRoles?.includes(role));
-      })
-      .map(item => {
-        // Si el item tiene hijos, se filtran recursivamente.
-        if (item.children) {
-          const filteredChildren = this.filterMenuByRoles(item.children, roleNames);
-          // Solo se devuelve el item si tiene hijos visibles o si es un link en sí mismo
-          if (filteredChildren.length > 0 || item.link) {
-            return { ...item, children: filteredChildren };
-          }
-          return null; // Este item se descarta porque sus hijos no son visibles
-        }
-        return item; // Es un item final, se mantiene
-      })
-      .filter((item): item is MenuItem => item !== null); // Eliminar los nulos
+  closeSubMenu() {
+    this.activeSubMenuId.set(null);
   }
 }

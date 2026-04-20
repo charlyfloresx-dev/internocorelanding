@@ -18,21 +18,22 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /app/common/requirements.txt && \
     pip install --no-cache-dir -r /app/requirements.txt
 
-# 3. Copia de la estructura del servicio (Siguiendo el modelo de Auth)
+# 3. Copia de la estructura del servicio
 COPY common /app/common
 COPY master_data_service/app /app/app
 COPY master_data_service/alembic /app/alembic
 COPY master_data_service/alembic.ini /app/alembic.ini
 COPY master_data_service/scripts /app/scripts
+COPY master_data_service/entrypoint.sh /app/entrypoint.sh
 
-# 4. Ajuste de permisos
+# 4. Ajuste de permisos y entrypoint ejecutable
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# 5. Ejecución: Estandarizada como el Auth Service
-# (Ajustado para usar seed_master_data.py dentro de scripts)
-CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# 5. Ejecución: Migraciones -> Semillas -> API (via entrypoint)
+CMD ["/bin/sh", "/app/entrypoint.sh"]

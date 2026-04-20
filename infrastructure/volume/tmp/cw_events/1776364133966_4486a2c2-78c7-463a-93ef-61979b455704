@@ -1,0 +1,1 @@
+{"Source": "aws.ssm", "Detail": "{\"name\": \"/interno-core/global/secret_key\", \"operation\": \"Create\"}", "DetailType": "Parameter Store Change"}

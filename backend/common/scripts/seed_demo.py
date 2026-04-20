@@ -8,34 +8,33 @@ from decimal import Decimal
 # Add backend to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 
-# Models from Auth Service
-from auth_service.app.models.user import User
-from auth_service.app.models.role import Role
-from auth_service.app.models.permission import Permission
-from auth_service.app.models.user_company_role import UserCompanyRole
-from common.models.company import Company # Use the unified one
+# Models (Imports adapted for Docker context /app)
+try:
+    from app.models.user import User
+    from app.models.role import Role
+    from app.models.permission import Permission, RolePermission
+    from app.models.user_company_role import UserCompanyRole
+    from common.models.company import Company
+except ImportError:
+    from auth_service.app.models.user import User
+    from auth_service.app.models.role import Role
+    from auth_service.app.models.permission import Permission, RolePermission
+    from auth_service.app.models.user_company_role import UserCompanyRole
+    from common.models.company import Company
 
-# Models from Master Data
-from master_data_service.app.models.product import Product, ProductVersion, ProductType, ProductStatus, VersionStatus
-from master_data_service.app.models.category import ProductCategory
-from master_data_service.app.models.uom import UOM
-
-# Models from WMS
+# Models from other services (Mocked or simple imports for seed)
+from master_data_service.app.models.product import Product
 from wms_service.app.models.warehouse import Warehouse
-from wms_service.app.models.concept import Concept, ConceptType
-from wms_service.app.models.inventory_snapshot import InventorySnapshot
-from wms_service.app.models.inventory_document import InventoryDocument, DocumentStatus
-
-# Models from Subscription
 from subscription_service.app.models.subscription import Subscription, Plan, Entitlement
 from subscription_service.app.core.enums import SubscriptionStatus, ModuleCode
 
 # Security
-from auth_service.app.core.security import get_password_hash
+from app.core.security import get_password_hash
 
 # Config
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5433/dbname")

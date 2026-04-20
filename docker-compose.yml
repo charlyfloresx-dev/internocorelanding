@@ -33,9 +33,39 @@ services:
       - ./backend/auth_service:/app
       - ./backend/common:/app/common
     environment:
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
-      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - SELECTION_TOKEN_EXPIRE_MINUTES=1440
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - PYTHONPATH=/app
+      - HR_SERVICE_URL=http://hr-service:8000
+      - CORE_INTERNAL_API_KEY=DEV_INTERNAL_API_KEY_CHANGE_ME
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- HR SERVICE (Identidad Física y Colaboradores) ---
+  hr-service:
+    build:
+      context: ./backend
+      dockerfile: hr_service/Dockerfile
+    container_name: hr-service-api
+    image: interno-backend-hr-service:latest
+    ports:
+      - "8009:8000"
+    volumes:
+      - ./backend/hr_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hr_db
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hr_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_INTERNAL_API_KEY=DEV_INTERNAL_API_KEY_CHANGE_ME
+      - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
       - PYTHONPATH=/app
     depends_on:
       postgres-db:
@@ -56,8 +86,9 @@ services:
       - ./backend/master_data_service:/app
       - ./backend/common:/app/common
     environment:
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
-      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
       - PYTHONPATH=/app
     depends_on:
@@ -79,8 +110,9 @@ services:
       - ./backend/subscription_service:/app
       - ./backend/common:/app/common
     environment:
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/subscription_db
-      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/subscription_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app
     depends_on:
@@ -102,9 +134,10 @@ services:
       - ./backend/inventory_service:/app
       - ./backend/common:/app/common
     environment:
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
-      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app:/app/inventory_service
     depends_on:
@@ -126,8 +159,9 @@ services:
       - ./backend/wms_service:/app
       - ./backend/common:/app/common
     environment:
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
-      - INT_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
       - PYTHONPATH=/app
     depends_on:
@@ -149,10 +183,11 @@ services:
       - ./backend/tickets_service:/app/tickets_service
       - ./backend/common:/app/common
     environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
       - SECRET_KEY=changeme
-      - INT_SECRET_KEY=changeme
+      - CORE_SECRET_KEY=changeme
       - PYTHONPATH=/app:/app/tickets_service
     depends_on:
       postgres-db:
@@ -173,13 +208,64 @@ services:
       - ./backend/mes_service:/app
       - ./backend/common:/app/common
     environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
-      - INT_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
       - POSTGRES_SERVER=postgres-db
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=mes_db
       - PYTHONPATH=/app:/app/mes_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- CURRENCY SERVICE (Tipos de Cambio y Banxico) ---
+  currency-service:
+    build:
+      context: ./backend
+      dockerfile: currency_service/Dockerfile
+    container_name: currency-service-api
+    image: interno-backend-currency-service:latest
+    ports:
+      - "8008:8000"
+    volumes:
+      - ./backend/currency_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/currency_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/currency_db
+      - CORE_BANXICO_TOKEN=c0a7ca4f35248b6c0f015c867415f6fbfe87dd05a6385f37c38f1a9253443c00
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+  # --- NOTIFICATION SERVICE (Emails, Invitaciones y Alertas) ---
+  notification-service:
+    build:
+      context: ./backend
+      dockerfile: notification_service/Dockerfile
+    container_name: notification-service-api
+    image: interno-backend-notification-service:latest
+    ports:
+      - "8010:8000"
+    volumes:
+      - ./backend/notification_service:/app
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - RESEND_API_KEY=${CORE_RESEND_API_KEY}
+      - CORE_RESEND_API_KEY=${CORE_RESEND_API_KEY}
+      - PYTHONPATH=/app
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -202,6 +288,37 @@ services:
         condition: service_started
       wms-service:
         condition: service_started
+      currency-service:
+        condition: service_started
+    networks:
+      - interno-network
+
+  # --- VIATRA SERVICE (Travel Mission Control) ---
+  viatra-service:
+    build:
+      context: ./backend
+      dockerfile: viatra_service/Dockerfile
+    container_name: viatra-service-api
+    image: interno-backend-viatra-service:latest
+    ports:
+      - "8012:8000"
+
+    volumes:
+      - ./backend/viatra_service:/app/viatra_service
+      - ./backend/common:/app/common
+
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/viatra_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/viatra_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/viatra_service
+    depends_on:
+      auth-service:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
     networks:
       - interno-network
 

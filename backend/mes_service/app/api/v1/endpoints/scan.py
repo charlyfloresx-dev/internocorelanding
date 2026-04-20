@@ -48,11 +48,6 @@ async def process_scan(
         company_id=company_id,
         local_txn_id=request.local_txn_id
     )
-        resource_result_id=request.resource_result_id,
-        scan_input=request.scan_input,
-        company_id=company_id,
-        local_txn_id=request.local_txn_id
-    )
     
     return {
         "id": ledger_entry.id,
