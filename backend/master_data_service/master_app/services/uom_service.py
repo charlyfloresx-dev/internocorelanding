@@ -9,11 +9,11 @@ class UOMService:
     def __init__(self, repo: IMasterDataRepository):
         self.repo = repo
 
-    async def get_uoms_by_company(self, company_id: uuid.UUID) -> List[Any]:
-        return await self.repo.get_uoms(company_id)
+    async def get_uoms_by_company(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+        return await self.repo.get_uoms(company_id, group_id)
 
-    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
-        return await self.repo.get_uom_by_id(uom_id, company_id)
+    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
+        return await self.repo.get_uom_by_id(uom_id, company_id, group_id)
 
     async def create_uom(self, uom_in: UOMCreate, company_id: uuid.UUID) -> Any:
         return await self.repo.create_uom(uom_in.model_dump(), company_id)

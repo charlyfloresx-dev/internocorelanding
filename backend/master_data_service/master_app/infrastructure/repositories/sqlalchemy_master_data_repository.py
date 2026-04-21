@@ -153,20 +153,25 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
     # =========================================================================
     # Brand
     # =========================================================================
-    async def get_brands(self, company_id: uuid.UUID) -> List[Any]:
-        global_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    async def get_brands(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+        filters = [ProductBrand.company_id == company_id]
+        if group_id:
+            filters = [or_(ProductBrand.company_id == company_id, ProductBrand.group_id == group_id)]
+        
         stmt = select(ProductBrand).where(
-            or_(ProductBrand.company_id == None, 
-                ProductBrand.company_id == company_id,
-                ProductBrand.company_id == global_id)
+            or_(*filters, ProductBrand.company_id == None)
         ).order_by(ProductBrand.name)
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
+        filters = [ProductBrand.company_id == company_id]
+        if group_id:
+            filters = [or_(ProductBrand.company_id == company_id, ProductBrand.group_id == group_id)]
+            
         stmt = select(ProductBrand).where(
             ProductBrand.id == brand_id,
-            or_(ProductBrand.company_id == None, ProductBrand.company_id == company_id)
+            or_(*filters, ProductBrand.company_id == None)
         )
         result = await self.db.execute(stmt)
         return result.scalars().first()
@@ -205,20 +210,25 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
     # =========================================================================
     # Category
     # =========================================================================
-    async def get_categories(self, company_id: uuid.UUID) -> List[Any]:
-        global_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    async def get_categories(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+        filters = [ProductCategory.company_id == company_id]
+        if group_id:
+            filters = [or_(ProductCategory.company_id == company_id, ProductCategory.group_id == group_id)]
+
         stmt = select(ProductCategory).where(
-            or_(ProductCategory.company_id == None, 
-                ProductCategory.company_id == company_id,
-                ProductCategory.company_id == global_id)
+            or_(*filters, ProductCategory.company_id == None)
         ).order_by(ProductCategory.name)
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_category_by_id(self, category_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_category_by_id(self, category_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
+        filters = [ProductCategory.company_id == company_id]
+        if group_id:
+            filters = [or_(ProductCategory.company_id == company_id, ProductCategory.group_id == group_id)]
+
         stmt = select(ProductCategory).where(
             ProductCategory.id == category_id,
-            or_(ProductCategory.company_id == None, ProductCategory.company_id == company_id)
+            or_(*filters, ProductCategory.company_id == None)
         )
         result = await self.db.execute(stmt)
         return result.scalars().first()
@@ -257,20 +267,25 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
     # =========================================================================
     # UOM
     # =========================================================================
-    async def get_uoms(self, company_id: uuid.UUID) -> List[Any]:
-        global_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
+    async def get_uoms(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+        filters = [UOM.company_id == company_id]
+        if group_id:
+            filters = [or_(UOM.company_id == company_id, UOM.group_id == group_id)]
+
         stmt = select(UOM).where(
-            or_(UOM.company_id == None, 
-                UOM.company_id == company_id,
-                UOM.company_id == global_id)
+            or_(*filters, UOM.company_id == None)
         ).order_by(UOM.name)
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
+        filters = [UOM.company_id == company_id]
+        if group_id:
+            filters = [or_(UOM.company_id == company_id, UOM.group_id == group_id)]
+
         stmt = select(UOM).where(
             UOM.id == uom_id,
-            or_(UOM.company_id == None, UOM.company_id == company_id)
+            or_(*filters, UOM.company_id == None)
         )
         result = await self.db.execute(stmt)
         return result.scalars().first()
@@ -308,20 +323,33 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
             await self.db.commit()
 
     # =========================================================================
-    # Sync
+    # Movement Concepts & Sync
     # =========================================================================
-    async def get_all_master_data(self, company_id: uuid.UUID) -> dict:
+    async def get_concepts(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None, type: Optional[str] = None) -> List[Any]:
+        from master_app.models.movement_concept import MovementConcept
+        filters = [MovementConcept.company_id == company_id]
+        if group_id:
+            filters = [or_(MovementConcept.company_id == company_id, MovementConcept.group_id == group_id)]
+            
+        stmt = select(MovementConcept).where(
+            or_(*filters, MovementConcept.company_id == None)
+        )
+        if type:
+            stmt = stmt.where(MovementConcept.type == type)
+            
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
+
+    async def get_all_master_data(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> dict:
         stmt_products = (
             select(Product)
-            .where(Product.company_id == company_id)
+            .where(or_(Product.company_id == company_id, Product.group_id == group_id) if group_id else Product.company_id == company_id)
             .options(selectinload(Product.versions))
         )
         products_result = await self.db.execute(stmt_products)
         products = products_result.scalars().all()
 
-        stmt_uoms = select(UOM).where(UOM.company_id == company_id)
-        uoms_result = await self.db.execute(stmt_uoms)
-        uoms = uoms_result.scalars().all()
+        uoms = await self.get_uoms(company_id, group_id)
 
         return {"products": products, "uoms": uoms}
 

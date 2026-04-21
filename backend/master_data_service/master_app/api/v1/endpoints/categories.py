@@ -17,8 +17,10 @@ async def list_categories(
     current_user: UserContext = Depends(get_current_user),
     service: ProductCategoryService = Depends(get_category_service)
 ):
-    company_id = current_user.company_id
-    categories = await service.get_categories(company_id=company_id)
+    categories = await service.get_categories(
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     return ApiResponse(status="success", data=categories, message="Categories retrieved successfully")
 
 @router.post("/", response_model=ApiResponse[CategoryRead], summary="Create Category")
@@ -46,8 +48,11 @@ async def get_category(
     current_user: UserContext = Depends(get_current_user),
     service: ProductCategoryService = Depends(get_category_service)
 ):
-    company_id = current_user.company_id
-    category = await service.get_category_by_id(category_id=category_id, company_id=company_id)
+    category = await service.get_category_by_id(
+        category_id=category_id, 
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     return ApiResponse(status="success", data=category, message="Category retrieved successfully")

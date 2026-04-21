@@ -36,11 +36,11 @@ class IMasterDataRepository(ABC):
 
     # --- Brand ---
     @abstractmethod
-    async def get_brands(self, company_id: uuid.UUID) -> List[Any]:
+    async def get_brands(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
         ...
 
     @abstractmethod
-    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         ...
 
     @abstractmethod
@@ -57,11 +57,11 @@ class IMasterDataRepository(ABC):
 
     # --- Category ---
     @abstractmethod
-    async def get_categories(self, company_id: uuid.UUID) -> List[Any]:
+    async def get_categories(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
         ...
 
     @abstractmethod
-    async def get_category_by_id(self, category_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_category_by_id(self, category_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         ...
 
     @abstractmethod
@@ -78,11 +78,11 @@ class IMasterDataRepository(ABC):
 
     # --- UOM ---
     @abstractmethod
-    async def get_uoms(self, company_id: uuid.UUID) -> List[Any]:
+    async def get_uoms(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
         ...
 
     @abstractmethod
-    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
+    async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         ...
 
     @abstractmethod
@@ -97,9 +97,14 @@ class IMasterDataRepository(ABC):
     async def delete_uom(self, uom_id: uuid.UUID, company_id: uuid.UUID) -> None:
         ...
 
+    # --- Movement Concepts ---
+    @abstractmethod
+    async def get_concepts(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None, type: Optional[str] = None) -> List[Any]:
+        ...
+
     # --- Sync ---
     @abstractmethod
-    async def get_all_master_data(self, company_id: uuid.UUID) -> dict:
+    async def get_all_master_data(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> dict:
         ...
 
     # --- Product Price ---

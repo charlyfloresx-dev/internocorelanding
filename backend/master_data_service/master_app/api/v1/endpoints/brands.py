@@ -16,8 +16,10 @@ async def list_brands(
     current_user: UserContext = Depends(get_current_user),
     service: ProductBrandService = Depends(get_brand_service)
 ):
-    company_id = current_user.company_id
-    brands = await service.get_brands(company_id=company_id)
+    brands = await service.get_brands(
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     return ApiResponse(status="success", data=brands, message="Brands retrieved successfully")
 
 @router.post("/", response_model=ApiResponse[BrandRead], summary="Create Brand")
@@ -45,8 +47,11 @@ async def get_brand(
     current_user: UserContext = Depends(get_current_user),
     service: ProductBrandService = Depends(get_brand_service)
 ):
-    company_id = current_user.company_id
-    brand = await service.get_brand_by_id(brand_id=brand_id, company_id=company_id)
+    brand = await service.get_brand_by_id(
+        brand_id=brand_id, 
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     if not brand:
         raise HTTPException(status_code=404, detail="Brand not found")
     return ApiResponse(status="success", data=brand, message="Brand retrieved successfully")

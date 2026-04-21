@@ -8,11 +8,11 @@ class ProductBrandService:
     def __init__(self, repo: IMasterDataRepository):
         self.repo = repo
 
-    async def get_brands(self, company_id: uuid.UUID) -> List[Any]:
-        return await self.repo.get_brands(company_id)
+    async def get_brands(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> List[Any]:
+        return await self.repo.get_brands(company_id, group_id)
 
-    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
-        return await self.repo.get_brand_by_id(brand_id, company_id)
+    async def get_brand_by_id(self, brand_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
+        return await self.repo.get_brand_by_id(brand_id, company_id, group_id)
 
     async def create_brand(self, brand_in: BrandCreate, company_id: uuid.UUID) -> Any:
         return await self.repo.create_brand(brand_in.model_dump(), company_id)

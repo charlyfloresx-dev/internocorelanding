@@ -15,6 +15,19 @@ from common.security.auth_payload import TokenPayload
 
 logger = logging.getLogger(__name__)
 
+class InternoCoreEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8", errors="replace")
+        if isinstance(obj, (time.struct_time,)):
+            return time.strftime('%Y-%m-%d %H:%M:%S', obj)
+        import datetime
+        if isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+        return super().default(obj)
+
 class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: ASGIApp):
         super().__init__(app)
@@ -104,13 +117,14 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
             # Si no hay company_id en header ni en token (y la ruta no es pública), bloqueamos
             if not company_id:
                 logger.error(f"Middleware Security: Missing Company ID for route: {path}")
-                return JSONResponse(
+                return Response(
                     status_code=400,
-                    content={
+                    content=json.dumps({
                         "status": "error",
                         "message": f"Security Lockdown: X-Company-ID header is REQUIRED for {path}",
                         "meta": {"trace_id": transaction_id}
-                    }
+                    }, cls=InternoCoreEncoder),
+                    media_type="application/json"
                 )
 
             # Validación Cruzada: Si el token trae una empresa, debe coincidir con el header
@@ -118,25 +132,27 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 token_company = getattr(request.state.user_token, "company_id", None)
                 if token_company and str(token_company).lower() != str(company_id).lower():
                     logger.error(f"Middleware Security: Tenant Mismatch. Header={company_id}, Token={token_company}, Path={path}")
-                    return JSONResponse(
+                    return Response(
                         status_code=403,
-                        content={
+                        content=json.dumps({
                             "status": "error",
                             "message": "Tenant mismatch: Header X-Company-ID does not match Token company_id.",
                             "meta": {"trace_id": transaction_id}
-                        }
+                        }, cls=InternoCoreEncoder),
+                        media_type="application/json"
                     )
 
             # Restricción de Tokens de Selección (Solo para handshake)
             if is_selection and "/select-company" not in path:
                 logger.error(f"Middleware Security: Blocking Selection Token for restricted route. Path={path}")
-                return JSONResponse(
+                return Response(
                     status_code=403,
-                    content={
+                    content=json.dumps({
                         "status": "error",
                         "message": "Security: Selection tokens restricted to handshake phase.",
                         "meta": {"trace_id": transaction_id}
-                    }
+                    }, cls=InternoCoreEncoder),
+                    media_type="application/json"
                 )
         token_ctx = None
         if company_id or user_id:
@@ -178,13 +194,14 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 token_ctx = request_context.set(user_ctx)
             except (ValueError, TypeError):
                 if company_id:
-                    return JSONResponse(
+                    return Response(
                         status_code=400,
-                        content={
+                        content=json.dumps({
                             "status": "error",
                             "message": f"X-Company-ID header must be a valid UUID (Got: {company_id})",
                             "meta": {"trace_id": transaction_id}
-                        }
+                        }, cls=InternoCoreEncoder),
+                        media_type="application/json"
                     )
 
         try:
@@ -236,10 +253,15 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 new_headers.pop("content-length", None) 
                 new_headers["X-Transaction-ID"] = transaction_id
 
-                return JSONResponse(
+                # Use custom encoder to handle UUIDs and other non-serializable objects
+                json_content = json.dumps(content, cls=InternoCoreEncoder)
+
+                from fastapi.responses import Response
+                return Response(
                     status_code=response.status_code, 
-                    content=content, 
-                    headers=new_headers
+                    content=json_content, 
+                    headers=new_headers,
+                    media_type="application/json"
                 )
 
             except Exception:
@@ -262,28 +284,30 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 elif isinstance(e, NotFoundException):
                     status_code = 404
                 
-                return JSONResponse(
+                return Response(
                     status_code=status_code,
-                    content={
+                    content=json.dumps({
                         "status": "error",
                         "message": str(e),
                         "meta": {
                             "trace_id": transaction_id,
                             "details": getattr(e, 'details', {})
                         }
-                    }
+                    }, cls=InternoCoreEncoder),
+                    media_type="application/json"
                 )
 
             import traceback
             traceback.print_exc()
             
-            return JSONResponse(
+            return Response(
                 status_code=500, 
-                content={
+                content=json.dumps({
                     "status": "error", 
                     "message": f"Critical Middleware Error: {str(e)}",
                     "meta": {"trace_id": transaction_id}
-                }
+                }, cls=InternoCoreEncoder),
+                media_type="application/json"
             )
         finally:
             if token_ctx:

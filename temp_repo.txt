@@ -1,4 +1,4 @@
-import uuid
+﻿import uuid
 from typing import Optional
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -35,7 +35,6 @@ class SQLAlchemyUserCompanyRoleRepository(IUserCompanyRoleRepository):
                 
         return UserCompanyRoleEntity(
             company_id=company_id,
-            company_name=models[0].company.name if models and models[0].company else None,
             role_names=role_names,
             scopes=list(all_scopes),
             group_id=models[0].company.parent_group_id if models and models[0].company else None

@@ -32,18 +32,46 @@ class AuthService:
 
     async def get_user_companies(self, user_id: uuid.UUID) -> List[dict]:
         ucr_entities = await self.user_repo.get_user_companies(user_id)
-        companies = []
+        
+        # Mapa para dedup: {company_id: company_data}
+        dedup_map = {}
+        
+        # Jerarquía de roles para la etiqueta (Admin > Manager > Collaborator)
+        def get_priority(roles):
+            if not roles: return 0
+            lowered = [r.lower() for r in roles]
+            if "admin" in lowered or "owner" in lowered: return 10
+            if "manager" in lowered: return 5
+            return 1
+
         for ucr in ucr_entities:
-            companies.append({
-                "company_id": ucr.company_id,
-                "company_name": ucr.company_name,
-                "group_id": ucr.group_id,
-                "group_name": None,
-                "logo": ucr.logo,
-                "is_new": ucr.is_new,
-                "role_names": ucr.role_names,
-            })
-        return companies
+            c_id = ucr.company_id
+            if c_id not in dedup_map:
+                dedup_map[c_id] = {
+                    "company_id": c_id,
+                    "company_name": ucr.company_name,
+                    "group_id": ucr.group_id,
+                    "group_name": None,
+                    "logo": ucr.logo,
+                    "is_new": ucr.is_new,
+                    "role_names": ucr.role_names,
+                    "priority": get_priority(ucr.role_names)
+                }
+            else:
+                # Si ya existe, comparar prioridad y combinar roles
+                current = dedup_map[c_id]
+                new_priority = get_priority(ucr.role_names)
+                if new_priority > current["priority"]:
+                    current["role_names"] = ucr.role_names
+                    current["priority"] = new_priority
+                
+        # Limpiar y retornar lista
+        result = []
+        for c in dedup_map.values():
+            c.pop("priority", None)
+            result.append(c)
+            
+        return result
 
     async def get_user_context_for_company(
         self, user_id: uuid.UUID, company_id: uuid.UUID

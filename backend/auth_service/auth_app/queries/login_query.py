@@ -68,6 +68,8 @@ class LoginQueryHandler(IQueryHandler[CompanyAccessDto]):
                     companies_map[c_str] = {
                         "company_id": c_id,
                         "company_name": ucr.company.name,
+                        "group_id": ucr.company.parent_group_id,
+                        "group_name": None, # Future: hydration via BG repo if needed
                         "logo": ucr.company.logo,
                         "role_names": [],
                         "is_new": ucr.is_new

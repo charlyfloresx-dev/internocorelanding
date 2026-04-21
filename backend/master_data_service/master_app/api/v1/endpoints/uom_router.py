@@ -21,8 +21,10 @@ async def list_uoms(
     """
     Returns a list of all Units of Measure (UOM) for the current company.
     """
-    company_id = current_user.company_id
-    uoms = await service.get_uoms_by_company(company_id=company_id)
+    uoms = await service.get_uoms_by_company(
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     return ApiResponse(
         status="success",
         data=uoms,
@@ -61,8 +63,11 @@ async def get_uom(
     current_user: UserContext = Depends(get_current_user),
     service: UOMService = Depends(get_uom_service),
 ):
-    company_id = current_user.company_id
-    uom = await service.get_uom_by_id(uom_id=uom_id, company_id=company_id)
+    uom = await service.get_uom_by_id(
+        uom_id=uom_id, 
+        company_id=current_user.company_id,
+        group_id=current_user.group_id
+    )
     if not uom:
         raise HTTPException(status_code=404, detail="Unit of measure not found")
     

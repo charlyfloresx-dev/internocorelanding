@@ -111,6 +111,7 @@ def create_access_token(subject: str, company_id: str, data: dict) -> str:
         company_id=uuid.UUID(company_id),
         roles=data.get("role_names", []),
         scopes=data.get("scopes", []),
+        group_id=uuid.UUID(str(data["group_id"])) if data.get("group_id") else None,
         modules=data.get("modules"),
         status=data.get("status", "TRIAL"),
         readonly=data.get("readonly", False),

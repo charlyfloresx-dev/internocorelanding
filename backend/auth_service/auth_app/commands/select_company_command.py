@@ -176,6 +176,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                 "status": sub_status,
                 "readonly": readonly,
                 "correlation_id": correlation_id,
+                "group_id": str(ucr.group_id) if ucr.group_id else None,
             },
         )
 
@@ -209,7 +210,10 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "access_token": access_token,
             "refresh_token": raw_refresh,
             "token_type": "bearer",
+            "user_id": str(command.user_id),
             "company_id": str(command.company_id),
+            "company_name": ucr.company_name or "Interno Core",
+            "group_id": str(ucr.group_id) if ucr.group_id else None,
             "roles": ucr.role_names,
             "scopes": ucr.scopes,
             "permissions": permissions,
@@ -261,6 +265,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "user_id": str(real_collaborator_id),
             "company_id": str(command.company_id),
             "company_name": company_name,
+            "group_id": str(company_obj.parent_group_id) if company_obj and company_obj.parent_group_id else None,
             "roles": ["collaborator"],
             "scopes": scopes,
             "permissions": permissions,

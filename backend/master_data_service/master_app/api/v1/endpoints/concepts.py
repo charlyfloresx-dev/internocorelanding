@@ -4,7 +4,8 @@ from sqlalchemy import select
 from typing import List, Optional
 import uuid
 
-from master_app.dependencies import get_db, get_current_user
+from master_app.dependencies import get_db, get_current_user, get_master_data_repository
+from master_app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
 from master_app.models.movement_concept import MovementConcept
 from master_app.schemas.concept import ConceptCreate, ConceptUpdate, ConceptResponse
 from common.enums import MovementType
@@ -16,16 +17,14 @@ router = APIRouter()
 @router.get("/", response_model=ApiResponse[List[ConceptResponse]])
 async def get_concepts(
     type: Optional[MovementType] = Query(None, description="Filtrar por tipo de movimiento (ENTRADA, SALIDA, TRASPASO)"),
-    session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Depends(get_current_user),
+    repo: SQLAlchemyMasterDataRepository = Depends(get_master_data_repository)
 ):
-    company_id = current_user.company_id
-    stmt = select(MovementConcept).filter(MovementConcept.company_id == company_id)
-    if type:
-        stmt = stmt.filter(MovementConcept.type == type)
-    
-    result = await session.execute(stmt)
-    concepts = result.scalars().all()
+    concepts = await repo.get_concepts(
+        company_id=current_user.company_id,
+        group_id=current_user.group_id,
+        type=type
+    )
     
     return ApiResponse(status="success", data=concepts, message="Concepts retrieved successfully")
 
