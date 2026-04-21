@@ -1,3 +1,8 @@
+### [2026-04-21] Phase 66: Unified Monolith Integration
+- **Monolith Wrapping**: Integración total en `interno-monolith`.
+- **SSOT Enforcement**: El servicio ahora actúa como la fuente única de verdad para ubicaciones físicas (`InventoryLocation`) y almacenes dentro del motor unificado.
+- **Auto-Sync Metadata**: Sincronización automática de modelos `Product`, `Warehouse` y `Location` mediante el motor global.
+
 ### [2026-04-20] - Phase 65: AWS App Runner FinOps Pivot
 - **Deployment**: Migración de `master-data-service` a App Runner (`584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/master-data-service`).
 - **Bloqueo AWS**: Contenedor provisto exitosamente pero bloqueado (CREATE_FAILED) por Sandbox AWS Quota limit (2). Servicio removido preventivamente por FinOps.

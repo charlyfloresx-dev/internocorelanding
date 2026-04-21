@@ -2,12 +2,13 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
-### [2026-04-21] Phase 66: Unified Monolith Industrialization & Local Consolidation
-- **Monolith Pivot**: Transicionamos exitosamente el entorno de desarrollo local de una arquitectura de microservicios dispersos a un **Monolito Unificado** de alto rendimiento (`interno-monolith`), optimizando el consumo de recursos y la velocidad de desarrollo.
-- **Auto-Sync Metadata**: Implementación de lógica en el `lifespan` del backend para la sincronización automática de esquemas de base de datos de todos los servicios (Auth, Master Data, Inventory, Notifications) en un solo motor Postgres.
-- **Industrial Seed v3**: Carga exitosa de data maestra unificada, incluyendo empresas binacionales, almacenes industriales y variantes de producto con trazabilidad total.
-- **Workflow Optimization**: Creación de los workflows `initialize-monolith.md` y `hard-reset.md` para estandarizar el arranque y limpieza profunda del ecosistema.
-- **Status**: ✅ Phase 66 COMPLETED - Unified Engine Online.
+### [2026-04-21] Phase 66: Unified Monolith & Cloud Governance (Kill Switch)
+- **Monolith Pivot**: Transicionamos el entorno local a un **Monolito Unificado** (`interno-monolith`), consolidando 11 microservicios en un solo motor de alto rendimiento.
+- **FinOps Kill Switch (Cloud Janitor)**: Implementación de `backend/scripts/infraestructure_aws/99_nuke_everything.ps1`, un mecanismo de demolición total para llevar la factura de AWS a **$0.00** de forma instantánea.
+- **AWS Orchestrator**: Creación de `backend/scripts/infraestructure_aws/01_deploy_full_stack.ps1` para el re-ensamblaje automatizado de la infraestructura (VPC-Bridge + PrivateLink).
+- **Subscription Guard (Kill Switch v1)**: Desarrollo del middleware `SubscriptionGuard` que implementa el modo "Solo Lectura" (Soft Kill Switch) para proteger la integridad de los datos en caso de suscripciones vencidas.
+- **Infraestructure State**: Documentación del estado **LOCAL ONLY** en `INFRASTRUCTURE_STATE.md` con guías de recuperación.
+- **Status**: ✅ Phase 66 COMPLETED - Governance & Performance Stabilized.
 
 ### [2026-04-20] Phase 65: FinOps App Runner Isolation & AWS Service Quotas
 - **App Runner Deployment refactor**: Transicionamos la validación de AWS desde despliegues manuales en CLI atados a la cuenta de GitHub hacia un enfoque `Amazon ECR` nativo, optimizando los costos de despliegue mediante AWS App Runner.

@@ -1,5 +1,10 @@
 # Auth Service - Service Log
 
+## [2026-04-21] Phase 66: Unified Monolith Integration
+- **Monolith Wrapping**: Integración total en `interno-monolith`. El servicio ahora opera como un router dentro del motor unificado.
+- **Auto-Schema**: Migración de la lógica de creación de tablas al lifespan global del monolito.
+- **Kill Switch (Guard)**: Activación de `SubscriptionGuard` para control de acceso industrial y modo lectura.
+
 ## [2026-04-20] Phase 65: AWS App Runner FinOps Pivot
 - **Deployment Strategy**: Migrado de ECS Fargate a App Runner nativo (ECR image) para aislar la facturación.
 - **Limitación AWS**: Despliegue suspendido temporalmente por límite general de Sandbox (Max 2 servicios AWS). Contenedor fallido borrado preventivamente para ahorrar costos.
