@@ -15,10 +15,10 @@ sys.path.append(backend_root)
 
 # Imports
 from common.models import Base
-from app.db.session import AsyncSessionLocal, engine
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.models.movement import Movement
-from app.models.document import InventoryDocument, DocumentStatus
+from inventory_app.db.session import AsyncSessionLocal, engine
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.models.movement import Movement
+from inventory_app.models.document import InventoryDocument, DocumentStatus
 
 async def verify_dashboard():
     print("--- Starting Dashboard API Verification ---")

@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 from unittest.mock import patch
 with patch("common.config.settings.DATABASE_URL", "sqlite+aiosqlite:///:memory:"):
-    from app.main import app
+    from master_app.main import master_app
     from common.domain import Base
-    from app.db.session import get_db
+    from master_app.db.session import get_db
 
 # Patch UUID for SQLite tests
 import sqlalchemy
@@ -60,11 +60,11 @@ async def db_engine():
     engine = create_async_engine(DATABASE_URL)
     
     # IMPORTANTE: Asegurar el orden para que las FKs se resuelvan al cargar el metadata
-    from app.models.uom import UOM
-    from app.models.product_category import ProductCategory
-    from app.models.product import Product, ProductVersion
-    from app.models.product_price import ProductPrice
-    from app.models.price_agreement import PriceAgreement
+    from master_app.models.uom import UOM
+    from master_app.models.product_category import ProductCategory
+    from master_app.models.product import Product, ProductVersion
+    from master_app.models.product_price import ProductPrice
+    from master_app.models.price_agreement import PriceAgreement
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -102,7 +102,7 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
 
 @pytest.fixture
 async def uom_factory(db):
-    from app.models.uom import UOM
+    from master_app.models.uom import UOM
     async def _create(code: str = "EA", name: str = "Each"):
         uom = UOM(code=code, name=name, company_id=uuid.uuid4())
         db.add(uom)
@@ -112,7 +112,7 @@ async def uom_factory(db):
 
 @pytest.fixture
 async def category_factory(db):
-    from app.models.product_category import ProductCategory
+    from master_app.models.product_category import ProductCategory
     async def _create(name: str = "Electronics"):
         cat = ProductCategory(name=name, company_id=uuid.uuid4())
         db.add(cat)

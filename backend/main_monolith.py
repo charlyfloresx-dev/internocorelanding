@@ -1,0 +1,174 @@
+import os
+import sys
+import logging
+import importlib
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from contextlib import asynccontextmanager
+from sqlalchemy.exc import SQLAlchemyError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+# 1. Configurar PYTHONPATH para incluir TODAS las carpetas de servicios
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+services = ["auth_service", "master_data_service", "inventory_service", "notification_service"]
+for s in services:
+    path = os.path.join(BASE_DIR, s)
+    if path not in sys.path:
+        sys.path.append(path)
+
+from common.security.cors_setup import setup_cors
+from common.middleware import InternoCoreGlobalMiddleware
+from common.error_handlers import domain_exception_handler
+from common.exceptions import DomainException
+from common.security.limiter import limiter
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.info("🚀 Iniciando InternoCore Monolith (Unified Engine)...")
+    
+    # 1. Motor de sincronización usando la URL global
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from common.config import settings
+    from common.infrastructure.database import engine
+    
+    # 2. Registro explícito de modelos para asegurar que Base.metadata los conozca
+    from common.infrastructure.models.base import Base
+    try:
+        # Auth Models
+        import auth_app.models.user
+        import auth_app.models.company
+        import auth_app.models.role
+        # Master Data Models
+        import master_app.models.product
+        import master_app.models.warehouse
+        import master_app.models.location
+        # Inventory Models
+        import inventory_app.models.inventory
+        import inventory_app.models.location
+        import inventory_app.models.item_variant
+        import inventory_app.models.warehouse
+        import inventory_app.models.document
+        import inventory_app.models.inter_company_transfer
+        # Notification Models
+        import notification_app.models.notification
+    except Exception as e:
+        logging.warning(f"⚠️ Algunos modelos no pudieron ser pre-cargados: {e}")
+
+    # 3. Setup Auditoría (Master Data & Inventory)
+    try:
+        from master_app.core.events import setup_audit_listeners as setup_master_audit
+        from master_app.models.product import Product
+        from master_app.models.warehouse import Warehouse
+        from master_app.models.location import InventoryLocation
+        from master_app.models.product_price import ProductPrice
+        
+        setup_master_audit(Product)
+        setup_master_audit(Warehouse)
+        setup_master_audit(InventoryLocation)
+        setup_master_audit(ProductPrice)
+        
+        from inventory_app.core.events import setup_audit_listeners as setup_inv_audit
+        setup_inv_audit()
+        
+        logging.info("✅ Listeners de auditoría registrados.")
+    except Exception as e:
+        logging.warning(f"⚠️ No se pudieron registrar todos los listeners de auditoría: {e}")
+
+    # 4. Sincronización de Base de Datos
+    async with engine.begin() as conn:
+        logging.info("🔍 Sincronizando esquema de base de datos unificado (MetaData)...")
+        await conn.run_sync(Base.metadata.create_all)
+        logging.info("✅ Esquema sincronizado exitosamente.")
+        
+    yield
+    logging.info("🛑 Apagando InternoCore Monolith...")
+
+app = FastAPI(
+    title="InternoCore Unified Monolith",
+    description="Unified Backend Engine for Auth, Master Data, Inventory and Notifications.",
+    version="3.3.0-industrial",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/v1/openapi.json"
+)
+
+# ─── MIDDLEWARES ───
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+app.add_middleware(InternoCoreGlobalMiddleware)
+app.state.limiter = limiter
+setup_cors(app)
+
+# ─── EXCEPTION HANDLERS ───
+@app.exception_handler(DomainException)
+async def custom_domain_exception_handler(request: Request, exc: DomainException):
+    return await domain_exception_handler(request, exc)
+
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return _rate_limit_exceeded_handler(request, exc)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"status": "error", "message": "Input validation failed", "meta": {"details": exc.errors(), "path": request.url.path}})
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    logging.error(f"DATABASE_ERROR: {str(exc)}")
+    return JSONResponse(status_code=500, content={"status": "error", "message": "A database error occurred.", "meta": {"type": "SQLAlchemyError"}})
+
+@app.exception_handler(Exception)
+async def global_unexpected_exception_handler(request: Request, exc: Exception):
+    logging.error(f"UNEXPECTED_ERROR: {str(exc)}", exc_info=True)
+    return JSONResponse(status_code=500, content={"status": "error", "message": "Internal Server Error", "meta": {"type": type(exc).__name__}})
+
+# ─── ROUTER REGISTRATION ───
+
+# 1. Auth
+from auth_app.api.v1.endpoints.auth import router as auth_router
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+
+# 2. Master Data
+from master_app.api.v1.endpoints import products, prices, uom_router, categories, brands, concepts, warehouses, partners, gis_validator, locations
+app.include_router(products.router, prefix="/api/v1/products", tags=["Master: Products"])
+app.include_router(prices.router, prefix="/api/v1/prices", tags=["Master: Product Prices"])
+app.include_router(uom_router.router, prefix="/api/v1/uoms", tags=["Master: UOMs"])
+app.include_router(categories.router, prefix="/api/v1/categories", tags=["Master: Categories"])
+app.include_router(brands.router, prefix="/api/v1/brands", tags=["Master: Brands"])
+app.include_router(concepts.router, prefix="/api/v1/concepts", tags=["Master: Concepts"])
+app.include_router(warehouses.router, prefix="/api/v1/warehouses", tags=["Master: Warehouses"])
+app.include_router(partners.router, prefix="/api/v1/partners", tags=["Master: Partners"])
+app.include_router(gis_validator.router, prefix="/api/v1/gis", tags=["Master: GIS"])
+app.include_router(locations.router, prefix="/api/v1/locations", tags=["Master: Locations"])
+
+# 3. Inventory
+from inventory_app.api.v1.endpoints import (
+    transactions, reconciliation, boms, dashboard, 
+    inventory_search, inventory, customs, variants,
+    inter_company_transfers
+)
+app.include_router(transactions.router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
+app.include_router(reconciliation.router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
+app.include_router(boms.router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
+app.include_router(inventory_search.router, prefix="/api/v1/search", tags=["Inventory: Search"])
+app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
+app.include_router(customs.router, prefix="/api/v1/inventory/customs", tags=["Inventory: Customs"])
+app.include_router(variants.router, prefix="/api/v1/inventory/variants", tags=["Inventory: Variants"])
+app.include_router(inter_company_transfers.router, prefix="/api/v1/inventory/transfers/inter-company", tags=["Inventory: ICT"])
+
+# 4. Notifications
+from notification_app.api.v1.endpoints import notifications as notification_endpoints
+app.include_router(notification_endpoints.router, prefix="/api/v1/notifications", tags=["Notifications: Real-Time & History"])
+
+@app.get("/")
+async def root():
+    return {"message": "InternoCore Unified Monolith is running", "services": ["Auth", "Master Data", "Inventory", "Notifications"], "docs": "/api/docs"}
+
+@app.get("/health")
+async def health():
+    return {"status": "online", "mode": "monolith", "engine": "FastAPI Unified v3.3"}

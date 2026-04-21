@@ -1,6 +1,6 @@
 import pytest
 import uuid
-from app.models.warehouse import Warehouse
+from inventory_app.models.warehouse import Warehouse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 

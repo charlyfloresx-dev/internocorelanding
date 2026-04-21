@@ -7,8 +7,8 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy import select
-from app.core.database import AsyncSessionLocal
-from app.models import User, Company, UserCompanyRole, Role
+from auth_app.core.database import AsyncSessionLocal
+from auth_app.models import User, Company, UserCompanyRole, Role
 
 # Configuración de logs
 logging.basicConfig(level=logging.INFO)

@@ -10,14 +10,14 @@ from datetime import datetime, timezone
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from app.db.session import AsyncSessionLocal
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.domain.entities.transfer_entities import (
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.domain.entities.transfer_entities import (
     InitiateTransferCommand,
     CompleteTransferCommand,
 )
-from app.domain.entities.inventory_item import MovementEntity
+from inventory_app.domain.entities.inventory_item import MovementEntity
 from common.domain.value_objects import Money
 
 # ─── REAL DATABASE IDS (Synced with Seed) ───

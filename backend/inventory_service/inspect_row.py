@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from sqlalchemy import text
-from app.db.session import AsyncSessionLocal
+from inventory_app.db.session import AsyncSessionLocal
 
 async def inspect():
     async with AsyncSessionLocal() as db:

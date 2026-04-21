@@ -12,12 +12,12 @@ if os.getcwd() not in sys.path:
 
 from sqlalchemy import text
 from common.domain.value_objects import Money
-from app.db.session import AsyncSessionLocal
-from app.models.inventory import InventoryLevel
-from app.models.warehouse import Warehouse
-from app.models.document import InventoryDocument, DocumentStatus
-from app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
-from app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.models.inventory import InventoryLevel
+from inventory_app.models.warehouse import Warehouse
+from inventory_app.models.document import InventoryDocument, DocumentStatus
+from inventory_app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
+from inventory_app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("seed_ict")

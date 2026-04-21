@@ -1,27 +1,29 @@
-// temp_future/src/environments/environment.ts
+const BASE_URL = 'http://localhost:8000';
+const API_V1 = `${BASE_URL}/api/v1`;
+
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8010', // Global API Gateway / Entry Point
-  authUrl: 'http://localhost:8001/api/v1',
-  subscriptionUrl: 'http://localhost:8002/api/v1',
-  masterDataUrl: 'http://localhost:8003/api/v1',
-  ticketsUrl: 'http://localhost:8004/api/v1',
-  productionUrl: 'http://localhost:8005/api/v1',
-  inventoryUrl: 'http://localhost:8006/api/v1',
-  wmsUrl: 'http://localhost:8007/api/v1',
-  currencyUrl: 'http://localhost:8008/api/v1',
-  hrUrl: 'http://localhost:8009/api/v1',
-  notificationUrl: 'http://localhost:8010/api/v1',
-  assetsUrl: 'http://momentos.com',
+  apiUrl:        BASE_URL,
+  authUrl:       API_V1,
+  assetsUrl:     BASE_URL,
+  masterDataUrl: API_V1,
+  inventoryUrl:  API_V1,
+  currencyUrl:   API_V1,
+  productionUrl: API_V1,
+  hrUrl:         API_V1,
+  wmsUrl:        API_V1,
+  ticketsUrl:    API_V1,
+  subscriptionUrl: API_V1,
+  notificationUrl: API_V1,
   services: {
-    auth: 'http://localhost:8001/api/v1',
-    subscription: 'http://localhost:8002/api/v1',
-    masterData: 'http://localhost:8003/api/v1',
-    tickets: 'http://localhost:8004/api/v1',
-    production: 'http://localhost:8005/api/v1',
-    inventory: 'http://localhost:8006/api/v1',
-    wms: 'http://localhost:8007/api/v1',
-    currency: 'http://localhost:8008/api/v1',
-    notification: 'http://localhost:8010/api/v1'
+    auth:         API_V1,
+    subscription: API_V1,
+    masterData:   API_V1,
+    tickets:      API_V1,
+    production:   API_V1,
+    inventory:    API_V1,
+    wms:          API_V1,
+    currency:     API_V1,
+    notification: API_V1
   }
 };

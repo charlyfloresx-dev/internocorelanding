@@ -6,10 +6,10 @@ import os
 # Add /app and /app/common to path if needed, but within Docker /app is enough
 sys.path.append("/app")
 
-from app.api.v1.handlers.readiness_handler import GetCompanyInventoryReadinessHandler, GetCompanyInventoryReadinessQuery
-from app.db.session import AsyncSessionLocal
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.infrastructure.clients.master_data import MasterDataClient
+from inventory_app.api.v1.handlers.readiness_handler import GetCompanyInventoryReadinessHandler, GetCompanyInventoryReadinessQuery
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.infrastructure.clients.master_data import MasterDataClient
 
 async def test():
     print("🚀 Starting Diagnostic Tool for Readiness...")

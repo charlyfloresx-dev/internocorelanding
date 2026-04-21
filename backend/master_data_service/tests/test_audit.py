@@ -7,13 +7,13 @@ sys.path.insert(0, '/app')
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
-from app.models.product_category import ProductCategory
-from app.models.product_brand import ProductBrand
-from app.models.uom import UOM
-from app.models.product import Product
-from app.models.warehouse import Warehouse
-from app.models.movement_concept import MovementConcept
-from app.core.events import setup_audit_listeners
+from master_app.models.product_category import ProductCategory
+from master_app.models.product_brand import ProductBrand
+from master_app.models.uom import UOM
+from master_app.models.product import Product
+from master_app.models.warehouse import Warehouse
+from master_app.models.movement_concept import MovementConcept
+from master_app.core.events import setup_audit_listeners
 
 async def test_audit():
     # Force registration just in case

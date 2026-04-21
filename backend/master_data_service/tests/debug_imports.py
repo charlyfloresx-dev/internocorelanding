@@ -11,7 +11,7 @@ try:
     print("OK: common.domain importado.")
     
     print("Intentando importar app.models...")
-    from app.models import Product, UM
+    from master_app.models import Product, UM
     print("OK: app.models importado.")
     
     print(f"Base Metadata Tables: {Base.metadata.tables.keys()}")

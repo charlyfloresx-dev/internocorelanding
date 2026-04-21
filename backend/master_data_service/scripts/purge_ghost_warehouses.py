@@ -2,8 +2,8 @@
 import asyncio
 import sys
 sys.path.insert(0, '.')
-from app.db.db import async_session
-from app.models.warehouse import Warehouse
+from master_app.db.db import async_session
+from master_app.models.warehouse import Warehouse
 from sqlalchemy import delete
 import uuid
 

@@ -1,7 +1,7 @@
 import pytest
 import uuid
-from app.models import User, Company, Role, UserCompanyRole
-from app.core.security import hash_password
+from auth_app.models import User, Company, Role, UserCompanyRole
+from auth_app.core.security import hash_password
 
 @pytest.mark.asyncio
 async def test_charly_limited_scopes_in_demo_plant(db):

@@ -15,18 +15,18 @@ sys.path.append(project_root)
 sys.path.append(backend_root)
 
 # Force load models to register them with Base.metadata
-from app.models.movement import Movement
+from inventory_app.models.movement import Movement
 from common.models.audit_log import AuditLog
 from common.models import Base
 
-from app.db.session import AsyncSessionLocal, engine
-from app.services.inventory import InventoryTransactionService
-from app.schemas.inventory import InventoryTransactionCreate
-from app.models.inventory import TransactionType
+from inventory_app.db.session import AsyncSessionLocal, engine
+from inventory_app.services.inventory import InventoryTransactionService
+from inventory_app.schemas.inventory import InventoryTransactionCreate
+from inventory_app.models.inventory import TransactionType
 from common.context import request_context
 from common.domain.entities.user_context import UserContext
 from sqlalchemy import select
-from app.core.events import setup_audit_listeners, ForensicImmutabilityError
+from inventory_app.core.events import setup_audit_listeners, ForensicImmutabilityError
 
 async def verify_forensic_audit():
     print("--- Starting Forensic Verification Plan ---")

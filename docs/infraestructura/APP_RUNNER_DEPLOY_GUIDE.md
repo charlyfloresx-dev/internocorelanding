@@ -34,3 +34,16 @@ Una vez creado, AWS te entregará el `Default domain` (con SSL/TLS automático) 
 - **Costo Fijo:** $0.00 (vs ~$27.00 del ALB).
 - **Costo Variable:** Solo pagas por la memoria RAM ($0.007/GB-hora) mientras el servicio esté "provisinado" pero sin tráfico.
 - **SSL Automático:** AWS te da un dominio `.awsapprunner.com` con HTTPS válido.
+
+## 5. Configuración Crítica de Red (VPC Networking)
+
+Si el servicio se despliega en una **subred privada** usando un *VPC Connector*, es obligatorio configurar **VPC Interface Endpoints** (PrivateLink). Sin esto, el contenedor no podrá resolver el API de Secrets Manager y fallará el Health Check.
+
+**Endpoints Requeridos:**
+- `com.amazonaws.us-east-2.secretsmanager`
+- `com.amazonaws.us-east-2.rds` (Interface API)
+
+**Security Group del Endpoint:** Debe permitir tráfico entrante en el puerto `443` desde el Security Group del servicio App Runner.
+
+> [!CAUTION]
+> No intentes desplegar sin estos endpoints si usas el modo `CORE_ENV_MODE=aws` en subredes privadas, o el servicio entrará en un ciclo de `CREATE_FAILED`.

@@ -1,10 +1,10 @@
 import pytest
 import uuid
 from decimal import Decimal
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.domain.entities.transfer_entities import InitiateTransferCommand
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.domain.entities.transfer_entities import InitiateTransferCommand
 from common.exceptions import BusinessRuleException
-from app.models.warehouse import Warehouse
+from inventory_app.models.warehouse import Warehouse
 
 
 class MockWarehouse:

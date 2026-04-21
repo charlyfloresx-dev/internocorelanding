@@ -7,10 +7,10 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import select
-from app.db.session import async_session_factory
-from app.models.backflush_error import BackflushError, BackflushStatus, BackflushErrorType
-from app.infrastructure.repositories import InventoryRepository
-from app.core.workers.reconciliation_worker import ReconciliationWorker
+from inventory_app.db.session import async_session_factory
+from inventory_app.models.backflush_error import BackflushError, BackflushStatus, BackflushErrorType
+from inventory_app.infrastructure.repositories import InventoryRepository
+from inventory_app.core.workers.reconciliation_worker import ReconciliationWorker
 
 async def test_reconciliation_flow():
     print("--- STARTING RECONCILIATION FLOW TEST ---")

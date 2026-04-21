@@ -1,107 +1,108 @@
+"""
+flow_4_ict_enterprise_to_logistics.py
+-----------------------------------------
+Flujo 4: Transferencia inter-company nacional.
+Origen: Interno Enterprise (WH-001, MX) -> Destino: Interno Logistics MX.
+
+Nota: Este flow usa la empresa Enterprise como origen (SSOT del seed).
+El destino (Logistics MX) se aprovisiona al vuelo con IDs estables.
+
+Pre-requisito: flow_1_entry.py ejecutado.
+"""
 import asyncio
 import uuid
 import sys
 import os
 import traceback
 from decimal import Decimal
+from datetime import datetime, timezone
+from sqlalchemy import text
 
-if os.getcwd() not in sys.path:
-    sys.path.insert(0, os.getcwd())
+_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
 
-from app.db.session import AsyncSessionLocal
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
+from flows._shared_ids import resolve_flow_ids, CO_ENTERPRISE_ID, USER_CHARLY_ID
 
-# ─── REAL DATABASE IDS ───
-CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
+# IDs fijos del auth seed (seed.py del auth_service)
 CO_LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
 
-WH_ENTERPRISE_TJ_ID = uuid.UUID("fd76bbe3-6d6f-5e74-ae15-d605acbc2289")
-WH_LOGISTICS_MX_TJ_ID = uuid.UUID("ce699eae-5db7-5d0a-a808-fd57a400523a")
+# Almacen destino — ID estable por nombre
+WH_LOGISTICS_MX_ID = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-MX-TJ")
 
-PROD_ID = uuid.UUID("133ec1c3-36eb-5977-a281-e0e6e5092d5e")
-UOM_ID = uuid.UUID("1a7444c9-40df-51d5-833b-501fc84b67bb")
 
-USER_A_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38") # Enterprise
-USER_B_ID = uuid.UUID("74125896-1234-4bc1-bbaa-123456789abc") # Logistics MX
-
-async def ensure_warehouses(session):
-    from sqlalchemy import text
-    from datetime import datetime, timezone
-    now_tz = datetime.now(timezone.utc)
+async def ensure_logistics_warehouse(session):
+    now = datetime.now(timezone.utc)
     await session.execute(text("""
         INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, type, is_active, 
-            version_id, is_transit, created_at
-        )
-        VALUES (
-            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', 'PHYSICAL', TRUE, 
-            1, FALSE, :now_tz
+            id, name, company_id, tenant_id, code, country_code,
+            type, is_active, version_id, is_transit, created_at
+        ) VALUES (
+            :id, 'Logistics MX TJ', :co_id, :co_id, 'LOG-MX-TJ', 'MX',
+            'PHYSICAL', TRUE, 1, FALSE, :now
         )
         ON CONFLICT (id) DO NOTHING;
-    """), {"id": WH_ENTERPRISE_TJ_ID, "co_id": CO_ENTERPRISE_ID, "now_tz": now_tz})
+    """), {"id": WH_LOGISTICS_MX_ID, "co_id": CO_LOGISTICS_MX_ID, "now": now})
 
-    await session.execute(text("""
-        INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, type, is_active, 
-            version_id, is_transit, created_at
-        )
-        VALUES (
-            :id, 'Logistics MX TJ', :co_id, :co_id, 'LOG-MX', 'MX', 'PHYSICAL', TRUE, 
-            1, FALSE, :now_tz
-        )
-        ON CONFLICT (id) DO NOTHING;
-    """), {"id": WH_LOGISTICS_MX_TJ_ID, "co_id": CO_LOGISTICS_MX_ID, "now_tz": now_tz})
 
 async def run_flow_4():
-    print("==================================================")
-    print("🚀 FLUJO 4: TRANSFERENCIA INTER-COMPANY (NACIONAL)")
-    print("🏢 Origen: Interno Enterprise (MX) -> Destino: Interno Logistics (MX)")
-    print("==================================================")
-    
+    print("=" * 55)
+    print("FLUJO 4: TRANSFERENCIA INTER-COMPANY (NACIONAL)")
+    print("Origen: Interno Enterprise -> Destino: Interno Logistics MX")
+    print("=" * 55)
+
     try:
         async with AsyncSessionLocal() as session:
-            await ensure_warehouses(session)
+            ids = await resolve_flow_ids(session)
+            await ensure_logistics_warehouse(session)
             await session.commit()
-            
+
             repo = SQLAlchemyInventoryRepository(session)
             handler = TransferCommandHandler(session, repo)
-            
-            print("\n[🚚] Iniciando venta/traslado entre empresas (Enterprise despacha)...")
-            ict_mx_cmd = InitiateTransferCommand(
-                origin_company_id=CO_ENTERPRISE_ID,
-                destination_company_id=CO_LOGISTICS_MX_ID,  # Diferente empresa
-                origin_warehouse_id=WH_ENTERPRISE_TJ_ID,
-                destination_warehouse_id=WH_LOGISTICS_MX_TJ_ID,
-                product_id=PROD_ID,
+
+            print("\n[SHIP] Enterprise despacha 25 PZ a Logistics MX...")
+            cmd_init = InitiateTransferCommand(
+                origin_company_id=ids["company_id"],
+                destination_company_id=CO_LOGISTICS_MX_ID,
+                origin_warehouse_id=ids["warehouse_id"],
+                destination_warehouse_id=WH_LOGISTICS_MX_ID,
+                product_id=ids["product_id"],
                 quantity=Decimal("25.0"),
                 weight=Decimal("12.5"),
-                uom_id=UOM_ID,
-                initiated_by=USER_A_ID,
-                transfer_price=Decimal("15.75"), # El precio pactado inter-company
-                customs_pedimento="244030001234567" # Pedimento semilla para operaciones originadas por importación
+                uom_id=ids["uom_id"],
+                initiated_by=ids["user_id"],
+                transfer_price=Decimal("15.75"),
+                customs_pedimento=None
             )
-            
-            transfer = await handler.initiate_transfer(ict_mx_cmd)
+
+            transfer = await handler.initiate_transfer(cmd_init)
             await session.commit()
-            print(f"✅ Transferencia enviada (En Tránsito). Folio ICT: {transfer.folio}")
-            
-            print("\n[📦] Efectuando recepción (Logistics MX recibe)...")
-            ict_mx_receive = CompleteTransferCommand(
+            print(f"OK  Transferencia en transito. Folio ICT: {transfer.folio}")
+
+            print("\n[RECV] Logistics MX recibe el stock...")
+            cmd_recv = CompleteTransferCommand(
                 transfer_id=transfer.id,
-                received_by=USER_B_ID,
-                receiver_company_id=CO_LOGISTICS_MX_ID, 
+                received_by=ids["user_id"],
+                receiver_company_id=CO_LOGISTICS_MX_ID,
                 received_quantity=Decimal("25.0")
             )
-            
-            await handler.complete_transfer(ict_mx_receive)
+
+            await handler.complete_transfer(cmd_recv)
             await session.commit()
-            print(f"✅ Recepción validada en Kardex B. Stock en Tránsito descontado.")
-            
-    except Exception as e:
-        print(f"\n❌ FATAL ERROR")
+            print("OK  Recepcion validada. Stock disponible en Logistics MX.")
+            print(f"    Transfer ID : {transfer.id}")
+            print(f"    Precio ICT  : $15.75 MXN/PZ")
+
+    except RuntimeError as e:
+        print(f"\nERROR: {e}")
+    except Exception:
+        print("\nFATAL ERROR")
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(run_flow_4())

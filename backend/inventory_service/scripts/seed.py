@@ -13,15 +13,15 @@ from sqlalchemy import text, select
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from app.db.session import AsyncSessionLocal
-from app.models.inventory import InventoryLevel
-from app.models.concept import MovementConcept
-from app.models.item_variant import ItemVariant
-from app.models.movement import Movement
-from app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
-from app.models.document import InventoryDocument, DocumentStatus
-from app.models.warehouse import Warehouse
-from app.models.warehouse import Warehouse
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.models.inventory import InventoryLevel
+from inventory_app.models.concept import MovementConcept
+from inventory_app.models.item_variant import ItemVariant
+from inventory_app.models.movement import Movement
+from inventory_app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
+from inventory_app.models.document import InventoryDocument, DocumentStatus
+from inventory_app.models.warehouse import Warehouse
+from inventory_app.models.warehouse import Warehouse
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger("seed_inventory")

@@ -1,0 +1,30 @@
+{
+    "ServiceName": "auth-service-prod",
+    "SourceConfiguration": {
+        "ImageRepository": {
+            "ImageIdentifier": "584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/auth-service:latest",
+            "ImageConfiguration": {
+                "Port": "8000",
+                "RuntimeEnvironmentVariables": {
+                    "CORE_ENV_MODE": "aws",
+                    "CORE_AWS_SECRET_ID": "interno-core/auth-service/prod"
+                }
+            },
+            "ImageRepositoryType": "ECR"
+        },
+        "AuthenticationConfiguration": {
+            "AccessRoleArn": "arn:aws:iam::584094645491:role/AppRunnerECRAccessRole"
+        }
+    },
+    "InstanceConfiguration": {
+        "Cpu": "256",
+        "Memory": "512",
+        "InstanceRoleArn": "arn:aws:iam::584094645491:role/InternoCore-AppRunner-Role"
+    },
+    "NetworkConfiguration": {
+        "EgressConfiguration": {
+            "EgressType": "VPC",
+            "VpcConnectorArn": "arn:aws:apprunner:us-east-2:584094645491:vpcconnector/InternoCore-VPC-Bridge-v4/1/6cc62a71d784487987282e67d1630415"
+        }
+    }
+}

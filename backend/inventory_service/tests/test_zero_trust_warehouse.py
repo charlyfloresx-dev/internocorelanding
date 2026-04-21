@@ -14,9 +14,9 @@ sys.path.append(backend_root)
 
 from common.models import Base
 from common.exceptions import UnauthorizedException
-from app.db.session import AsyncSessionLocal, engine
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.models.warehouse import Warehouse
+from inventory_app.db.session import AsyncSessionLocal, engine
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.models.warehouse import Warehouse
 
 async def test_zero_trust():
     print("--- Starting Zero Trust Warehouse Test ---")

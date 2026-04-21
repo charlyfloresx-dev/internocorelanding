@@ -1,9 +1,9 @@
 import pytest
 import uuid
 from decimal import Decimal
-from app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
-from app.models.product import Product
-from app.models.product_price import UnitType
+from master_app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
+from master_app.models.product import Product
+from master_app.models.product_price import UnitType
 
 @pytest.fixture
 async def product_factory(db):

@@ -12,8 +12,8 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append("/app")
 sys.path.append("/app/inventory_service")
 
-from app.db.session import AsyncSessionLocal
-from app.models.inventory import InventoryLevel
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.models.inventory import InventoryLevel
 
 # Constants from Seed
 WH_SDY_ID = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.WH-SDY")

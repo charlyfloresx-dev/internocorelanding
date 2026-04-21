@@ -1,8 +1,8 @@
 
 import asyncio
 from sqlalchemy import select
-from app.db.db import async_session
-from app.models.warehouse import Warehouse
+from master_app.db.db import async_session
+from master_app.models.warehouse import Warehouse
 
 async def check():
     async with async_session() as session:

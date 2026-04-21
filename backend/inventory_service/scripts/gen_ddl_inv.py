@@ -7,7 +7,7 @@ from sqlalchemy.schema import CreateTable
 sys.path.insert(0, os.getcwd())
 
 from common.models import Base
-import app.models # Ensure all models are registered
+import inventory_app.models # Ensure all models are registered
 
 def dump(sql, *multiparams, **params):
     print(sql.compile(dialect=engine.dialect))

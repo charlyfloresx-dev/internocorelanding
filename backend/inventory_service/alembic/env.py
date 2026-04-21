@@ -22,18 +22,18 @@ if config.config_file_name is not None:
 # ─── Metadata ─────────────────────────────────────────────────────────────────
 from common.models import Base
 # Importamos todos los modelos para que autogenerate los detecte
-import app.models.inventory
-import app.models.inter_company_transfer
-import app.models.warehouse
-import app.models.document
-import app.models.movement
-import app.models.stock
-import app.models.stock_lot
-import app.models.item_variant
-import app.models.concept
-import app.models.bom
-import app.models.backflush_error
-import app.models.customs_pedimento
+import inventory_app.models.inventory
+import inventory_app.models.inter_company_transfer
+import inventory_app.models.warehouse
+import inventory_app.models.document
+import inventory_app.models.movement
+import inventory_app.models.stock
+import inventory_app.models.stock_lot
+import inventory_app.models.item_variant
+import inventory_app.models.concept
+import inventory_app.models.bom
+import inventory_app.models.backflush_error
+import inventory_app.models.customs_pedimento
 
 target_metadata = Base.metadata
 

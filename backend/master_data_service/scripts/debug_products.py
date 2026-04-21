@@ -1,7 +1,7 @@
 import asyncio
 import uuid
-from app.db.db import async_session
-from app.models.product import Product
+from master_app.db.db import async_session
+from master_app.models.product import Product
 from sqlalchemy import select
 
 async def run():

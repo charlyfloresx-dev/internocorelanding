@@ -12,15 +12,15 @@ import sqlalchemy.exc
 # Ajustar path para encontrar 'app'
 sys.path.append(os.getcwd())
 
-from app.db.session import AsyncSessionLocal
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
-from app.models.item_variant import ItemVariant
-from app.models.movement import Movement
-from app.models.inter_company_transfer import InterCompanyTransfer
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
+from inventory_app.models.item_variant import ItemVariant
+from inventory_app.models.movement import Movement
+from inventory_app.models.inter_company_transfer import InterCompanyTransfer
 from sqlalchemy import select
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.infrastructure.clients.master_data import MasterDataClient
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.infrastructure.clients.master_data import MasterDataClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("price_freeze_test")

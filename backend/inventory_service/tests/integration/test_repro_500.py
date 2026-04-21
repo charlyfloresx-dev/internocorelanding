@@ -1,11 +1,11 @@
 import pytest
 import uuid
 from decimal import Decimal
-from app.services.transfer_service import TransferService
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.domain.entities.inventory_item import MovementEntity
-from app.models.warehouse import Warehouse
-from app.models.stock import InventoryLevel
+from inventory_app.services.transfer_service import TransferService
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.domain.entities.inventory_item import MovementEntity
+from inventory_app.models.warehouse import Warehouse
+from inventory_app.models.stock import InventoryLevel
 from sqlalchemy import select
 from common.domain.value_objects import Money
 

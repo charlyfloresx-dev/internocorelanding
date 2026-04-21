@@ -1,8 +1,8 @@
 import asyncio
 import uuid
-from app.db.session import AsyncSessionLocal
-from app.models.inter_company_transfer import InterCompanyTransfer
-from app.models.document import InventoryDocument
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.models.inter_company_transfer import InterCompanyTransfer
+from inventory_app.models.document import InventoryDocument
 from sqlalchemy import select
 
 async def check():

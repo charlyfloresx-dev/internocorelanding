@@ -13,10 +13,10 @@ ROOT_DIR = os.path.dirname(os.path.dirname(CURRENT_PATH)) # backend
 sys.path.append(ROOT_DIR)
 sys.path.append(os.path.join(ROOT_DIR, "master_data_service"))
 
-from app.db.db import engine
+from master_app.db.db import engine
 from common.models import MultiTenantBase
 # Import all models to ensure they are registered with MultiTenantBase.metadata
-import app.models  # noqa: F401
+import master_app.models  # noqa: F401
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("migrate_master_data")

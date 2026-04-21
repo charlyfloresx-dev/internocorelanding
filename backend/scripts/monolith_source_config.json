@@ -1,0 +1,14 @@
+{
+    "ImageRepository": {
+        "ImageIdentifier": "584094645491.dkr.ecr.us-east-2.amazonaws.com/interno-core/auth-service:latest",
+        "ImageConfiguration": {
+            "StartCommand": "uvicorn main_monolith:app --host 0.0.0.0 --port 8000",
+            "Port": "8000",
+            "RuntimeEnvironmentVariables": {
+                "CORE_ENV_MODE": "aws",
+                "CORE_AWS_SECRET_ID": "interno-core/auth-service/prod"
+            }
+        },
+        "ImageRepositoryType": "ECR"
+    }
+}

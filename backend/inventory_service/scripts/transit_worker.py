@@ -2,9 +2,9 @@ import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select
-from app.db.session import SessionLocal
-from app.models.movement import Movement
-from app.infrastructure.tickets_client import TicketsClient
+from inventory_app.db.session import SessionLocal
+from inventory_app.models.movement import Movement
+from inventory_app.infrastructure.tickets_client import TicketsClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("transit_age_worker")

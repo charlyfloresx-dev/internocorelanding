@@ -11,12 +11,12 @@ import os
 # Add backend to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.models.movement import Movement
-from app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
-from app.models.inventory import InventoryLevel
-from app.models.warehouse import Warehouse
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.domain.entities.inventory_item import MovementEntity
+from inventory_app.models.movement import Movement
+from inventory_app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
+from inventory_app.models.inventory import InventoryLevel
+from inventory_app.models.warehouse import Warehouse
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.domain.entities.inventory_item import MovementEntity
 from common.domain.value_objects import Money
 
 # DB_URL for local testing (matches dev environment defined in docker-compose.yml host mapping)
@@ -124,7 +124,7 @@ async def test_fifo_logic():
         print("Initial state: 2 layers of 50 units (FIFO Ready).")
         
         # 3. Simulate exits using the real Domain Service
-        from app.domain.services.fifo_discharge_service import FIFODischargeService
+        from inventory_app.domain.services.fifo_discharge_service import FIFODischargeService
         
         print("Executing 4 partial exits (15 units each) to force layer transition...")
         total_requested = Decimal("0")

@@ -6,8 +6,8 @@ import sys
 # Add current path to sys.path
 sys.path.append(os.getcwd())
 
-from app.db.session import AsyncSessionLocal
-from app.models.product_category import ProductCategory
+from master_app.db.session import AsyncSessionLocal
+from master_app.models.product_category import ProductCategory
 from sqlalchemy import select
 
 async def check():

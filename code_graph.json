@@ -1,10 +1,17 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [],
+    "invariants_errors": [
+        {
+            "file": "backend/common/config.py",
+            "severity": "WARNING",
+            "ms": "common",
+            "error": "AWS_READINESS_VIOLATION: Hardcoded 'localhost' detected in critical connection string, use env-injected variables"
+        }
+    ],
     "compliance_report": {
         "auth_service": 100,
-        "common": 100,
+        "common": 90,
         "currency_service": 100,
         "hr_service": 100,
         "inventory_service": 100,
@@ -19,11 +26,14 @@
     },
     "inter_service_deps": {
         "common": [
-            "subscription_service",
-            "auth_service",
-            "master_data_service",
             "wms_service",
-            "mes_service"
+            "master_data_service",
+            "auth_service",
+            "mes_service",
+            "subscription_service"
+        ],
+        "inventory_service": [
+            "notification_service"
         ],
         "master_data_service": [
             "currency_service"

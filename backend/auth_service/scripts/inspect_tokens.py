@@ -13,12 +13,12 @@ sys.path.append(parent_dir)
 try:
     from jose import jwt, JWTError
     from sqlalchemy import select
-    from app.core.config import settings
-    from app.db.session import AsyncSessionLocal
+    from auth_app.core.config import settings
+    from auth_app.db.session import AsyncSessionLocal
     # Attempt to import models. Adjust if your project structure uses specific submodules without __init__ exports.
-    from app.models import User, UserCompanyRole
+    from auth_app.models import User, UserCompanyRole
 except ImportError as e:
-    print(f"CRITICAL ERROR: Could not import application modules.\nDetails: {e}")
+    print(f"CRITICAL ERROR: Could not import auth_application modules.\nDetails: {e}")
     print(f"PYTHONPATH: {sys.path}")
     print("Ensure you are running this script with the backend/auth_service environment active.")
     sys.exit(1)

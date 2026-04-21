@@ -1,0 +1,48 @@
+services:
+  postgres-db:
+    image: postgres:15
+    container_name: interno-db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dbname
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - interno-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d dbname" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  interno-monolith:
+    build:
+      context: ./backend
+      dockerfile: Monolith.Dockerfile
+    container_name: interno-monolith
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_BACKEND_CORS_ORIGINS=["http://localhost:4200","http://localhost:8080"]
+      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+
+networks:
+  interno-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

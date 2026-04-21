@@ -17,12 +17,12 @@ for path in [service_root, backend_root]:
 from common.infrastructure.models.base import Base
 
 # Force all models to register with Base.metadata before create_all
-import app.models.inventory          # noqa: F401
-import app.models.warehouse          # noqa: F401
-import app.models.document           # noqa: F401
-import app.models.inter_company_transfer  # noqa: F401
-import app.models.movement           # noqa: F401
-import app.models.stock              # noqa: F401
+import inventory_app.models.inventory          # noqa: F401
+import inventory_app.models.warehouse          # noqa: F401
+import inventory_app.models.document           # noqa: F401
+import inventory_app.models.inter_company_transfer  # noqa: F401
+import inventory_app.models.movement           # noqa: F401
+import inventory_app.models.stock              # noqa: F401
 import common.models.audit_log       # noqa: F401
 
 # ── SQLite In-Memory Engine ──────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy import text
-from app.db.session import AsyncSessionLocal
+from inventory_app.db.session import AsyncSessionLocal
 
 async def fix():
     enterprise_id = "9cd9986b-89da-48b7-8733-26a2a1225b01"

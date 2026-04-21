@@ -42,9 +42,9 @@ log = logging.getLogger("seed")
 
 # ─── App Imports ──────────────────────────────────────────────────────────────
 from sqlalchemy import select, text
-from app.core.database import AsyncSessionLocal
-from app.models import BusinessGroup, Company, User, Role, UserCompanyRole
-from app.core.security import hash_password
+from auth_app.core.database import AsyncSessionLocal
+from auth_app.models import BusinessGroup, Company, User, Role, UserCompanyRole
+from auth_app.core.security import hash_password
 
 # ─── IDs Fijos (idempotent) ───────────────────────────────────────────────────
 GROUP_ID       = uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")

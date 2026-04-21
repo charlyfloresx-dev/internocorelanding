@@ -17,10 +17,10 @@ sys.path.append(base_path)
 sys.path.append(os.path.abspath(os.path.join(base_path, "..")))
 
 # 2. Importar Configuración y Modelos
-from app.core.config import settings # type: ignore
+from auth_app.core.config import settings # type: ignore
 # Al importar 'Base' desde el paquete 'app.models', el __init__.py se encarga
 # de cargar todos los modelos y registrarlos en la metadata.
-from app.models import Base # type: ignore
+from auth_app.models import Base # type: ignore
 
 # 3. Configuración de Alembic
 config = context.config

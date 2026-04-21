@@ -2,8 +2,8 @@ import uuid
 import pytest
 from datetime import datetime, timezone, timedelta
 from jose import jwt
-from app.core import security
-from app.core.config import settings
+from auth_app.core import security
+from auth_app.core.config import settings
 
 @pytest.mark.async_state
 def test_token_taxonomy():

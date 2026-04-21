@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from app.db.session import AsyncSessionLocal
+from inventory_app.db.session import AsyncSessionLocal
 from sqlalchemy import text
 
 # ─── CONFIGURACIÓN ───

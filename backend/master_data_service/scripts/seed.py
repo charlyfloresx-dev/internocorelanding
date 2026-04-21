@@ -9,14 +9,14 @@ from datetime import datetime, timezone
 # Ajuste de path para encontrar 'app' y 'common'
 sys.path.append(os.getcwd())
 
-from app.db.db import async_session
-from app.models.uom import UOM
-from app.models.product import Product, ProductVersion
-from app.models.product_price import ProductPrice, UnitType
-from app.models.movement_concept import MovementConcept
-from app.models.warehouse import Warehouse
-from app.models.product_category import ProductCategory
-from app.models.partner import Partner
+from master_app.db.db import async_session
+from master_app.models.uom import UOM
+from master_app.models.product import Product, ProductVersion
+from master_app.models.product_price import ProductPrice, UnitType
+from master_app.models.movement_concept import MovementConcept
+from master_app.models.warehouse import Warehouse
+from master_app.models.product_category import ProductCategory
+from master_app.models.partner import Partner
 from common.enums import ProductStatus, VersionStatus, ProductType, MovementType, WarehouseType, PartnerType
 from sqlalchemy import select, delete
 

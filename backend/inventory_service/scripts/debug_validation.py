@@ -1,5 +1,5 @@
 
-from app.domain.entities.transfer_entities import InitiateTransferCommand
+from inventory_app.domain.entities.transfer_entities import InitiateTransferCommand
 import uuid
 from decimal import Decimal
 

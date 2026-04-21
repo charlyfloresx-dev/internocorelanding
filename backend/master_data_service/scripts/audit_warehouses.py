@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 # Path adjustment
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.models.warehouse import Warehouse
+from master_app.models.warehouse import Warehouse
 
 async def check_warehouses():
     # Inside docker: postgres:5432

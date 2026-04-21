@@ -1,8 +1,10 @@
 ---
-description: Initialize InternoCore (Dockers, DBs, Seeds, Compliance)
+description: Initialize InternoCore Unified Monolith (Docker, DB Schema, Unified Seed, Compliance)
 ---
 
-This workflow initializes the development environment, ensures databases are ready, runs seeds, and performs an architectural audit.
+This workflow initializes the **Unified Monolith** development environment:
+ensures Docker is running, the monolith container is up, the DB schema is
+synchronized and the industrial seed is loaded.
 
 // turbo
 0. Start Docker Desktop (if not running)
@@ -16,23 +18,38 @@ This workflow initializes the development environment, ensures databases are rea
    docker compose up -d --remove-orphans
    ```
 
-2. Verify Database Existence and Schema
-   ```powershell
-   # Check if main databases are ready
-   docker exec -t interno-db psql -U user -d postgres -c "\l"
-   ```
-
-3. Run Architectural Audit (Rules from generate_code_graph.py)
-   ```powershell
-   python backend/scripts/generate_code_graph.py
-   ```
-
-4. Verify Microservice Stability
+2. Wait for monolith to be healthy
    ```powershell
    docker compose ps
    ```
 
-5. Suggest fixes if any microservice is 'Exited'
-   - Check logs: `docker compose logs --tail 20 [service-name]`
-   - Apply Pydantic BaseSettings for config if missing (Critical for AWS Readiness)
-   - Ensure MultiTenantBase is used correctly in Repositories
+// turbo
+3. Run Unified Industrial Seed (Idempotent — safe to re-run)
+   ```powershell
+   docker cp backend/scripts/unified_industrial_seed.py interno-monolith:/app/scripts/unified_industrial_seed.py
+   docker exec interno-monolith python3 scripts/unified_industrial_seed.py
+   ```
+   Expected output: `✅ SEED COMPLETADO EXITOSAMENTE`
+   Credentials loaded: `charly@interno.com / charly123` → Company: `9cd9986b-89da-48b7-8733-26a2a1225b01`
+
+4. Smoke Test: Verify monolith health endpoint
+   ```powershell
+   Invoke-RestMethod -Uri http://localhost:8000/health -Method Get
+   ```
+
+5. Verify Microservice Stability
+   ```powershell
+   docker compose ps
+   ```
+
+6. Suggest fixes if the monolith container is 'Exited'
+   - Check logs: `docker compose logs --tail 30 interno-monolith`
+   - Ensure all service routers are correctly imported in `main_monolith.py`
+   - Verify PYTHONPATH in `Monolith.Dockerfile` includes all service roots
+
+Notes:
+- The **unified seed** replaces the per-service seeds (`auth_service/scripts/seed.py`,
+  `master_data_service/master_app/seeds/`). Those are now **legacy** and should not
+  be run against the unified monolith database.
+- Auth Core: BusinessGroup → Company → Roles → User Charly (ADMIN + OPERATIONS_MANAGER)
+- Master Data: UOMs → MovementConcepts → Warehouse WH-001 → LOC-AUDIT-01 (cap 100) → SKU-PROD-01

@@ -14,9 +14,9 @@ def get_session_factory():
     engine = create_async_engine(os.environ["DATABASE_URL"])
     return async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-from app.models.product_price import ProductPrice
-from app.models.price_agreement import PriceAgreement
-from app.models.product import Product
+from master_app.models.product_price import ProductPrice
+from master_app.models.price_agreement import PriceAgreement
+from master_app.models.product import Product
 
 async def check_prices():
     print("--- [AUDITORIA] DE PRECIOS Y ACUERDOS ---")

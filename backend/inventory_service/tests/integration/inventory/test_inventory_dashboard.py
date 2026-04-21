@@ -2,8 +2,8 @@ import pytest
 import uuid
 from unittest.mock import AsyncMock
 
-from app.api.v1.handlers.dashboard_handler import GetInventoryDashboardHandler as DashboardHandler
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.api.v1.handlers.dashboard_handler import GetInventoryDashboardHandler as DashboardHandler
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
 
 
 def _mock_md_client() -> AsyncMock:

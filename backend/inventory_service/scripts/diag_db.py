@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import datetime
-from app.db.session import AsyncSessionLocal
+from inventory_app.db.session import AsyncSessionLocal
 from sqlalchemy import text
 
 async def diagnose_raw_sql():

@@ -7,11 +7,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import patch, MagicMock
 
-from app.main import app
-from app.models import Base, User, Company, Role, UserCompanyRole
-from app.core.database import get_db 
-from app.core.config import settings
-from app.core.security import hash_password
+from auth_app.main import auth_app
+from auth_app.models import Base, User, Company, Role, UserCompanyRole
+from auth_app.core.database import get_db 
+from auth_app.core.config import settings
+from auth_app.core.security import hash_password
 
 # DB de prueba en memoria (aislada por sesión de test)
 DATABASE_URL = "sqlite+aiosqlite:///:memory:"

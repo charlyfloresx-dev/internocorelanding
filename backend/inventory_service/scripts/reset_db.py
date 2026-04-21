@@ -7,7 +7,7 @@ from sqlalchemy import text
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from app.db.session import engine
+from inventory_app.db.session import engine
 
 async def reset_db():
     print("🧹 [INVENTORY] Dropping and recreating public schema...")

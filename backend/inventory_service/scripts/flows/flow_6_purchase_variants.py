@@ -1,106 +1,114 @@
+"""
+flow_6_purchase_variants.py
+------------------------------
+Flujo 6: Entrada masiva de inventario por variantes de producto.
+Registra 100 PZ por cada variante existente en la empresa Enterprise.
+
+Pre-requisito: seed_variants.py ejecutado primero para crear las variantes.
+               flow_1_entry.py no es necesario (este flujo es independiente).
+"""
 import asyncio
 import uuid
 import sys
 import os
+import traceback
 from decimal import Decimal
 from datetime import datetime, timezone
-
-if os.getcwd() not in sys.path:
-    sys.path.insert(0, os.getcwd())
-
-from app.db.session import AsyncSessionLocal
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.models.document import InventoryDocument, DocumentStatus
-from app.domain.entities.inventory_item import MovementEntity
-from common.domain.value_objects import Money
 from sqlalchemy import text
 
-# ─── CONFIGURACIÓN ───
-CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
-WH_ENTERPRISE_TJ_ID = uuid.UUID("fd76bbe3-6d6f-5e74-ae15-d605acbc2289")
-USER_A_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
-UOM_ID = uuid.UUID("1a7444c9-40df-51d5-833b-501fc84b67bb")
+_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
+
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.models.document import InventoryDocument, DocumentStatus
+from inventory_app.domain.entities.inventory_item import MovementEntity
+from common.domain.value_objects import Money
+from flows._shared_ids import resolve_flow_ids
+
 
 async def record_bulk_purchases():
-    print("==================================================")
-    print("🚀 FLUJO 6: COMPRA MASIVA DE VARIANTES (ENTRY)")
-    print(f"🏢 Empresa: Interno Enterprise")
-    print(f"📍 Almacén: {WH_ENTERPRISE_TJ_ID}")
-    print("==================================================")
-    
-    async with AsyncSessionLocal() as session:
-        repo = SQLAlchemyInventoryRepository(session)
-        
-        # 1. Obtener todas las variantes de la empresa
-        res = await session.execute(text("""
-            SELECT id, product_id, internal_sku, brand, mfg_part_number, unit_price 
-            FROM inventory_item_variants 
-            WHERE company_id = :co_id
-        """), {"co_id": CO_ENTERPRISE_ID})
-        
-        variants = res.fetchall()
-        if not variants:
-            print("❌ No se encontraron variantes. Por favor corre seed_variants.py primero.")
-            return
+    print("=" * 55)
+    print("FLUJO 6: ENTRADA MASIVA POR VARIANTES")
+    print("Empresa: Interno Enterprise")
+    print("=" * 55)
 
-        print(f"📦 Procesando compra para {len(variants)} variantes...")
+    try:
+        async with AsyncSessionLocal() as session:
+            ids = await resolve_flow_ids(session)
 
-        # 2. Crear Cabecera de Documento de Compra
-        doc_id = uuid.uuid4()
-        total_amount = Decimal("0.0")
-        
-        # Calculamos totales para la cabecera
-        for v in variants:
-            total_amount += v.unit_price * Decimal("100.0") # Compramos 100 de cada una
+            # Cargar variantes existentes de la empresa
+            res = await session.execute(text("""
+                SELECT id, product_id, internal_sku, brand, mfg_part_number, unit_price
+                FROM inventory_item_variants
+                WHERE company_id = :co_id
+            """), {"co_id": ids["company_id"]})
 
-        doc_header = InventoryDocument(
-            id=doc_id,
-            company_id=CO_ENTERPRISE_ID,
-            tenant_id=CO_ENTERPRISE_ID,
-            folio=f"PURCHASE-{doc_id.hex[:6].upper()}",
-            document_type="ENTRY",
-            status=DocumentStatus.PROCESSED,
-            origin_name="SUPPLIER_GLOBAL",
-            destination_name="MAIN_WAREHOUSE",
-            total_items=len(variants),
-            total_amount=Money(total_amount, "USD"),
-            total_weight=Decimal(len(variants)) * Decimal("1.5"), # Peso dummy
-            created_by=USER_A_ID,
-            external_reference=f"PO-{doc_id.hex[:8].upper()}"
-        )
-        
-        session.add(doc_header)
-        await session.flush()
-        
-        print(f"📄 Documento creado: {doc_header.folio} | Ref: {doc_header.external_reference}")
+            variants = res.fetchall()
+            if not variants:
+                print("SKIP: No se encontraron variantes.")
+                print("      Ejecuta primero: python scripts/flows/seed_variants.py")
+                return
 
-        # 3. Registrar Movimientos de cada Variante
-        for v in variants:
-            qty = Decimal("100.0")
-            price = v.unit_price
-            
-            entry_mv = MovementEntity(
-                id=uuid.uuid4(),
-                warehouse_id=WH_ENTERPRISE_TJ_ID,
-                product_id=v.product_id,
-                variant_id=v.id,
-                company_id=CO_ENTERPRISE_ID,
-                quantity=qty,
-                uom_id=UOM_ID,
-                weight=Decimal("1.5"),
-                movement_type="IN",
+            print(f"INFO: Procesando entrada para {len(variants)} variante(s)...")
+
+            # Cabecera de documento
+            doc_id = uuid.uuid4()
+            total_amount = sum(v.unit_price * Decimal("100.0") for v in variants)
+
+            doc_header = InventoryDocument(
+                id=doc_id,
+                company_id=ids["company_id"],
+                tenant_id=ids["company_id"],
+                folio=f"PURCHASE-{doc_id.hex[:6].upper()}",
                 document_type="ENTRY",
-                document_id=doc_id,
-                price=Money(price, "USD"),
-                user_id=USER_A_ID,
-                available_quantity=qty # Capa de stock para FIFO
+                status=DocumentStatus.PROCESSED,
+                origin_name="SUPPLIER_GLOBAL",
+                destination_name="MAIN_WAREHOUSE",
+                total_items=len(variants),
+                total_amount=Money(total_amount, "USD"),
+                total_weight=Decimal(len(variants)) * Decimal("1.5"),
+                created_by=ids["user_id"],
+                external_reference=f"PO-{doc_id.hex[:8].upper()}"
             )
-            
-            await repo.record_movement(entry_mv)
-            print(f"   ↳ [OK] SKU: {v.internal_sku} | Brand: {v.brand} | MPN: {v.mfg_part_number} | Qty: {qty}")
+            session.add(doc_header)
+            await session.flush()
 
-        await session.commit()
-        print("\n✅ Compra masiva registrada exitosamente en el Kardex.")
+            print(f"INFO: Documento creado: {doc_header.folio} | PO Ref: {doc_header.external_reference}")
+
+            # Registrar movimiento por cada variante
+            repo = SQLAlchemyInventoryRepository(session)
+            for v in variants:
+                qty = Decimal("100.0")
+                entry_mv = MovementEntity(
+                    id=uuid.uuid4(),
+                    warehouse_id=ids["warehouse_id"],
+                    product_id=v.product_id,
+                    variant_id=v.id,
+                    company_id=ids["company_id"],
+                    quantity=qty,
+                    uom_id=ids["uom_id"],
+                    weight=Decimal("1.5"),
+                    movement_type="IN",
+                    document_type="ENTRY",
+                    document_id=doc_id,
+                    price=Money(v.unit_price, "USD"),
+                    user_id=ids["user_id"],
+                    available_quantity=qty
+                )
+                await repo.record_movement(entry_mv)
+                print(f"    OK  SKU: {v.internal_sku} | {v.brand} | qty: {qty}")
+
+            await session.commit()
+            print(f"\nOK  Entrada masiva registrada ({len(variants)} variantes).")
+
+    except RuntimeError as e:
+        print(f"\nERROR: {e}")
+    except Exception:
+        print("\nFATAL ERROR")
+        traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(record_bulk_purchases())

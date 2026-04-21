@@ -6,9 +6,9 @@ from httpx import AsyncClient, ASGITransport
 from jose import jwt
 from common.config import settings
 
-from app.main import app
-from app.models.product_price import UnitType
-from app.models.product import Product
+from master_app.main import master_app
+from master_app.models.product_price import UnitType
+from master_app.models.product import Product
 
 @pytest.fixture
 async def product_factory(db):
@@ -25,7 +25,7 @@ async def product_factory(db):
         return prod
     return _create
 
-from app.db.session import get_db
+from master_app.db.session import get_db
 
 @pytest.mark.asyncio
 async def test_cross_service_price_fetch(db, product_factory):
@@ -41,7 +41,7 @@ async def test_cross_service_price_fetch(db, product_factory):
     product_tijuana = await product_factory(tenant_tijuana)
     
     # Insert prices for the product in Tijuana
-    from app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
+    from master_app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
     repo = SQLAlchemyMasterDataRepository(db)
     
     # Precio Tijuana: MXN
@@ -72,7 +72,7 @@ async def test_cross_service_price_fetch(db, product_factory):
 
     # Diagnostic: check db
     from sqlalchemy import select
-    from app.models.product import Product
+    from master_app.models.product import Product
     diag = await db.execute(select(Product).where(Product.company_id == tenant_tijuana))
     diag_prod = diag.scalar_one_or_none()
     assert diag_prod is not None, "Product missing in db before HTTP call"

@@ -1,16 +1,16 @@
 import pytest
 import uuid
 from decimal import Decimal
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.domain.entities.transfer_entities import (
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.domain.entities.transfer_entities import (
     InitiateTransferCommand, 
     CompleteTransferCommand,
     TransferStatusEnum
 )
 from common.exceptions import SelfTransferReceiptException, UnauthorizedException
-from app.models.inventory import InventoryLevel
-from app.models.warehouse import Warehouse
+from inventory_app.models.inventory import InventoryLevel
+from inventory_app.models.warehouse import Warehouse
 
 @pytest.mark.asyncio
 async def test_ict_anti_fraud_handshake(db_session):

@@ -1,104 +1,92 @@
+"""
+flow_2_exit.py
+----------------
+Flujo 2: Salida de inventario (OUT).
+Descarga 20 unidades del producto SKU-PROD-01 desde almacen WH-001.
+
+Pre-requisito: flow_1_entry.py ejecutado primero (necesita stock disponible).
+"""
 import asyncio
 import uuid
 import sys
 import os
 import traceback
 from decimal import Decimal
-
-if os.getcwd() not in sys.path:
-    sys.path.insert(0, os.getcwd())
-
-from app.db.session import AsyncSessionLocal
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.domain.entities.inventory_item import MovementEntity
-from common.domain.value_objects import Money
-from app.models.document import InventoryDocument, DocumentStatus
 from datetime import datetime, timezone
 
-# ─── REAL DATABASE IDS ───
-CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
-WH_ENTERPRISE_TJ_ID = uuid.UUID("fd76bbe3-6d6f-5e74-ae15-d605acbc2289")
-PROD_ID = uuid.UUID("133ec1c3-36eb-5977-a281-e0e6e5092d5e")
-UOM_ID = uuid.UUID("1a7444c9-40df-51d5-833b-501fc84b67bb")
-USER_A_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
+_BACKEND = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if _BACKEND not in sys.path:
+    sys.path.insert(0, _BACKEND)
 
-async def ensure_warehouse(session):
-    from sqlalchemy import text
-    from datetime import datetime, timezone
-    now_tz = datetime.now(timezone.utc)
-    await session.execute(text("""
-        INSERT INTO inventory_warehouses (
-            id, name, company_id, tenant_id, code, country_code, type, is_active, 
-            version_id, is_transit, created_at
-        )
-        VALUES (
-            :id, 'Enterprise Main TJ', :co_id, :co_id, 'ENT-MAIN', 'MX', 'PHYSICAL', TRUE, 
-            1, FALSE, :now_tz
-        )
-        ON CONFLICT (id) DO NOTHING;
-    """), {"id": WH_ENTERPRISE_TJ_ID, "co_id": CO_ENTERPRISE_ID, "now_tz": now_tz})
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.domain.entities.inventory_item import MovementEntity
+from common.domain.value_objects import Money
+from inventory_app.models.document import InventoryDocument, DocumentStatus
+from flows._shared_ids import resolve_flow_ids
+
 
 async def run_flow_2():
-    print("==================================================")
-    print("🚀 FLUJO 2: SALIDA DE INVENTARIO (OUT)")
-    print("🏢 Empresa: Interno Enterprise")
-    print("==================================================")
-    
+    print("=" * 50)
+    print("FLUJO 2: SALIDA DE INVENTARIO (OUT)")
+    print("Empresa: Interno Enterprise")
+    print("=" * 50)
+
     try:
         async with AsyncSessionLocal() as session:
-            await ensure_warehouse(session)
-            await session.commit()
-            
-            repo = SQLAlchemyInventoryRepository(session)
-            
+            ids = await resolve_flow_ids(session)
+
             doc_id = uuid.uuid4()
 
-            # Create Document Header for traceability in dashboard
             doc_header = InventoryDocument(
                 id=doc_id,
-                company_id=CO_ENTERPRISE_ID,
-                tenant_id=CO_ENTERPRISE_ID,
-                folio=f"OUT-MANUAL-{doc_id.hex[:6].upper()}",
+                company_id=ids["company_id"],
+                tenant_id=ids["company_id"],
+                folio=f"OUT-{doc_id.hex[:6].upper()}",
                 document_type="OUT",
                 status=DocumentStatus.PROCESSED,
                 origin_name="STOCK",
-                destination_name="SCRAP/CUSTOMER",
+                destination_name="CLIENTE / SCRAP",
                 total_items=1,
                 total_weight=Decimal("10.0"),
-                total_amount=Money(Decimal("0.0"), "MXN"),
-                created_by=USER_A_ID,
+                total_amount=Money(Decimal("250.0"), "MXN"),
+                created_by=ids["user_id"],
                 external_reference=doc_id.hex
             )
             session.add(doc_header)
 
             exit_mv = MovementEntity(
                 id=uuid.uuid4(),
-                warehouse_id=WH_ENTERPRISE_TJ_ID,
-                product_id=PROD_ID,
-                company_id=CO_ENTERPRISE_ID,
+                warehouse_id=ids["warehouse_id"],
+                product_id=ids["product_id"],
+                company_id=ids["company_id"],
                 quantity=Decimal("-20.0"),
-                uom_id=UOM_ID,
+                uom_id=ids["uom_id"],
                 weight=Decimal("10.0"),
                 movement_type="OUT",
                 document_type="OUT",
-                document_id=doc_id, # Link to header
-                price=Money(Decimal("0.0"), "MXN"),
-                user_id=USER_A_ID,
+                document_id=doc_id,
+                price=Money(Decimal("12.50"), "MXN"),
+                user_id=ids["user_id"],
                 available_quantity=Decimal("0.0")
             )
-            
-            print("\n[⬅️ ] Registrando salida de inventario (Descarga)...")
-            await repo.record_movement(exit_mv)
+
+            print("\n[OUT] Registrando salida de inventario...")
+            await SQLAlchemyInventoryRepository(session).record_movement(exit_mv)
             await session.commit()
-            
-            print(f"✅ Salida registrada exitosamente.")
-            print(f"   ↳ ID Movimiento: {exit_mv.id}")
-            print(f"   ↳ Tipo: {exit_mv.movement_type}")
-            print(f"   ↳ Cantidad Descargada: {exit_mv.quantity} unidades")
-            
-    except Exception as e:
-        print(f"\n❌ FATAL ERROR")
+
+            print(f"OK  Salida registrada.")
+            print(f"    Movement ID : {exit_mv.id}")
+            print(f"    Tipo        : {exit_mv.movement_type}")
+            print(f"    Cantidad    : {exit_mv.quantity} PZ (descuento)")
+            print(f"    Producto    : {ids['product_id']} (SKU-PROD-01)")
+
+    except RuntimeError as e:
+        print(f"\nERROR: {e}")
+    except Exception:
+        print("\nFATAL ERROR")
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     asyncio.run(run_flow_2())

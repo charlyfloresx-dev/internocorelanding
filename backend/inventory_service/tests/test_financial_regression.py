@@ -13,12 +13,12 @@ sys.path.append(project_root)
 sys.path.append(backend_root)
 
 from common.models import Base
-from app.db.session import AsyncSessionLocal, engine
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.services.transfer_service import TransferService
-from app.models.warehouse import Warehouse
-from app.models.inventory import InventoryLevel
-from app.domain.entities.inventory_item import MovementEntity
+from inventory_app.db.session import AsyncSessionLocal, engine
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.services.transfer_service import TransferService
+from inventory_app.models.warehouse import Warehouse
+from inventory_app.models.inventory import InventoryLevel
+from inventory_app.domain.entities.inventory_item import MovementEntity
 
 async def test_financial_regression():
     print("--- Starting Financial Regression Test (Transfers) ---")

@@ -1,9 +1,9 @@
 import pytest
 from uuid import uuid4
 from sqlalchemy.future import select
-from app.queries.login_query import LoginQuery, LoginQueryHandler
-from app.commands.select_company_command import SelectCompanyCommand, SelectCompanyCommandHandler
-from app.models import UserCompanyRole
+from auth_app.queries.login_query import LoginQuery, LoginQueryHandler
+from auth_app.commands.select_company_command import SelectCompanyCommand, SelectCompanyCommandHandler
+from auth_app.models import UserCompanyRole
 from common.exceptions import UnauthorizedException
 
 @pytest.mark.asyncio

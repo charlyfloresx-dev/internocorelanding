@@ -9,7 +9,7 @@ from sqlalchemy import text
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from app.db.session import AsyncSessionLocal
+from inventory_app.db.session import AsyncSessionLocal
 
 # Configuration
 CO_LOGISTICS_ID  = "ad6cc8a6-34f9-42df-8f29-28254e0ad242"

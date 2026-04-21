@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
-from app.models import UserCompanyRole
-from app.core.security import decode_token
+from auth_app.models import UserCompanyRole
+from auth_app.core.security import decode_token
 
 @pytest.mark.asyncio
 async def test_full_auth_handshake_flow(async_client: AsyncClient, db, user_factory, company_factory, role_factory):

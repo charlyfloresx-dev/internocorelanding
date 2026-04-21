@@ -1,8 +1,8 @@
 import pytest
 import uuid
 from decimal import Decimal
-from app.services.transfer_service import TransferService
-from app.domain.entities.inventory_item import MovementEntity
+from inventory_app.services.transfer_service import TransferService
+from inventory_app.domain.entities.inventory_item import MovementEntity
 from common.context import request_context
 from common.domain.entities.user_context import UserContext
 

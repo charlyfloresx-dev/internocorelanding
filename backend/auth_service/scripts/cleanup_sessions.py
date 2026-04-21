@@ -4,11 +4,11 @@ import sys
 import os
 from datetime import datetime, timezone
 
-# Add parent directory to sys.path to allow imports from app
+# Add parent directory to sys.path to allow imports from auth_app
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.refresh_token import RefreshToken
+from auth_app.core.database import AsyncSessionLocal
+from auth_app.models.refresh_token import RefreshToken
 from sqlalchemy import delete
 
 # Configure logging

@@ -2,11 +2,11 @@ import pytest
 import uuid
 from decimal import Decimal
 from httpx import AsyncClient
-from app.main import app
-from app.dependencies import get_current_user
-from app.models.product import Product
-from app.models.product_price import ProductPrice, UnitType
-from app.models.price_agreement import PriceAgreement
+from master_app.main import master_app
+from master_app.dependencies import get_current_user
+from master_app.models.product import Product
+from master_app.models.product_price import ProductPrice, UnitType
+from master_app.models.price_agreement import PriceAgreement
 
 @pytest.fixture
 async def authenticated_client(async_client, mock_user):

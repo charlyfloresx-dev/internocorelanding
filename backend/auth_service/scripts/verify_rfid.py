@@ -10,8 +10,8 @@ for p in [BACKEND_ROOT, SERVICE_ROOT]:
         sys.path.insert(0, p)
 
 from sqlalchemy import select
-from app.core.database import AsyncSessionLocal
-from app.models import User
+from auth_app.core.database import AsyncSessionLocal
+from auth_app.models import User
 
 async def check_rfids():
     async with AsyncSessionLocal() as db:

@@ -3,10 +3,10 @@ import uuid
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
-from app.services.inventory import InventoryTransactionService
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from app.schemas.inventory import InventoryTransactionCreate
-from app.models.inventory import TransactionType
+from inventory_app.services.inventory import InventoryTransactionService
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
+from inventory_app.schemas.inventory import InventoryTransactionCreate
+from inventory_app.models.inventory import TransactionType
 
 
 def _mock_md_client() -> AsyncMock:

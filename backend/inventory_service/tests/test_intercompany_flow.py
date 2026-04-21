@@ -11,10 +11,10 @@ service_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if service_root not in sys.path:
     sys.path.insert(0, service_root)
 
-from app.db.session import AsyncSessionLocal
-from app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
-from app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
-from app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository as InventoryRepository
+from inventory_app.db.session import AsyncSessionLocal
+from inventory_app.domain.entities.transfer_entities import InitiateTransferCommand, CompleteTransferCommand
+from inventory_app.api.v1.handlers.transfer_command_handler import TransferCommandHandler
+from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository as InventoryRepository
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger("test_ict")
@@ -41,7 +41,7 @@ async def run_test():
 
     async with AsyncSessionLocal() as session:
         # Asegurar que el almacén de destino exista para Empresa B
-        from app.models.warehouse import Warehouse
+        from inventory_app.models.warehouse import Warehouse
         from sqlalchemy import select
         stmt = select(Warehouse).filter_by(id=WH_MAIN_B)
         res = await session.execute(stmt)

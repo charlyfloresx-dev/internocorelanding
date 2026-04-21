@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 sys.path.append('/app')
 sys.path.append('/app/common')
 
-from app.core.database import AsyncSessionLocal
+from auth_app.core.database import AsyncSessionLocal
 from common.models.audit_log import AuditLog
 from common.audit.logger import AuditLogger
 

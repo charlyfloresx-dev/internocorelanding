@@ -1,9 +1,9 @@
 import asyncio
-from app.core.security import create_selection_token
-from app.dependencies.auth import get_selection_payload
+from auth_app.core.security import create_selection_token
+from auth_app.dependencies.auth import get_selection_payload
 import uuid
 from jose import jwt, JWTError
-from app.core.config import settings
+from auth_app.core.config import settings
 from pydantic import ValidationError
 
 async def main():
@@ -15,7 +15,7 @@ async def main():
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM], options={"verify_iat": False})
         print("Manual jwt.decode:", payload)
         
-        from app.dependencies.auth import SelectionTokenPayload
+        from auth_app.dependencies.auth import SelectionTokenPayload
         token_data = SelectionTokenPayload(**payload)
         print("Validation success:", token_data)
         

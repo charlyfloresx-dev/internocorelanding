@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.core.config import settings
+from inventory_app.core.config import settings
 DATABASE_URL = str(settings.database_url)
 
 async def force_companies():
