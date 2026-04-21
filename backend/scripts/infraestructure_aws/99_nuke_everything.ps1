@@ -45,4 +45,14 @@ Write-Host "6/6 Borrando repositorios de ECR..."
 aws ecr delete-repository --repository-name "interno-backend-auth-service" --force --region $REGION 2>$null
 aws ecr delete-repository --repository-name "interno-core/auth-service" --force --region $REGION 2>$null
 
-Write-Host "--- ✨ Limpieza completada. Revisa CloudFront y Elastic IPs manualmente ---" -ForegroundColor Yellow
+# 7. Liberar Elastic IPs Huérfanas
+Write-Host "7/7 Liberando Elastic IPs sin usar..."
+$eips = aws ec2 describe-addresses --region $REGION --query "Addresses[?InstanceId==null].AllocationId" --output text
+foreach ($id in $eips -split "\s+") {
+    if ($id) {
+        Write-Host "Liberando IP: $id"
+        aws ec2 release-address --allocation-id $id --region $REGION
+    }
+}
+
+Write-Host "--- ✨ Limpieza completada. Revisa CloudFront y Snapshots Manuales ---" -ForegroundColor Yellow
