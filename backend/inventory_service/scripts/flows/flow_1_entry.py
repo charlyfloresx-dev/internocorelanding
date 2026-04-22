@@ -66,6 +66,7 @@ async def run_flow_1():
                 movement_type="IN",
                 document_type="IN",
                 document_id=doc_id,
+                concept_id=ids["concepts"].get("PUR-REC"),
                 price=Money(Decimal("12.50"), "MXN"),
                 user_id=ids["user_id"],
                 available_quantity=Decimal("150.0")

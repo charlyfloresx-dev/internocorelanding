@@ -60,10 +60,10 @@ async def ensure_warehouses_and_pedimento(session):
             id, pedimento_number, customs_key, customs_date, is_temporary,
             operation_type, is_active, version_id, created_at, company_id, tenant_id
         ) VALUES (
-            :id, :ped, 'A1', :now, FALSE, 'IMPORT', TRUE, 1, :now, :co_mx, :co_mx
+            :id, :ped, 'A1', :now_date, FALSE, 'IMPORT', TRUE, 1, :now, :co_mx, :co_mx
         )
         ON CONFLICT (pedimento_number) DO NOTHING;
-    """), {"id": uuid.uuid4(), "ped": PEDIMENTO, "now": now, "co_mx": CO_LOGISTICS_MX_ID})
+    """), {"id": uuid.uuid4(), "ped": PEDIMENTO, "now": now, "now_date": now.date(), "co_mx": CO_LOGISTICS_MX_ID})
 
 
 async def run_flow_5():
@@ -92,6 +92,7 @@ async def run_flow_5():
                 weight=Decimal("2.5"),
                 uom_id=ids["uom_id"],
                 initiated_by=USER_CHARLY_ID,
+                concept_id=ids["concepts"].get("INT-TRA"),
                 transfer_price=None,
                 exchange_rate_dof=Decimal("20.1500"),
                 risk_acknowledged=True,
@@ -107,9 +108,10 @@ async def run_flow_5():
             print("\n[IMPORT] Aduana completada. Logistics US recibe el stock...")
             cmd_recv = CompleteTransferCommand(
                 transfer_id=transfer.id,
-                received_by=USER_CHARLY_ID,
+                received_by=ids["receiver_id"],
                 receiver_company_id=CO_LOGISTICS_US_ID,
-                received_quantity=Decimal("5.0")
+                received_quantity=Decimal("5.0"),
+                concept_id=ids["concepts"].get("INT-TRA")
             )
 
             await handler.complete_transfer(cmd_recv)

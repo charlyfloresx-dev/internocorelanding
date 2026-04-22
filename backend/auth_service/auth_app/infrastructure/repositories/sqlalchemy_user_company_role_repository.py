@@ -1,12 +1,13 @@
 import uuid
 from typing import Optional
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 from auth_app.domain.repositories.user_company_role_repository import IUserCompanyRoleRepository
 from auth_app.domain.entities.user_aggregate import UserCompanyRoleEntity
 from auth_app.models import UserCompanyRole
+from common.models import Company
 
 class SQLAlchemyUserCompanyRoleRepository(IUserCompanyRoleRepository):
     def __init__(self, session: AsyncSession):
@@ -16,8 +17,10 @@ class SQLAlchemyUserCompanyRoleRepository(IUserCompanyRoleRepository):
         stmt = (
             select(UserCompanyRole)
             .where(sa.and_(UserCompanyRole.user_id == user_id, UserCompanyRole.company_id == company_id))
-            .options(selectinload(UserCompanyRole.role))
-            .options(selectinload(UserCompanyRole.role), selectinload(UserCompanyRole.company))
+            .options(
+                selectinload(UserCompanyRole.role),
+                selectinload(UserCompanyRole.company)
+            )
         )
         result = await self.session.execute(stmt)
         models = result.scalars().all()
@@ -32,11 +35,26 @@ class SQLAlchemyUserCompanyRoleRepository(IUserCompanyRoleRepository):
         for m in models:
             if m.scopes:
                 all_scopes.update(m.scopes)
+
+        # Fetch company directly in case lazy load didn't work
+        company_name = None
+        group_id = None
+        first_model = models[0]
+        
+        if first_model.company:
+            company_name = first_model.company.name
+            group_id = first_model.company.parent_group_id
+        else:
+            # Fallback: explicit DB query
+            company_obj = await self.session.get(Company, company_id)
+            if company_obj:
+                company_name = company_obj.name
+                group_id = company_obj.parent_group_id
                 
         return UserCompanyRoleEntity(
             company_id=company_id,
-            company_name=models[0].company.name if models and models[0].company else None,
+            company_name=company_name,
             role_names=role_names,
             scopes=list(all_scopes),
-            group_id=models[0].company.parent_group_id if models and models[0].company else None
+            group_id=group_id
         )

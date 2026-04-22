@@ -38,14 +38,26 @@ async def lifespan(app: FastAPI):
     # 2. Registro explícito de modelos para asegurar que Base.metadata los conozca
     from common.infrastructure.models.base import Base
     try:
+        # Common Models
+        import common.models.business_group
+        import common.models.company
+        import common.models.audit
+        import common.models.idempotency_key
+        
         # Auth Models
         import auth_app.models.user
-        import auth_app.models.company
         import auth_app.models.role
+        import auth_app.models.user_company_role
+        import auth_app.models.permission
+        
         # Master Data Models
         import master_app.models.product
         import master_app.models.warehouse
         import master_app.models.location
+        import master_app.models.product_price
+        import master_app.models.movement_concept
+        import master_app.models.uom
+        
         # Inventory Models
         import inventory_app.models.inventory
         import inventory_app.models.location
@@ -53,6 +65,7 @@ async def lifespan(app: FastAPI):
         import inventory_app.models.warehouse
         import inventory_app.models.document
         import inventory_app.models.inter_company_transfer
+        
         # Notification Models
         import notification_app.models.notification
     except Exception as e:
@@ -114,7 +127,8 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(status_code=422, content={"status": "error", "message": "Input validation failed", "meta": {"details": exc.errors(), "path": request.url.path}})
+    from fastapi.encoders import jsonable_encoder
+    return JSONResponse(status_code=422, content={"status": "error", "message": "Input validation failed", "meta": {"details": jsonable_encoder(exc.errors()), "path": request.url.path}})
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):

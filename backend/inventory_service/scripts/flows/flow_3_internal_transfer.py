@@ -69,6 +69,7 @@ async def run_flow_3():
                 weight=Decimal("7.5"),
                 uom_id=ids["uom_id"],
                 initiated_by=ids["user_id"],
+                concept_id=ids["concepts"].get("INT-TRA"),
                 transfer_price=None,
                 customs_pedimento=None
             )
@@ -80,9 +81,10 @@ async def run_flow_3():
             print("\n[RECV] Efectuando recepcion interna (Receive)...")
             cmd_complete = CompleteTransferCommand(
                 transfer_id=transfer.id,
-                received_by=ids["user_id"],
+                received_by=ids["receiver_id"],
                 receiver_company_id=ids["company_id"],
-                received_quantity=Decimal("15.0")
+                received_quantity=Decimal("15.0"),
+                concept_id=ids["concepts"].get("INT-TRA")
             )
 
             await handler.complete_transfer(cmd_complete)

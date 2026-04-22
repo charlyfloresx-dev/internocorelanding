@@ -9,6 +9,7 @@ from common.cqrs import ICommand, ICommandHandler
 from auth_app.core.security import create_access_token, create_refresh_token, hash_token
 from auth_app.core.config import settings
 from auth_app.models.refresh_token import RefreshToken
+from auth_app.models.user import User
 from common.exceptions import UnauthorizedException
 from common.responses import ApiResponse
 from auth_app.infrastructure.clients.subscription_client import SubscriptionClient
@@ -206,6 +207,10 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             details=f"method: X-Selection-Token, correlation_id: {correlation_id}",
         )
 
+        # Fetch user to hydrate email in response
+        user_obj = await self.db.get(User, command.user_id)
+        user_email = user_obj.email if user_obj else None
+
         return {
             "access_token": access_token,
             "refresh_token": raw_refresh,
@@ -217,6 +222,8 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "roles": ucr.role_names,
             "scopes": ucr.scopes,
             "permissions": permissions,
+            "user_email": user_email,
+            "user_full_name": user_email,  # Fallback: email until full_name is added to User model
         }
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 

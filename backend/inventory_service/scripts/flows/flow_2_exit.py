@@ -66,6 +66,7 @@ async def run_flow_2():
                 movement_type="OUT",
                 document_type="OUT",
                 document_id=doc_id,
+                concept_id=ids["concepts"].get("SAL-DIS"),
                 price=Money(Decimal("12.50"), "MXN"),
                 user_id=ids["user_id"],
                 available_quantity=Decimal("0.0")

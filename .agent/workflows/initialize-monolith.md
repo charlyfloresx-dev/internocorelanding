@@ -14,12 +14,12 @@ It ensures all microservices are stopped before starting the monolith to avoid p
 // turbo
 1. Stop any running Microservices & Start Monolith
    ```powershell
-   docker compose down; docker compose -f docker-compose.monolith.yml up -d --remove-orphans
+   docker compose down; docker compose -f docker/docker-compose.monolith.yml up -d --remove-orphans
    ```
 
 2. Wait for Monolith to be healthy
    ```powershell
-   docker compose -f docker-compose.monolith.yml ps
+   docker compose -f docker/docker-compose.monolith.yml ps
    ```
 
 // turbo

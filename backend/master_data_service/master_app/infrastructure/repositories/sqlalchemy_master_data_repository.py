@@ -276,7 +276,16 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
             or_(*filters, UOM.company_id == None)
         ).order_by(UOM.name)
         result = await self.db.execute(stmt)
-        return result.scalars().all()
+        uoms = result.scalars().all()
+        
+        # Lazy Initialization for new companies without UOMs
+        if not uoms:
+            default_uom = UOM(id=uuid.uuid4(), code="PZ", name="Pieces", abbreviation="PZ", company_id=company_id, tenant_id=company_id, group_id=group_id, version_id=1, is_active=True)
+            self.db.add(default_uom)
+            await self.db.commit()
+            return [default_uom]
+            
+        return uoms
 
     async def get_uom_by_id(self, uom_id: uuid.UUID, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         filters = [UOM.company_id == company_id]
@@ -327,6 +336,7 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
     # =========================================================================
     async def get_concepts(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None, type: Optional[str] = None) -> List[Any]:
         from master_app.models.movement_concept import MovementConcept
+        from common.enums import MovementType
         filters = [MovementConcept.company_id == company_id]
         if group_id:
             filters = [or_(MovementConcept.company_id == company_id, MovementConcept.group_id == group_id)]
@@ -338,7 +348,20 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
             stmt = stmt.where(MovementConcept.type == type)
             
         result = await self.db.execute(stmt)
-        return result.scalars().all()
+        concepts = result.scalars().all()
+        
+        # Lazy Initialization (Just-In-Time Seeding) for new companies without concepts
+        if not concepts and not type:
+            default_concepts = [
+                MovementConcept(id=uuid.uuid4(), name="PURCHASE RECEIPT", code="PUR-REC", type=MovementType.ENTRY, company_id=company_id, tenant_id=company_id, group_id=group_id, version_id=1, is_active=True),
+                MovementConcept(id=uuid.uuid4(), name="SALES DISPATCH", code="SAL-DIS", type=MovementType.OUTPUT, company_id=company_id, tenant_id=company_id, group_id=group_id, version_id=1, is_active=True),
+                MovementConcept(id=uuid.uuid4(), name="INTERNAL TRANSFER", code="INT-TRA", type=MovementType.TRANSFER, company_id=company_id, tenant_id=company_id, group_id=group_id, version_id=1, is_active=True)
+            ]
+            self.db.add_all(default_concepts)
+            await self.db.commit()
+            return default_concepts
+            
+        return concepts
 
     async def get_all_master_data(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None) -> dict:
         stmt_products = (

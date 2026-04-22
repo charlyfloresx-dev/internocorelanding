@@ -93,6 +93,7 @@ async def record_bulk_purchases():
                     movement_type="IN",
                     document_type="ENTRY",
                     document_id=doc_id,
+                    concept_id=ids["concepts"].get("PUR-REC"),
                     price=Money(v.unit_price, "USD"),
                     user_id=ids["user_id"],
                     available_quantity=qty

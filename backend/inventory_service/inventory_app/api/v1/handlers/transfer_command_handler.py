@@ -431,6 +431,7 @@ class TransferCommandHandler:
                     movement_type=MovementType.TRANSFER_OUT.value,
                     document_type="ICT_DISPATCH",
                     document_id=transfer_id,
+                    concept_id=cmd.concept_id,
                     source_movement_id=instr.source_movement_id,
                     customs_pedimento_id=instr.customs_pedimento_id
                 )
@@ -726,6 +727,7 @@ class TransferCommandHandler:
                 document_id=cmd.transfer_id,
                 # FIFO compliance
                 available_quantity=receive_qty_ok,
+                concept_id=cmd.concept_id,
                 location=cmd.destination_location, # Assign location to record
                 customs_pedimento_id=cmd.customs_pedimento_id or transfer.customs_pedimento_id,
                 # FAST-TRACK

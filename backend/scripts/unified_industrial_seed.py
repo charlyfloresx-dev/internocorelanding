@@ -1,13 +1,17 @@
 """
-InternoCore - Unified Industrial Seed
-======================================
+InternoCore - Unified Industrial Seed v4
+==========================================
 Orden de carga:
   1. Auth Core:      BusinessGroup -> Company -> Roles -> User Charly
   2. Master Data:    UOMs -> MovementConcepts -> Warehouse -> Location -> Product -> Prices
-  3. Inventory:      Shadow Warehouses -> Product Variants
+  3. Inventory:      Shadow Warehouses -> Product Variants (5 productos x 3 variantes)
 
 Diseno: Savepoints anidados por seccion para idempotencia industrial.
         Cada seccion puede fallar de forma aislada sin revertir las demas.
+
+Fuentes integradas:
+  - seed_variants.py         (5 productos, 3 variantes c/u)
+  - setup_transfer_prices.py (precios MXN + USD por producto)
 """
 import asyncio
 import uuid
@@ -42,7 +46,8 @@ LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
 LOGISTICS_US_ID = uuid.UUID("777cc8a6-34f9-42df-8f29-28254e0ad277")
 CHARLY_ID     = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
 
-# Catálogo de Productos y Variantes
+# Catálogo de Productos y Variantes (SSOT — 5 productos x 3 variantes)
+# Fuente: seed_variants.py + setup_transfer_prices.py
 PRODUCT_CATALOG = [
     {
         "name": "Engine Control Module (ECM)",
@@ -51,8 +56,9 @@ PRODUCT_CATALOG = [
         "base_mxn": 495.0,
         "mx_to_us_usd": 29.70,
         "variants": [
-            {"brand": "Bosch", "mpn": "MPN-BOS-601", "price": 450.0, "weight": 1.2},
-            {"brand": "Denso", "mpn": "MPN-DEN-602", "price": 485.0, "weight": 1.1},
+            {"brand": "Bosch",          "mpn": "MPN-BOS-601", "price": 450.0, "weight": 1.2},
+            {"brand": "Denso",          "mpn": "MPN-DEN-602", "price": 485.0, "weight": 1.1},
+            {"brand": "Magneti Marelli","mpn": "MPN-MM-603",  "price": 420.0, "weight": 1.3},
         ]
     },
     {
@@ -62,10 +68,47 @@ PRODUCT_CATALOG = [
         "base_mxn": 1320.0,
         "mx_to_us_usd": 79.20,
         "variants": [
-            {"brand": "Garrett", "mpn": "MPN-GAR-701", "price": 1200.0, "weight": 5.5},
+            {"brand": "Garrett",    "mpn": "MPN-GAR-701", "price": 1200.0, "weight": 5.5},
             {"brand": "BorgWarner", "mpn": "MPN-BOR-702", "price": 1150.0, "weight": 5.8},
+            {"brand": "Mitsubishi", "mpn": "MPN-MHI-703", "price": 1100.0, "weight": 5.6},
         ]
-    }
+    },
+    {
+        "name": "Brake Disc Rotor",
+        "sku": "BRK-800",
+        "id": uuid.UUID("e0e0e0e0-e0e0-40e0-a0e0-000000000003"),
+        "base_mxn": 165.0,
+        "mx_to_us_usd": 9.90,
+        "variants": [
+            {"brand": "Brembo",  "mpn": "MPN-BRE-801", "price": 150.0, "weight": 8.5},
+            {"brand": "Akebono", "mpn": "MPN-AKE-802", "price": 135.0, "weight": 8.0},
+            {"brand": "Bosch",   "mpn": "MPN-BOS-803", "price": 110.0, "weight": 8.2},
+        ]
+    },
+    {
+        "name": "Fuel Injector Set",
+        "sku": "FLI-900",
+        "id": uuid.UUID("e0e0e0e0-e0e0-40e0-a0e0-000000000004"),
+        "base_mxn": 352.0,
+        "mx_to_us_usd": 21.12,
+        "variants": [
+            {"brand": "Siemens VDO",  "mpn": "MPN-SIE-901", "price": 320.0, "weight": 0.4},
+            {"brand": "Delphi Pro",   "mpn": "MPN-DEL-902", "price": 310.0, "weight": 0.4},
+            {"brand": "Hitachi Power", "mpn": "MPN-HIT-903", "price": 295.0, "weight": 0.5},
+        ]
+    },
+    {
+        "name": "Suspension Damper",
+        "sku": "SUS-100",
+        "id": uuid.UUID("e0e0e0e0-e0e0-40e0-a0e0-000000000005"),
+        "base_mxn": 308.0,
+        "mx_to_us_usd": 18.48,
+        "variants": [
+            {"brand": "Bilstein", "mpn": "MPN-BIL-101", "price": 280.0, "weight": 3.2},
+            {"brand": "Ohlins",   "mpn": "MPN-OHL-102", "price": 550.0, "weight": 2.8},
+            {"brand": "KYB",      "mpn": "MPN-KYB-103", "price": 145.0, "weight": 3.5},
+        ]
+    },
 ]
 
 # --- Helpers ---
@@ -129,31 +172,39 @@ async def seed_master_data(session):
 
     uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
     if not uom_pz:
-        uom_pz = UOM(id=uuid.uuid4(), code="PZ", name="Pieza", abbreviation="PZ", tenant_id=ENTERPRISE_ID, version_id=1, is_active=True)
-        await _safe_add(session, uom_pz, "UOM: PZ (Pieza)")
+        uom_pz = UOM(id=uuid.uuid4(), code="PZ", name="Pieces", abbreviation="PZ", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True)
+        await _safe_add(session, uom_pz, "UOM: PZ (Pieces)")
         uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
 
-    for cname, ctype in [("ENTRADA POR COMPRA", MovementType.ENTRY), ("SALIDA POR VENTA", MovementType.OUTPUT), ("TRASPASO INTERNO", MovementType.TRANSFER)]:
-        if not await _first(session, select(MovementConcept).where(MovementConcept.name == cname)):
-            await _safe_add(session, MovementConcept(id=uuid.uuid4(), name=cname, type=ctype, tenant_id=ENTERPRISE_ID, version_id=1, is_active=True), f"Concept: {cname}")
+    for cname, ctype, ccode in [
+        ("PURCHASE RECEIPT", MovementType.ENTRY, "PUR-REC"), 
+        ("SALES DISPATCH", MovementType.OUTPUT, "SAL-DIS"), 
+        ("INTERNAL TRANSFER", MovementType.TRANSFER, "INT-TRA")
+    ]:
+        if not await _first(session, select(MovementConcept).where(MovementConcept.code == ccode)):
+            await _safe_add(session, MovementConcept(
+                id=uuid.uuid4(), name=cname, code=ccode, type=ctype, 
+                company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, 
+                version_id=1, is_active=True
+            ), f"Concept: {cname}")
 
     # Warehouses
     wh_ent_id = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.ENT-MAIN")
     wh_ent = await _first(session, select(MasterWarehouse).where(MasterWarehouse.id == wh_ent_id))
     if not wh_ent:
-        wh_ent = MasterWarehouse(id=wh_ent_id, name="ALMACEN CENTRAL", code="WH-001", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, version_id=1, is_active=True)
+        wh_ent = MasterWarehouse(id=wh_ent_id, name="ALMACEN CENTRAL", code="WH-001", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True)
         await _safe_add(session, wh_ent, "Almacen Master: WH-001")
         wh_ent = await _first(session, select(MasterWarehouse).where(MasterWarehouse.id == wh_ent_id))
 
     if wh_ent and not await _first(session, select(InventoryLocation).where(InventoryLocation.code == "LOC-AUDIT-01")):
-        await _safe_add(session, InventoryLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, max_capacity=100.0, version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
+        await _safe_add(session, InventoryLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, max_capacity=100.0, version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
 
     # Catalog & Prices
-    log.info("[3/5] Master Data: Producto, Precios de Transferencia y Variantes...")
+    log.info("[3/5] Master Data: 5 Productos, Precios MXN/USD y Variantes...")
     for prod in PRODUCT_CATALOG:
         m_prod = await session.get(Product, prod['id'])
         if not m_prod and uom_pz:
-            await _safe_add(session, Product(id=prod['id'], sku=prod['sku'], name=prod['name'], company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, base_uom_id=uom_pz.id, product_type=ProductType.GOODS, version_id=1, is_active=True), f"Producto: {prod['sku']}")
+            await _safe_add(session, Product(id=prod['id'], sku=prod['sku'], name=prod['name'], company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, base_uom_id=uom_pz.id, product_type=ProductType.GOODS, version_id=1, is_active=True), f"Producto: {prod['sku']}")
 
         # Transfer Price MXN (Enterprise -> Logistics)
         await session.execute(text("""
@@ -221,7 +272,7 @@ async def seed_inventory(session):
 # --- Orquestador Principal ---
 async def run_unified_seed():
     log.info("=" * 55)
-    log.info("   InternoCore - Unified Industrial Seed v3")
+    log.info("   InternoCore - Unified Industrial Seed v4")
     log.info("=" * 55)
     engine = create_async_engine(settings.DATABASE_URL)
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

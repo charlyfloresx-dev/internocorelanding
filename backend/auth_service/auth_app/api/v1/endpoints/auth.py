@@ -133,9 +133,12 @@ async def select_company(
             refresh_token=result["refresh_token"],
             user_id=user_id,
             company_id=company_id,
+            company_name=result.get("company_name"),
+            group_id=result.get("group_id"),
             roles=result["roles"],
             scopes=result["scopes"],
             permissions=result["permissions"],
+            user_full_name=result.get("user_full_name"),
         ),
         message="Access token generated successfully.",
     )
@@ -247,9 +250,12 @@ async def refresh_token_endpoint(
             refresh_token=new_refresh_raw,
             user_id=user_id,
             company_id=company_id,
+            company_name=company.name,
+            group_id=company.parent_group_id,
             roles=roles,
             scopes=permissions,
             permissions=permissions,
+            user_full_name=getattr(user, "full_name", None) or user.email,
         ),
         message="Token refreshed successfully.",
     )
@@ -326,13 +332,17 @@ async def get_current_user_info(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    company = await db.get(Company, context.company_id) if context.company_id else None
+
     return ApiResponse(
         status="success",
         data=AccessTokenResponse(
             access_token=request.headers.get("Authorization", "").replace("Bearer ", ""),
             user_id=user.id,
             company_id=context.company_id,
-            roles=[],
+            company_name=company.name if company else None,
+            group_id=company.parent_group_id if company else None,
+            roles=[], # TODO: Fetch roles if needed
             permissions=context.scopes,
             scopes=context.scopes,
             user_full_name=getattr(user, "full_name", None) or user.email,

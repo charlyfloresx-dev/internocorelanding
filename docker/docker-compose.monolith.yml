@@ -20,13 +20,13 @@ services:
 
   interno-monolith:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Monolith.Dockerfile
     container_name: interno-monolith
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ../backend:/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname

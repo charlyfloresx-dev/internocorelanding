@@ -4,7 +4,7 @@ import time
 import json
 from typing import Optional
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from starlette.concurrency import iterate_in_threadpool
@@ -256,7 +256,6 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 # Use custom encoder to handle UUIDs and other non-serializable objects
                 json_content = json.dumps(content, cls=InternoCoreEncoder)
 
-                from fastapi.responses import Response
                 return Response(
                     status_code=response.status_code, 
                     content=json_content, 

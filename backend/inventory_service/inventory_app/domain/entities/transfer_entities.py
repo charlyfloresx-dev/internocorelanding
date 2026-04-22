@@ -130,6 +130,7 @@ class InitiateTransferCommand(BaseModel):
     )
 
     # ── Metadatos ─────────────────────────────────────────────────────────────
+    concept_id: Optional[uuid.UUID] = Field(None, description="ID del concepto de movimiento (INT-TRA)")
     notes: Optional[str] = None
     external_reference: Optional[str] = Field(
         default=None,
@@ -212,6 +213,7 @@ class CompleteTransferCommand(BaseModel):
         gt=0,
         description="Si None, se asume la cantidad original del documento (recepción total)."
     )
+    concept_id: Optional[uuid.UUID] = Field(None, description="ID del concepto de movimiento (INT-TRA)")
     damaged_quantity: Decimal = Field(
         default=Decimal("0.0"),
         ge=0,

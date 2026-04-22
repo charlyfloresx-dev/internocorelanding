@@ -75,6 +75,7 @@ async def run_flow_4():
                 weight=Decimal("12.5"),
                 uom_id=ids["uom_id"],
                 initiated_by=ids["user_id"],
+                concept_id=ids["concepts"].get("INT-TRA"),
                 transfer_price=Decimal("15.75"),
                 customs_pedimento=None
             )
@@ -86,9 +87,10 @@ async def run_flow_4():
             print("\n[RECV] Logistics MX recibe el stock...")
             cmd_recv = CompleteTransferCommand(
                 transfer_id=transfer.id,
-                received_by=ids["user_id"],
+                received_by=ids["receiver_id"],
                 receiver_company_id=CO_LOGISTICS_MX_ID,
-                received_quantity=Decimal("25.0")
+                received_quantity=Decimal("25.0"),
+                concept_id=ids["concepts"].get("INT-TRA")
             )
 
             await handler.complete_transfer(cmd_recv)

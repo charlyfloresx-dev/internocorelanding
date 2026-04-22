@@ -34,6 +34,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # --- IDs Fijos (SSOT: unified_industrial_seed.py) ---
 CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
 USER_CHARLY_ID   = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
+USER_RECEIVER_ID = uuid.uuid4()  # Usuario simulado para evitar ERR_SELF_RECEIPT_NOT_ALLOWED
+
 
 
 async def resolve_flow_ids(session: AsyncSession) -> dict:
@@ -74,13 +76,25 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
     if not loc:
         raise RuntimeError("Ubicacion LOC-AUDIT-01 no encontrada. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
+    # Conceptos
+    from master_app.models.movement_concept import MovementConcept
+    concepts_res = await session.execute(select(MovementConcept).where(MovementConcept.group_id == uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")))
+    concepts = {c.code: c.id for c in concepts_res.scalars().all()}
+    
+    # Fallback to local codes if group inheritance not found in DB yet
+    if not concepts:
+        concepts_res = await session.execute(select(MovementConcept).where(MovementConcept.company_id == CO_ENTERPRISE_ID))
+        concepts = {c.code: c.id for c in concepts_res.scalars().all()}
+
     return {
         "company_id":   CO_ENTERPRISE_ID,
         "user_id":      USER_CHARLY_ID,
+        "receiver_id":  USER_RECEIVER_ID,
         "warehouse_id": wh.id,
         "uom_id":       uom.id,
         "product_id":   prod.id,
         "location_id":  loc.id,
         "location_code": loc.code,
         "location_capacity": float(loc.max_capacity),
+        "concepts":     concepts
     }
