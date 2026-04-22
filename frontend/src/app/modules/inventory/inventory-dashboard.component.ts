@@ -330,7 +330,7 @@ interface CriticalItem {
                         <div class="text-[8px] text-surface-text-muted">{{ m.subFolio }}</div>
                       </td>
                       <td class="px-6 py-4">
-                        <app-status-badge [status]="m.status" [label]="m.type"></app-status-badge>
+                        <app-status-badge [status]="m.status" [label]="m.concept_name || m.type"></app-status-badge>
                       </td>
                       <td class="px-6 py-4 text-surface-text-muted italic flex items-center gap-2">
                         {{ m.warehouse }}
@@ -456,11 +456,12 @@ export class InventoryDashboardComponent implements OnInit {
   filteredLedger = computed(() => {
     let items = [...this.recentLedger()];
     const query = this.filterQuery().toLowerCase().trim();
-    
+
     if (query) {
-      items = items.filter(item => 
-        item.folio.toLowerCase().includes(query) || 
-        item.type.toLowerCase().includes(query) || 
+      items = items.filter(item =>
+        item.folio.toLowerCase().includes(query) ||
+        item.type.toLowerCase().includes(query) ||
+        (item.concept_name || '').toLowerCase().includes(query) || // Search by business label
         item.warehouse.toLowerCase().includes(query) ||
         item.status.toLowerCase().includes(query)
       );
@@ -571,7 +572,11 @@ export class InventoryDashboardComponent implements OnInit {
         folio: m.folio,
         subFolio: m.id.split('-')[0].toUpperCase(),
         date: m.date,
+        /** Technical type (ENTRY, EXIT, TRANSFER) — used as fallback */
         type: this.translationService.translate('inventory.type.' + m.type.toLowerCase(), m.type),
+        /** Business concept name — preferred for display ("Recepción de Compra") */
+        concept_name: m.concept_name || null,
+        concept_id: m.concept_id || null,
         warehouse: m.type === 'TRANSFER' ? `${m.origin} -> ${m.destination}` : (m.type === 'ENTRY' ? m.destination : m.origin),
         status: m.status || 'PROCESSED',
         validation_status: m.validation_status,

@@ -37,10 +37,18 @@ export class InventoryService {
   public categories = this.masterData.categories as any;
   public brands = this.masterData.brands as any;
   public loading = this.masterData.loading;
-  
+
+  // === Concept Resolution (delegates — single injection point for components) ===
+  /** true once concepts are loaded for the active tenant. Use as submit guard. */
+  public readonly catalogsLoaded = this.masterData.catalogsLoaded;
+  /** 'LOADING' | 'READY' | 'ERROR' — drive defensive UI states. */
+  public readonly conceptCatalogState = this.masterData.conceptCatalogState;
+  /** Signal-safe concept lookup by deterministic code (e.g. 'INT-TRA'). */
+  resolveConceptByCode = (code: string) => this.masterData.resolveConceptByCode(code);
+
   public selectedWarehouseId = signal<string | null>(null);
   public movementsCache = signal<any[] | null>(null);
-  
+
   private lastLoadedCompanyId: string | null = null;
   private loadPromise: Promise<void> | null = null;
 
@@ -313,13 +321,26 @@ export class InventoryService {
     return res.data;
   }
 
-  /** [Company B] Confirm receipt of stock from a transfer with optional damage reporting. */
-  async receiveTransfer(transferId: string, receivedQty?: number, damagedQty: number = 0, notes?: string): Promise<any> {
-    const body = {
+  /**
+   * [Company B] Confirm receipt of stock from a transfer with optional damage reporting.
+   * concept_id defaults to PUR-REC for standard receipts or INT-TRA for inter-company.
+   * The backend will use concept_id to categorize the inbound movement in the Kardex.
+   */
+  async receiveTransfer(
+    transferId: string,
+    receivedQty?: number,
+    damagedQty: number = 0,
+    notes?: string,
+    conceptId?: string   // Optional: resolved upstream by the component
+  ): Promise<any> {
+    const body: any = {
       received_quantity: receivedQty,
       damaged_quantity: damagedQty,
       notes: notes
     };
+    // Only inject concept_id if provided — backend has its own fallback for receipt
+    if (conceptId) body.concept_id = conceptId;
+
     const res = await lastValueFrom(
       this.http.post<ApiResponse<any>>(`${this.apiUrl}/inventory/transfers/inter-company/${transferId}/receive`, body)
     );
@@ -343,8 +364,27 @@ export class InventoryService {
     return res.data;
   }
 
-  /** [Company A] Push a new inter-company transfer out. */
-  async initiateInterCompanyTransfer(payload: any): Promise<any> {
+  // ─── Typed Payload Interfaces (Inline — co-located with methods) ────────────
+
+  /**
+   * [Company A] Push a new inter-company transfer out.
+   * concept_id MUST be provided. Use resolveConceptByCode('INT-TRA') in the component.
+   * If concept_id is null, the component should block the submit.
+   */
+  async initiateInterCompanyTransfer(payload: {
+    from_warehouse_id: string;
+    to_warehouse_id: string;       // Destination warehouse (other company)
+    product_id: string;
+    quantity: number;
+    uom_id: string;
+    unit_price?: number;
+    currency?: string;
+    concept_id: string;            // REQUIRED — e.g. 'INT-TRA' UUID
+    notes?: string;
+    customs_pedimento?: string;    // Anexo 24: Pedimento number
+    exchange_rate_dof?: number;    // Binational: DOF exchange rate
+    [key: string]: any;            // Allow extra fields (compliance metadata)
+  }): Promise<any> {
     const res = await lastValueFrom(
       this.http.post<ApiResponse<any>>(`${this.apiUrl}/inventory/transfers/inter-company/initiate`, payload, {
         headers: { 'X-Silent-Error': 'true' }
@@ -353,15 +393,28 @@ export class InventoryService {
     return res.data;
   }
 
-  /** [Internal] Dispatch a standard transfer between warehouses of the same company. */
-  async dispatchInternalTransfer(payload: any): Promise<any> {
-    // Mapping for standard dispatch endpoint
+  /**
+   * [Internal] Dispatch a standard transfer between warehouses of the same company.
+   * concept_id is required for backend traceability — defaults to INT-TRA if not specified.
+   */
+  async dispatchInternalTransfer(payload: {
+    origin_warehouse_id: string;
+    destination_warehouse_id: string;
+    product_id: string;
+    quantity: number;
+    uom_id: string;
+    concept_id: string;            // REQUIRED — resolved via resolveConceptByCode
+    notes?: string;
+    [key: string]: any;
+  }): Promise<any> {
     const body = {
       from_warehouse_id: payload.origin_warehouse_id,
       to_warehouse_id: payload.destination_warehouse_id,
       product_id: payload.product_id,
       quantity: payload.quantity,
-      uom_id: payload.uom_id
+      uom_id: payload.uom_id,
+      concept_id: payload.concept_id,  // ← Propagated to backend
+      notes: payload.notes
     };
     const res = await lastValueFrom(
       this.http.post<ApiResponse<any>>(`${this.apiUrl}/inventory/transfers/dispatch`, body, {

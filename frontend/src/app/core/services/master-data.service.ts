@@ -42,6 +42,8 @@ export interface Concept extends BaseRead {
   requires_external_entity: boolean;
   requires_target_warehouse: boolean;
   operation_type?: string;
+  affect_stock?: boolean;  // Does this concept affect stock levels?
+  is_system?: boolean;     // System-managed (cannot be deleted)
 }
 
 export interface UOM extends BaseRead {
@@ -154,6 +156,25 @@ export class MasterDataService {
   public brands = signal<Brand[]>([]);
   public loading = signal<boolean>(false);
 
+  /**
+   * SIGNAL-SAFE: true once catalogs have been fetched at least once for the current tenant.
+   * Use this in component computed() guards to prevent sending null concept_id to backend.
+   */
+  public readonly catalogsLoaded = computed(() =>
+    !this.loading() && this.concepts().length > 0
+  );
+
+  /**
+   * Three-state catalog readiness for defensive UI.
+   * LOADING — fetch in progress (block submit buttons)
+   * READY   — concepts loaded, concept_id can be resolved
+   * ERROR   — no concepts found after load (show fallback / retry)
+   */
+  public readonly conceptCatalogState = computed<'LOADING' | 'READY' | 'ERROR'>(() => {
+    if (this.loading()) return 'LOADING';
+    return this.concepts().length > 0 ? 'READY' : 'ERROR';
+  });
+
   constructor() {
     this.setupAutoSync();
   }
@@ -241,6 +262,46 @@ export class MasterDataService {
     this.categories.set([]);
     this.brands.set([]);
     console.log('[MasterDataService] 🔒 Catalog state cleared.');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // CONCEPT RESOLUTION HELPERS (Signal-Safe)
+  // ═══════════════════════════════════════════════════════
+
+  /**
+   * Resolves a concept by its deterministic code (e.g. 'INT-TRA', 'PUR-REC').
+   * Returns null if the catalog is still loading — NEVER resolves during LOADING state.
+   * Use inside a computed() in components to get a reactive, null-safe concept ID.
+   *
+   * Standard system codes:
+   *   INT-TRA  — Inter-Company Transfer (Traspaso Inter-Empresa)
+   *   PUR-REC  — Purchase Receipt (Recepción de Compra)
+   *   PUR-RET  — Purchase Return (Devolución a Proveedor)
+   *   ADJ-POS  — Positive Adjustment (Ajuste Positivo)
+   *   ADJ-NEG  — Negative Adjustment (Ajuste Negativo)
+   *   SCRAP    — Material Scrap (Merma/Baja)
+   */
+  resolveConceptByCode(code: string): Concept | null {
+    // Guard: Return null if catalog is not ready yet — prevents sending null concept_id
+    if (!this.catalogsLoaded()) return null;
+    return this.concepts().find(c => c.code === code) ?? null;
+  }
+
+  /**
+   * Filters concepts by their movement type.
+   * Useful for dropdowns: e.g., show only EXIT concepts for a manual exit form.
+   */
+  resolveConceptsByType(type: Concept['type']): Concept[] {
+    if (!this.catalogsLoaded()) return [];
+    return this.concepts().filter(c => c.type === type);
+  }
+
+  /**
+   * Reactive computed: use in templates or computed() for a filtered concept list.
+   * Returns an empty array during LOADING — prevents rendering stale options.
+   */
+  conceptsForType(type: Concept['type']) {
+    return computed(() => this.resolveConceptsByType(type));
   }
 
 

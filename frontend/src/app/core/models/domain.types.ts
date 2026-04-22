@@ -149,6 +149,9 @@ export interface RecentActivityRow {
   id?: string;
   movement_id?: string;
   validation_status?: ValidationStatus;
+  /** Concept traceability — preferred for UI display */
+  concept_id?: string;
+  concept_name?: string; // e.g. "Recepción de Compra", "Traspaso Inter-Empresa"
 }
 
 export interface DashboardDTO {
@@ -256,6 +259,10 @@ export interface InventoryDocument extends AuditBase {
   description?: string;
   total_amount: number;
   movements: InventoryMovement[];
+  /** Concept traceability */
+  concept_id?: string;
+  concept_name?: string;  // Display label: "Traspaso Inter-Empresa"
+  concept_code?: string;  // Deterministic code: "INT-TRA"
 }
 /**
  * Standard API Wrapper (Middleware Mirror)
@@ -393,9 +400,23 @@ export interface Partnership extends AuditBase {
 
 export interface Concept extends AuditBase {
   name: string;
+  /**
+   * Deterministic code for frontend resolution.
+   * Standard system codes: PUR-REC, PUR-RET, INT-TRA, ADJ-POS, ADJ-NEG, SCRAP.
+   * Use `resolveConceptByCode(code)` in MasterDataService for signal-safe lookup.
+   */
+  code: string;
   type: ConceptType;
   affect_stock: boolean;
   is_system: boolean;
   requires_external_entity?: boolean;
   requires_target_warehouse?: boolean;
 }
+
+/**
+ * Concept loading state for defensive UI guards.
+ * LOADING  — catalog fetch in progress (block submit)
+ * READY    — concepts available, concept_id can be resolved
+ * ERROR    — fetch failed, show retry/fallback UI
+ */
+export type ConceptCatalogState = 'LOADING' | 'READY' | 'ERROR';

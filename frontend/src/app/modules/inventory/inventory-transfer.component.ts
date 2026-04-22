@@ -330,6 +330,43 @@ export class InventoryTransferComponent implements OnInit {
     return !!(originCo && destCo && originCo !== destCo);
   });
 
+  // ─── Concept Guard (Deterministic Signal-Safe Resolution) ──────────────────
+
+  /**
+   * Reactive concept_id for Inter-Company Transfers (INT-TRA).
+   * Returns null if the concept catalog is not yet loaded — blocks submit.
+   * This is the ONLY authoritative source of concept_id for ICT operations.
+   */
+  readonly transferConceptId = computed(() =>
+    this.masterData.resolveConceptByCode('INT-TRA')?.id ?? null
+  );
+
+  /**
+   * Reactive concept_id for Internal Transfers between warehouses of the same company.
+   * Resolves to INT-TRA as well (intra-company transfer concept).
+   */
+  readonly internalTransferConceptId = computed(() =>
+    this.masterData.resolveConceptByCode('INT-TRA')?.id ?? null
+  );
+
+  /**
+   * Three-state catalog guard for the submit button label.
+   * Components bind to this to show "Configurando Empresa..." instead of blocking silently.
+   */
+  readonly catalogState = this.masterData.conceptCatalogState;
+
+  /**
+   * True when the form can be submitted.
+   * Adds concept_id availability check on top of structural form validity.
+   */
+  readonly canSubmitTransfer = computed(() => {
+    if (!this.isFormValid()) return false;
+    // Block if the concept catalog isn't ready (prevents sending null concept_id)
+    const isICT = this.isInterCompanyTransfer();
+    const conceptId = isICT ? this.transferConceptId() : this.internalTransferConceptId();
+    return conceptId !== null;
+  });
+
   /**
    * Deterministic "Traffic Light" compliance status.
    * - SAFE: All green (Price + Stock + Pedimento if binational).
@@ -546,9 +583,22 @@ export class InventoryTransferComponent implements OnInit {
   }
 
   async onInitiateTransfer() {
-    if (!this.isFormValid() || this.isProcessing()) return;
+    if (!this.canSubmitTransfer() || this.isProcessing()) return;
+
+    // Defensive concept guard (belt-and-suspenders)
+    const isICT = this.originCompanyId() !== (this.destinationCompanyId() || this.selectedDest()?.company_id);
+    const resolvedConceptId = isICT ? this.transferConceptId() : this.internalTransferConceptId();
+
+    if (!resolvedConceptId) {
+      this.toast.warning(
+        'El catálogo de conceptos aún se está cargando. Por favor intenta en un momento.',
+        'Configurando Empresa...'
+      );
+      return;
+    }
+
     this.isProcessing.set(true);
-    
+
     // Check if it's an Inter-Company transfer
     const originCo = this.originCompanyId();
     const destCo = this.destinationCompanyId() || this.selectedDest()?.company_id;
@@ -568,25 +618,26 @@ export class InventoryTransferComponent implements OnInit {
     try {
       if (isInterCompany) {
         // [PHASE 39] Inter-Company Bridge Logic
-        const payload: any = {
-          destination_company_id: destCo,
-          destination_warehouse_id: this.destinationWarehouseId() || '00000000-0000-0000-0000-000000000000',
-          origin_warehouse_id: this.originWarehouseId(),
-          product_id: firstItem.product_id,
-          uom_id: firstItem.uom_id,
-          quantity: firstItem.quantity,
-          origin_sku: firstItem.origin_sku,
-          selected_batch_id: (firstItem as any).selected_batch_id,
-          currency: 'USD',
-          customs_pedimento: this.customsPedimento(),
-          customs_regime: this.customsRegime(),
-          customs_pedimento_key: this.customsPedimentoKey(),
-          notes: 'Transferencia generada desde Dashboard Binacional',
-          // Campos de Compliance (Agente de Auditoría Pre-Vuelo)
-          exchange_rate_dof: this.isBinational() ? this.exchangeRateDof() : undefined,
-          risk_acknowledged: this.riskAcknowledged() || undefined,
-        };
-        const result = await this.inventoryService.initiateInterCompanyTransfer(payload);
+      const result = await this.inventoryService.initiateInterCompanyTransfer({
+        destination_company_id: destCo,
+        destination_warehouse_id: this.destinationWarehouseId() || '00000000-0000-0000-0000-000000000000',
+        origin_warehouse_id: this.originWarehouseId(),
+        from_warehouse_id: this.originWarehouseId(),       // Backend alias
+        to_warehouse_id: this.destinationWarehouseId() || '00000000-0000-0000-0000-000000000000',
+        product_id: firstItem.product_id!,
+        uom_id: firstItem.uom_id,
+        quantity: firstItem.quantity,
+        concept_id: resolvedConceptId,                     // ← Concept guard
+        origin_sku: firstItem.origin_sku,
+        selected_batch_id: (firstItem as any).selected_batch_id,
+        currency: 'USD',
+        customs_pedimento: this.customsPedimento(),
+        customs_regime: this.customsRegime(),
+        customs_pedimento_key: this.customsPedimentoKey(),
+        notes: 'Transferencia generada desde Dashboard Binacional',
+        exchange_rate_dof: this.isBinational() ? this.exchangeRateDof() : undefined,
+        risk_acknowledged: this.riskAcknowledged() || undefined,
+      });
         
         // Activar estado de Deuda Administrativa si el servidor lo indica
         if (result?.compliance_status === 'COMPLIANCE_WARNING' || result?.pending_financial_valuation) {
@@ -604,16 +655,17 @@ export class InventoryTransferComponent implements OnInit {
         this.router.navigate(['/inventory/documents']);
       } else {
         // Standard internal transfer
-        const payload = {
-          product_id: firstItem.product_id,
+        const internalPayload = {
+          product_id: firstItem.product_id!,
           quantity: firstItem.quantity,
           uom_id: firstItem.uom_id,
           origin_warehouse_id: this.originWarehouseId(),
           destination_warehouse_id: this.destinationWarehouseId(),
           destination_company_id: destCo,
+          concept_id: resolvedConceptId,                   // ← Concept guard
           selected_batch_id: (firstItem as any).selected_batch_id
         };
-        await this.inventoryService.dispatchInternalTransfer(payload);
+        await this.inventoryService.dispatchInternalTransfer(internalPayload);
         this.toast.success('Traspaso interno completado.', 'Inventario');
         this.playIndustrialBeep('success');
         this.router.navigate(['/inventory/documents']);

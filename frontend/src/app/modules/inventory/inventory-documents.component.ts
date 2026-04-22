@@ -189,18 +189,25 @@ interface InventoryDocument {
                       }
                       <span class="text-[9px] text-surface-text-muted font-mono font-bold uppercase mt-0.5">{{ doc.created_at | date:'dd MMM yyyy HH:mm' }}</span>
                       <div class="lg:hidden mt-2 flex flex-col gap-1">
-                         <span class="text-[8px] font-black text-primary uppercase tracking-tighter">{{ doc.type }}</span>
+                         <span class="text-[8px] font-black text-primary uppercase tracking-tighter">{{ doc.concept_name || doc.type }}</span>
                          <span class="text-[8px] font-bold text-surface-text-muted uppercase truncate max-w-[100px]">{{ doc.origin }} -> {{ doc.destination }}</span>
                       </div>
                     </div>
                   </td>
                   <td class="px-6 py-5 hidden md:table-cell">
-                    <div class="flex items-center gap-3">
-                      <div [class]="getTypeIconClass(doc.type)" class="w-8 h-8 rounded-lg border flex items-center justify-center">
-                        <mat-icon class="text-sm">{{ getTypeIcon(doc.type) }}</mat-icon>
+                      <div class="flex items-center gap-3">
+                        <div [class]="getTypeIconClass(doc.concept_name || doc.type)" class="w-8 h-8 rounded-lg border flex items-center justify-center">
+                          <mat-icon class="text-sm">{{ getTypeIcon(doc.concept_name || doc.type) }}</mat-icon>
+                        </div>
+                        <div class="flex flex-col">
+                          <span class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest">
+                            {{ doc.concept_name || doc.type }}
+                          </span>
+                          @if (doc.concept_name && doc.concept_name !== doc.type) {
+                            <span class="text-[8px] text-surface-text-muted/50 font-mono uppercase">{{ doc.type }}</span>
+                          }
+                        </div>
                       </div>
-                      <span class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest">{{ doc.type }}</span>
-                    </div>
                   </td>
                   <td class="px-6 py-5 hidden lg:table-cell">
                     <div class="flex items-center gap-3">
@@ -523,11 +530,14 @@ export class InventoryDocumentsComponent implements OnInit {
         id: d.id,
         folio: d.folio || d.id || 'N/A',
         type: d.type || 'UNKNOWN',
+        /** Display name resolved from concept catalog (preferred for UI) */
+        concept_name: d.concept_name || null,
+        concept_id: d.concept_id || null,
         status: d.status || 'PROCESSED',
         origin: d.origin || 'N/A',
         destination: d.destination || 'N/A',
         items_count: d.items_count || 0,
-        total_value: d.total_value || d.total_weight || 0, 
+        total_value: d.total_value || d.total_weight || 0,
         created_at: d.date || new Date().toISOString(),
         created_by: d.created_by || 'SISTEMA',
         external_reference: d.external_reference,
@@ -568,24 +578,37 @@ export class InventoryDocumentsComponent implements OnInit {
     return this.translation.translate(key, fallback);
   }
 
-  getTypeIcon(type: string): string {
-    const t = (type || '').toUpperCase();
-    if (t.includes('ENTRY') || t.includes('ENTRADA') || t === 'IN') return 'arrow_downward';
-    if (t.includes('EXIT') || t.includes('SALIDA') || t === 'OUT') return 'arrow_upward';
-    if (t.includes('TRANSFER') || t.includes('TRASPASO')) return 'swap_horiz';
+  getTypeIcon(typeOrConcept: string): string {
+    const t = (typeOrConcept || '').toUpperCase();
+    // Match concept names first (Spanish display labels)
+    if (t.includes('COMPRA') || t.includes('PUR-REC') || t.includes('RECEPCI')) return 'shopping_cart';
+    if (t.includes('DEVOLUC') || t.includes('PUR-RET')) return 'assignment_return';
+    if (t.includes('AJUSTE POS') || t.includes('ADJ-POS')) return 'add_circle';
+    if (t.includes('AJUSTE NEG') || t.includes('ADJ-NEG') || t.includes('MERMA') || t.includes('SCRAP')) return 'remove_circle';
+    if (t.includes('TRASPASO') || t.includes('INT-TRA') || t.includes('TRANSFER')) return 'swap_horiz';
     if (t.includes('ICT_OUT')) return 'outbox';
     if (t.includes('ICT_IN')) return 'move_to_inbox';
+    // Fallback to technical type
+    if (t.includes('ENTRY') || t.includes('ENTRADA') || t === 'IN') return 'arrow_downward';
+    if (t.includes('EXIT') || t.includes('SALIDA') || t === 'OUT') return 'arrow_upward';
     if (t.includes('ADJUSTMENT')) return 'tune';
     return 'help_outline';
   }
 
-  getTypeIconClass(type: string): string {
-    const t = (type || '').toUpperCase();
-    if (t.includes('ENTRY') || t.includes('ENTRADA') || t === 'IN') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-    if (t.includes('EXIT') || t.includes('SALIDA') || t === 'OUT') return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-    if (t.includes('TRANSFER') || t.includes('TRASPASO')) return 'bg-neon-blue/10 text-neon-blue border-neon-blue/30';
+  getTypeIconClass(typeOrConcept: string): string {
+    const t = (typeOrConcept || '').toUpperCase();
+    // Concept-aware color mapping
+    if (t.includes('COMPRA') || t.includes('PUR-REC') || t.includes('RECEPCI') || t.includes('ENTRY') || t.includes('ENTRADA') || t === 'IN')
+      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+    if (t.includes('DEVOLUC') || t.includes('PUR-RET') || t.includes('EXIT') || t.includes('SALIDA') || t === 'OUT')
+      return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+    if (t.includes('TRASPASO') || t.includes('INT-TRA') || t.includes('TRANSFER'))
+      return 'bg-neon-blue/10 text-neon-blue border-neon-blue/30';
     if (t.includes('ICT_OUT')) return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
     if (t.includes('ICT_IN')) return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
+    if (t.includes('AJUSTE POS') || t.includes('ADJ-POS')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+    if (t.includes('AJUSTE NEG') || t.includes('ADJ-NEG') || t.includes('MERMA') || t.includes('SCRAP'))
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     if (t.includes('ADJUSTMENT')) return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
     return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
   }

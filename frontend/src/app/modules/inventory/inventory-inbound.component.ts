@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { InventoryService } from '../../core/services/inventory.service';
+import { MasterDataService } from '../../core/services/master-data.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -331,6 +332,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
 })
 export class InventoryInboundComponent implements OnInit {
   private inv = inject(InventoryService);
+  private masterData = inject(MasterDataService);
   private toast = inject(ToastService);
   private auth = inject(AuthService);
 
@@ -373,6 +375,26 @@ export class InventoryInboundComponent implements OnInit {
 
   uoms = computed(() => this.inv.uoms() || []);
   warehouses = computed(() => this.inv.warehouses() || []);
+
+  // ─── Concept Guards (Signal-Safe) ─────────────────────────────────────────────
+  /**
+   * INT-TRA concept_id — used for ICT receive flow.
+   * Returns null during LOADING to block the submit button.
+   */
+  readonly transferConceptId = computed(() =>
+    this.masterData.resolveConceptByCode('INT-TRA')?.id ?? null
+  );
+
+  /**
+   * PUR-REC concept_id — used for blind receipts (external supplier delivery).
+   * Returns null during LOADING to block the submit button.
+   */
+  readonly purchaseConceptId = computed(() =>
+    this.masterData.resolveConceptByCode('PUR-REC')?.id ?? null
+  );
+
+  /** Three-state catalog guard. Bind to button labels for "Configurando Empresa..." state. */
+  readonly catalogState = this.masterData.conceptCatalogState;
 
   // ── Keyboard shortcut: F2 = focus scanner input ───────────────────────────
   @HostListener('keydown.F2')
@@ -441,13 +463,24 @@ export class InventoryInboundComponent implements OnInit {
     const transfer = this.selectedTransfer();
     if (!transfer || transfer.status !== 'SHIPPED') return;
 
+    // Concept Guard: block if ICT concept not yet loaded
+    const conceptId = this.transferConceptId();
+    if (!conceptId) {
+      this.toast.warning(
+        'El catálogo de conceptos aún se está cargando. Por favor intenta en un momento.',
+        'Configurando Empresa...'
+      );
+      return;
+    }
+
     this.isConfirming.set(true);
     try {
       const updated = await this.inv.receiveTransfer(
         transfer.id,
         this.receivedQty ?? undefined,
         this.damagedQty,
-        this.receiveNotes || (this.selectedDockId() ? `Recibido en ${this.selectedDockId()}` : undefined)
+        this.receiveNotes || (this.selectedDockId() ? `Recibido en ${this.selectedDockId()}` : undefined),
+        conceptId   // ← Inject INT-TRA concept for Kardex traceability
       );
 
       // Update local state
@@ -478,6 +511,16 @@ export class InventoryInboundComponent implements OnInit {
   async confirmBlindReceipt() {
     if (!this.blindSku || !this.blindQty || !this.blindWarehouseId) return;
 
+    // Concept Guard: block if PUR-REC concept not yet loaded
+    const conceptId = this.purchaseConceptId();
+    if (!conceptId) {
+      this.toast.warning(
+        'El catálogo de conceptos aún se está cargando. Por favor intenta en un momento.',
+        'Configurando Empresa...'
+      );
+      return;
+    }
+
     this.isConfirming.set(true);
     try {
       const payload = {
@@ -485,6 +528,7 @@ export class InventoryInboundComponent implements OnInit {
         quantity: this.blindQty,
         uom_id: this.blindUomId,
         destination_warehouse_id: this.blindWarehouseId,
+        concept_id: conceptId,  // ← PUR-REC injected for Kardex traceability
         notes: `Recibo Directo (Handheld Blind) - Dock: ${this.selectedDockId()}`
       };
 
@@ -492,7 +536,7 @@ export class InventoryInboundComponent implements OnInit {
       this.toast.success(`Recibo ${result.folio} consolidado correctamente.`, '✅ Direct Receipt');
       this.showBlindReceipt.set(false);
       playBeep('success');
-      
+
       // Cleanup
       this.blindSku = '';
       this.blindQty = null;
