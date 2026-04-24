@@ -77,13 +77,8 @@ export class InventoryService {
       const res = await lastValueFrom(
         this.http.get<ApiResponse<T>>(url, { headers: { 'X-Silent-Error': 'true' } })
       );
-      // Handle standard ApiResponse wrapper
       if (res?.status === 'success' && res?.data != null) {
         return res.data;
-      }
-      // Middleware may have already wrapped it
-      if (res && typeof res === 'object' && 'data' in (res as any)) {
-        return (res as any).data ?? fallback;
       }
       return fallback;
     } catch (e: any) {
@@ -92,24 +87,9 @@ export class InventoryService {
     }
   }
 
-  private getMockWarehouses() {
-    return [
-      { id: 'WH-TIJ-01', name: 'Logistic Tijuana WH', code: 'TIJ01' },
-      { id: 'WH-SD-02', name: 'Logistic San Diego Hub', code: 'SD02' },
-      { id: 'PORT-ENS-01', name: 'Ensenada Port Terminal', code: 'ENS01' }
-    ];
-  }
-
-  private getMockConcepts() {
-    return [
-      { id: 'C1', name: 'Ajuste de Inventario', type: 'ADJUSTMENT' },
-      { id: 'C2', name: 'Traspaso entre Almacenes', type: 'TRANSFER' },
-      { id: 'C3', name: 'Recepción de Mercancía', type: 'RECEIPT' }
-    ];
-  }
-
   /**
    * POST a new inventory document to the ledger.
+
    * On success, purges specific browser memory to prevent stale state.
    */
   async createDocument(doc: Partial<InventoryDocument>, clientRequestId: string): Promise<InventoryDocument> {

@@ -72,5 +72,9 @@ app.include_router(concepts.router, prefix="/api/v1/concepts", tags=["Movement C
 app.include_router(warehouses.router, prefix="/api/v1/warehouses", tags=["Warehouses"])
 app.include_router(partner_router, prefix="/api/v1/partners", tags=["Partners"])
 app.include_router(gis_router, prefix="/api/v1/gis", tags=["GIS Property Validation"])
+
+from master_app.api.v1.endpoints import enums as enums_router
+app.include_router(enums_router.router, prefix="/api/v1/enums", tags=["System Enums"])
+
 from master_app.api.v1.endpoints import locations
 app.include_router(locations.router, prefix="/api/v1/locations", tags=["Warehouse Structure (SSOT)"])

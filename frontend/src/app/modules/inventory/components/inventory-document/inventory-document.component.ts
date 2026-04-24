@@ -21,7 +21,8 @@ interface ConfirmedDocument {
   correlation_id: string;
   timestamp: string;
   user_agent: string;
-  type: 'IN' | 'OUT' | 'ENTRADA' | 'SALIDA';
+  type: 'IN' | 'OUT' | 'ENTRADA' | 'SALIDA' | 'TRASPASO' | 'TRANSFER';
+
   concept_id: string;
   concept_name?: string;
   warehouse_id: string;
@@ -148,7 +149,18 @@ interface ConfirmedDocument {
             >
               SALIDA
             </button>
+            <button 
+              (click)="setType('TRASPASO')"
+              [class.bg-amber-500]="type() === 'TRASPASO'"
+              [class.text-slate-950]="type() === 'TRASPASO'"
+              [class.bg-white/5]="type() !== 'TRASPASO'"
+              [class.text-surface-text-muted]="type() !== 'TRASPASO'"
+              class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-xl border border-white/10"
+            >
+              TRASPASO
+            </button>
           </div>
+
           <select 
             [ngModel]="selectedConceptId()"
             (ngModelChange)="selectedConceptId.set($event)"
@@ -668,12 +680,14 @@ interface ConfirmedDocument {
               </tbody>
               <tfoot>
                 <tr class="border-t-2 border-black bg-gray-50">
-                  <td colspan="3" class="py-4 px-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">Inventory Movement Grand Totals</td>
-                <td class="py-4 px-4 text-right text-lg font-black">{{ getDocTotalUnits(doc.items) }}</td>
-                <td class="py-4 px-4 text-right text-lg font-black text-primary">{{ getDocTotalValue(doc.items) | currencyFormat }}</td>
-                <td class="py-4 px-4 text-right text-lg font-black">{{ getDocTotalWeight(doc.items) | number:'1.2-2' }} Kg</td>
+                  <td colspan="4" class="py-4 px-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400">Inventory Movement Grand Totals</td>
+                  <td class="py-4 px-4 text-right text-lg font-black">{{ getDocTotalUnits(doc.items) }}</td>
+                  <td class="py-4 px-4"></td> <!-- Price column empty -->
+                  <td class="py-4 px-4 text-right text-lg font-black text-primary">{{ getDocTotalValue(doc.items) | currencyFormat }}</td>
+                  <td class="py-4 px-4 text-right text-lg font-black">{{ getDocTotalWeight(doc.items) | number:'1.2-2' }} Kg</td>
                 </tr>
               </tfoot>
+
             </table>
 
             <!-- Footer Section -->
@@ -765,7 +779,8 @@ export class InventoryDocumentComponent implements OnInit {
   selectedWarehouse = computed(() => this.inventoryService.warehouses().find(w => w.id === this.selectedWarehouseId()));
   selectedTargetWarehouse = computed(() => this.inventoryService.warehouses().find(w => w.id === this.selectedTargetWarehouseId()));
 
-  type = signal<'ENTRADA' | 'SALIDA'>('ENTRADA');
+  type = signal<'ENTRADA' | 'SALIDA' | 'TRASPASO'>('ENTRADA');
+
   selectedConceptId = signal<string>('');
   
   confirmedDocument = signal<ConfirmedDocument | null>(null);
@@ -815,7 +830,8 @@ export class InventoryDocumentComponent implements OnInit {
       if (doc) {
         this.isViewing.set(true);
         // 1. Pre-fill signals for the background form
-        this.type.set(doc.type === 'ENTRY' || doc.type === 'ENTRADA' || doc.type === 'IN' ? 'ENTRADA' : 'SALIDA');
+        this.type.set(doc.type === 'ENTRY' || doc.type === 'ENTRADA' || doc.type === 'IN' ? 'ENTRADA' : (doc.type === 'TRANSFER' || doc.type === 'TRASPASO' ? 'TRASPASO' : 'SALIDA'));
+
         this.notes.set(doc.notes || '');
         this.selectedWarehouseId.set(doc.warehouse_id || '');
         this.selectedConceptId.set(doc.concept_id || '');
@@ -844,7 +860,8 @@ export class InventoryDocumentComponent implements OnInit {
           correlation_id: doc.id,
           timestamp: doc.date,
           user_agent: 'Backend Ledger',
-          type: (doc.type === 'ENTRY' || doc.type === 'IN' || doc.type === 'ENTRADA') ? 'ENTRADA' : 'SALIDA',
+          type: (doc.type === 'ENTRY' || doc.type === 'IN' || doc.type === 'ENTRADA') ? 'ENTRADA' : (doc.type === 'TRANSFER' || doc.type === 'TRASPASO' ? 'TRASPASO' : 'SALIDA'),
+
           concept_id: doc.concept_id || '',
           concept_name: 'Transacción Registrada',
           warehouse_id: doc.warehouse_id || '',
@@ -891,17 +908,23 @@ export class InventoryDocumentComponent implements OnInit {
     const all = this.inventoryService.concepts();
 
     return all.filter(c => {
-      const conceptType = (c.type || '').toUpperCase();
 
-      // TRANSFER is always visible as it requires dual warehouse context (ENTRADA or SALIDA)
-      if (conceptType === 'TRANSFER' || conceptType === 'TRASPASO') return true;
+
+      if (c.is_active === false) return false;
+
+
+      const conceptType = (c.type || '').toUpperCase();
 
       if (docType === 'ENTRADA') {
         return ['IN', 'ENTRY', 'ENTRADA'].includes(conceptType);
-      } else {
+      } else if (docType === 'SALIDA') {
         return ['OUT', 'OUTPUT', 'SALIDA'].includes(conceptType);
+      } else if (docType === 'TRASPASO') {
+        return ['TRANSFER', 'TRASPASO'].includes(conceptType);
       }
+      return false;
     });
+
   });
   activeConcept = computed(() => this.inventoryService.concepts().find(c => c.id === this.selectedConceptId()));
 
@@ -999,10 +1022,11 @@ export class InventoryDocumentComponent implements OnInit {
     return Math.abs(expectedWeight - weight) > WEIGHT_TOLERANCE;
   }
 
-  setType(type: 'ENTRADA' | 'SALIDA') {
+  setType(type: 'ENTRADA' | 'SALIDA' | 'TRASPASO') {
     this.type.set(type);
     this.selectedConceptId.set(''); // Reset concept when type changes
   }
+
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalKeydown(event: KeyboardEvent) {
@@ -1111,7 +1135,8 @@ export class InventoryDocumentComponent implements OnInit {
           name: [''],
           quantity: [parseFloat(row[1]) || 1, Validators.required],
           uom: [row[2] || 'PZ'],
-          uom_id: ['1a7444c9-40df-51d5-833b-501fc84b67bb', Validators.required],
+          uom_id: [this.masterData.resolveUomByCode('PZA')?.id || '', Validators.required],
+
           factor: [1],
           weight: [0],
           location: [row[3] || ''],
@@ -1137,7 +1162,8 @@ export class InventoryDocumentComponent implements OnInit {
     // API Mapping: Normalize for backend expectations
     const payload = {
       correlation_id: crypto.randomUUID(),
-      type: this.type() === 'ENTRADA' ? 'IN' : 'OUT',
+      type: this.type() === 'ENTRADA' ? 'IN' : (this.type() === 'SALIDA' ? 'OUT' : 'TRANSFER'),
+
       concept_id: this.selectedConceptId(),
       warehouse_id: this.selectedWarehouseId(),
       target_warehouse_id: this.activeConcept()?.requires_target_warehouse ? this.selectedTargetWarehouseId() : undefined,
@@ -1182,7 +1208,7 @@ export class InventoryDocumentComponent implements OnInit {
           quantity: item.quantity,
           uom_id: item.uom_id,
           uom_name: item.uom || 'PZA',
-          unit_price: 0,
+          unit_price: item.unit_price || 0,
           weight: item.weight || (item.quantity * (item.factor || 1)),
           location: item.location
         })),
@@ -1416,16 +1442,21 @@ export class InventoryDocumentComponent implements OnInit {
   }
 
   goBack() {
+    console.log('[InventoryDocument] User requested navigation back to dashboard.');
     this.router.navigate(['/dashboard']);
   }
 
+
   closeSuccessModal() {
+    console.log('[SuccessModal] Closing modal...');
     this.confirmedDocument.set(null);
     this.printMode.set(null);
   }
 
   resetForm() {
+    console.log('[SuccessModal] Resetting form for new movement...');
     // Preserve current context (Warehouse, type and concept)
+
     const currentWarehouse = this.selectedWarehouseId();
     const currentType = this.type();
     const currentConcept = this.selectedConceptId();

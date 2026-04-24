@@ -10,6 +10,7 @@ class ConceptBase(BaseModel):
     requires_external_entity: bool = False
     requires_target_warehouse: bool = False
     is_active: bool = True
+    translation_key: Optional[str] = Field(None, max_length=100)
 
 class ConceptCreate(ConceptBase):
     pass

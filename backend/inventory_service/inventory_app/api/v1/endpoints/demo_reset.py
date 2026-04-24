@@ -27,7 +27,7 @@ from inventory_app.db.session import AsyncSessionLocal
 from inventory_app.models.movement import Movement
 from inventory_app.models.inventory import InventoryLevel, InventoryTransaction, TransactionType
 from inventory_app.models.document import InventoryDocument, DocumentStatus
-from inventory_app.models.concept import MovementConcept
+from master_app.models.movement_concept import MovementConcept
 from common.enums import MovementType
 from inventory_app.models.item_variant import ItemVariant
 from inventory_app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus

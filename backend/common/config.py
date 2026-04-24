@@ -108,7 +108,9 @@ class InternoSettings(BaseSettings):
             "http://dev-frontend.interno.local:3000",
             "http://127.0.0.1:3000",
             "https://d3b47jx48onn9j.cloudfront.net",
-            "https://jtq5mfp8pj.us-east-2.awsapprunner.com"
+            "https://jtq5mfp8pj.us-east-2.awsapprunner.com",
+            "https://*.vercel.app",
+            "https://interno-core-frontend.vercel.app"
         ],
         validation_alias=AliasChoices("CORE_BACKEND_CORS_ORIGINS", "BACKEND_CORS_ORIGINS")
     )

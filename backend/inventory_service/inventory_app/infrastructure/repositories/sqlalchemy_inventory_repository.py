@@ -162,7 +162,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         if client_request_id:
             from common.models.idempotency_key import IdempotencyKey
             from sqlalchemy.exc import IntegrityError
-            from common.exceptions import BadRequestException
+            from common.exceptions import BusinessRuleException
             try:
                 self.session.add(IdempotencyKey(key=client_request_id))
                 await self.session.flush()
@@ -332,7 +332,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
     async def get_dashboard_stock(self, company_id: uuid.UUID) -> List[dict]:
         stmt = select(InventoryLevel).filter_by(company_id=company_id)
         result = await self.session.execute(stmt)
-        stocks = result.scalars().all()
+        stocks = {s.id: s for s in result.scalars().all()}.values()
         
         transit_uuids = {uuid.uuid5(uuid.NAMESPACE_OID, f"{s.warehouse_id}_transit") for s in stocks}
         
@@ -610,13 +610,9 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             logger.warning(f"Document {document_id} not found for company {company_id}")
             return None
 
-        # 2. Fetch Movements with Item details
+        # 2. Fetch Movements
         stmt_movs = (
-            select(Movement, ItemVariant.internal_sku, ItemVariant.mfg_part_number)
-            .outerjoin(ItemVariant, and_(
-                Movement.product_id == ItemVariant.product_id,
-                Movement.company_id == ItemVariant.company_id
-            ))
+            select(Movement)
             .where(
                 and_(
                     Movement.document_id == document_id,
@@ -626,7 +622,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         )
         try:
             movs_res = await self.session.execute(stmt_movs)
-            rows = movs_res.all()
+            rows = movs_res.scalars().all()
         except Exception as e:
             logger.error(f"Error fetching movements for document {document_id}: {str(e)}")
             rows = []
@@ -636,7 +632,6 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         warehouse_id = None
 
         # Phase 33.5: Handle ICT_IN Drafts (Mirror Documents)
-        # These documents don't have recorded movements yet.
         if doc.document_type == "ICT_IN" and doc.status == DocumentStatus.DRAFT:
             stmt_ict = select(InterCompanyTransfer).where(InterCompanyTransfer.mirror_document_id == document_id)
             ict_res = await self.session.execute(stmt_ict)
@@ -650,7 +645,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                         ItemVariant.product_id == ict.destination_product_id,
                         ItemVariant.company_id == company_id
                     )
-                )
+                ).limit(1)
                 sku_res = await self.session.execute(stmt_sku)
                 variant = sku_res.scalar_one_or_none()
                 
@@ -660,27 +655,42 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                     name=variant.mfg_part_number if variant else "Inbound ICT Product",
                     quantity=ict.quantity,
                     uom_id=ict.uom_id,
-                    uom_name="PZA", # TODO: Resolve UOM name
+                    uom_name="PZA", 
                     weight=ict.weight,
                     location="REC-DOCK"
                 ))
 
-        for m, sku, name in rows:
+        for m in rows:
             if not warehouse_id:
                 warehouse_id = m.warehouse_id
             if not notes:
                 notes = m.comments
+            
+            # Resolve SKU and Name for each unique product in this document
+            # To keep it efficient, we could cache this, but for a single document detail it's fine
+            stmt_variant = select(ItemVariant).where(
+                and_(
+                    ItemVariant.product_id == m.product_id,
+                    ItemVariant.company_id == company_id
+                )
+            ).limit(1)
+            v_res = await self.session.execute(stmt_variant)
+            variant = v_res.scalar_one_or_none()
+
             items.append(DocumentItemEntity(
                 product_id=m.product_id,
-                sku=sku or "N/A",
-                name=name or "Producto",
+                sku=variant.internal_sku if variant else "N/A",
+                name=variant.mfg_part_number if variant else "Producto Industrial",
                 quantity=m.quantity,
                 uom_id=m.uom_id,
-                uom_name="PZA", # Placeholder for now
+                uom_name="PZA", # TODO: Resolve UOM name
                 weight=m.weight,
+                unit_price=m._amount if m._amount is not None else Decimal("0.0"),
                 location=m.location,
                 validation_status=m.validation_status
             ))
+
+
 
         try:
             return DocumentDetailEntity(
@@ -1614,8 +1624,10 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             .outerjoin(CustomsPedimento, Movement.customs_pedimento_id == CustomsPedimento.id)
             .outerjoin(ItemVariant, and_(
                 Movement.product_id == ItemVariant.product_id,
-                Movement.company_id == ItemVariant.company_id
+                Movement.company_id == ItemVariant.company_id,
+                ItemVariant.is_preferred == True
             ))
+
             .where(
                 and_(
                     Movement.warehouse_id == warehouse_id,

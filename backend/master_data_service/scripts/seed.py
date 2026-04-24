@@ -112,14 +112,20 @@ async def seed_demo_products(session, company_id: uuid.UUID):
         ("MAT-007", "Cable Blindado de Potencia", "26121603", "8544.49.0000"),
         ("MAT-008", "Rodamiento de Rodillos Timken", "31171505", "8482.20.0000"),
         ("MAT-009", "Lubricante Térmico Sintético", "15121502", "3403.99.0000"),
-        ("MAT-010", "Filtro Hepa Alta Eficiencia", "40161505", "8421.39.0000")
+        ("MAT-010", "Filtro Hepa Alta Eficiencia", "40161505", "8421.39.0000"),
+        ("ECM-600", "Controlador Industrial ECM-600", "41111961", "8537.10.0000")
     ]
 
+
     for i, (sku, name, sat, hts) in enumerate(items_def):
-        prod_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.item.{company_id}.{sku}")
-        stmt = select(Product).filter_by(id=prod_id, company_id=company_id)
+        deterministic_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.item.{company_id}.{sku}")
+        stmt = select(Product).filter_by(sku=sku, company_id=company_id)
         existing = (await session.execute(stmt)).scalars().first()
+        
+        prod_id = existing.id if existing else deterministic_id
+        
         if not existing:
+
             session.add(Product(
                 id=prod_id, sku=sku, name=name, company_id=company_id,
                 tenant_id=company_id,
@@ -142,10 +148,12 @@ async def seed_demo_products(session, company_id: uuid.UUID):
         else:
             existing.name = name
             logger.info(f"    🔄 Producto {sku} actualizado.")
+
             
         # Seed Prices for tiers 1-4 (only if not exists)
         # Using a deterministic logic for prices based on sku index and tier
         base_price = 100.0 + (i * 15.5)
+
         for tier in range(1, 5):
             discount = (tier - 1) * 0.15 # Tier 1: 0%, Tier 2: 15%, Tier 3: 30%, Tier 4: 45%
             amount = base_price * (1.0 - discount)
@@ -316,11 +324,21 @@ async def seed_product_prices(session, company_id: uuid.UUID):
         ("MAT-001", 1, 145.00, "USD", "BASE", "WH-TIJ"),
         # Precio especial en San Diego Hub (USD)
         ("MAT-002", 1, 24.00, "USD", "BASE", "WH-SDY"),
+        # Industrial ECM-600
+        ("ECM-600", 1, 850.00, "USD", "BASE", None),
     ]
 
+
     for sku, idx, amt, curr, utype, wh_key in prices_def:
-        prod_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.item.{company_id}.{sku}")
+        # Find actual product_id by SKU
+        prod_stmt = select(Product).filter_by(sku=sku, company_id=company_id)
+        prod = (await session.execute(prod_stmt)).scalars().first()
+        if not prod:
+            logger.warning(f"      ⚠️ No se encontró producto {sku} para precio. Saltando.")
+            continue
+        prod_id = prod.id
         wh_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{company_id}.{wh_key}") if wh_key else None
+
         
         stmt = select(ProductPrice).filter_by(
             company_id=company_id,

@@ -176,17 +176,41 @@ async def seed_master_data(session):
         await _safe_add(session, uom_pz, "UOM: PZ (Pieces)")
         uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
 
-    for cname, ctype, ccode in [
-        ("PURCHASE RECEIPT", MovementType.ENTRY, "PUR-REC"), 
-        ("SALES DISPATCH", MovementType.OUTPUT, "SAL-DIS"), 
-        ("INTERNAL TRANSFER", MovementType.TRANSFER, "INT-TRA")
-    ]:
-        if not await _first(session, select(MovementConcept).where(MovementConcept.code == ccode)):
+    # Cleanup: Deactivate legacy English concepts to avoid bilingual clutter
+    legacy_codes = ["PUR-REC", "SAL-DIS", "INT-TRA"]
+    await session.execute(text("""
+        UPDATE movement_concepts 
+        SET is_active = FALSE 
+        WHERE code = ANY(:codes) AND company_id = :co_id
+    """), {"codes": legacy_codes, "co_id": ENTERPRISE_ID})
+
+    
+    concepts_to_seed = [
+
+        ("Compra", MovementType.ENTRY, "ENT-PUR", True, False),
+        ("Ajuste Positivo", MovementType.ENTRY, "ENT-ADJ", False, False),
+        ("Venta", MovementType.OUTPUT, "SAL-VEN", True, False),
+        ("Ajuste Negativo", MovementType.OUTPUT, "SAL-ADJ", False, False),
+        ("Traspaso Interno", MovementType.TRANSFER, "TRF-INT", False, True),
+    ]
+
+    for cname, ctype, ccode, req_ext, req_wh in concepts_to_seed:
+        c_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.concept.{ENTERPRISE_ID}.{ccode}")
+        if not await _first(session, select(MovementConcept).where(MovementConcept.id == c_id)):
             await _safe_add(session, MovementConcept(
-                id=uuid.uuid4(), name=cname, code=ccode, type=ctype, 
-                company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, 
-                version_id=1, is_active=True
+                id=c_id, 
+                name=cname, 
+                code=ccode, 
+                type=ctype, 
+                requires_external_entity=req_ext,
+                requires_target_warehouse=req_wh,
+                company_id=ENTERPRISE_ID, 
+                tenant_id=ENTERPRISE_ID, 
+                group_id=GROUP_ID, 
+                version_id=1, 
+                is_active=True
             ), f"Concept: {cname}")
+
 
     # Warehouses
     wh_ent_id = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.ENT-MAIN")

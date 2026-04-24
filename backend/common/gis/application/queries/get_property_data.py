@@ -34,3 +34,20 @@ class GetPropertyDataByAddressQueryHandler(IQueryHandler[PropertyValidationRespo
     async def handle(self, query: GetPropertyDataByAddressQuery) -> PropertyValidationResponse:
         # Pasa el address al servicio
         return await self._gis_service.get_location_by_address(address_string=query.address_string)
+@dataclass
+class GetFullPropertyReportQuery(IQuery[PropertyValidationResponse]):
+    lat: float
+    lng: float
+    company_id: str
+
+class GetFullPropertyReportQueryHandler(IQueryHandler[PropertyValidationResponse]):
+    def __init__(self, gis_service: IGisService):
+        self._gis_service = gis_service
+
+    async def handle(self, query: GetFullPropertyReportQuery) -> PropertyValidationResponse:
+        # Orchestrates the call to the GIS service which now handles WMS + Scraping
+        return await self._gis_service.get_data_by_coordinates(
+            lat=query.lat,
+            lng=query.lng,
+            company_id=query.company_id
+        )

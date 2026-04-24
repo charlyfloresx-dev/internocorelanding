@@ -15,7 +15,7 @@ if os.getcwd() not in sys.path:
 
 from inventory_app.db.session import AsyncSessionLocal
 from inventory_app.models.inventory import InventoryLevel
-from inventory_app.models.concept import MovementConcept
+from master_app.models.movement_concept import MovementConcept
 from inventory_app.models.item_variant import ItemVariant
 from inventory_app.models.movement import Movement
 from inventory_app.models.customs_pedimento import CustomsPedimento, CustomsOperationType

@@ -161,7 +161,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
               <div class="space-y-2">
                 <label class="text-[9px] uppercase tracking-widest text-surface-text-muted font-black mb-1 block">Ubicación de Recepción (Staging)</label>
                 <div class="grid grid-cols-2 gap-2">
-                  <button *ngFor="let dock of docks" 
+                  <button *ngFor="let dock of docks()" 
                     (click)="selectedDockId.set(dock.id)"
                     [class.border-primary]="selectedDockId() === dock.id"
                     [class.bg-primary/10]="selectedDockId() === dock.id"
@@ -357,12 +357,10 @@ export class InventoryInboundComponent implements OnInit {
   blindUomId = '';
   blindWarehouseId = '';
 
-  // Docks / Staging points (Hardware/Industrial Reality)
-  selectedDockId = signal<string>('DOCK-01');
-  docks = [
-    { id: 'DOCK-01', code: 'DOCK-01', name: 'Rampa de Recepción Central' },
-    { id: 'STAGE-INB', code: 'STAGE-IN', name: 'Área de Estiba (Inbound)' }
-  ];
+  // Staging points (Hardware/Industrial Reality) - Use warehouses as default locations
+  selectedDockId = signal<string>('');
+  docks = computed(() => this.inv.warehouses().map(w => ({ id: w.id, code: w.code, name: w.name })));
+
 
   // ── Computed ───────────────────────────────────────────────────────────────
   pendingCount = computed(() => this.pendingTransfers().length);

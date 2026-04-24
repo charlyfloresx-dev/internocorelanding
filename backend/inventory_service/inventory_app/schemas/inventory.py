@@ -33,10 +33,11 @@ class InventoryTransactionCreate(BaseModel):
     location: Optional[str] = None
     comments: Optional[str] = None
 
-    @field_validator('uom_id', 'concept_id', 'target_warehouse_id', 'reference_id', mode='before')
+    @field_validator('uom_id', 'concept_id', 'target_warehouse_id', 'reference_id', 'location', mode='before')
     @classmethod
-    def sanitize_optional_uuid(cls, v):
+    def sanitize_optional_fields(cls, v):
         return _sanitize_uuid_field(v)
+
 
 
 class DocumentLine(BaseModel):

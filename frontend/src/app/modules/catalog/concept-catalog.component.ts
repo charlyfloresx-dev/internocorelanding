@@ -188,7 +188,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
                 <div class="grid grid-cols-1 gap-4">
                   <div class="p-4 bg-surface-bg border border-surface-border rounded-xl opacity-50">
                     <span class="text-[9px] text-surface-text-muted uppercase font-black">Almacén Origen</span>
-                    <p class="text-xs text-surface-text font-bold">WH-TIJ (Tijuana Central)</p>
+                    <p class="text-xs text-surface-text font-bold">{{ masterData.warehouses()[0]?.name || '---' }}</p>
                   </div>
 
                   @if (cp.requires_target_warehouse) {
@@ -196,11 +196,13 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
                       <span class="text-[9px] text-primary uppercase font-black">Almacén Destino (Requerido)</span>
                       <select class="w-full bg-transparent border-none text-xs text-surface-text font-bold outline-none mt-1">
                         <option>Seleccione destino...</option>
-                        <option>WH-MEX (CDMX Hub)</option>
-                        <option>WH-MTY (Monterrey)</option>
+                        @for (wh of masterData.warehouses(); track wh.id) {
+                          <option>{{ wh.name }}</option>
+                        }
                       </select>
                     </div>
                   }
+
 
                   @if (cp.requires_external_entity) {
                     <div class="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 animate-in slide-in-from-top-2">
@@ -305,16 +307,10 @@ export class ConceptCatalogComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading concepts:', err);
-        const mock: Concept[] = [
-          { id: 'c1', name: 'Compra de Material', code: 'COM-MAT', type: 'IN', operation_type: 'ENTRADA', requires_external_entity: true, requires_target_warehouse: false, company_id: null },
-          { id: 'c2', name: 'Traspaso entre Almacenes', code: 'TRS-INT', type: 'OUT', operation_type: 'TRASPASO', requires_external_entity: false, requires_target_warehouse: true, company_id: null },
-          { id: 'c3', name: 'Ajuste por Inventario', code: 'AJU-INV', type: 'OUT', operation_type: 'AJUSTE', requires_external_entity: false, requires_target_warehouse: false, company_id: null },
-          { id: 'c4', name: 'Devolución de Cliente', code: 'DEV-CLI', type: 'IN', operation_type: 'ENTRADA', requires_external_entity: true, requires_target_warehouse: false, company_id: null }
-        ];
-        this.concepts.set(mock);
-        this.previewConceptId = mock[0].id;
+        this.notifications.error('Error', 'No se pudieron cargar los conceptos desde el servidor.');
         this.loading.set(false);
       }
+
     });
   }
 

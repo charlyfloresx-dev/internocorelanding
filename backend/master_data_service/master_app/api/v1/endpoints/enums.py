@@ -1,8 +1,10 @@
-from typing import List, Any
-from fastapi import APIRouter
+from typing import List, Any, Dict
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+import inspect
+from enum import Enum
 
-from common.enums import ProductStatus, VersionStatus, ProductType
+import common.enums as system_enums
 from common.responses import ApiResponse
 
 router = APIRouter()
@@ -11,20 +13,23 @@ class EnumItem(BaseModel):
     id: Any
     name: str
 
-@router.get("/product-status", response_model=ApiResponse[List[EnumItem]], summary="Listar estados de producto")
-async def get_product_status():
-    """Devuelve los valores posibles para el estado de un producto."""
-    data = [{"id": e.value, "name": e.name} for e in ProductStatus]
-    return ApiResponse(status="success", data=data, message="Estados de producto recuperados")
+def get_all_enums() -> Dict[str, List[Dict[str, Any]]]:
+    enum_dict = {}
+    for name, obj in inspect.getmembers(system_enums):
+        if inspect.isclass(obj) and issubclass(obj, Enum) and obj is not Enum:
+            enum_dict[name] = [{"id": item.value, "name": item.name} for item in obj]
+    return enum_dict
 
-@router.get("/version-status", response_model=ApiResponse[List[EnumItem]], summary="Listar estados de versión")
-async def get_version_status():
-    """Devuelve los valores posibles para el estado de una versión de producto."""
-    data = [{"id": e.value, "name": e.name} for e in VersionStatus]
-    return ApiResponse(status="success", data=data, message="Estados de versión recuperados")
+@router.get("/all", response_model=ApiResponse[Dict[str, List[EnumItem]]], summary="Listar todos los enumeradores del sistema")
+async def get_all_system_enums():
+    """Devuelve un diccionario con todos los catálogos enumerados del ecosistema interno."""
+    data = get_all_enums()
+    return ApiResponse(status="success", data=data, message="Enumeradores recuperados exitosamente")
 
-@router.get("/product-types", response_model=ApiResponse[List[EnumItem]], summary="Listar tipos de producto")
-async def get_product_types():
-    """Devuelve los tipos de productos (Good, Service, etc.)."""
-    data = [{"id": e.value, "name": e.name} for e in ProductType]
-    return ApiResponse(status="success", data=data, message="Tipos de producto recuperados")
+@router.get("/{enum_name}", response_model=ApiResponse[List[EnumItem]], summary="Obtener valores de un enumerador específico")
+async def get_specific_enum(enum_name: str):
+    """Devuelve los valores posibles para un enumerador por su nombre exacto de clase (ej. 'MovementType', 'WarehouseType')."""
+    enums = get_all_enums()
+    if enum_name not in enums:
+        raise HTTPException(status_code=404, detail=f"Enum '{enum_name}' no encontrado en el ecosistema.")
+    return ApiResponse(status="success", data=enums[enum_name], message=f"Valores para {enum_name} recuperados")

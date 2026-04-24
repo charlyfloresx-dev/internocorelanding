@@ -2,7 +2,17 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
+### [2026-04-24] Phase 69: Industrial Zero-Hardcode Frontend (SSOT Enforcement)
+- **Eliminación de Mocks**: Se eliminaron los métodos `getMockWarehouses` y `getMockConcepts` de `InventoryService`, erradicando datos estáticos del flujo de inventario.
+- **Resolución Dinámica de UOMs**: Se reemplazaron UUIDs quemados por una lógica de resolución por código (`PZA`, `FT`) mediante el nuevo `MasterDataService.resolveUomByCode`.
+- **Limpieza de Fallbacks en Búsqueda**: `ItemSearchComponent` fue purgado de datos de ejemplo (`MAT-001`, `MAT-002`), garantizando que solo se visualicen productos reales del catálogo.
+- **Staging Locations Dinámicas**: `InventoryInboundComponent` ahora genera sus puntos de estiba (*Docks*) dinámicamente desde el catálogo de almacenes, eliminando el registro estático `DOCK-01`.
+- **Smart Form Preview Reactivo**: La previsualización de conceptos en el catálogo ahora utiliza almacenes reales del tenant activo para simular la lógica de negocio.
+- **Code Graph**: ✅ 100% Compliance — 13 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 69 COMPLETED — Zero-Hardcode Policy Enforced.
+
 ### [2026-04-22] Phase 68: Frontend Concept-Guard Architecture (Signal-Safe Inventory Integration)
+
 - **Signal-Safe Resolution**: `MasterDataService.resolveConceptByCode(code)` retorna `null` durante LOADING — ningún componente puede enviar `concept_id: null` al backend, eliminando errores 400/422 en cold-start de tenant.
 - **Three-State Catalog Guard**: `conceptCatalogState` expone `'LOADING' | 'READY' | 'ERROR'` para que los botones de submit muestren "Configurando Empresa..." en lugar de bloquearse silenciosamente.
 - **Write Guard Pattern**: `canSubmitTransfer = computed(() => isFormValid() && transferConceptId() !== null)` — patrón replicado en Transfer e Inbound.

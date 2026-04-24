@@ -30,52 +30,85 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
         if group_id:
             filters = [or_(Product.company_id == company_id, Product.group_id == group_id)]
         
-        # Resolve price list (Default 1 for now)
-        # Búsqueda jerárquica: Almacén específico OR Global (NULL warehouse)
         price_warehouse_filter = or_(ProductPrice.warehouse_id == warehouse_id, ProductPrice.warehouse_id == None) if warehouse_id else ProductPrice.warehouse_id == None
 
-        # Optimized query to fetch products with their latest price if available
-        # we favor the warehouse-specific price over global via ordering or logic in join
+        from sqlalchemy import text, table, column
+        # Define variant table dynamically to avoid cross-service import dependencies
+        variants = table("inventory_item_variants",
+            column("id"),
+            column("product_id"),
+            column("mfg_part_number"),
+            column("brand")
+        )
+
         stmt = (
             select(Product)
             .where(*filters)
+            .outerjoin(variants, variants.c.product_id == Product.id)
+
             .outerjoin(ProductPrice, and_(
                 ProductPrice.product_id == Product.id,
                 ProductPrice.valid_until == None,
                 ProductPrice.is_active == True,
                 price_warehouse_filter
             ))
-            .add_columns(ProductPrice._amount, ProductPrice._currency)
+            .add_columns(
+                ProductPrice._amount, 
+                ProductPrice._currency,
+                variants.c.mfg_part_number,
+                variants.c.brand,
+                variants.c.id.label("variant_id")
+            )
         )
         
         if q:
             keyword = f"%{q}%"
             stmt = stmt.where(or_(
                 Product.sku.ilike(keyword),
-                Product.name.ilike(keyword)
+                Product.name.ilike(keyword),
+                variants.c.mfg_part_number.ilike(keyword)
             ))
+
             
-        # If warehouse_id was provided, we might have 2 prices (global and local)
-        # We want the local one to be processed first or selected.
         if warehouse_id:
             stmt = stmt.order_by(Product.id, ProductPrice.warehouse_id.desc().nullslast())
 
         result = await self.db.execute(stmt)
         
         products = []
-        processed_ids = set()
+        processed_keys = set()
         
         for row in result.all():
-            p = row[0]
-            if p.id in processed_ids:
-                continue # Already got the best price (warehouse specific) due to order_by
+            p_orig = row[0]
+            # Create a shallow copy to avoid modifying the same object for different variants
+            import copy
+            p = copy.copy(p_orig)
+            
+            p_id = p.id
+            mpn = row[3]
+            brand = row[4]
+            variant_id = row[5]
+            
+            # Key for uniqueness: Product ID + Variant ID (to show different variants)
+            # We also keep the price logic
+            key = (p_id, variant_id)
+            if key in processed_keys:
+                continue 
                 
             p.last_price = float(row[1]) if row[1] is not None else None
             p.currency = row[2] or "MXN"
+            
+            # Enrich Name with Variant Info if it exists
+            if mpn:
+                p.name = f"{p.name} ({brand} {mpn})"
+                # Optionally, override SKU to be specific if MPN is what they need
+                # but for inventory documents, usually SKU is the product and MPN is the variant attribute.
+            
             products.append(p)
-            processed_ids.add(p.id)
+            processed_keys.add(key)
             
         return products
+
 
     async def get_product_by_id(self, product_id: uuid.UUID, company_id: uuid.UUID) -> Optional[Any]:
         stmt = select(Product).where(Product.id == product_id, Product.company_id == company_id)

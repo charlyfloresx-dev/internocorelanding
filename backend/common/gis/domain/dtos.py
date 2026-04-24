@@ -17,3 +17,4 @@ class PropertyValidationResponse(BaseModel):
     land_use: Optional[str] = None
     location: Optional[Coordinates] = None
     status: str = "Validated"
+    meta: Optional[dict] = None

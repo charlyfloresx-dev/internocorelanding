@@ -201,11 +201,6 @@ export class ItemSearchComponent implements OnInit {
     this.isLoadingProducts = true;
     this.masterData.getProducts().subscribe({
       next: (res) => {
-        if (!res.data || res.data.length === 0) {
-          this.allItems.set(this.getFallbackData());
-          this.isLoadingProducts = false;
-          return;
-        }
         const mapped = res.data.map(p => ({
           id: p.id,
           sku: p.sku,
@@ -222,27 +217,13 @@ export class ItemSearchComponent implements OnInit {
         this.isLoadingProducts = false;
       },
       error: (err) => {
-        console.error('[ItemSearch] Error loading from backend, using fallbacks', err);
-        this.allItems.set(this.getFallbackData());
+        console.error('[ItemSearch] Error loading from backend', err);
+        this.allItems.set([]);
         this.isLoadingProducts = false;
       }
     });
   }
 
-  private getFallbackData(): InventoryItem[] {
-    return [
-      { 
-        id: '1', sku: 'MAT-001', name: 'Aluminio Industrial 6061', variant: 'Placa 1/4"', 
-        available: 120, unitWeight: 15.5, unitVolume: 0.05, unit: 'FT',
-        uomId: '1a7444c9-40df-51d5-833b-501fc84b67bb'
-      },
-      { 
-        id: '2', sku: 'MAT-002', name: 'Aluminio Industrial 6061', variant: 'Barra 1"', 
-        available: 45, unitWeight: 8.2, unitVolume: 0.02, unit: 'FT',
-        uomId: '1a7444c9-40df-51d5-833b-501fc84b67bb'
-      }
-    ];
-  }
 
   filteredItems = computed(() => {
     const q = this.query().toLowerCase().trim();

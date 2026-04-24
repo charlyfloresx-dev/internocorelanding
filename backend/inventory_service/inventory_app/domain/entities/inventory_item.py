@@ -172,6 +172,7 @@ class DocumentItemEntity(BaseModel):
     uom_id: UUID
     uom_name: Optional[str] = "PZA"
     weight: Decimal
+    unit_price: Decimal = Decimal("0.0")
     location: Optional[str] = None
     validation_status: Optional[str] = "CLEAN"
 

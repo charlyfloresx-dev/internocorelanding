@@ -131,8 +131,9 @@ class InventoryTransactionService:
             document_type="INVENTORY_DOC",
             document_id=stmt.reference_id or uuid.uuid4(),
             user_id=user_id,
-            validation_status="PENDING", # Laissez-Faire: Start as pending
+            validation_status="CLEAN" if not stmt.location else "PENDING", # Laissez-Faire: Start as pending only if location exists for audit
             available_quantity=Decimal(str(stmt.quantity_change)) # Essential for Occupancy sum
+
         )
 
         await self.repository.record_movement(

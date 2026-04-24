@@ -44,7 +44,12 @@ export interface Concept extends BaseRead {
   operation_type?: string;
   affect_stock?: boolean;  // Does this concept affect stock levels?
   is_system?: boolean;     // System-managed (cannot be deleted)
+  is_active?: boolean;      // Visibility flag
+
+  translation_key?: string | null;
 }
+
+
 
 export interface UOM extends BaseRead {
   code: string;
@@ -228,6 +233,14 @@ export class MasterDataService {
   /**
    * Loads all core catalogs in parallel.
    */
+  public resolveUomByCode(code: string): UOM | undefined {
+    return this.uoms().find(u => u.code.toUpperCase() === code.toUpperCase());
+  }
+
+  public resolveConceptByCode(code: string): Concept | undefined {
+    return this.concepts().find(c => c.code.toUpperCase() === code.toUpperCase());
+  }
+
   public async refreshCatalogs(): Promise<void> {
     if (this.loading()) return;
     
