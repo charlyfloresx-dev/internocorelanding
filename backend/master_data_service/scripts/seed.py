@@ -159,7 +159,7 @@ async def seed_demo_products(session, company_id: uuid.UUID):
             amount = base_price * (1.0 - discount)
             
             stmt_price = select(ProductPrice).filter_by(
-                product_id=prod_id, company_id=company_id, price_list_index=tier, _currency="USD", unit_type="BASE", warehouse_id=None, is_active=True
+                product_id=prod_id, company_id=company_id, price_list_index=tier, _currency="USD", unit_type=UnitType.SALE, warehouse_id=None, is_active=True
             )
             existing_price = (await session.execute(stmt_price)).scalars().first()
             if not existing_price:
@@ -190,6 +190,8 @@ async def seed_concepts_and_warehouses(session, company_id: uuid.UUID, country: 
         {"code": "SAL-ADJ", "name": "Ajuste Negativo",   "type": MovementType.OUTPUT},
         {"code": "TRF-INT", "name": "Traspaso Interno",  "type": MovementType.TRANSFER,
          "requires_target_warehouse": True},
+        {"code": "TRF-EXT", "name": "Traspaso Inter-Compañía",  "type": MovementType.TRANSFER,
+         "requires_external_entity": True},
     ]
 
     for c_data in concepts:
@@ -318,14 +320,14 @@ async def seed_product_prices(session, company_id: uuid.UUID):
     # Precios globales para MAT-001 y MAT-002
     prices_def = [
         # (SKU, ListIndex, Amount, Currency, UnitType, WarehouseKey)
-        ("MAT-001", 1, 150.00, "USD", "BASE", None),
-        ("MAT-002", 1, 25.50, "USD", "BASE", None),
+        ("MAT-001", 1, 150.00, "USD", UnitType.SALE, None),
+        ("MAT-002", 1, 25.50, "USD", UnitType.SALE, None),
         # Precio especial en Tijuana Central
-        ("MAT-001", 1, 145.00, "USD", "BASE", "WH-TIJ"),
+        ("MAT-001", 1, 145.00, "USD", UnitType.SALE, "WH-TIJ"),
         # Precio especial en San Diego Hub (USD)
-        ("MAT-002", 1, 24.00, "USD", "BASE", "WH-SDY"),
+        ("MAT-002", 1, 24.00, "USD", UnitType.SALE, "WH-SDY"),
         # Industrial ECM-600
-        ("ECM-600", 1, 850.00, "USD", "BASE", None),
+        ("ECM-600", 1, 850.00, "USD", UnitType.SALE, None),
     ]
 
 

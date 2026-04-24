@@ -233,12 +233,11 @@ export class MasterDataService {
   /**
    * Loads all core catalogs in parallel.
    */
+  /**
+   * Industrial Pattern: Unit of Measure Resolution
+   */
   public resolveUomByCode(code: string): UOM | undefined {
     return this.uoms().find(u => u.code.toUpperCase() === code.toUpperCase());
-  }
-
-  public resolveConceptByCode(code: string): Concept | undefined {
-    return this.concepts().find(c => c.code.toUpperCase() === code.toUpperCase());
   }
 
   public async refreshCatalogs(): Promise<void> {
@@ -294,10 +293,10 @@ export class MasterDataService {
    *   ADJ-NEG  — Negative Adjustment (Ajuste Negativo)
    *   SCRAP    — Material Scrap (Merma/Baja)
    */
-  resolveConceptByCode(code: string): Concept | null {
+  public resolveConceptByCode(code: string): Concept | null {
     // Guard: Return null if catalog is not ready yet — prevents sending null concept_id
     if (!this.catalogsLoaded()) return null;
-    return this.concepts().find(c => c.code === code) ?? null;
+    return this.concepts().find(c => c.code.toUpperCase() === code.toUpperCase()) ?? null;
   }
 
   /**

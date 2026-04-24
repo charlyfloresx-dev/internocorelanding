@@ -228,7 +228,7 @@ async def seed_master_data(session):
     for prod in PRODUCT_CATALOG:
         m_prod = await session.get(Product, prod['id'])
         if not m_prod and uom_pz:
-            await _safe_add(session, Product(id=prod['id'], sku=prod['sku'], name=prod['name'], company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, base_uom_id=uom_pz.id, product_type=ProductType.GOODS, version_id=1, is_active=True), f"Producto: {prod['sku']}")
+            await _safe_add(session, Product(id=prod['id'], sku=prod['sku'], name=prod['name'], company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, base_uom_id=uom_pz.id, product_type=ProductType.GOODS, version_id=1, is_active=True, min_order_qty=1.0, max_order_qty=1000.0, safety_stock=5.0), f"Producto: {prod['sku']}")
 
         # Transfer Price MXN (Enterprise -> Logistics)
         await session.execute(text("""

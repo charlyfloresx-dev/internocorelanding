@@ -7,6 +7,7 @@ import { InventoryService } from '../../core/services/inventory.service';
 import { AuthService } from '../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
+import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 
 interface InventoryDocument {
   id: string;
@@ -24,7 +25,7 @@ interface InventoryDocument {
 @Component({
   selector: 'app-inventory-documents',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink, FormsModule, CurrencyFormatPipe],
+  imports: [CommonModule, MatIconModule, RouterLink, FormsModule, CurrencyFormatPipe, TranslatePipe],
   template: `
     <div class="space-y-8 animate-fade-in pb-24">
       <!-- Header Section -->
@@ -146,23 +147,43 @@ interface InventoryDocument {
 
       <!-- Documents Table Section -->
       <div class="industrial-card overflow-hidden">
-        <div class="p-6 border-b border-surface-border bg-white/5 flex items-center justify-between">
+        <div class="p-6 border-b border-surface-border bg-white/5 flex items-center justify-between flex-wrap gap-4">
           <h2 class="text-[10px] font-black text-surface-text uppercase tracking-[0.2em]">Listado de Documentos</h2>
-          <div class="flex items-center gap-2">
-            <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">Mostrar:</span>
-            <select 
-              [value]="selectedLimit()"
-              (change)="onLimitChange($event)"
-              class="bg-surface-bg border border-surface-border rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-primary cursor-pointer hover:bg-white/5 transition-colors">
-              <option [value]="50">Últimos 50</option>
-              <option [value]="100">Últimos 100</option>
-              <option [value]="500">Últimos 500</option>
-              <option [value]="1000">Todos</option>
-            </select>
+          <div class="flex items-center gap-4">
+            <input 
+              type="text" 
+              [placeholder]="'common.search' | translate:'Filtrar por folio, tipo o estado...'" 
+              (input)="onFilterChange($event)"
+              class="bg-surface-bg border border-surface-border text-[10px] px-3 py-2 rounded-lg focus:outline-none focus:border-primary/50 transition-all w-64 font-mono text-surface-text"
+            >
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">Mostrar:</span>
+              <select 
+                [value]="itemsPerPage()"
+                (change)="onItemsPerPageChange($event)"
+                class="bg-surface-bg border-2 border-surface-border rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary cursor-pointer hover:bg-white/5 transition-all shadow-sm">
+                <option [value]="5">5 por página</option>
+                <option [value]="10">10 por página</option>
+                <option [value]="20">20 por página</option>
+                <option [value]="50">50 por página</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2 border-l border-surface-border pl-4">
+              <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">Cargar DB:</span>
+              <select 
+                [value]="selectedLimit()"
+                (change)="onLimitChange($event)"
+                class="bg-surface-bg border-2 border-surface-border rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary cursor-pointer hover:bg-white/5 transition-all shadow-sm">
+                <option [value]="50">Últimos 50</option>
+                <option [value]="100">Últimos 100</option>
+                <option [value]="500">Últimos 500</option>
+                <option [value]="1000">Todos</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div class="overflow-x-auto custom-scrollbar">
+        <div class="overflow-x-auto custom-scrollbar min-h-[400px]">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-surface-bg/50">
@@ -176,7 +197,7 @@ interface InventoryDocument {
               </tr>
             </thead>
             <tbody class="divide-y divide-surface-border">
-              @for (doc of documents(); track doc.id) {
+              @for (doc of paginatedDocuments(); track doc.id) {
                 <tr class="hover:bg-white/5 transition-all group cursor-pointer">
                   <td class="px-3 md:px-6 py-5">
                     <div class="flex flex-col">
@@ -229,7 +250,11 @@ interface InventoryDocument {
                   <td class="px-6 py-5 hidden md:table-cell">
                     <div class="flex flex-col">
                       <span class="text-xs font-black text-primary tabular-nums">{{ doc.total_value | currencyFormat }}</span>
-                      <span class="text-[8px] font-bold text-surface-text-muted uppercase tracking-widest italic">Valuación</span>
+                      @if (doc.pending_financial_valuation) {
+                        <span class="text-[8px] font-bold text-amber-500 uppercase tracking-widest italic animate-pulse">Pendiente Valuación</span>
+                      } @else {
+                        <span class="text-[8px] font-bold text-surface-text-muted uppercase tracking-widest italic">Valuación</span>
+                      }
                     </div>
                   </td>
                   <td class="px-6 py-5">
@@ -239,7 +264,6 @@ interface InventoryDocument {
                   </td>
                   <td class="px-3 md:px-6 py-5 text-right">
                     <div class="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <!-- ICT Specific Actions -->
                       @if (doc.type === 'ICT_IN' && doc.status === 'DRAFT') {
                         <button (click)="openConfirmModal(doc, $event)" class="px-2 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-cyan-500/20 transition-all flex items-center gap-1">
                           <mat-icon class="text-xs">move_to_inbox</mat-icon>
@@ -269,22 +293,47 @@ interface InventoryDocument {
                   </td>
                 </tr>
               }
+              @if (paginatedDocuments().length === 0) {
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center text-surface-text-muted">
+                    <mat-icon class="text-4xl mb-4 opacity-50">search_off</mat-icon>
+                    <p class="text-xs font-bold uppercase tracking-widest">No se encontraron documentos</p>
+                  </td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
         
         <div class="p-4 bg-surface-bg/30 border-t border-surface-border flex items-center justify-between">
-          <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">Mostrando {{ documents().length }} registros</span>
+          <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">
+            Mostrando {{ (currentPage() - 1) * itemsPerPage() + 1 }} - {{ math.min(currentPage() * itemsPerPage(), filteredDocuments().length) }} de {{ filteredDocuments().length }} registros
+          </span>
           <div class="flex items-center gap-2">
-            <button class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30" disabled>
+            <button 
+              (click)="goToPage(currentPage() - 1)"
+              [disabled]="currentPage() === 1"
+              class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
               <mat-icon>chevron_left</mat-icon>
             </button>
             <div class="flex items-center gap-1">
-              <span class="w-6 h-6 flex items-center justify-center bg-primary text-slate-950 text-[10px] font-black rounded">1</span>
-              <span class="w-6 h-6 flex items-center justify-center hover:bg-white/5 text-surface-text-muted text-[10px] font-black rounded cursor-pointer">2</span>
-              <span class="w-6 h-6 flex items-center justify-center hover:bg-white/5 text-surface-text-muted text-[10px] font-black rounded cursor-pointer">3</span>
+              @for (page of pagesArray(); track page) {
+                <span 
+                  (click)="goToPage(page)"
+                  [class.bg-primary]="currentPage() === page"
+                  [class.text-slate-950]="currentPage() === page"
+                  [class.hover:bg-white.5]="currentPage() !== page"
+                  [class.text-surface-text-muted]="currentPage() !== page"
+                  class="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded cursor-pointer transition-colors"
+                >
+                  {{ page }}
+                </span>
+              }
             </div>
-            <button class="p-1 text-surface-text-muted hover:text-primary">
+            <button 
+              (click)="goToPage(currentPage() + 1)"
+              [disabled]="currentPage() === totalPages() || totalPages() === 0"
+              class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
               <mat-icon>chevron_right</mat-icon>
             </button>
           </div>
@@ -325,7 +374,7 @@ interface InventoryDocument {
                           type="number" 
                           [value]="receivedQty()" 
                           (input)="onReceivedQtyChange($any($event.target).value)"
-                          class="w-full bg-surface-bg border border-emerald-500/30 rounded-xl px-4 py-3 text-lg font-black text-surface-text focus:border-emerald-500 outline-none transition-all placeholder:text-surface-text-muted/30"
+                          class="w-full bg-surface-bg border-2 border-emerald-500/30 rounded-xl px-6 py-5 text-lg font-black text-surface-text focus:border-emerald-500 outline-none transition-all placeholder:text-surface-text-muted/30 shadow-lg"
                         >
                       </div>
                       <div>
@@ -334,7 +383,7 @@ interface InventoryDocument {
                           type="number" 
                           [value]="damagedQty()" 
                           (input)="damagedQty.set($any($event.target).value)"
-                          class="w-full bg-surface-bg border border-rose-500/30 rounded-xl px-4 py-3 text-lg font-black text-surface-text focus:border-rose-500 outline-none transition-all placeholder:text-surface-text-muted/30"
+                          class="w-full bg-surface-bg border-2 border-rose-500/30 rounded-xl px-6 py-5 text-lg font-black text-surface-text focus:border-rose-500 outline-none transition-all placeholder:text-surface-text-muted/30 shadow-lg"
                         >
                       </div>
                    </div>
@@ -442,6 +491,39 @@ export class InventoryDocumentsComponent implements OnInit {
      outputs_24h: 0,
      transfers_24h: 0,
      pending_docs: 0
+   });
+
+   // Pagination and Filtering State
+   math = Math;
+   filterQuery = signal<string>('');
+   currentPage = signal<number>(1);
+   itemsPerPage = signal<number>(10);
+
+   filteredDocuments = computed(() => {
+     let items = this.documents();
+     const query = this.filterQuery().toLowerCase().trim();
+     
+     if (query) {
+       items = items.filter(doc => 
+         doc.folio?.toLowerCase().includes(query) ||
+         doc.type?.toLowerCase().includes(query) ||
+         doc.concept_name?.toLowerCase().includes(query) ||
+         doc.status?.toLowerCase().includes(query)
+       );
+     }
+     return items;
+   });
+
+   totalPages = computed(() => Math.ceil(this.filteredDocuments().length / this.itemsPerPage()));
+   
+   paginatedDocuments = computed(() => {
+     const startIndex = (this.currentPage() - 1) * this.itemsPerPage();
+     return this.filteredDocuments().slice(startIndex, startIndex + this.itemsPerPage());
+   });
+
+   pagesArray = computed(() => {
+     const total = this.totalPages();
+     return Array.from({ length: total }, (_, i) => i + 1);
    });
 
     // ICT Actions State
@@ -561,7 +643,27 @@ export class InventoryDocumentsComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const value = parseInt(select.value, 10);
     this.selectedLimit.set(value || 50);
+    this.currentPage.set(1);
     this.loadDocuments();
+  }
+
+  onFilterChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.filterQuery.set(input.value);
+    this.currentPage.set(1);
+  }
+
+  onItemsPerPageChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const value = parseInt(select.value, 10);
+    this.itemsPerPage.set(value || 10);
+    this.currentPage.set(1);
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
   }
 
   viewPdf(docId: string, event: Event) {

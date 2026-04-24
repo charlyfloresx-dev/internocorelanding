@@ -170,7 +170,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
               <select 
                 id="preview-concept-select"
                 [(ngModel)]="previewConceptId"
-                class="w-full bg-surface-bg border border-surface-border rounded-2xl py-4 px-6 text-sm font-bold text-surface-text outline-none focus:border-primary transition-all appearance-none"
+                class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-surface-text outline-none focus:border-primary transition-all appearance-none shadow-lg"
               >
                 @for (c of concepts(); track c.id) {
                   <option [value]="c.id">{{ c.name }} ({{ c.operation_type }})</option>
@@ -194,7 +194,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
                   @if (cp.requires_target_warehouse) {
                     <div class="p-4 bg-primary/10 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
                       <span class="text-[9px] text-primary uppercase font-black">Almacén Destino (Requerido)</span>
-                      <select class="w-full bg-transparent border-none text-xs text-surface-text font-bold outline-none mt-1">
+                      <select class="w-full bg-transparent border-none text-[11px] text-surface-text font-black uppercase tracking-widest outline-none mt-1">
                         <option>Seleccione destino...</option>
                         @for (wh of masterData.warehouses(); track wh.id) {
                           <option>{{ wh.name }}</option>

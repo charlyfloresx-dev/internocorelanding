@@ -164,7 +164,7 @@ interface ConfirmedDocument {
           <select 
             [ngModel]="selectedConceptId()"
             (ngModelChange)="selectedConceptId.set($event)"
-            class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-4 px-6 text-sm font-black uppercase tracking-widest outline-none focus:border-primary transition-all"
+            class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-lg"
           >
             <option value="">Seleccione Concepto...</option>
             @for (concept of concepts(); track concept.id) {
@@ -184,7 +184,7 @@ interface ConfirmedDocument {
               id="warehouse-select"
               [ngModel]="selectedWarehouseId()"
               (ngModelChange)="selectedWarehouseId.set($event); onWarehouseChange()"
-              class="w-full bg-surface-bg border-2 border-surface-border rounded-2xl py-6 pl-16 pr-8 text-xl font-black uppercase tracking-tighter outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-xl"
+              class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 pl-16 pr-8 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-lg"
             >
               <option value="">Seleccione Almacén...</option>
               @for (w of inventoryService.warehouses(); track w.id) {
@@ -196,7 +196,7 @@ interface ConfirmedDocument {
           @if (activeConcept()?.requires_target_warehouse || activeConcept()?.requires_external_entity) {
             <div class="w-full animate-in slide-in-from-top-4 duration-500 space-y-4">
               @if (activeConcept()?.requires_target_warehouse) {
-                <select [ngModel]="selectedTargetWarehouseId()" (ngModelChange)="selectedTargetWarehouseId.set($event)" class="w-full input-industrial py-4 text-xs font-bold uppercase tracking-widest">
+                <select [ngModel]="selectedTargetWarehouseId()" (ngModelChange)="selectedTargetWarehouseId.set($event)" class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-lg">
                   <option value="">Almacén Destino...</option>
                   @for (w of inventoryService.warehouses(); track w.id) { 
                     <option [value]="w.id">{{ w.name }}</option> 
@@ -206,15 +206,15 @@ interface ConfirmedDocument {
               @if (activeConcept()?.requires_external_entity) {
                 <div class="flex flex-col gap-2 w-full">
                   <div class="flex items-center gap-2">
-                    <select [ngModel]="selectedSupplierId()" (ngModelChange)="selectedSupplierId.set($event)" class="flex-1 input-industrial py-4 text-xs font-bold uppercase tracking-widest outline-none focus:border-primary">
-                      <option value="">{{ type() === 'ENTRADA' ? 'Proveedor' : 'Cliente' }}...</option>
+                    <select [ngModel]="selectedSupplierId()" (ngModelChange)="selectedSupplierId.set($event)" class="flex-1 bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-lg">
+                      <option value="">{{ type() === 'ENTRADA' ? 'Proveedor' : (type() === 'TRASPASO' ? 'Empresa Destino' : 'Cliente') }}...</option>
                       @for (s of suppliers(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
                     </select>
                     <button 
                       type="button"
                       (click)="openAddPartnerModal()"
-                      class="w-12 h-12 bg-primary/10 border border-primary/30 text-primary rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 group"
-                      [title]="'Agregar ' + (type() === 'ENTRADA' ? 'Proveedor' : 'Cliente')"
+                      class="w-[62px] h-[62px] bg-primary/10 border-2 border-primary/30 text-primary rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all shadow-lg shadow-primary/5 group"
+                      [title]="'Agregar ' + (type() === 'ENTRADA' ? 'Proveedor' : (type() === 'TRASPASO' ? 'Empresa Destino' : 'Cliente'))"
                     >
                       <mat-icon class="group-hover:rotate-90 transition-transform">add_business</mat-icon>
                     </button>
@@ -836,6 +836,19 @@ export class InventoryDocumentComponent implements OnInit {
         this.selectedWarehouseId.set(doc.warehouse_id || '');
         this.selectedConceptId.set(doc.concept_id || '');
         
+        // Handle dropdowns for target warehouse or external entity (supplier/client)
+        if (doc.type === 'TRANSFER' || doc.type === 'TRASPASO') {
+          // Attempt to find warehouse by name if ID is missing
+          const targetW = this.inventoryService.warehouses().find(w => w.name === doc.destination || w.id === doc.destination_id);
+          this.selectedTargetWarehouseId.set(targetW?.id || doc.destination_id || '');
+        } else if (doc.type === 'ENTRY' || doc.type === 'IN' || doc.type === 'ENTRADA') {
+          const supplier = this.suppliers().find(s => s.name === doc.origin || s.id === doc.origin_id);
+          this.selectedSupplierId.set(supplier?.id || doc.origin_id || '');
+        } else {
+          const client = this.suppliers().find(s => s.name === doc.destination || s.id === doc.destination_id);
+          this.selectedSupplierId.set(client?.id || doc.destination_id || '');
+        }
+        
         // 2. Clear and fill items array to show in background form
         this.itemsFormArray.clear();
         if (doc.items && doc.items.length > 0) {
@@ -1280,14 +1293,14 @@ export class InventoryDocumentComponent implements OnInit {
         <td style="padding: 12px 16px; font-size: 12px;">${item.location || '-'}</td>
         <td style="padding: 12px 16px; font-size: 12px; text-align: right; font-weight: 900;">${item.quantity}</td>
         <td style="padding: 12px 16px; font-size: 12px; text-align: right;">${this.currencyService.format(item.unit_price || 0)}</td>
-        <td style="padding: 12px 16px; font-size: 12px; text-align: right; font-weight: 900;">${this.currencyService.format((item.quantity || 0) * (item.unit_price || 0))}</td>
-        <td style="padding: 12px 16px; font-size: 12px; text-align: right; font-family: monospace;">${(item.weight || 0).toFixed(2)} Kg</td>
+        <td style="padding: 12px 16px; font-size: 12px; text-align: right; font-weight: 900;">${this.currencyService.format(Number(item.quantity || 0) * Number(item.unit_price || 0))}</td>
+        <td style="padding: 12px 16px; font-size: 12px; text-align: right; font-family: monospace;">${Number(item.weight || 0).toFixed(2)} Kg</td>
       </tr>
     `).join('');
 
-    const totalUnits = doc.items.reduce((a: number, i: any) => a + (i.quantity || 0), 0);
-    const totalWeight = doc.items.reduce((a: number, i: any) => a + (i.weight || 0), 0);
-    const totalValue = doc.items.reduce((a: number, i: any) => a + ((i.quantity || 0) * (i.unit_price || 0)), 0);
+    const totalUnits = doc.items.reduce((a: number, i: any) => a + Number(i.quantity || 0), 0);
+    const totalWeight = doc.items.reduce((a: number, i: any) => a + Number(i.weight || 0), 0);
+    const totalValue = doc.items.reduce((a: number, i: any) => a + (Number(i.quantity || 0) * Number(i.unit_price || 0)), 0);
     const now = new Date().toLocaleString('es-MX');
 
     const html = `<!DOCTYPE html>

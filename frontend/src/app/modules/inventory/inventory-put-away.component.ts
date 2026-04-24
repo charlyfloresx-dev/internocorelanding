@@ -332,7 +332,7 @@ export class InventoryPutAwayComponent implements OnInit {
       
       this.identifiedItem.set({
         product_id: stock.item_id,
-        uom_id: stock.uom_id || this.inv.uoms().find(u => u.code === 'PZA')?.id, // Fallback PZA
+        uom_id: stock.uom_id || this.inv.uoms().find((u: any) => u.code === 'PZA')?.id, // Fallback PZA
 
         sku: stock.sku,
         quantity: stock.total_available_qty,
@@ -378,7 +378,7 @@ export class InventoryPutAwayComponent implements OnInit {
 
     this.identifiedItem.set({
       product_id: product.id,
-      uom_id: this.inv.uoms().find(u => u.code === 'PZA')?.id || this.inv.uoms()[0]?.id, // Dynamic lookup
+      uom_id: this.inv.uoms().find((u: any) => u.code === 'PZA')?.id || this.inv.uoms()[0]?.id, // Dynamic lookup
 
       sku: product.sku,
       quantity: this.manualQty,

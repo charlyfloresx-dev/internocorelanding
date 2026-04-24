@@ -141,12 +141,10 @@ async def create_document(
         # 3. CRITICAL: Commit all changes (Movements + Document)
         await service.repository.session.commit()
     except Exception as e:
-        # We don't block the transaction if the doc metadata fails, but we log it
-        import logging
-        logging.error(f"DOC_METADATA_FAILED: {str(e)}")
-        # If document metadata failed but movements succeeded, we still commit movements?
-        # Actually, it's better to commit everything together.
-        await service.repository.session.commit()
+        logging.error(f"DOC_METADATA_FAILED: {str(e)}", exc_info=True)
+        # Rollback and raise to reveal the issue
+        await service.repository.session.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error during document creation: {str(e)}")
 
     return ApiResponse(
         status="success",
@@ -437,9 +435,18 @@ async def relocate_stock(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except SQLAlchemyError as e:
+        logging.error(f"SQLAlchemyError in create_document: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail={
+                "error": "Database persistence failure",
+                "details": str(e),
+                "type": type(e).__name__
+            }
+        )
     except Exception as e:
-        logger.error(f"RELOCATION_FAILED: {str(e)}")
-        raise HTTPException(status_code=500, detail="Relocation system error.")
+        logging.error(f"ERR_CREATE_DOC: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Fine report
-

@@ -166,12 +166,14 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                     group_uuid = uuid.UUID(str(group_id))
                     
                 # Extract extended info if token allows
-                role_val = "OPERATOR"
-                role_names_val = []
+                role_val = "GOD_MODE_ADMIN" if bypass_tenant else "OPERATOR"
+                role_names_val = ["admin"] if bypass_tenant else []
                 warehouses_val = []
                 
                 if hasattr(request.state, "user_token") and request.state.user_token:
-                    role_val = request.state.user_token.role
+                    # Priority: GOD_MODE_ADMIN > Token Role
+                    if role_val != "GOD_MODE_ADMIN":
+                        role_val = request.state.user_token.role
                     role_names_val = request.state.user_token.role_names
                     # Ensure warehouses are UUIDs
                     warehouses_val = []
@@ -237,7 +239,8 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                     if not content["meta"].get("trace_id"):
                         content["meta"]["trace_id"] = transaction_id
                 else:
-                    is_success = 200 <= response.status_code < 300
+                    current_status = getattr(response, "status_code", 500)
+                    is_success = 200 <= current_status < 300
                     error_msg = original_data.get("detail", "Error") if isinstance(original_data, dict) else str(original_data)
                     content = ApiResponse(
                         status="success" if is_success else "error",
@@ -257,7 +260,7 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 json_content = json.dumps(content, cls=InternoCoreEncoder)
 
                 return Response(
-                    status_code=response.status_code, 
+                    status_code=getattr(response, "status_code", 500), 
                     content=json_content, 
                     headers=new_headers,
                     media_type="application/json"
@@ -277,11 +280,8 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
             
             # --- PHASE 37: Domain Exception Mapping ---
             if isinstance(e, DomainException):
-                status_code = 400
-                if isinstance(e, (UnauthorizedException)):
-                    status_code = 403
-                elif isinstance(e, NotFoundException):
-                    status_code = 404
+                status_code = getattr(e, 'status_code', 400)
+                logger.warning(f"DOMAIN_EXCEPTION_CAUGHT: {type(e).__name__} - {str(e)} (trace:{transaction_id})")
                 
                 return Response(
                     status_code=status_code,

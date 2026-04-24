@@ -184,6 +184,9 @@ class DocumentDetailEntity(BaseModel):
     status: str
     origin: str
     destination: str
+    origin_id: Optional[UUID] = None
+    destination_id: Optional[UUID] = None
+    external_entity_id: Optional[UUID] = None
     items_count: int
     total_weight: Decimal
     concept_id: Optional[UUID] = None

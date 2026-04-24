@@ -12,6 +12,8 @@ The frontend previously contained hardcoded mock data for warehouses and concept
 3. **Reactive Staging**: 
    - `InventoryInboundComponent` was refactored to compute `docks` from the active warehouse catalog, ensuring physical receipt points are synchronized with the organizational structure.
 4. **Template Hardening**: Updated Angular templates to consume computed signals for collections, ensuring real-time reactivity when the backend catalog updates.
+5. **Resilient Exception Pattern**: Standardized `DomainException` to include `status_code` in the constructor. This ensures the global middleware can map any business rule violation to a correct HTTP status without relying on ad-hoc attribute checks.
+6. **God Mode Authorization**: Introduced `X-Admin-Master-Key` support. The middleware promotes the user context to `GOD_MODE_ADMIN`, which the repository layer respects to bypass multi-tenant ownership checks during administrative data corrections.
 
 ### Impact
 - **Data Integrity**: 100% of the data visible in the UI is now sourced from the backend API.

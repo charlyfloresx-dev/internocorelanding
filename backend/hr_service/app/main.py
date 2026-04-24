@@ -91,7 +91,7 @@ app.include_router(api_router, prefix="/api/v1")
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return JSONResponse(
-        status_code=exc.status_code,
+        status_code=getattr(exc, "status_code", 500),
         content={
             "status": "error",
             "message": exc.detail,

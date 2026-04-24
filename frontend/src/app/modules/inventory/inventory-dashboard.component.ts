@@ -323,7 +323,7 @@ interface CriticalItem {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-border">
-                  @for (m of filteredLedger(); track m.folio) {
+                  @for (m of paginatedLedger(); track m.folio) {
                     <tr class="hover:bg-white/[0.02] transition-colors group">
                       <td class="px-6 py-4 font-mono font-bold">
                         <span class="text-primary">{{ m.folio }}</span>
@@ -342,8 +342,49 @@ interface CriticalItem {
                       <td class="px-6 py-4 text-right font-black">{{ m.valuation.amount | currencyFormat }}</td>
                     </tr>
                   }
+                  @if (paginatedLedger().length === 0) {
+                    <tr>
+                      <td colspan="5" class="px-6 py-8 text-center text-surface-text-muted">
+                        <p class="text-xs font-bold uppercase tracking-widest">No se encontraron movimientos</p>
+                      </td>
+                    </tr>
+                  }
                 </tbody>
               </table>
+            </div>
+
+            <div class="p-4 bg-surface-bg/30 border-t border-surface-border flex items-center justify-between">
+              <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">
+                Mostrando {{ (currentPage() - 1) * itemsPerPage() + 1 }} - {{ math.min(currentPage() * itemsPerPage(), filteredLedger().length) }} de {{ filteredLedger().length }} registros
+              </span>
+              <div class="flex items-center gap-2">
+                <button 
+                  (click)="goToPage(currentPage() - 1)"
+                  [disabled]="currentPage() === 1"
+                  class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
+                  <mat-icon>chevron_left</mat-icon>
+                </button>
+                <div class="flex items-center gap-1">
+                  @for (page of pagesArray(); track page) {
+                    <span 
+                      (click)="goToPage(page)"
+                      [class.bg-primary]="currentPage() === page"
+                      [class.text-slate-950]="currentPage() === page"
+                      [class.hover:bg-white.5]="currentPage() !== page"
+                      [class.text-surface-text-muted]="currentPage() !== page"
+                      class="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded cursor-pointer transition-colors"
+                    >
+                      {{ page }}
+                    </span>
+                  }
+                </div>
+                <button 
+                  (click)="goToPage(currentPage() + 1)"
+                  [disabled]="currentPage() === totalPages() || totalPages() === 0"
+                  class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -453,6 +494,11 @@ export class InventoryDashboardComponent implements OnInit {
   sortKey = signal<string>('date');
   sortDir = signal<'asc' | 'desc'>('desc');
 
+  // Pagination State
+  math = Math;
+  currentPage = signal<number>(1);
+  itemsPerPage = signal<number>(5);
+
   filteredLedger = computed(() => {
     let items = [...this.recentLedger()];
     const query = this.filterQuery().toLowerCase().trim();
@@ -461,7 +507,7 @@ export class InventoryDashboardComponent implements OnInit {
       items = items.filter(item =>
         item.folio.toLowerCase().includes(query) ||
         item.type.toLowerCase().includes(query) ||
-        (item.concept_name || '').toLowerCase().includes(query) || // Search by business label
+        (item.concept_name || '').toLowerCase().includes(query) ||
         item.warehouse.toLowerCase().includes(query) ||
         item.status.toLowerCase().includes(query)
       );
@@ -478,6 +524,24 @@ export class InventoryDashboardComponent implements OnInit {
       return 0;
     });
   });
+
+  totalPages = computed(() => Math.ceil(this.filteredLedger().length / this.itemsPerPage()));
+  
+  paginatedLedger = computed(() => {
+    const startIndex = (this.currentPage() - 1) * this.itemsPerPage();
+    return this.filteredLedger().slice(startIndex, startIndex + this.itemsPerPage());
+  });
+
+  pagesArray = computed(() => {
+    const total = this.totalPages();
+    return Array.from({ length: total }, (_, i) => i + 1);
+  });
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+    }
+  }
 
   isLoading = signal(false);
   private currentLoadedCompanyId: string | null = null;
@@ -601,6 +665,7 @@ export class InventoryDashboardComponent implements OnInit {
   onFilterChange(event: Event) {
     const input = event.target as HTMLInputElement;
     this.filterQuery.set(input.value);
+    this.currentPage.set(1);
   }
 
   onGlobalSearch(item: InventoryItem) {

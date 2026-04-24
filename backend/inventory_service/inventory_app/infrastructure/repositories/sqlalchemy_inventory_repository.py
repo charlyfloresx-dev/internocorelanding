@@ -30,6 +30,7 @@ from inventory_app.models.movement import Movement
 from inventory_app.models.document import InventoryDocument, DocumentStatus
 from inventory_app.infrastructure.tickets_client import TicketsClient
 from common.exceptions import UnauthorizedException
+from common.context import request_context
 from common.audit.logger import AuditLogger
 from inventory_app.models.warehouse import Warehouse
 from inventory_app.models.inter_company_transfer import InterCompanyTransfer
@@ -50,15 +51,21 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         [ZERO ZERO TRUST] Validates that the warehouse belongs to the current company.
         Gracefully handles non-UUID strings (e.g. mocks) to avoid db errors.
         """
+        # 0. Industrial Bypass: God Mode Authorization
+        try:
+            ctx = request_context.get()
+            if ctx and getattr(ctx, 'role', None) == 'GOD_MODE_ADMIN':
+                logger.info(f"🛡️ GOD_MODE: Bypassing warehouse ownership check for {warehouse_id}")
+                return # Skip validation
+        except:
+            pass
+
         # 1. Forensic Guard: If it's a string, try to parse it. If it fails, it's not a real DB warehouse.
         target_id = warehouse_id
         if isinstance(warehouse_id, str):
             try:
                 target_id = uuid.UUID(warehouse_id)
             except ValueError:
-                # If it's a mock string like 'WH-TIJ-01', it won't be in the DB anyway.
-                # In demo mode, we might want to bypass this, but for zero-trust we fail.
-                # However, to avoid blocking the user's manual "mock" usage, we log as warning.
                 logger.warning(f"WAREHOUSE_MOCK_DETECTED: {warehouse_id} is not a valid UUID. Blocking for integrity.")
                 raise UnauthorizedException(message=f"ERR_INVALID_WAREHOUSE_FORMAT: {warehouse_id}")
 
@@ -111,9 +118,19 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             )
             # Flush log before raising
             await self.session.flush()
-            raise UnauthorizedException(
-                message=f"ERR_WAREHOUSE_ACCESS_DENIED: Warehouse {warehouse_id} does not belong to Company {company_id}."
-            )
+            
+            # --- PHASE 37: Granular Error Reporting ---
+            # Check if it exists at all but for another company
+            check_existence = select(Warehouse).where(Warehouse.id == target_id)
+            exist_res = await self.session.execute(check_existence)
+            wrong_wh = exist_res.scalar_one_or_none()
+            
+            if wrong_wh:
+                msg = f"ERR_TENANT_MISMATCH: Warehouse {warehouse_id} belongs to Company {wrong_wh.company_id}, but request is for {company_id}."
+            else:
+                msg = f"ERR_WAREHOUSE_NOT_FOUND: Warehouse {warehouse_id} does not exist in Inventory or Master Data registries."
+                
+            raise UnauthorizedException(message=msg)
 
     def _to_level_entity(self, stock_model: InventoryLevel) -> InventoryLevelEntity:
         return InventoryLevelEntity(

@@ -293,7 +293,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
                 <div>
                   <label class="text-[9px] uppercase tracking-widest text-surface-text-muted font-black mb-1 block">Unidad (UOM)</label>
                   <select [(ngModel)]="blindUomId" 
-                    class="w-full bg-surface-bg border border-surface-border rounded-xl px-4 py-4 text-xs font-bold text-surface-text outline-none focus:border-primary appearance-none">
+                    class="w-full bg-surface-bg border-2 border-surface-border rounded-xl px-6 py-5 text-[11px] font-black uppercase tracking-[0.2em] text-surface-text outline-none focus:border-primary appearance-none shadow-lg">
                     <option *ngFor="let uom of uoms()" [value]="uom.id">{{ uom.code }} - {{ uom.name }}</option>
                   </select>
                 </div>
@@ -302,7 +302,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
               <div>
                 <label class="text-[9px] uppercase tracking-widest text-surface-text-muted font-black mb-1 block">Almacén Destino</label>
                 <select [(ngModel)]="blindWarehouseId" 
-                  class="w-full bg-surface-bg border border-surface-border rounded-xl px-4 py-4 text-xs font-bold text-surface-text outline-none focus:border-primary appearance-none">
+                  class="w-full bg-surface-bg border-2 border-surface-border rounded-xl px-6 py-5 text-[11px] font-black uppercase tracking-[0.2em] text-surface-text outline-none focus:border-primary appearance-none shadow-lg">
                   <option *ngFor="let wh of warehouses()" [value]="wh.id">{{ wh.code }} - {{ wh.name }}</option>
                 </select>
               </div>

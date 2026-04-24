@@ -1,4 +1,5 @@
 import asyncio
+import os
 import uuid
 from decimal import Decimal
 from datetime import datetime, timezone
@@ -6,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 
 # ─── CONFIGURACIÓN ───
-MASTER_DATA_URL = "postgresql+asyncpg://user:password@localhost:5433/master_data_db"
+MASTER_DATA_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5433/dbname")
 CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
 CO_LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
 

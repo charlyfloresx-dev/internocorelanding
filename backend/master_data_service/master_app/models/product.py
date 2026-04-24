@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Text, ForeignKey, Integer, UniqueConstraint, Boolean, Numeric, JSON
+from sqlalchemy import String, Text, ForeignKey, Integer, UniqueConstraint, Boolean, Numeric, JSON, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, Mapped, mapped_column
@@ -31,9 +31,9 @@ class Product(BaseProduct):
 
     # ── Parámetros de Control de Inventario (Legacy Migration) ───────────────────
     # Alineados con MinOrderQty / MaxOrderQty / SafetyStock del código legacy C#
-    min_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
-    max_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
-    safety_stock: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, nullable=False)
+    min_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
+    max_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
+    safety_stock: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
 
     # ── Relaciones de Precios ─────────────────────────────────────────────────────
     prices: Mapped[List["ProductPrice"]] = relationship(

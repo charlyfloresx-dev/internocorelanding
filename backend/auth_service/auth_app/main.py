@@ -113,7 +113,7 @@ app.include_router(v2_api_router, prefix="/api/v2")
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     trace_id = getattr(request.state, "transaction_id", "not-available")
     return JSONResponse(
-        status_code=exc.status_code,
+        status_code=getattr(exc, "status_code", 500),
         content={
             "status": "error",
             "message": exc.detail,

@@ -8,8 +8,13 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 - **Limpieza de Fallbacks en Búsqueda**: `ItemSearchComponent` fue purgado de datos de ejemplo (`MAT-001`, `MAT-002`), garantizando que solo se visualicen productos reales del catálogo.
 - **Staging Locations Dinámicas**: `InventoryInboundComponent` ahora genera sus puntos de estiba (*Docks*) dinámicamente desde el catálogo de almacenes, eliminando el registro estático `DOCK-01`.
 - **Smart Form Preview Reactivo**: La previsualización de conceptos en el catálogo ahora utiliza almacenes reales del tenant activo para simular la lógica de negocio.
+- **Intercompany Transfers UI (ICT)**: Se integró la lógica de binding de datos de dropdowns "Empresa Destino" vs "Cliente" basado en `requires_external_entity` de `TRF-EXT`.
+- **Resiliencia en Documentos Financieros**: Modificación de las plantillas de `printInvoice` y `printLabel` para cast de Decimals dinámicos a Number y evitar bloqueos en el UI con `NaN` exceptions. Agregado de badges para "Pendiente de Valuación Financiera".
 - **Code Graph**: ✅ 100% Compliance — 13 microservicios, 0 errores críticos.
-- **Status**: ✅ Phase 69 COMPLETED — Zero-Hardcode Policy Enforced.
+- **Resiliencia de Excepciones**: Estandarización de `DomainException` con atributo `status_code` nativo, eliminando errores `AttributeError` en el middleware global.
+- **Integración de God Mode**: Implementación del header `X-Admin-Master-Key` que permite la elevación a `GOD_MODE_ADMIN` para bypass de validaciones de propiedad multi-tenant en correcciones administrativas.
+- **Middleware Guardado**: Refactorización del middleware global para manejo resiliente de errores críticos con logging forense de trazas.
+- **Status**: ✅ Phase 69 COMPLETED — Zero-Hardcode & Backend Resilience Enforced.
 
 ### [2026-04-22] Phase 68: Frontend Concept-Guard Architecture (Signal-Safe Inventory Integration)
 

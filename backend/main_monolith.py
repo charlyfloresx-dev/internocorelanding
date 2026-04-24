@@ -133,7 +133,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     logging.error(f"DATABASE_ERROR: {str(exc)}")
-    return JSONResponse(status_code=500, content={"status": "error", "message": "A database error occurred.", "meta": {"type": "SQLAlchemyError"}})
+    return JSONResponse(status_code=500, content={"status": "error", "message": f"DATABASE_ERROR: {str(exc)}", "meta": {"type": "SQLAlchemyError"}})
 
 @app.exception_handler(Exception)
 async def global_unexpected_exception_handler(request: Request, exc: Exception):
