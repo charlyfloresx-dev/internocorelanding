@@ -1,0 +1,85 @@
+<div class="min-h-screen bg-[#0A0F1C] text-white p-6 font-sans">
+  <!-- Header del Dashboard -->
+  <header class="mb-8 flex justify-between items-end border-b border-gray-800 pb-4">
+    <div>
+      <h1 class="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+        Asset Manager CRM
+      </h1>
+      <p class="text-gray-400 mt-1 text-sm font-medium tracking-wide">
+        Motor Financiero Inteligente (Tijuana Focus)
+      </p>
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- Filtro de Zonas Calientes -->
+      <div class="bg-gray-900/50 p-2 px-3 rounded-xl border border-gray-800/80 shadow-inner flex items-center gap-2">
+        <i class="fas fa-map-marked-alt text-gray-500"></i>
+        <select 
+          class="bg-transparent text-sm font-bold text-gray-300 outline-none cursor-pointer appearance-none tracking-wide"
+          [value]="selectedZone()"
+          (change)="setZone($any($event.target).value)">
+          @for (zone of availableZones; track zone) {
+            <option class="bg-gray-900 text-gray-300" [value]="zone">{{ zone === 'ALL' ? 'TODAS LAS ZONAS' : zone }}</option>
+          }
+        </select>
+        <i class="fas fa-chevron-down text-gray-600 text-xs ml-1"></i>
+      </div>
+
+      <!-- ROI Promedio -->
+      <div class="flex items-center gap-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/80 shadow-inner">
+        <div class="flex flex-col text-right">
+          <span class="text-[10px] uppercase text-gray-500 font-bold tracking-widest">ROI Promedio Cartera</span>
+          <span class="text-xl font-bold text-emerald-400">
+            {{ totalProjectedRoi() | percent:'1.1-2' }}
+          </span>
+        </div>
+        <div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+          <i class="fas fa-chart-line text-emerald-400"></i>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tablero Kanban -->
+  @if (board()) {
+    <div class="flex gap-6 overflow-x-auto pb-8 snap-x" cdkDropListGroup>
+      @for (column of board()!.columns; track column.id) {
+        <div class="min-w-[350px] w-[350px] flex flex-col bg-[#111827]/80 rounded-2xl border border-gray-800/60 shadow-2xl overflow-hidden snap-start">
+          
+          <!-- Título de la Columna -->
+          <div class="px-5 py-4 border-b border-gray-800/80 bg-gray-900/40 flex justify-between items-center backdrop-blur-sm">
+            <h2 class="font-bold text-gray-200 tracking-wide">{{ column.title }}</h2>
+            <span class="bg-gray-800 text-gray-400 text-xs font-bold px-2.5 py-1 rounded-md border border-gray-700">
+              {{ column.opportunities.length }}
+            </span>
+          </div>
+
+          <!-- Contenedor de Tarjetas (Drag & Drop Zone) -->
+          <div 
+            class="flex-1 p-4 overflow-y-auto min-h-[500px] flex flex-col gap-4 custom-scrollbar cdk-list-container transition-colors duration-200"
+            cdkDropList
+            [cdkDropListData]="column.opportunities"
+            (cdkDropListDropped)="drop($event, column.id)">
+            
+            @for (opp of column.opportunities; track opp.id) {
+              <div cdkDrag>
+                <app-opportunity-card [opportunity]="opp"></app-opportunity-card>
+              </div>
+            }
+            
+            <!-- Estado vacío de la columna -->
+            @if (column.opportunities.length === 0) {
+              <div class="h-full flex flex-col items-center justify-center text-gray-600 space-y-3 opacity-50 my-10">
+                <i class="fas fa-inbox text-3xl"></i>
+                <p class="text-sm font-medium tracking-wide">Sin oportunidades</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="flex justify-center items-center h-64">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+    </div>
+  }
+</div>

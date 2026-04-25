@@ -2,6 +2,14 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
+### [2026-04-25] Phase 70: Interno Assets CRM & GIS Intelligence Pipeline
+- **Asset Manager Service Inception**: Despliegue del microservicio `asset_manager_service` bajo Clean Architecture, integrando un motor financiero de evaluación de ROI para oportunidades inmobiliarias.
+- **GIS-to-CRM Pipeline**: Implementación de `BackgroundTasks` en el `master_data_service` para la propagación automática de reportes catastrales hacia el CRM de inversiones.
+- **Zero-Trust Multi-Tenancy (Personal Scope)**: Implementación de filtros por `created_by` con bypass de `company_id` para gestión de activos privados, validado 100% por el Code Graph Auditor.
+- **Resiliencia de Datos (RPPC Bypass)**: Documentación de inconsistencias en el GeoServer de Tijuana y estrategia de reintentos para claves catastrales complejas (PK-020-119).
+- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 70 COMPLETED — Asset Intelligence Layer Active.
+
 ### [2026-04-24] Phase 69: Industrial Zero-Hardcode Frontend (SSOT Enforcement)
 - **Eliminación de Mocks**: Se eliminaron los métodos `getMockWarehouses` y `getMockConcepts` de `InventoryService`, erradicando datos estáticos del flujo de inventario.
 - **Resolución Dinámica de UOMs**: Se reemplazaron UUIDs quemados por una lógica de resolución por código (`PZA`, `FT`) mediante el nuevo `MasterDataService.resolveUomByCode`.

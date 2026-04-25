@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY master_data_service/app /app/app
+COPY master_data_service/master_app /app/master_app
 COPY master_data_service/alembic /app/alembic
 COPY master_data_service/alembic.ini /app/alembic.ini
 COPY master_data_service/scripts /app/scripts

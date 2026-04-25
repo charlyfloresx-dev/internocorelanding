@@ -96,6 +96,16 @@ export class NavigationService {
       ]
     },
     {
+      id: 'investments',
+      label: 'Inversiones (CRM)',
+      translation_key: 'menu.investments',
+      icon: 'real_estate_agent',
+      permissions: ['investments:manage', 'investments:admin'],
+      subItems: [
+        { id: 'inv-kanban', label: 'Kanban Dashboard', translation_key: 'menu.investments_kanban', route: '/investments/asset-manager' }
+      ]
+    },
+    {
       id: 'system',
       label: 'Sistema',
       translation_key: 'menu.settings',

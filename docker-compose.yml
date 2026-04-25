@@ -322,6 +322,33 @@ services:
     networks:
       - interno-network
 
+  # --- ASSET MANAGER SERVICE (CRM Inmobiliario — Distressed Assets) ---
+  asset-manager-service:
+    build:
+      context: ./backend
+      dockerfile: asset_manager_service/Dockerfile
+    container_name: asset-manager-service-api
+    image: interno-backend-asset-manager-service:latest
+    ports:
+      - "8011:8006"
+    volumes:
+      - ./backend/asset_manager_service:/app/asset_manager_service
+      - ./backend/common:/app/common
+    environment:
+      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/asset_manager_db
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/asset_manager_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/asset_manager_service
+      - MASTER_DATA_SERVICE_URL=http://master-data-service:8000
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      master-data-service:
+        condition: service_started
+    networks:
+      - interno-network
+
 networks:
   interno-network:
     driver: bridge

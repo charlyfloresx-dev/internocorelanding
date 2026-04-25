@@ -15,11 +15,15 @@ from common.gis.domain.exceptions import (
     CadastralKeyNotFoundException
 )
 from common.logger import get_logger
+from common.gis.infrastructure.services.tijuana_predial_provider import TijuanaPredialProvider
 
 logger = get_logger(__name__)
 
 class ArcGisTijuanaProvider(IGisService):
     def __init__(self):
+        # Proveedores externos
+        self.predial_provider = TijuanaPredialProvider()
+        
         # URLs
         self.wms_url = "https://gemelodigital.implantijuana.gob.mx/geoserver-local-proxy/wms"
         self.rppc_url = "https://rppcweb.ebajacalifornia.gob.mx/portalbc/Produccion/WebAPI/Servicios/ConsultaRegistral/obtenerLotes"
@@ -58,6 +62,44 @@ class ArcGisTijuanaProvider(IGisService):
         return bbox
 
     async def get_location_by_address(self, address_string: str) -> Optional[PropertyValidationResponse]:
+        """
+        Busca un predio directamente por dirección.
+        Útil cuando el GIS no es preciso o se tiene el dato oficial del recibo.
+        """
+        logger.info(f"GIS: Iniciando búsqueda por dirección: {address_string}")
+        
+        # Parseo simple de Calle y Número (ej: "VENUSTIANO CARRANZA 6319-C")
+        # Esperamos formato: [CALLE] [NUMERO]
+        parts = address_string.strip().split(" ")
+        if len(parts) < 2:
+            return None
+            
+        num_oficial = parts[-1] # Asumimos el último es el número
+        calle = " ".join(parts[:-1]).upper()
+        
+        try:
+            # Llamamos al RPPC directamente por localidad
+            owner_info = await self.get_ownership_from_rppc("", address={
+                "num_oficial": num_oficial,
+                "calle": calle,
+                "colonia": "PRESIDENTES"
+            })
+            
+            if owner_info.get("owner_name"):
+                return PropertyValidationResponse(
+                    address=address_string.upper(),
+                    cadastral_key=owner_info.get("cadastral_key", "PENDIENTE"),
+                    owner_name=owner_info["owner_name"],
+                    land_use="No especificado",
+                    location=Coordinates(lat=0, lng=0), # No tenemos coords en búsqueda por dirección pura
+                    meta={
+                        "source": "rppc_localidad",
+                        "raw_data": owner_info.get("raw_data")
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Error en búsqueda por dirección: {e}")
+            
         return None
 
     async def get_data_by_coordinates(self, lat: float, lng: float, company_id: Optional[str] = None) -> Optional[PropertyValidationResponse]:
@@ -83,15 +125,20 @@ class ArcGisTijuanaProvider(IGisService):
                     num_oficial = props.get("numoficial", "")
                     
                     if clave:
-                        # Try RPPC first
+                        # 1. Obtener Dueño (Prioridad RPPC por Folio Real)
                         owner_info = await self.get_ownership_from_rppc(clave, address={"num_oficial": num_oficial})
                         owner_name = owner_info.get("owner_name")
                         
-                        # Fallback to Predial if RPPC failed or returned generic
-                        if not owner_name or "disponible" in owner_name or "Privada" in owner_name:
-                            predial_owner = await self.get_ownership_from_predial(clave)
-                            if predial_owner:
-                                owner_name = predial_owner
+                        # 2. Obtener Adeudo y Validar Propietario (Fallback Predial)
+                        # Este es el paso clave para el evaluador financiero
+                        predial_data = await self.predial_provider.get_property_data(clave)
+                        adeudo = 0.0
+                        
+                        if predial_data:
+                            adeudo = predial_data.get("total_debt", 0.0)
+                            # Si el RPPC falló, usamos el nombre del Predial
+                            if not owner_name or "disponible" in owner_name or "Privada" in owner_name:
+                                owner_name = predial_data.get("owner_name")
                         
                         owner_name = owner_name or "No disponible (Consulta manual requerida)"
                         
@@ -104,6 +151,7 @@ class ArcGisTijuanaProvider(IGisService):
                             meta={
                                 "superficie": superficie,
                                 "num_oficial": num_oficial,
+                                "adeudo": adeudo,
                                 "raw_clave": clave,
                                 "rppc_info": owner_info.get("raw_data")
                             }
@@ -151,12 +199,16 @@ class ArcGisTijuanaProvider(IGisService):
                 except: pass
             
             if address and address.get("num_oficial"):
-                street = "VENUSTIANO CARRANZA"
-                num = str(address["num_oficial"])
+                # Extraer nombre de calle si viene en la meta o usar un fallback
+                street = address.get("calle", "VENUSTIANO CARRANZA").upper()
+                num = str(address["num_oficial"]).strip()
+                
+                # Intentar con y sin colonia para mayor cobertura
                 fallback_payloads = [
-                    {"municipio": 2, "colonia": "PRESIDENTES", "calle": street, "numero": num},
+                    {"municipio": 2, "colonia": address.get("colonia", "PRESIDENTES"), "calle": street, "numero": num},
                     {"municipio": 2, "colonia": "", "calle": street, "numero": num}
                 ]
+                
                 for local_data in fallback_payloads:
                     payload_local = {
                         "porFolio": {}, "porLote": {}, "porPartida": {}, "porAntecedente": {}, "porClaveCat": {}, "porCurt": {},
@@ -167,55 +219,23 @@ class ArcGisTijuanaProvider(IGisService):
                         if response.status_code == 200:
                             data = response.json()
                             if data.get("success") and data.get("Datos"):
+                                # LÓGICA DE REFINAMIENTO POR INCISO:
+                                # Buscamos si alguno de los registros en esa dirección tiene el inciso (ej. " C" o "-C")
+                                # El usuario reportó el 6319-C. Si el WMS dio el predio padre, 
+                                # aquí recuperamos el 'hijo' administrativo.
                                 for item in data["Datos"]:
                                     dir_str = str(item.get("Direccion", "")).upper()
-                                    if " C" in dir_str or "-C" in dir_str:
+                                    # Caso: "6319 C", "6319-C", "6319C"
+                                    if f"{num} C" in dir_str or f"{num}-C" in dir_str or dir_str.endswith(f"{num}C"):
+                                        logger.info(f"RPPC: Match por Localidad detectado para inciso C en {dir_str}")
                                         return self._parse_rppc_data(item, "frmLocalidad")
+                                
+                                # Si no hay inciso específico, devolvemos el primero (predio principal)
                                 return self._parse_rppc_data(data["Datos"][0], "frmLocalidad")
-                    except: pass
+                    except Exception as e:
+                        logger.warning(f"RPPC fallback porLocal failed: {e}")
 
         return {"owner_name": None, "cadastral_key": clave}
-
-    async def get_ownership_from_predial(self, clave: str) -> Optional[str]:
-        """
-        Scrapes the Tijuana Predial portal for ownership.
-        """
-        clean_key = self.format_cadastral_key(clave, 1) # PK-XXX-XXX
-        try:
-            async with httpx.AsyncClient(verify=False) as client:
-                # 1. Get initial page to get ViewState
-                resp = await client.get(self.predial_url, timeout=self.timeout)
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                
-                viewstate = soup.find(id="__VIEWSTATE")['value'] if soup.find(id="__VIEWSTATE") else ""
-                generator = soup.find(id="__VIEWSTATEGENERATOR")['value'] if soup.find(id="__VIEWSTATEGENERATOR") else ""
-                eventvalidation = soup.find(id="__EVENTVALIDATION")['value'] if soup.find(id="__EVENTVALIDATION") else ""
-                
-                # 2. Submit search
-                payload = {
-                    "__VIEWSTATE": viewstate,
-                    "__VIEWSTATEGENERATOR": generator,
-                    "__EVENTVALIDATION": eventvalidation,
-                    "ctl00$ContentPlaceHolder1$txtClave": clean_key,
-                    "ctl00$ContentPlaceHolder1$btnConsultar": "Consultar"
-                }
-                
-                resp = await client.post(self.predial_url, data=payload, timeout=self.timeout)
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                
-                # Propietario is usually in a label or span
-                # Looking for keywords or specific IDs
-                propietario_label = soup.find(id="ctl00_ContentPlaceHolder1_lblPropietario")
-                if propietario_label:
-                    return propietario_label.get_text().strip()
-                
-                # Fallback: search for "Propietario:" text
-                text_search = soup.find(text=re.compile("Propietario:"))
-                if text_search:
-                    return text_search.find_next().get_text().strip()
-        except Exception as e:
-            logger.error(f"Predial scraping failed: {e}")
-        return None
 
     def _parse_rppc_data(self, item: dict, used_key: str) -> dict:
         return {
@@ -226,8 +246,11 @@ class ArcGisTijuanaProvider(IGisService):
         }
 
     async def get_legal_owner(self, cadastral_key: str) -> Optional[str]:
-        owner_name = await self.get_ownership_from_predial(cadastral_key)
-        if not owner_name:
-            info = await self.get_ownership_from_rppc(cadastral_key)
-            owner_name = info.get("owner_name")
-        return owner_name
+        # Intentar Predial primero por estabilidad
+        predial_data = await self.predial_provider.get_property_data(cadastral_key)
+        if predial_data and predial_data.get("owner_name"):
+            return predial_data["owner_name"]
+            
+        # Fallback a RPPC
+        info = await self.get_ownership_from_rppc(cadastral_key)
+        return info.get("owner_name")

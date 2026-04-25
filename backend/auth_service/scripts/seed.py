@@ -60,11 +60,12 @@ SUPERVISOR_ID  = uuid.UUID("85236974-5678-4cd2-ccbb-987654321def")
 # Wildcard "*" = admin bypass en el frontend (ve todo el sidebar)
 ADMIN_SCOPES = ["*"]
 
-# Manager/Logistics: Inventarios + Catálogo + WMS
+# Manager/Logistics: Inventarios + Catálogo + WMS + Asset Management
 MANAGER_SCOPES = [
     "inv:movements:manage", "inv:warehouse:manage",
     "master:catalog:manage",
     "wms:manage",
+    "investments:manage"
 ]
 
 # Operador: Solo movimientos de inventario

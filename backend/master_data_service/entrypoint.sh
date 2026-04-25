@@ -26,4 +26,4 @@ fi
 # --- PASO 3: Iniciar el servidor ---
 echo ""
 echo ">> [3/3] Iniciando servidor Uvicorn..."
-exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec python -m uvicorn master_app.main:app --host 0.0.0.0 --port 8000

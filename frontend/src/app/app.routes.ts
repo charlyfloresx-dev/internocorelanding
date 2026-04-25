@@ -143,6 +143,15 @@ export const routes: Routes = [
         ]
       },
       {
+        path: 'investments',
+        children: [
+          {
+            path: 'asset-manager',
+            loadComponent: () => import('./modules/investments/asset-manager/pages/kanban-dashboard/kanban-dashboard').then(m => m.KanbanDashboardComponent)
+          }
+        ]
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'
