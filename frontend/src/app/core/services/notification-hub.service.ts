@@ -23,7 +23,7 @@ export interface AppNotification {
 export class NotificationHubService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private apiUrl = `${environment.apiUrl}/notifications`;
+  private apiUrl = `${environment.notificationUrl}/notifications`;
 
   notifications = signal<AppNotification[]>([]);
   unreadCount = signal<number>(0);

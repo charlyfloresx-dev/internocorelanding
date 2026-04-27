@@ -5,10 +5,13 @@ import { OpportunityCardComponent } from '../../components/opportunity-card/oppo
 import { KanbanBoard, OpportunityResponse } from '../../models/opportunity.model';
 import { AssetCrmService } from '../../services/asset-crm';
 
+import { MatIconModule } from '@angular/material/icon';
+import { RouterModule } from '@angular/router';
+
 @Component({
   selector: 'app-kanban-dashboard',
   standalone: true,
-  imports: [CommonModule, DragDropModule, OpportunityCardComponent],
+  imports: [CommonModule, DragDropModule, OpportunityCardComponent, MatIconModule, RouterModule],
   templateUrl: './kanban-dashboard.html',
   styleUrls: ['./kanban-dashboard.css']
 })
@@ -21,6 +24,21 @@ export class KanbanDashboardComponent implements OnInit {
   // Filtro de Zonas Calientes
   selectedZone = signal<string>('ALL');
   availableZones = ['ALL', 'PRESIDENTES', 'OTAY', 'ZONA RIO', 'CENTRO'];
+
+  // Columna activa para vista de pestañas (móvil/tablet)
+  activeColumnId = signal<string>('DETECTED');
+
+  // Estado del menú desplegable de zonas
+  isZoneMenuOpen = signal<boolean>(false);
+
+  toggleZoneMenu() {
+    this.isZoneMenuOpen.update(v => !v);
+  }
+
+  selectZone(zone: string) {
+    this.selectedZone.set(zone);
+    this.isZoneMenuOpen.set(false);
+  }
 
   // Tablero computado basado en el filtro
   board = computed(() => {

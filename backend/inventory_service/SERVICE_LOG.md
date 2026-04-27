@@ -1,4 +1,12 @@
-# Service Log — Inventory Service\n\n## 🕒 Última Actividad (2026-04-21)
+# Service Log — Inventory Service
+
+## 🕒 Última Actividad (2026-04-27)
+**Forensic Audit & Financial Mapping (Fase 71)**
+- **Forensic Audit Engine**: Implementado el endpoint `/api/v1/audit/` para trazabilidad inmutable de transacciones.
+- **SQLAlchemy Attribute Fix**: Corregido el conflicto de mapeo entre `_amount` (código) y `unit_price` (DB) para asegurar la persistencia de datos financieros en el ledger.
+- **Audit UI Integration**: Sincronización exitosa con el nuevo componente de auditoría en el frontend.
+
+## 🕒 Última Actividad (2026-04-21)
 **Hierarchical Inventory Visibility (Fase 67)**
 - **Shadow Warehouse Mapping**: Alineación de almacenes logísticos con la jerarquía de grupos para visibilidad cross-company.
 - **Tenant Context Consistency**: Verificada la propagación de X-Company-ID y group_id en las transacciones de inventario.

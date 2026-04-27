@@ -5,6 +5,7 @@ from typing import List, Optional
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, JSON, Enum as SQLEnum
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
+import sqlalchemy as sa
 from common.infrastructure.models.base import Base
 
 class NotificationPriority(str, Enum):

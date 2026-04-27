@@ -6,6 +6,7 @@ from typing import List, Optional
 class CompanyBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     logo: Optional[str] = None # Added logo field
+    base_currency: str = Field("USD", min_length=3, max_length=3)
 
 # Properties to receive on company creation
 class CompanyCreate(CompanyBase):

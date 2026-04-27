@@ -58,7 +58,7 @@ SUPERVISOR_ID  = uuid.UUID("85236974-5678-4cd2-ccbb-987654321def")
 
 # ─── Scopes (SSOT: frontend/src/app/core/services/navigation.service.ts) ──────
 # Wildcard "*" = admin bypass en el frontend (ve todo el sidebar)
-ADMIN_SCOPES = ["*"]
+ADMIN_SCOPES   = ["*", "investments:manage", "investments:admin", "master:catalog:manage", "inv:movements:manage"]
 
 # Manager/Logistics: Inventarios + Catálogo + WMS + Asset Management
 MANAGER_SCOPES = [

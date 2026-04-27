@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY inventory_service/app /app/app
+COPY inventory_service/inventory_app /app/inventory_app
 COPY inventory_service/alembic /app/alembic
 COPY inventory_service/alembic.ini /app/alembic.ini
 COPY inventory_service/scripts /app/scripts

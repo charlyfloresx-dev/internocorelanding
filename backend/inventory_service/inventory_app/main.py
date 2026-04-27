@@ -60,11 +60,13 @@ from inventory_app.api.v1.endpoints import (
     onboarding,
     inventory,
     customs,
-    variants
+    variants,
+    audit
 )
 
 # Registro de Routers
 # Prefix matches the environment.ts configurations for consistency
+app.include_router(audit.router, prefix="/api/v1/audit", tags=["Forensic Audit Ledger"])
 app.include_router(customs.router, prefix="/api/v1/customs", tags=["Customs Compliance (Anexo 24)"])
 app.include_router(transactions.router, prefix="/api/v1/inventory", tags=["Inventory Transactions (Kardex)"])
 app.include_router(inventory_search.router, prefix="/api/v1/search", tags=["Variant Awareness Search"])

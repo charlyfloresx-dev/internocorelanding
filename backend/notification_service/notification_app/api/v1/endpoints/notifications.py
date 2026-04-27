@@ -66,8 +66,10 @@ async def mark_as_read(
         )
         .values(is_read=True, read_at=datetime.now(timezone.utc))
     )
-    await db.execute(stmt)
+    res = await db.execute(stmt)
     await db.commit()
+    
+    logger.info(f"🔔 Notification {notification_id} marked as read for user {current_user.user_id}. Rows affected: {res.rowcount}")
     
     return ApiResponse(status="success", message="Notification marked as read")
 

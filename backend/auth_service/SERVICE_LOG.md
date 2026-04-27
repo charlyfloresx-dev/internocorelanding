@@ -1,4 +1,11 @@
-# Auth Service - Service Log\n\n## [2026-04-21] Phase 67: Hierarchical Auth Propagation
+# Auth Service - Service Log
+
+## [2026-04-27] Phase 71: Multi-Currency & AWS Readiness
+- **Multi-Currency Support**: Actualizados los esquemas de `Company` para incluir `base_currency`, permitiendo la configuración de moneda nativa desde el onboarding.
+- **AWS Readiness Fix**: Eliminada la cadena hardcodeada `localhost` en la configuración de servicios para cumplir con los estándares de despliegue en la nube.
+- **Onboarding UI**: Sincronización con el nuevo selector de moneda en el frontend.
+
+## [2026-04-21] Phase 67: Hierarchical Auth Propagation
 - **JWT Enrichment**: Se modificó SelectCompanyCommandHandler para inyectar el group_id del UserCompanyRole en el token final de acceso.
 - **Repository Hydration**: Actualización de SQLAlchemyUserCompanyRoleRepository para cargar dinámicamente el parent_group_id desde la relación de empresa.
 - **Handshake API Fix**: Refactorización de LoginQuery y SelectCompanyCommand para propagar group_id y company_name en la respuesta JSON, facilitando la hidratación del frontend.

@@ -1,5 +1,12 @@
 # Notification Service – Log
 
+## 🕒 Última Actividad (2026-04-27)
+**Notification State Persistence (Fase 71)**
+- **Read-Status Fix**: Implementado logging de `rowcount` en el endpoint `mark_as_read` para diagnosticar fallos de persistencia.
+- **Commit Verification**: Verificada la integridad del commit asíncrono en la tabla `notification_recipients`.
+
+---
+
 ## Overview
 The Notification Service (port **8008**) is the "Nervous System" of InternoCore.  
 It receives integration events, evaluates user/tenant preferences, and dispatches notifications through the appropriate channels.

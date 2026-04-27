@@ -74,6 +74,15 @@ import { FormsModule } from '@angular/forms';
                   <option>Textile</option>
                 </select>
               </div>
+
+              <div class="space-y-2">
+                <label for="base-currency" class="block text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">Base Currency</label>
+                <select id="base-currency" class="w-full input-industrial">
+                  <option value="USD">USD - US Dollar</option>
+                  <option value="MXN">MXN - Mexican Peso</option>
+                  <option value="EUR">EUR - Euro</option>
+                </select>
+              </div>
             </div>
           } @else if (step() === 2) {
             <!-- Step 2: First Warehouse -->

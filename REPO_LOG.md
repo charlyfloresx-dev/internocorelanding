@@ -2,13 +2,26 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
+### [2026-04-27] Phase 71: Financial Valuation & Forensic Audit (Ledger Stabilization)
+- **Forensic Audit Engine**: Despliegue del endpoint `/api/v1/audit/` en el `inventory_service` para exponer el historial inmutable de transacciones (Ledger).
+- **Audit Log UI**: Implementación del componente `InventoryAuditComponent` con visualización glassmórfica de cambios (Old vs New Value) y filtrado por acción/tabla.
+- **Financial Mapping Fix**: Resolución del bug de mapeo en SQLAlchemy (`_amount` vs `unit_price`) que impedía la auditoría de movimientos financieros.
+- **Notification Persistence**: Corrección del estado de lectura de notificaciones mediante auditoría de `rowcount` en el `notification_service`.
+- **Multi-Currency Foundation**: Actualización de esquemas de empresa para soportar `base_currency` nativa desde el onboarding.
+- **AWS Readiness**: Limpieza de strings `localhost` en configuraciones críticas, validado por Code Graph Auditor.
+- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 71 COMPLETED — Financial & Forensic Traceability Stabilized.
+
 ### [2026-04-25] Phase 70: Interno Assets CRM & GIS Intelligence Pipeline
 - **Asset Manager Service Inception**: Despliegue del microservicio `asset_manager_service` bajo Clean Architecture, integrando un motor financiero de evaluación de ROI para oportunidades inmobiliarias.
 - **GIS-to-CRM Pipeline**: Implementación de `BackgroundTasks` en el `master_data_service` para la propagación automática de reportes catastrales hacia el CRM de inversiones.
 - **Zero-Trust Multi-Tenancy (Personal Scope)**: Implementación de filtros por `created_by` con bypass de `company_id` para gestión de activos privados, validado 100% por el Code Graph Auditor.
 - **Resiliencia de Datos (RPPC Bypass)**: Documentación de inconsistencias en el GeoServer de Tijuana y estrategia de reintentos para claves catastrales complejas (PK-020-119).
+- **Kanban Dashboard UI**: Creación del módulo nativo Angular 19 (`/investments/asset-manager`) usando Angular Signals y CDK Drag&Drop.
+- **Plusvalía Tooltip**: Integración del Padrón Inmobiliario 2020 vs 2026 para el cálculo en tiempo real de la apreciación del activo.
+- **Seguridad RBAC**: Módulo protegido nativamente bajo el scope `investments:manage` inyectado en el NavigationService.
 - **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
-- **Status**: ✅ Phase 70 COMPLETED — Asset Intelligence Layer Active.
+- **Status**: ✅ Phase 70 COMPLETED — Asset Intelligence Layer Active (Backend + UI Kanban).
 
 ### [2026-04-24] Phase 69: Industrial Zero-Hardcode Frontend (SSOT Enforcement)
 - **Eliminación de Mocks**: Se eliminaron los métodos `getMockWarehouses` y `getMockConcepts` de `InventoryService`, erradicando datos estáticos del flujo de inventario.

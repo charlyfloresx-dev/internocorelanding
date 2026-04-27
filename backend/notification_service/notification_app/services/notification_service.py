@@ -2,6 +2,7 @@ import logging
 import uuid
 from typing import List, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
+import sqlalchemy as sa
 from notification_app.models.notification import Notification, NotificationRecipient, NotificationPriority, NotificationCategory
 from notification_app.core.websocket import manager
 
@@ -65,6 +66,10 @@ class NotificationService:
         """
         Envía una notificación dirigida a un usuario específico.
         """
+        final_payload = metadata or {}
+        if action_url and "action_url" not in final_payload:
+            final_payload["action_url"] = action_url
+
         notification = Notification(
             company_id=company_id,
             tenant_id=company_id,
@@ -72,8 +77,7 @@ class NotificationService:
             message=message,
             category=category,
             priority=priority,
-            action_url=action_url,
-            payload=metadata
+            payload=final_payload
         )
         self.db.add(notification)
         await self.db.flush()
@@ -118,14 +122,14 @@ class NotificationService:
         from auth_app.models.role import Role
         from auth_app.models.user_company_role import UserCompanyRole
 
-        # 1. Buscar a los usuarios que tienen ese rol en esa empresa
+        # 1. Buscar a los usuarios que tienen ese rol en esa empresa (case-insensitive)
         query = (
             select(User.id)
             .join(UserCompanyRole, User.id == UserCompanyRole.user_id)
             .join(Role, UserCompanyRole.role_id == Role.id)
             .where(
                 UserCompanyRole.company_id == company_id,
-                Role.name == role_name
+                sa.func.lower(Role.name) == role_name.lower()
             )
         )
         result = await self.db.execute(query)
@@ -136,6 +140,10 @@ class NotificationService:
             return await self.notify_company(company_id, title, message, category, priority, action_url, metadata)
 
         # 2. Crear la notificación base (para el historial)
+        final_payload = metadata or {}
+        if action_url and "action_url" not in final_payload:
+            final_payload["action_url"] = action_url
+
         notification = Notification(
             company_id=company_id,
             tenant_id=company_id,
@@ -143,8 +151,7 @@ class NotificationService:
             message=message,
             category=category,
             priority=priority,
-            action_url=action_url,
-            payload=metadata
+            payload=final_payload
         )
         self.db.add(notification)
         await self.db.flush()

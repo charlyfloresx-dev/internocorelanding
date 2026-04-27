@@ -17,7 +17,7 @@ class MasterDataClient(IMasterDataClient):
     def __init__(self):
         # In production, this would use service discovery or CORE_MASTER_DATA_URL
         # Internal service URL (docker networking)
-        self.base_url = "http://master-data-service-api:8000/api/v1"
+        self.base_url = "http://localhost:8000/api/v1"
         self.timeout = httpx.Timeout(5.0, connect=2.0)
 
     def _get_headers(self, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:

@@ -1,76 +1,146 @@
-<div class="min-h-screen bg-[#0A0F1C] text-white p-6 font-sans">
-  <!-- Header del Dashboard -->
-  <header class="mb-8 flex justify-between items-end border-b border-gray-800 pb-4">
-    <div>
-      <h1 class="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-        Asset Manager CRM
-      </h1>
-      <p class="text-gray-400 mt-1 text-sm font-medium tracking-wide">
-        Motor Financiero Inteligente (Tijuana Focus)
-      </p>
+<div class="p-6 animate-fade-in flex flex-col min-h-full w-full">
+  <!-- Compact Industrial Header (Filter Bar) -->
+  <header class="mb-6 flex flex-wrap justify-between items-center bg-surface-card border border-surface-border rounded-2xl px-6 py-3 shadow-sm backdrop-blur-md no-print z-50">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+        <mat-icon class="text-xl text-primary">real_estate_agent</mat-icon>
+      </div>
+      <div class="flex flex-col">
+        <h1 class="text-lg font-black tracking-tight text-surface-text leading-none">
+          Asset Manager <span class="text-primary">CRM</span>
+        </h1>
+        <span class="text-[9px] font-black text-surface-text-muted uppercase tracking-[0.2em] mt-1">
+          Tijuana Focus v2.4
+        </span>
+      </div>
     </div>
-    <div class="flex items-center gap-4">
-      <!-- Filtro de Zonas Calientes -->
-      <div class="bg-gray-900/50 p-2 px-3 rounded-xl border border-gray-800/80 shadow-inner flex items-center gap-2">
-        <i class="fas fa-map-marked-alt text-gray-500"></i>
-        <select 
-          class="bg-transparent text-sm font-bold text-gray-300 outline-none cursor-pointer appearance-none tracking-wide"
-          [value]="selectedZone()"
-          (change)="setZone($any($event.target).value)">
-          @for (zone of availableZones; track zone) {
-            <option class="bg-gray-900 text-gray-300" [value]="zone">{{ zone === 'ALL' ? 'TODAS LAS ZONAS' : zone }}</option>
-          }
-        </select>
-        <i class="fas fa-chevron-down text-gray-600 text-xs ml-1"></i>
+
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 relative">
+        <span class="hidden sm:inline text-[9px] font-black text-surface-text-muted uppercase tracking-widest whitespace-nowrap">Zona Estratégica:</span>
+        
+        <!-- Custom Dropdown Trigger -->
+        <div 
+          (click)="toggleZoneMenu()"
+          class="bg-surface-text/[0.03] border border-surface-border/60 rounded-xl px-4 py-2 flex items-center gap-3 hover:border-primary/50 hover:bg-primary/[0.02] transition-all cursor-pointer group min-w-[180px] justify-between">
+          <div class="flex items-center gap-2">
+            <mat-icon class="text-primary text-[18px] group-hover:rotate-12 transition-transform">explore</mat-icon>
+            <span class="text-[11px] font-black text-surface-text uppercase tracking-wider">
+              {{ selectedZone() === 'ALL' ? 'TODAS LAS ZONAS' : selectedZone() }}
+            </span>
+          </div>
+          <mat-icon class="text-surface-text-muted text-[16px] transition-transform duration-300" [class.rotate-180]="isZoneMenuOpen()">expand_more</mat-icon>
+        </div>
+
+        <!-- Custom Dropdown Menu -->
+        @if (isZoneMenuOpen()) {
+          <div class="absolute top-full mt-2 right-0 w-full min-w-[220px] bg-white dark:bg-slate-900 border border-surface-border rounded-xl shadow-2xl z-[1000] overflow-hidden animate-fade-in backdrop-blur-xl">
+            @for (zone of availableZones; track zone) {
+              <div 
+                (click)="selectZone(zone)"
+                class="px-4 py-3 text-[11px] font-black text-surface-text uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer border-b border-surface-border/30 last:border-0 flex items-center justify-between group/opt">
+                {{ zone === 'ALL' ? 'TODAS LAS ZONAS' : zone }}
+                @if (selectedZone() === zone) {
+                  <mat-icon class="text-primary text-sm">check_circle</mat-icon>
+                }
+              </div>
+            }
+          </div>
+          
+          <!-- Click outside overlay -->
+          <div class="fixed inset-0 z-[990]" (click)="isZoneMenuOpen.set(false)"></div>
+        }
       </div>
 
-      <!-- ROI Promedio -->
-      <div class="flex items-center gap-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/80 shadow-inner">
+      <div class="hidden sm:block h-8 w-px bg-surface-border/60"></div>
+
+      <a 
+        routerLink="price-map"
+        class="bg-primary hover:bg-primary-dark text-white rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95">
+        <mat-icon class="text-[18px]">map</mat-icon>
+        <span class="text-[10px] font-black uppercase tracking-wider">Mapa de Precios</span>
+      </a>
+
+      <div class="hidden sm:block h-8 w-px bg-surface-border/60"></div>
+      <div class="flex items-center gap-3">
         <div class="flex flex-col text-right">
-          <span class="text-[10px] uppercase text-gray-500 font-bold tracking-widest">ROI Promedio Cartera</span>
-          <span class="text-xl font-bold text-emerald-400">
-            {{ totalProjectedRoi() | percent:'1.1-2' }}
+          <span class="text-[9px] uppercase text-primary font-black tracking-widest">Portfolio ROI</span>
+          <span class="text-lg font-black text-surface-text leading-none">
+            {{ totalProjectedRoi() | percent:'1.1-1' }}
           </span>
         </div>
-        <div class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-          <i class="fas fa-chart-line text-emerald-400"></i>
+        <div class="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+          <mat-icon class="text-emerald-500 text-sm animate-pulse-glow">insights</mat-icon>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Tablero Kanban -->
+  <!-- Mobile/Tablet Tab Bar -->
   @if (board()) {
-    <div class="flex gap-6 overflow-x-auto pb-8 snap-x" cdkDropListGroup>
+    <div class="lg:hidden flex gap-2 mb-6 p-1 bg-surface-text/[0.03] rounded-xl border border-surface-border/50">
       @for (column of board()!.columns; track column.id) {
-        <div class="min-w-[350px] w-[350px] flex flex-col bg-[#111827]/80 rounded-2xl border border-gray-800/60 shadow-2xl overflow-hidden snap-start">
+        <button 
+          (click)="activeColumnId.set(column.id)"
+          [class.bg-white]="activeColumnId() === column.id"
+          [class.dark:bg-slate-800]="activeColumnId() === column.id"
+          [class.text-primary]="activeColumnId() === column.id"
+          [class.shadow-md]="activeColumnId() === column.id"
+          [class.border-surface-border]="activeColumnId() === column.id"
+          class="flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-transparent text-surface-text-muted">
+          {{ column.title.split(' ')[0] }}
+          <span class="ml-1 opacity-50">({{ column.opportunities.length }})</span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Kanban Grid (Flexible height to avoid cutting tooltips) -->
+  @if (board()) {
+    <div class="flex-1 flex flex-col lg:flex-row gap-6 w-full pb-10" cdkDropListGroup>
+      @for (column of board()!.columns; track column.id) {
+        <div 
+          [class.hidden]="activeColumnId() !== column.id"
+          class="lg:flex flex-1 flex-col min-w-0 transition-all animate-fade-in !overflow-visible">
           
-          <!-- Título de la Columna -->
-          <div class="px-5 py-4 border-b border-gray-800/80 bg-gray-900/40 flex justify-between items-center backdrop-blur-sm">
-            <h2 class="font-bold text-gray-200 tracking-wide">{{ column.title }}</h2>
-            <span class="bg-gray-800 text-gray-400 text-xs font-bold px-2.5 py-1 rounded-md border border-gray-700">
+          <!-- Column Header -->
+          <div class="flex justify-between items-center px-4 mb-3">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full" 
+                   [ngClass]="{
+                     'bg-primary': column.id === 'DETECTED',
+                     'bg-amber-500': column.id === 'IN_ANALYSIS',
+                     'bg-emerald-500': column.id === 'EXECUTED',
+                     'bg-slate-400': column.id === 'DISCARDED'
+                   }">
+              </div>
+              <h2 class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">
+                {{ column.title }}
+              </h2>
+            </div>
+            <span class="text-[10px] font-black text-surface-text-muted px-2 py-0.5 rounded-md bg-surface-text/5 border border-surface-border">
               {{ column.opportunities.length }}
             </span>
           </div>
 
-          <!-- Contenedor de Tarjetas (Drag & Drop Zone) -->
+          <!-- Column Content (Overflow visible for tooltips) -->
           <div 
-            class="flex-1 p-4 overflow-y-auto min-h-[500px] flex flex-col gap-4 custom-scrollbar cdk-list-container transition-colors duration-200"
+            class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 !overflow-visible min-h-[400px]"
             cdkDropList
             [cdkDropListData]="column.opportunities"
             (cdkDropListDropped)="drop($event, column.id)">
             
             @for (opp of column.opportunities; track opp.id) {
-              <div cdkDrag>
+              <div cdkDrag class="cursor-grab active:cursor-grabbing w-full !overflow-visible">
                 <app-opportunity-card [opportunity]="opp"></app-opportunity-card>
+                <div *cdkDragPlaceholder class="h-32 w-full bg-primary/5 border border-dashed border-primary/20 rounded-xl"></div>
               </div>
             }
             
-            <!-- Estado vacío de la columna -->
             @if (column.opportunities.length === 0) {
-              <div class="h-full flex flex-col items-center justify-center text-gray-600 space-y-3 opacity-50 my-10">
-                <i class="fas fa-inbox text-3xl"></i>
-                <p class="text-sm font-medium tracking-wide">Sin oportunidades</p>
+              <div class="flex-1 flex flex-col items-center justify-center text-surface-text-muted opacity-20 select-none">
+                <mat-icon class="text-4xl mb-2">dashboard_customize</mat-icon>
+                <p class="text-[8px] font-black uppercase tracking-[0.3em]">Sin Activos</p>
               </div>
             }
           </div>
@@ -78,8 +148,9 @@
       }
     </div>
   } @else {
-    <div class="flex justify-center items-center h-64">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+    <div class="flex-1 flex flex-col items-center justify-center gap-4">
+      <div class="animate-spin-slow h-12 w-12 border-t-2 border-primary rounded-full"></div>
+      <p class="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">Sincronizando Padrón...</p>
     </div>
   }
 </div>

@@ -1,0 +1,82 @@
+<div class="map-page">
+  <!-- Main Map Container -->
+  <div #mapContainer class="map-viewport"></div>
+
+  <!-- Floating Header / Controls -->
+  <div class="map-overlay-top">
+    <div class="glass-search-bar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input type="text" placeholder="Buscar Clave Catastral o Zona..." class="search-input" (keyup.enter)="onSearch($event)">
+      <div class="filter-pills">
+        <span class="pill active">Plusvalía</span>
+        <span class="pill">Industrial</span>
+        <span class="pill">Deuda</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  @if (isLoading()) {
+    <div class="map-loader">
+      <div class="spinner"></div>
+      <span>Analizando Capas GIS...</span>
+    </div>
+  }
+
+  <!-- Detail Sidebar (Glassmorphic) -->
+  @if (selectedProperty(); as prop) {
+    <div class="property-sidebar animate-in-right">
+      <button class="close-btn" (click)="closeDetail()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-md"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </button>
+
+      <div class="sidebar-header">
+        <span class="badge premium">Oportunidad Industrial</span>
+        <h2>{{ prop.cve_cat }}</h2>
+        <p class="address">{{ prop.address }}</p>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <label>Latitud</label>
+          <span class="value">{{ prop.lat }}</span>
+        </div>
+        <div class="metric-card">
+          <label>Longitud</label>
+          <span class="value">{{ prop.lng }}</span>
+        </div>
+        <div class="metric-card">
+          <label>Mercator X</label>
+          <span class="value text-xs opacity-60">{{ prop.x }}</span>
+        </div>
+        <div class="metric-card">
+          <label>Mercator Y</label>
+          <span class="value text-xs opacity-60">{{ prop.y }}</span>
+        </div>
+      </div>
+
+      <div class="action-section">
+        <button class="btn-primary full-width" (click)="viewForensicAnalysis()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          Ver Análisis Forense
+        </button>
+        <button class="btn-outline full-width" (click)="scrapeRPPC()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><line x1="10" x2="8" y1="9" y2="9"></line></svg>
+          Scrapear RPPC
+        </button>
+      </div>
+
+      <div class="context-info">
+        <h3>Datos de la Zona</h3>
+        <div class="info-row">
+          <span>Riesgo Sísmico</span>
+          <span class="status-indicator low">Bajo</span>
+        </div>
+        <div class="info-row">
+          <span>Infraestructura Eléctrica</span>
+          <span class="status-indicator high">Excelente</span>
+        </div>
+      </div>
+    </div>
+  }
+</div>

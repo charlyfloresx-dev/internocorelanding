@@ -23,8 +23,8 @@ class Movement(MultiTenantBase):
     weight: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
     
     # Financial Data via Money Value Object
-    _amount: Mapped[Decimal] = mapped_column("unit_price", Numeric(18, 4), nullable=True, default=0)
-    _currency: Mapped[str] = mapped_column("currency", String(3), nullable=False, default="MXN")
+    _amount: Mapped[Decimal] = mapped_column("unit_price", Numeric(18, 4), nullable=True, default=0, key="_amount")
+    _currency: Mapped[str] = mapped_column("currency", String(3), nullable=False, default="MXN", key="_currency")
     
     price: Mapped[Money] = composite(Money, _amount, _currency)
     movement_type: Mapped[str] = mapped_column(String(20), nullable=False) # IN, OUT, ADJUSTMENT

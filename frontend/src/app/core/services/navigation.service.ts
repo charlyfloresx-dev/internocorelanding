@@ -63,7 +63,8 @@ export class NavigationService {
         { id: 'inv-receive', label: 'Recibir Materiales', translation_key: 'menu.inventory_receive', route: '/inventory/receive' },
         { id: 'inv-docs', label: 'Movimientos', translation_key: 'menu.inventory_documents', route: '/inventory/documents' },
         { id: 'inv-trans', label: 'Transferencias ICT', translation_key: 'menu.inventory_transfers', route: '/inventory/transfers' },
-        { id: 'inv-cycle', label: 'Auditoría Spot', translation_key: 'menu.inventory_cycle_count', route: '/inventory/cycle-count' }
+        { id: 'inv-cycle', label: 'Auditoría Spot', translation_key: 'menu.inventory_cycle_count', route: '/inventory/cycle-count' },
+        { id: 'inv-audit', label: 'Forensic Audit', translation_key: 'menu.inventory_audit', route: '/inventory/audit' }
       ]
     },
     {
@@ -144,7 +145,10 @@ export class NavigationService {
       if (!item.permissions || item.permissions.length === 0) return true;
       
       // Show everything for admins
-      if (isAdmin) return true;
+      if (isAdmin) {
+        console.log(`[NavigationService] ✅ Admin Bypass for: ${item.id}`);
+        return true;
+      }
       
       const hasPermission = item.permissions.some((p: string) => permissions.includes(p));
       console.log(`[NavigationService] Checking item: ${item.id}`, { required: item.permissions, userHas: permissions, allowed: hasPermission });

@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY auth_service/app /app/app
+COPY auth_service/auth_app /app/auth_app
 COPY auth_service/alembic /app/alembic
 COPY auth_service/alembic.ini /app/alembic.ini
 COPY auth_service/scripts /app/scripts

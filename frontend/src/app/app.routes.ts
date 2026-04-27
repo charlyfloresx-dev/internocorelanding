@@ -88,6 +88,10 @@ export const routes: Routes = [
           {
             path: 'receive',
             loadComponent: () => import('./modules/inventory/components/receive-material/receive-material.component').then(m => m.ReceiveMaterialComponent)
+          },
+          {
+            path: 'audit',
+            loadComponent: () => import('./modules/inventory/inventory-audit.component').then(m => m.InventoryAuditComponent)
           }
         ]
       },
@@ -147,7 +151,20 @@ export const routes: Routes = [
         children: [
           {
             path: 'asset-manager',
-            loadComponent: () => import('./modules/investments/asset-manager/pages/kanban-dashboard/kanban-dashboard').then(m => m.KanbanDashboardComponent)
+            children: [
+              {
+                path: '',
+                loadComponent: () => import('./modules/investments/asset-manager/pages/kanban-dashboard/kanban-dashboard').then(m => m.KanbanDashboardComponent)
+              },
+              {
+                path: 'price-map',
+                loadComponent: () => import('./modules/investments/asset-manager/pages/price-map/price-map').then(m => m.PriceMapComponent)
+              },
+              {
+                path: ':id',
+                loadComponent: () => import('./modules/investments/asset-manager/pages/asset-detail/asset-detail').then(m => m.AssetDetailComponent)
+              }
+            ]
           }
         ]
       },

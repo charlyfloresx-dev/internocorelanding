@@ -2,10 +2,13 @@ import { Component, Input, computed, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, PercentPipe } from '@angular/common';
 import { OpportunityResponse } from '../../models/opportunity.model';
 
+import { MatIconModule } from '@angular/material/icon';
+import { RouterModule } from '@angular/router';
+
 @Component({
   selector: 'app-opportunity-card',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, PercentPipe],
+  imports: [CommonModule, CurrencyPipe, PercentPipe, MatIconModule, RouterModule],
   templateUrl: './opportunity-card.html',
   styleUrls: ['./opportunity-card.css']
 })
@@ -28,11 +31,11 @@ export class OpportunityCardComponent {
     if (!data) return 'bg-gray-800 border-gray-700';
     
     if (data.roi_projected > 0.3) {
-      return 'glass-card border-green-500/50 hover:border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.15)]';
+      return 'border-emerald-500/30 hover:border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.05)]';
     } else if (data.roi_projected >= 0.2) {
-      return 'glass-card border-yellow-500/50 hover:border-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.15)]';
+      return 'border-amber-500/30 hover:border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.05)]';
     } else {
-      return 'glass-card border-red-500/50 hover:border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.15)]';
+      return 'border-rose-500/30 hover:border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.05)]';
     }
   });
 
@@ -40,7 +43,7 @@ export class OpportunityCardComponent {
     const data = this._opportunity();
     if (!data) return '';
     return data.owner_name && !data.owner_name.includes('No disponible') 
-      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-      : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400' 
+      : 'border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400';
   });
 }

@@ -21,13 +21,14 @@ from fastapi import status
 # 🗺️ SCOPE RESOLVER: Mapea roles → scopes del sidebar (frontend)
 # Fuente de verdad: frontend/src/app/core/services/navigation.service.ts
 ROLE_SCOPE_MAP = {
-    "admin": ["*"],
-    "owner": ["*"],
+    "admin": ["*", "investments:manage", "investments:admin"],
+    "owner": ["*", "investments:manage", "investments:admin"],
     "manager": [
         "inv:movements:manage", "inv:warehouse:manage", "inventory:admin",
         "master:catalog:manage", "catalog:admin",
         "wms:manage",
         "auth:user:manage",
+        "investments:manage",
     ],
     "warehouse_operator": [
         "inv:movements:manage", "inv:warehouse:manage",
@@ -41,6 +42,12 @@ ROLE_SCOPE_MAP = {
 def resolve_scopes(role_names: list, explicit_scopes: list) -> list:
     """Resuelve scopes: usa los explícitos si existen, sino los deriva del rol."""
     if explicit_scopes:
+        if "*" in explicit_scopes:
+            # Expand to ALL known scopes if super-admin
+            all_scopes = set()
+            for scopes in ROLE_SCOPE_MAP.values():
+                all_scopes.update(scopes)
+            return list(all_scopes)
         return explicit_scopes
     resolved = set()
     for role in role_names:
@@ -48,7 +55,10 @@ def resolve_scopes(role_names: list, explicit_scopes: list) -> list:
         if key in ROLE_SCOPE_MAP:
             resolved.update(ROLE_SCOPE_MAP[key])
     if "*" in resolved:
-        return ["*"]
+        all_scopes = set()
+        for scopes in ROLE_SCOPE_MAP.values():
+            all_scopes.update(scopes)
+        return list(all_scopes)
     return list(resolved) if resolved else ["inv:movements:manage"]
 
 class SelectCompanyCommand(ICommand):

@@ -23,6 +23,50 @@ from common.security.limiter import limiter
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+
+async def _notify_admin_new_document(
+    company_id: str,
+    folio: str,
+    doc_type: str,
+    origin: str,
+    destination: str,
+    items_count: int,
+    total_amount: float,
+    doc_id: str = None
+):
+    """
+    Background task to notify ADMIN users on new inventory document.
+    """
+    try:
+        from notification_app.services.notification_service import NotificationService
+        from notification_app.models.notification import NotificationCategory, NotificationPriority
+        from common.infrastructure.database import AsyncSessionLocal
+        import uuid
+
+        async with AsyncSessionLocal() as db:
+            svc = NotificationService(db)
+            
+            # Formatear tipo para humanos
+            type_clean = str(doc_type).lower()
+            type_desc = "Entrada" if "in" in type_clean else "Salida" if "out" in type_clean else "Movimiento"
+            
+            await svc.notify_role(
+                company_id=uuid.UUID(company_id),
+                role_name="admin",
+                title=f"📦 {type_desc} — {folio}",
+                message=(
+                    f"{type_desc} en {origin} con {items_count} partida(s). "
+                    f"Total: ${total_amount:,.2f}"
+                ),
+                category=NotificationCategory.INVENTORY,
+                priority=NotificationPriority.MEDIUM,
+                action_url=f"/inventory/documents/{doc_id}" if doc_id else "/inventory/documents"
+            )
+            await db.commit()
+            logger.info(f"🔔 Admin notified for document {folio}")
+    except Exception as e:
+        logger.warning(f"⚠️ NOTIFY_ADMIN_FAILED (non-critical): {e}")
+
 @router.post("/documents", response_model=ApiResponse)
 @idempotent()
 @limiter.limit("20/minute")
@@ -145,6 +189,19 @@ async def create_document(
         # Rollback and raise to reveal the issue
         await service.repository.session.rollback()
         raise HTTPException(status_code=500, detail=f"Database error during document creation: {str(e)}")
+
+    # 4. [NOTIFICATIONS] Notificar al administrador en background (fire-and-forget)
+    background_tasks.add_task(
+        _notify_admin_new_document,
+        company_id=token.company_id,
+        folio=f"DOC-{folio_id}",
+        doc_type=str(doc.type),
+        origin=origin_name,
+        destination=destination_name,
+        items_count=len(results),
+        total_amount=float(total_amount),
+        doc_id=str(doc.correlation_id)
+    )
 
     return ApiResponse(
         status="success",
@@ -435,18 +492,6 @@ async def relocate_stock(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except SQLAlchemyError as e:
-        logging.error(f"SQLAlchemyError in create_document: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail={
-                "error": "Database persistence failure",
-                "details": str(e),
-                "type": type(e).__name__
-            }
-        )
     except Exception as e:
         logging.error(f"ERR_CREATE_DOC: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-# Fine report

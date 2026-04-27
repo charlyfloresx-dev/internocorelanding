@@ -97,6 +97,8 @@ class DocumentListRowEntity(BaseModel):
     trace_id: Optional[str] = None  # Correlation ID for forensic view
     external_reference: Optional[str] = None
     validation_status: Optional[str] = "CLEAN"
+    total_amount: Optional[Decimal] = Decimal("0.0")
+    currency: Optional[str] = "MXN"
 
 # ─── Report Entities ──────────────────────────────────────────────────────────
 
@@ -192,4 +194,6 @@ class DocumentDetailEntity(BaseModel):
     concept_id: Optional[UUID] = None
     warehouse_id: Optional[UUID] = None
     notes: Optional[str] = None
+    total_amount: Optional[Decimal] = Decimal("0.0")
+    currency: Optional[str] = "MXN"
     items: List[DocumentItemEntity]

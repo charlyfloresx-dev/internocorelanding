@@ -1,7 +1,19 @@
-# ðŸ“‹ Especificaciones TÃ©cnicas de Fases (Interno Core)
+# 📋 Especificaciones Técnicas de Fases (InternoCore)
 
 Detalle de ejecución para las fases de arquitectura pendientes.
- 
+
+## ✅ Fase 71: Financial & Forensic Traceability (Ledger Stabilization)
+**Estado:** ✅ COMPLETO — 2026-04-27
+**Objetivo:** Implementar la trazabilidad total del sistema mediante un Ledger Forense inmutable y corregir la valuación monetaria en documentos de inventario.
+
+### Acciones Realizadas
+1. **Immutable Forensic Ledger**: Implementado motor de auditoría SQLAlchemy que captura snapshots (Old vs New) en cada transacción.
+2. **Audit UI**: Creación de la pantalla de Auditoría Forense con visor JSON de cambios.
+3. **Financial Valuation Bridge**: Corrección del mapeo de atributos monetarios para asegurar visibilidad de costos en USD/MXN.
+4. **Notification Persistence**: Resolución de bugs en el estado de lectura de notificaciones (Read Status).
+
+---
+
 ## ✅ Fase 58: AWS Budget Pivot (ALB to App Runner)
 **Estado:** ✅ COMPLETO — 2026-04-20
 **Objetivo:** Reducir el costo operativo de ~$30/mes a <$5/mes mediante la eliminación del ALB y la transición a AWS App Runner y CloudFront con OAC.

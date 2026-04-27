@@ -1,71 +1,116 @@
 @if (opp()) {
-  <div class="relative p-5 rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col gap-3 cursor-grab active:cursor-grabbing" [ngClass]="trafficLightClass()">
+  <div class="industrial-card p-5 cursor-grab active:cursor-grabbing group !overflow-visible" 
+       [routerLink]="['/investments/asset-manager', opp()!.id]"
+       [ngClass]="trafficLightClass()">
     
-    <!-- Encabezado: Clave y Estatus del Dueño -->
-    <div class="flex justify-between items-start">
-      <div class="flex flex-col">
-        <span class="text-xs font-mono text-gray-400 tracking-wider">CVE_CAT</span>
-        <span class="text-sm font-bold text-white tracking-wide">{{ opp()!.cve_cat }}</span>
+    <!-- Accent line based on ROI (Semaforo) -->
+    <div class="absolute top-0 left-0 w-1.5 h-full rounded-l-xl opacity-80"
+         [ngClass]="{
+           'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]': opp()!.roi_projected > 0.3,
+           'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]': opp()!.roi_projected >= 0.2 && opp()!.roi_projected <= 0.3,
+           'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]': opp()!.roi_projected < 0.2
+         }">
+    </div>
+
+    <!-- Encabezado: Clave y Estatus -->
+    <div class="flex justify-between items-start mb-3">
+      <div class="flex flex-col ml-1">
+        <span class="text-[9px] font-black text-surface-text-muted uppercase tracking-widest">Clave Catastral</span>
+        <span class="text-sm font-black text-surface-text tracking-wide group-hover:text-primary transition-colors">
+          {{ opp()!.cve_cat }}
+        </span>
       </div>
-      <span class="px-2 py-1 text-xs rounded-full border border-solid font-medium tracking-wide" [ngClass]="statusBadgeClass()">
-        {{ opp()!.owner_name && !opp()!.owner_name!.includes('No disponible') ? 'PROPIETARIO OK' : 'PENDIENTE' }}
+      <span class="status-badge" [ngClass]="statusBadgeClass()">
+        {{ opp()!.owner_name && !opp()!.owner_name!.includes('No disponible') ? 'DUEÑO LOCALIZADO' : 'PENDIENTE RPPC' }}
       </span>
     </div>
 
     <!-- Dirección -->
-    <div class="text-xs text-gray-300 leading-relaxed font-medium mt-1">
-      <i class="fas fa-map-marker-alt text-gray-500 mr-1"></i> {{ opp()!.address }}
+    <div class="flex items-start gap-2 mb-4">
+      <mat-icon class="text-primary text-lg mt-0.5">location_on</mat-icon>
+      <div class="flex flex-col">
+        <span class="text-xs font-bold text-surface-text leading-tight">{{ opp()!.address }}</span>
+        <span class="text-[10px] font-medium text-surface-text-muted">Tijuana, B.C.</span>
+      </div>
     </div>
 
-    <!-- Separador sutil -->
-    <div class="w-full h-px bg-gradient-to-r from-transparent via-gray-600/50 to-transparent my-1"></div>
-
-    <!-- Métricas Financieras (Value Objects) -->
-    <div class="grid grid-cols-2 gap-3">
+    <!-- Indicadores Financieros -->
+    <div class="grid grid-cols-2 gap-4 bg-surface-text/[0.03] dark:bg-white/5 p-3 rounded-xl border border-surface-border/50 mb-3 relative">
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase text-gray-500 font-semibold tracking-widest">Adeudo (Trigger)</span>
-        <span class="text-sm font-medium text-rose-300">
-          {{ opp()!.adeudo_detectado.amount | currency:opp()!.adeudo_detectado.currency:'symbol':'1.2-2' }}
+        <span class="text-[8px] uppercase text-surface-text-muted font-black tracking-widest mb-1">Adeudo / Trigger</span>
+        <span class="text-sm font-black text-rose-600 dark:text-rose-400">
+          {{ opp()!.adeudo_detectado.amount | currency:opp()!.adeudo_detectado.currency:'symbol':'1.0-0' }}
         </span>
       </div>
-      <div class="flex flex-col text-right group relative">
+      <div class="flex flex-col text-right relative group/tooltip">
         <div class="flex justify-end items-center gap-1">
-          <span class="text-[10px] uppercase text-gray-500 font-semibold tracking-widest">Valor M2 Zona</span>
+          <span class="text-[8px] uppercase text-surface-text-muted font-black tracking-widest mb-1">Valor Zona M2</span>
           @if (opp()!.historical_base_value) {
-            <i class="fas fa-info-circle text-gray-500 hover:text-emerald-400 cursor-help transition-colors"></i>
+            <mat-icon class="text-[16px] text-primary hover:scale-110 cursor-help transition-transform">analytics</mat-icon>
             
-            <!-- Tooltip Hover -->
-            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 border border-gray-700 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-              <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 border-b border-gray-700 pb-1">
-                Padrón Inmobiliario vs Mercado
+            <!-- Forensic Tooltip (Optimized for Visibility) -->
+            <div class="absolute bottom-full right-0 mb-3 hidden group-hover/tooltip:block z-[100] 
+                        bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-2xl border border-primary/40 
+                        shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_20px_rgba(0,229,255,0.2)] 
+                        p-4 rounded-2xl min-w-[240px] text-left animate-fade-in">
+              
+              <!-- Arrow -->
+              <div class="absolute top-full right-4 w-4 h-4 bg-slate-900/95 dark:bg-slate-950/95 border-r border-b border-primary/40 rotate-45 -translate-y-2"></div>
+
+              <div class="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-3 border-b border-white/10 pb-2 flex justify-between">
+                <span>Análisis Forense</span>
+                <span class="text-white/40">v2.4</span>
               </div>
-              <div class="flex justify-between text-xs mt-2">
-                <span class="text-gray-400">Base (2020):</span>
-                <span class="font-mono text-gray-200">{{ opp()!.historical_base_value!.amount | currency:opp()!.historical_base_value!.currency:'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="flex justify-between text-xs mt-1">
-                <span class="text-gray-400">Actual (2026):</span>
-                <span class="font-mono text-emerald-300">{{ opp()!.valor_m2_zona.amount | currency:opp()!.valor_m2_zona.currency:'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="flex justify-between text-xs mt-2 pt-1 border-t border-gray-800">
-                <span class="font-bold text-gray-300">Plusvalía detectada:</span>
-                <span class="font-bold text-emerald-400">+{{ opp()!.appreciation_rate | percent:'1.0-0' }}</span>
+              
+              <div class="space-y-2.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Base Padrón (2020)</span>
+                  <span class="text-[11px] font-mono font-bold text-white">{{ opp()!.historical_base_value!.amount | currency:opp()!.historical_base_value!.currency:'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Proyección (2026)</span>
+                  <span class="text-[11px] font-mono font-bold text-emerald-400">{{ opp()!.valor_m2_zona.amount | currency:opp()!.valor_m2_zona.currency:'symbol':'1.0-0' }}</span>
+                </div>
+                
+                <div class="pt-2 mt-2 border-t border-white/5 flex justify-between items-center">
+                  <div class="flex flex-col">
+                    <span class="text-[8px] font-black text-primary uppercase tracking-widest">Plusvalía</span>
+                    <span class="text-[10px] text-slate-500 font-medium italic">Mercado Industrial</span>
+                  </div>
+                  <div class="bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
+                    <span class="text-sm font-black text-emerald-400">+{{ opp()!.appreciation_rate | percent:'1.0-0' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           }
         </div>
-        <span class="text-sm font-medium text-emerald-300">
+        <span class="text-sm font-black text-emerald-600 dark:text-emerald-400">
           {{ opp()!.valor_m2_zona.amount | currency:opp()!.valor_m2_zona.currency:'symbol':'1.0-0' }}
         </span>
       </div>
     </div>
 
-    <!-- ROI y Progreso -->
-    <div class="mt-2 flex items-center justify-between bg-black/30 rounded-lg p-2 border border-white/5">
-      <span class="text-xs font-bold text-gray-300 tracking-widest">ROI PROYECTADO</span>
-      <span class="text-lg font-black text-white drop-shadow-md">
-        {{ opp()!.roi_projected | percent:'1.1-2' }}
-      </span>
+    <!-- ROI Footer -->
+    <div class="flex items-center justify-between pt-1">
+      <div class="flex flex-col">
+        <span class="text-[9px] font-black text-surface-text-muted uppercase tracking-widest">ROI Proyectado</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="h-1.5 w-16 bg-surface-text/10 rounded-full overflow-hidden">
+          <div class="h-full transition-all duration-500" 
+               [ngClass]="{
+                 'bg-emerald-500': opp()!.roi_projected > 0.3,
+                 'bg-amber-500': opp()!.roi_projected >= 0.2 && opp()!.roi_projected <= 0.3,
+                 'bg-rose-500': opp()!.roi_projected < 0.2
+               }"
+               [style.width.%]="opp()!.roi_projected * 100">
+          </div>
+        </div>
+        <span class="text-base font-black text-surface-text">
+          {{ opp()!.roi_projected | percent:'1.0-0' }}
+        </span>
+      </div>
     </div>
   </div>
 }

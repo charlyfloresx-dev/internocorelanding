@@ -608,7 +608,9 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 status=doc.status.value,
                 trace_id=str(doc.id),
                 external_reference=doc.external_reference,
-                validation_status="CLEAN" # TODO: Aggregated status if needed
+                validation_status="CLEAN", # TODO: Aggregated status if needed
+                total_amount=doc.total_amount.amount if doc.total_amount else Decimal("0.0"),
+                currency=doc.total_amount.currency if doc.total_amount else "MXN"
             )
             for doc in docs
         ]
@@ -723,6 +725,8 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 concept_id=doc.concept_id,
                 warehouse_id=warehouse_id,
                 notes=notes,
+                total_amount=doc.total_amount.amount if doc.total_amount else Decimal("0.0"),
+                currency=doc.total_amount.currency if doc.total_amount else "MXN",
                 items=items
             )
         except Exception as e:

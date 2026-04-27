@@ -65,8 +65,8 @@ fi
 echo ""
 if [ "$ENV_MODE" = "aws" ] || [ "$CORE_ENV_MODE" = "aws" ]; then
     echo ">> [3/3] Iniciando Uvicorn (AWS MODE)..."
-    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
+    exec uvicorn auth_app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
 else
     echo ">> [3/3] Iniciando Uvicorn (DEV MODE)..."
-    exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    exec uvicorn auth_app.main:app --host 0.0.0.0 --port 8000 --reload
 fi
