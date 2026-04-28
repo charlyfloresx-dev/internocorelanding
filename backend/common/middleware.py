@@ -67,6 +67,7 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
             "/api/v1/health",
             "/download/native",
             "/billing/webhook",
+            "/whatsapp/webhook",
             "/favicon.ico"
         ]) or path == "/"
 

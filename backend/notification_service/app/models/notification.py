@@ -17,6 +17,7 @@ class NotificationChannel(enum.Enum):
     EMAIL = "EMAIL"
     PUSH = "PUSH"
     WEBHOOK = "WEBHOOK"
+    WHATSAPP = "WHATSAPP"
 
 class NotificationStatus(enum.Enum):
     PENDING = "PENDING"

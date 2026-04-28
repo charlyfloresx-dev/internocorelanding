@@ -3,14 +3,20 @@ import uuid
 from typing import List, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
-from notification_app.models.notification import Notification, NotificationRecipient, NotificationPriority, NotificationCategory
+from notification_app.models.notification import (
+    Notification, NotificationRecipient, NotificationPriority,
+    NotificationCategory, NotificationChannel, NotificationStatus,
+)
+from notification_app.models.whatsapp_mapping import WhatsAppGroupMapping
+from notification_app.infrastructure.whatsapp_client import WhatsAppClient, WhatsAppClientError
 from notification_app.core.websocket import manager
 
 logger = logging.getLogger(__name__)
 
 class NotificationService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession, whatsapp_client: Optional[WhatsAppClient] = None):
         self.db = db
+        self._whatsapp_client = whatsapp_client
 
     async def notify_company(
         self, 
@@ -178,3 +184,135 @@ class NotificationService:
 
         logger.info(f"👥 Role-based Notification sent to {len(user_ids)} users with role {role_name}")
         return notification
+
+    # ─── WHATSAPP GROUP NOTIFICATIONS ───────────────────────────────────────
+
+    async def notify_whatsapp_group(
+        self,
+        company_id: uuid.UUID,
+        group_name: str,
+        title: str,
+        message: str,
+        category: NotificationCategory = NotificationCategory.INFO,
+        priority: NotificationPriority = NotificationPriority.MEDIUM,
+        template_name: Optional[str] = None,
+        template_params: Optional[dict] = None,
+        metadata: Optional[dict] = None,
+    ) -> Notification:
+        """
+        Envía una notificación a un grupo de WhatsApp mapeado para una empresa.
+
+        Flujo:
+          1. Resuelve el whatsapp_group_id desde la tabla de mapeo (company_id + group_name).
+          2. Envía el mensaje vía WhatsAppClient (texto plano o template).
+          3. Persiste el registro en la tabla de notificaciones con status SENT/FAILED.
+
+        Args:
+            company_id: UUID de la empresa (multitenant isolation).
+            group_name: Nombre lógico del grupo (e.g., "TECNICOS_PLANTA", "SUPERVISORES").
+            title: Título de la notificación (para auditoría interna).
+            message: Cuerpo del mensaje de texto plano.
+            template_name: (Opcional) Nombre de template pre-aprobado de WhatsApp.
+            template_params: (Opcional) Parámetros para rellenar el template.
+            metadata: (Opcional) Datos extra para el payload de auditoría.
+        """
+        from sqlalchemy import select
+
+        # 1. Resolver los mappings multitenant (soporta múltiples destinatarios para un mismo nombre de grupo)
+        query = select(WhatsAppGroupMapping).where(
+            WhatsAppGroupMapping.company_id == company_id,
+            WhatsAppGroupMapping.group_name == group_name,
+            WhatsAppGroupMapping.is_active == True,
+        )
+        result = await self.db.execute(query)
+        mappings = result.scalars().all()
+
+        if not mappings:
+            logger.error(
+                f"❌ WhatsApp: No active mappings found for company={company_id}, group={group_name}"
+            )
+            raise ValueError(
+                f"No WhatsApp mappings for company={company_id}, group_name='{group_name}'. "
+                f"Register at least one via the admin endpoint first."
+            )
+
+        # 2. Crear el registro de notificación base (auditoría global)
+        final_payload = metadata or {}
+        final_payload["whatsapp_group_name"] = group_name
+        final_payload["recipient_count"] = len(mappings)
+
+        notification = Notification(
+            company_id=company_id,
+            tenant_id=company_id,
+            title=title,
+            message=message,
+            category=category,
+            priority=priority,
+            channel=NotificationChannel.WHATSAPP,
+            status=NotificationStatus.PENDING,
+            payload=final_payload,
+        )
+        self.db.add(notification)
+        await self.db.flush()
+
+        # 3. Enviar vía el cliente de WhatsApp a cada destinatario
+        if not self._whatsapp_client:
+            logger.error("❌ WhatsApp: Client not configured. Message persisted but not sent.")
+            notification.status = NotificationStatus.FAILED
+            await self.db.flush()
+            return notification
+
+        success_count = 0
+        delivery_details = []
+
+        for mapping in mappings:
+            try:
+                if template_name:
+                    response = await self._whatsapp_client.send_template_message(
+                        group_id=mapping.whatsapp_group_id,
+                        template_name=template_name,
+                        template_params=template_params,
+                    )
+                else:
+                    formatted_message = f"*{title}*\n\n{message}"
+                    response = await self._whatsapp_client.send_group_message(
+                        group_id=mapping.whatsapp_group_id,
+                        message=formatted_message,
+                        metadata={"notification_id": str(notification.id)},
+                    )
+
+                success_count += 1
+                delivery_details.append({
+                    "target": mapping.whatsapp_group_id,
+                    "status": "SENT",
+                    "sid": response.get("sid") if response else None
+                })
+
+            except (WhatsAppClientError, Exception) as e:
+                error_msg = getattr(e, 'message', str(e))
+                logger.error(f"❌ WhatsApp: Failed to send to {mapping.whatsapp_group_id}: {error_msg}")
+                delivery_details.append({
+                    "target": mapping.whatsapp_group_id,
+                    "status": "FAILED",
+                    "error": error_msg
+                })
+
+        # Actualizar estado final
+        final_payload["delivery_details"] = delivery_details
+        notification.payload = final_payload
+        
+        if success_count == len(mappings):
+            notification.status = NotificationStatus.SENT
+        elif success_count > 0:
+            notification.status = NotificationStatus.PARTIAL
+        else:
+            notification.status = NotificationStatus.FAILED
+
+        logger.info(
+            f"✅ WhatsApp Broadcast: Notification '{title}' sent to {success_count}/{len(mappings)} "
+            f"recipients in group '{group_name}' for company {company_id}"
+        )
+
+        await self.db.flush()
+        return notification
+

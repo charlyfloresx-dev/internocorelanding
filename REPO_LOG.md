@@ -2,6 +2,14 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
+### [2026-04-28] Phase 72: Industrial WhatsApp Notifications & Virtual Group Broadcasting
+- **Twilio Production Integration**: Implementación del `WhatsAppClient` con soporte para la API de producción de Twilio (Basic Auth y payloads urlencoded), permitiendo el envío de mensajes de texto y templates.
+- **Virtual Group Engine**: Desarrollo de una arquitectura de "Grupos Virtuales" en el `notification_service`, permitiendo mapear un nombre lógico (ej. `ALERTAS_PLANTA`) a múltiples destinatarios individuales para superar las restricciones de grupos en el Sandbox de Twilio.
+- **Webhook Discovery & Security**: Despliegue del endpoint `/api/v1/whatsapp/webhook` con bypass de seguridad `X-Company-ID` en el middleware global, habilitando la captura automática de IDs de grupos/usuarios mediante el comando `/getid`.
+- **Broadcast Multitenant**: El `NotificationService` ahora procesa envíos masivos de forma atómica, registrando el estado de entrega individual por cada destinatario dentro de un grupo mapeado.
+- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 72 COMPLETED — Industrial WhatsApp Pipeline Operational.
+
 ### [2026-04-27] Phase 71: Financial Valuation & Forensic Audit (Ledger Stabilization)
 - **Forensic Audit Engine**: Despliegue del endpoint `/api/v1/audit/` en el `inventory_service` para exponer el historial inmutable de transacciones (Ledger).
 - **Audit Log UI**: Implementación del componente `InventoryAuditComponent` con visualización glassmórfica de cambios (Old vs New Value) y filtrado por acción/tabla.
