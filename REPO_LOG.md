@@ -1,6 +1,15 @@
 # Interno Core - Global Engineering Log
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
+ 
+### [2026-04-30] Phase 73: HCM Microservice Migration & Industrial Auth Stabilization
+- **HCM Service Extraction**: Despliegue del microservicio `hcm_service` bajo Clean Architecture, desacoplando la gestión de colaboradores (RRHH) del núcleo de autenticación.
+- **Industrial Auth Handshake (RFID/PIN)**: Restauración del flujo de login industrial mediante escaneo de RFID (SHA-256) y PIN (Bcrypt) con descubrimiento automático de tenants.
+- **JWT Identity Enrichment**: Inyección de claims operativos críticos (`full_name`, `internal_id`, `is_supervisor`, `wid`) en el JWT final, permitiendo operación Zero-Trust en dispositivos de borde.
+- **Configuration Centralization**: Migración de variables críticas (como `CORE_HR_RFID_SALT`) al `.env` global, eliminando inconsistencias entre servicios y simplificando el despliegue en AWS.
+- **AWS CloudWatch Readiness**: Sanitización total de logs eliminando emojis y caracteres especiales para asegurar compatibilidad con AWS CloudWatch Logs.
+- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 73 COMPLETED — HCM Infrastructure & Industrial Auth Stabilized.
 
 ### [2026-04-28] Phase 72: Industrial WhatsApp Notifications & Virtual Group Broadcasting
 - **Twilio Production Integration**: Implementación del `WhatsAppClient` con soporte para la API de producción de Twilio (Basic Auth y payloads urlencoded), permitiendo el envío de mensajes de texto y templates.

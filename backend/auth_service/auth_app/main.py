@@ -60,30 +60,30 @@ from auth_app.core.middleware import TenantSecurityMiddleware, BlacklistMiddlewa
 async def wait_for_db_connection(engine, max_tries=10, wait_seconds=3):
     for i in range(1, max_tries + 1):
         try:
-            logger.info(f"⏳ Intentando conectar a la DB (intento {i}/{max_tries})...")
+            logger.info(f"Intentando conectar a la DB (intento {i}/{max_tries})...")
             async with engine.connect() as conn:
                 await conn.execute(select(1))
-            logger.info("✅ Conexión a la DB establecida.")
+            logger.info("Conexion a la DB establecida.")
             return True
         except Exception as e:
-            logger.error(f"❌ Falló conexión a la DB: {e}")
+            logger.error(f"Fallo conexion a la DB: {e}")
             if i < max_tries:
                 await asyncio.sleep(wait_seconds)
     return False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Iniciando InternoCore Auth-Service...")
+    logger.info("Iniciando InternoCore Auth-Service...")
     if not await wait_for_db_connection(engine):
         sys.exit(1)
     
     async with engine.begin() as conn:
-        logger.info("🔍 Sincronizando esquema de base de datos...")
+        logger.info("Sincronizando esquema de base de datos...")
         await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Esquema sincronizado.")
+        logger.info("Esquema sincronizado.")
 
     yield
-    logger.info("🛑 Apagando InternoCore Auth-Service...")
+    logger.info("Apagando InternoCore Auth-Service...")
 
 # --- INSTANCIA DE FASTAPI ---
 app = FastAPI(

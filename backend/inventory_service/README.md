@@ -1,34 +1,35 @@
-# 📦 Inventory Service (Port 8006)
+# 📦 Inventory Service (Puerto 8006)
 
-El **Inventory Service** es el núcleo transaccional de Interno Core. Su responsabilidad es la gestión, trazabilidad y control de existencias en tiempo real a través de múltiples almacenes y localidades, asegurando la integridad del stock ante operaciones concurrentes.
+El **Inventory Service** es el núcleo de control de stock y movimientos de materiales de **Interno Core**. Gestiona el **Kardex industrial**, las transferencias inter-company y la valuación de inventario bajo múltiples métodos de costeo.
 
-## 1. Responsabilidades Principales
-- **Control de Stock Real**: Gestión de cantidades disponibles, reservadas y en tránsito.
-- **Transaccionalidad Atómica**: Registro de entradas, salidas y transferencias internas (ej. de WH-TIJ a WH-SDY).
-- **Soporte Multi-tenant**: Aislamiento estricto de inventarios por `company_id`.
-- **Validación de Reglas de Negocio**: Prevención de stock negativo y validación de capacidades por localidad.
+---
 
-## 2. Arquitectura Técnica
-- **Framework**: FastAPI (Python 3.11+).
-- **Patrones**: Clean Architecture + CQRS (Command Query Responsibility Segregation).
-- **Base de Datos**: PostgreSQL (compartida en el cluster pero aislada lógicamente por esquema/tenant).
-- **Integración**: Consumido principalmente por el WMS Service mediante un `InventoryClient` interno para operaciones de despacho y recepción.
+## 🏗️ Responsabilidades del Dominio
 
-## 🔧 Configuración de Entorno y PYTHONPATH
-Para el correcto funcionamiento del servicio y la resolución de dependencias compartidas (`common`), se requiere la siguiente configuración:
+- **Maestro de Productos**: SKU, variantes, unidades de medida, código de barras.
+- **Kardex de Movimientos**: Entradas, salidas, ajustes, mermas y devoluciones con trazabilidad completa.
+- **Documentos de Inventario**: Órdenes de compra recibidas, traspasos, ajustes de ciclo.
+- **Transferencias Inter-Company**: Movimientos entre empresas del mismo `group_id` con validación de custodia.
+- **Valuación de Inventario**: Soporte para FIFO, LIFO y Costo Promedio (ERP-ready).
+- **Conceptos de Movimiento (TRF-EXT, ADJ, RCV...)**: Catálogo extensible de tipos de transacción.
 
-```bash
-PYTHONPATH=/app:/app/inventory_service
+---
+
+## 🔗 Integraciones
+
+| Servicio | Propósito |
+|----------|-----------|
+| **Master Data** | Obtiene catálogo de productos y unidades |
+| **WMS** | Sincroniza ubicaciones físicas de almacén |
+| **MES** | Recibe consumos de materia prima por Orden de Producción |
+| **ERP** | Exporta valoración para asientos contables |
+
+---
+
+## ⚙️ Variables de Entorno
+
+```env
+DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
+CORE_SECRET_KEY=...
+CORE_INTERNAL_API_KEY=...
 ```
-
-Esto permite que el código haga `from common.config import settings` y `from app.models import ...` sin conflictos de resolución.
-
-## 🧪 Escenario de Demo: Empresa "Logistic"
-El script `scripts/seed.py` inicializa el stock crítico para la operación binacional del demo:
-- **Items**: MAT-001 a MAT-010 (Materiales de empaque y componentes).
-- **Nodos**:
-    - **Tijuana (WH-TIJ)**: Centro de producción con 100 unidades por item.
-    - **San Diego (WH-SDY)**: Centro de distribución con 50 unidades por item.
-
-## 🚀 Monitoreo
-- **Health Check**: `/health` (vital para el monitoreo de estado del servicio).

@@ -18,9 +18,9 @@ def test_rfid_flow(rfid_tag: str):
         
         # Manejo de Descubrimiento (Si el RFID está en múltiples empresas)
         if data.get("selection_token"):
-            print("✨ Descubrimiento Multi-empresa detectado.")
+            print("Discovery: Multi-company detected.")
             company = data["companies"][0]
-            print(f"   Seleccionando automáticamente: {company['company_name']}")
+            print(f"   Auto-selecting: {company['company_name']}")
             
             headers = {"Authorization": f"Bearer {data['selection_token']}"}
             r_sel = requests.post(f"{BASE_URL}/select-company", json={"company_id": company["company_id"]}, headers=headers)
@@ -49,7 +49,9 @@ def test_pin_flow(internal_id: str, pin: str):
         data = response.json().get("data")
         
         if data.get("selection_token"):
+            print("Discovery: Multi-company detected.")
             company = data["companies"][0]
+            print(f"   Auto-selecting: {company['company_name']}")
             headers = {"Authorization": f"Bearer {data['selection_token']}"}
             r_sel = requests.post(f"{BASE_URL}/select-company", json={"company_id": company["company_id"]}, headers=headers)
             r_sel.raise_for_status()
@@ -64,13 +66,13 @@ def test_pin_flow(internal_id: str, pin: str):
 
 def print_token_info(token, status_label):
     decoded = jwt.decode(token, options={"verify_signature": False})
-    print(f"✅ {status_label}")
-    print(f"   👤 Colaborador: {decoded.get('full_name')}")
-    print(f"   🆔 ID Interno:   {decoded.get('internal_id')}")
-    print(f"   🏢 Empresa ID:    {decoded.get('cid')}")
-    print(f"   🛡️ Supervisor:   {decoded.get('is_supervisor')}")
-    print(f"   📦 Almacén ID:   {decoded.get('wid')}")
-    print(f"   🔑 Permisos:     {decoded.get('permissions')}")
+    print(f"[OK] {status_label}")
+    print(f"   Name:        {decoded.get('full_name')}")
+    print(f"   Internal ID: {decoded.get('internal_id')}")
+    print(f"   Company ID:  {decoded.get('cid')}")
+    print(f"   Supervisor:  {decoded.get('is_supervisor')}")
+    print(f"   WarehouseID: {decoded.get('wid')}")
+    print(f"   Perms:       {decoded.get('permissions')}")
 
 if __name__ == "__main__":
     print("\n" + "="*70)

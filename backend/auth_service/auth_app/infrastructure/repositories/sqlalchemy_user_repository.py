@@ -34,10 +34,21 @@ class SQLAlchemyUserRepository(IUserRepository):
 
     async def get_by_email(self, email: str) -> Optional[UserEntity]:
         """Gets user by email (bypass_tenant: global for login process)"""
-        result = await self.db.execute(select(User).where(User.email == email))
-        user = result.scalar_one_or_none()
-        if user:
-            return self._to_entity(user)
+        from auth_app.models.user_credential import UserCredential
+        import uuid
+        stmt = select(User, UserCredential).join(UserCredential, User.id == UserCredential.user_id).where(UserCredential.email == email)
+        result = await self.db.execute(stmt)
+        row = result.first()
+        if row:
+            user, cred = row
+            return UserEntity(
+                id=user.id,
+                email=cred.email,
+                hashed_password=cred.hashed_password,
+                identity_token=None,
+                is_active=user.is_active and cred.is_active,
+                company_id=uuid.UUID(int=0) # Ignored in M:1:M for login
+            )
         return None
 
     async def get_by_identity_token(self, token: str) -> Optional[UserEntity]:

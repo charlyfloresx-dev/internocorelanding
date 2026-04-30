@@ -16,7 +16,9 @@ def hash_rfid(raw_rfid: str) -> str:
     This prevents rainbow table attacks while keeping verification fast.
     """
     salted = f"{settings.RFID_STATIC_SALT}:{raw_rfid}"
-    return hashlib.sha256(salted.encode("utf-8")).hexdigest()
+    hashed = hashlib.sha256(salted.encode("utf-8")).hexdigest()
+    print(f"DEBUG_RFID: salt='{settings.RFID_STATIC_SALT}' raw='{raw_rfid}' hash='{hashed}'")
+    return hashed
 
 
 def verify_rfid(raw_rfid: str, hashed_rfid: str) -> bool:

@@ -19,7 +19,7 @@ SERVICES = [
     {"name": "master-data-service-api", "script": "scripts/seed.py", "wipe_flag": True},
     {"name": "inventory-service-api", "script": "scripts/seed.py", "wipe_flag": True},
     {"name": "wms-service-api", "script": "scripts/seed.py", "wipe_flag": True},
-    {"name": "hr-service-api", "script": "scripts/seed.py", "wipe_flag": False}, # HR ID management is sensitive
+    {"name": "hcm-service-api", "script": "scripts/seed.py", "wipe_flag": False}, # HR ID management is sensitive
     {"name": "mes-service-api", "script": "scripts/seed.py", "wipe_flag": False},
     {"name": "subscription-service-api", "script": "scripts/seed.py", "wipe_flag": True},
     {"name": "viatra-service-api", "script": "scripts/seed_demo.py", "wipe_flag": False},

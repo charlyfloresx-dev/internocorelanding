@@ -32,41 +32,39 @@ services:
     volumes:
       - ./backend/auth_service:/app
       - ./backend/common:/app/common
+    env_file:
+      - .env
     environment:
-      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
-      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
-      - SELECTION_TOKEN_EXPIRE_MINUTES=1440
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - PYTHONPATH=/app
-      - HR_SERVICE_URL=http://hr-service:8000
-      - CORE_INTERNAL_API_KEY=DEV_INTERNAL_API_KEY_CHANGE_ME
+      - HCM_SERVICE_URL=http://hcm-service:8000
+      - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
     depends_on:
       postgres-db:
         condition: service_healthy
     networks:
       - interno-network
 
-  # --- HR SERVICE (Identidad Física y Colaboradores) ---
-  hr-service:
+  # --- HCM SERVICE (Identidad Física y Colaboradores) ---
+  hcm-service:
     build:
       context: ./backend
-      dockerfile: hr_service/Dockerfile
-    container_name: hr-service-api
-    image: interno-backend-hr-service:latest
+      dockerfile: hcm_service/Dockerfile
+    container_name: hcm-service-api
+    image: interno-backend-hcm-service:latest
     ports:
       - "8009:8000"
     volumes:
-      - ./backend/hr_service:/app
+      - ./backend/hcm_service:/app
       - ./backend/common:/app/common
+    env_file:
+      - .env
     environment:
-      - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
-      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hr_db
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hr_db
-      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
-      - CORE_INTERNAL_API_KEY=DEV_INTERNAL_API_KEY_CHANGE_ME
-      - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hcm_db
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hcm_db
       - PYTHONPATH=/app
+      - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
     depends_on:
       postgres-db:
         condition: service_healthy

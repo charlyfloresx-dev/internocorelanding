@@ -46,13 +46,13 @@ async def wait_for_db(engine, max_tries=10, wait_seconds=3):
     from sqlalchemy.future import select
     for i in range(1, max_tries + 1):
         try:
-            logger.info(f"⏳ Intentando conectar a hr_db (intento {i}/{max_tries})...")
+            logger.info(f"Intentando conectar a hr_db (intento {i}/{max_tries})...")
             async with engine.connect() as conn:
                 await conn.execute(select(1))
-            logger.info("✅ Conexión a hr_db establecida.")
+            logger.info("Conexion a hr_db establecida.")
             return True
         except Exception as e:
-            logger.error(f"❌ Falló conexión: {e}")
+            logger.error(f"Fallo conexion: {e}")
             if i < max_tries:
                 await asyncio.sleep(wait_seconds)
     return False
@@ -60,14 +60,14 @@ async def wait_for_db(engine, max_tries=10, wait_seconds=3):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("🚀 Iniciando InternoCore HR-Service...")
+    logger.info("Iniciando InternoCore HR-Service...")
     if not await wait_for_db(engine):
         sys.exit(1)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        logger.info("✅ Esquema HR sincronizado.")
+        logger.info("Esquema HR sincronizado.")
     yield
-    logger.info("🛑 Apagando HR-Service.")
+    logger.info("Apagando HR-Service.")
 
 
 app = FastAPI(

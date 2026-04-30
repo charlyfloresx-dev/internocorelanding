@@ -2,6 +2,19 @@
 
 Detalle de ejecución para las fases de arquitectura pendientes.
 
+## ✅ Fase 73: HCM Microservice Migration & Industrial Auth Stabilization
+**Estado:** ✅ COMPLETO — 2026-04-30
+**Objetivo:** Migrar la lógica de RRHH al microservicio `hcm_service`, estabilizar el handshake de autenticación industrial (RFID/PIN) y unificar la configuración para despliegue en AWS.
+
+### Acciones Realizadas
+1. **HCM Extraction**: Creación de `hcm_service` bajo Clean Architecture con base de datos aislada `hcm_db`.
+2. **Industrial Auth Restored**: Implementación de la verificación de RFID y PIN en `hcm_service` con soporte para descubrimiento de tenants.
+3. **Identity JWT Enrichment**: Inyección de claims operativos (`full_name`, `internal_id`, `is_supervisor`, `wid`) en el token final para eliminar dependencias en el borde.
+4. **Config Unified**: Centralización de `CORE_HR_RFID_SALT` y credenciales internas en el `.env` raíz.
+5. **AWS Log Compliance**: Eliminación de emojis y caracteres especiales en logs para compatibilidad con CloudWatch.
+
+---
+
 ## ✅ Fase 71: Financial & Forensic Traceability (Ledger Stabilization)
 **Estado:** ✅ COMPLETO — 2026-04-27
 **Objetivo:** Implementar la trazabilidad total del sistema mediante un Ledger Forense inmutable y corregir la valuación monetaria en documentos de inventario.

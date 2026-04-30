@@ -1,19 +1,36 @@
-# 🗂️ Master Data Service (Port 8003)
+# 📋 Master Data Service (Puerto 8003)
 
-El **Master Data Service** actúa como la Única Fuente de Verdad (SSOT) para las entidades maestras que consumen los demás módulos (Ventas, Compras, Inventarios).
+El **Master Data Service** es el **catálogo centralizado** de Interno Core. Es la única fuente de verdad para productos, unidades de medida, categorías y configuraciones maestras que todos los demás microservicios consumen.
 
-## 🎯 Responsabilidad
-Gestión centralizada de:
-- **Productos**: Definición base, SKU e identificación.
-- **Unidades de Medida (UOM)**: Estándares de conversión y empaque.
-- **Categorías y Marcas**: Clasificación jerárquica del catálogo.
+---
 
-## 🏛️ Arquitectura de Datos
-- **Catálogos Híbridos**: Permite registros globales (`company_id IS NULL`) creados por el sistema y registros privados por tenant (`company_id = UUID`).
-- **Optimistic Locking**: Implementado mediante `version_id` en todos los modelos para evitar colisiones en actualizaciones concurrentes.
-- **Inmutabilidad de Auditoría**: Todo registro persiste `created_at`, `updated_at`, `created_by` (UUID) y `transaction_id`.
+## 🏗️ Responsabilidades del Dominio
 
-## 🛡️ Seguridad y Gobernanza
-- **Zero Trust Tenancy**: El `company_id` se extrae exclusivamente de tokens verificados.
-- **Identidad del Sistema**: Los registros de infraestructura utilizan el `SYSTEM_USER_ID`: `00000000-0000-0000-0000-000000000000`.
-- **Integración**: Los servicios externos (ej. Inventarios) deben consumir estos datos vía API (Puerto 8003) o consultas de solo lectura si comparten el clúster de base de datos.
+- **Productos y SKUs**: Catálogo unificado con soporte de variantes (talla, color, material).
+- **Unidades de Medida (UoM)**: Conversiones y equivalencias.
+- **Categorías y Familias**: Árbol de clasificación de productos para reportes y análisis.
+- **Proveedores (Vendors)**: Maestro de proveedores compartido con el ERP.
+- **Clientes (Customers)**: Base de clientes para CRM y facturación.
+- **Centros de Costo**: Estructura organizacional para imputación contable.
+- **Configuración Multi-Tenant**: Configuraciones específicas por `company_id`.
+
+---
+
+## 🔗 Integraciones
+
+| Servicio | Propósito |
+|----------|-----------|
+| **Inventory** | Consume catálogo de productos y UoM |
+| **WMS** | Consume catálogo para recepciones y despachos |
+| **MES** | Consume BOM (Bill of Materials) por Orden de Producción |
+| **ERP / Currency** | Consume centros de costo y catálogo de monedas |
+
+---
+
+## ⚙️ Variables de Entorno
+
+```env
+DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
+CORE_SECRET_KEY=...
+CORE_INTERNAL_API_KEY=...
+```

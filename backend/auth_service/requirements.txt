@@ -9,6 +9,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 PyJWT==2.8.0
+fido2==1.1.2
 
 # Validación y Configuración
 # Se añade email-validator para corregir el error de Pydantic [cite: 2026-01-20]

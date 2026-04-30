@@ -2,7 +2,7 @@ import requests
 import json
 import jwt
 
-BASE_URL = "http://localhost:8000/api/v1/auth"
+BASE_URL = "http://localhost:8001/api/v1/auth"
 CREDENTIALS = {"email": "charly@interno.com", "password": "charly123"}
 
 def run_full_flow():

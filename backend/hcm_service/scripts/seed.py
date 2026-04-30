@@ -95,10 +95,10 @@ async def run_seed():
                         internal_id_pattern=cfg["pattern"],
                         pattern_error_message=cfg["msg"]
                     ))
-                    log.info(f"  ✅ Config para {cfg['cid']} creada.")
+                    log.info(f"  [OK] Config para {cfg['cid']} creada.")
                 else:
                     existing_cfg.internal_id_pattern = cfg["pattern"]
-                    log.info(f"  ℹ️ Config para {cfg['cid']} actualizada.")
+                    log.info(f"  [INFO] Config para {cfg['cid']} actualizada.")
 
             # ── Carlos Ramírez — Enterprise, RFID, Supervisor (sin supervisor_id) ──
             log.info("[1/3] Carlos Ramírez (Supervisor, Enterprise)...")
@@ -123,12 +123,12 @@ async def run_seed():
                     version_id=1,
                 ))
                 await db.flush()
-                log.info("  ✅ Carlos creado.")
+                log.info("  [OK] Carlos creado.")
             else:
                 carlos.rfid_tag = hash_rfid("960091919")
                 carlos.pin_code = hash_pin("1234")
                 carlos.internal_id = "003709A"
-                log.info("  ℹ️  Carlos ya existe y credenciales actualizadas.")
+                log.info("  [INFO] Carlos ya existe y credenciales actualizadas.")
 
             # ── Carlos Ramírez — LOGISTICS MX (Mismo RFID para probar selección) ──
             CARLOS_MX_ID = uuid.UUID("11111111-0001-4001-b001-000000000001")
@@ -152,7 +152,7 @@ async def run_seed():
                     group_id=GROUP_ID,
                     version_id=1,
                 ))
-                log.info("  ✅ Carlos (Logistic MX) creado.")
+                log.info("  [OK] Carlos (Logistic MX) creado.")
 
             # ── Carlos Ramírez — LOGISTICS US (Tercera Identidad) ──
             CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
@@ -176,7 +176,7 @@ async def run_seed():
                     group_id=GROUP_ID,
                     version_id=1,
                 ))
-                log.info("  ✅ Carlos (Logistic US) creado.")
+                log.info("  [OK] Carlos (Logistic US) creado.")
 
             # ── Luis Torres — Logistics MX (RFID, Supervisor) ──
             log.info("[2/3] Luis Torres (Supervisor, Logistics MX)...")
@@ -200,14 +200,14 @@ async def run_seed():
                     version_id=1,
                 ))
                 await db.flush()
-                log.info("  ✅ Luis creado.")
+                log.info("  [OK] Luis creado.")
             else:
                 luis.rfid_tag = hash_rfid("2327559684")
                 luis.internal_id = "201"
                 luis.company_id = LOGISTICS_MX_ID
                 luis.tenant_id = LOGISTICS_MX_ID
                 luis.home_warehouse_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ")
-                log.info("  ℹ️  Luis ya existe y rfid actualizado.")
+                log.info("  [INFO] Luis ya existe y rfid actualizado.")
 
             # ── Luis Torres — ENTERPRISE (Mismo RFID para probar selección) ──
             LUIS_ENT_ID = uuid.UUID("11111111-0002-4001-e001-000000000002")
@@ -232,7 +232,7 @@ async def run_seed():
                     version_id=1,
                 ))
                 await db.flush()
-                log.info("  ✅ Luis (Enterprise) creado.")
+                log.info("  [OK] Luis (Enterprise) creado.")
 
             # ── Luis Torres — LOGISTIC US (Tercera Identidad) ──
             LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
@@ -257,7 +257,7 @@ async def run_seed():
                     version_id=1,
                 ))
                 await db.flush()
-                log.info("  ✅ Luis (USA) creado.")
+                log.info("  [OK] Luis (USA) creado.")
 
             # ── Ana García — Logistics MX, PIN, subordinada de Luis ──
             log.info("[3/3] Ana García (Operadora, subordinada de Luis)...")
@@ -282,17 +282,17 @@ async def run_seed():
                     version_id=1,
                 ))
                 await db.flush()
-                log.info("  ✅ Ana creada.");
+                log.info("  [OK] Ana creada.");
             else:
                 ana.internal_id = "301"
                 ana.company_id = LOGISTICS_MX_ID
                 ana.tenant_id = LOGISTICS_MX_ID
                 ana.home_warehouse_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ")
-                log.info("  ℹ️  Ana ya existe.")
+                log.info("  [INFO] Ana ya existe.")
 
             await db.commit()
             log.info("=" * 50)
-            log.info("  🚀 HR SEED COMPLETADO")
+            log.info("  HR SEED COMPLETADO")
             log.info("  RFID Credentials:")
             log.info("    Carlos (Enterprise): scan '960091919' (Charly's Card)")
             log.info("    Luis   (Logistics) : scan '2327559684' (Operador's Card)")
@@ -301,7 +301,7 @@ async def run_seed():
 
         except Exception as e:
             await db.rollback()
-            log.exception(f"❌ HR SEED FALLÓ: {e}")
+            log.exception(f"ERROR: HR SEED FALLO: {e}")
             raise
 
 

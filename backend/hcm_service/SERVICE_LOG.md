@@ -1,14 +1,25 @@
-# InternoCore HR Service - SERVICE LOG
+# HCM Service (ex HR Service) — SERVICE LOG
 
-> **Service:** HR Service (Port 8009)
+> **Service:** HCM Service — Human Capital Management (Port 8009)
 > **Status:** Operational / Industrial Identity Source of Truth
 > **Compliance:** Multi-tenant Isolation Verified
 
 ---
 
+### [2026-04-30] - Phase 72: HR → HCM Rename & Domain Upgrade
+
+- **Rename**: Directorio `hr_service` → `hcm_service`. Imagen Docker `interno-backend-hcm-service:latest`. DB `hr_db` → `hcm_db`.
+- **Dominio elevado**: De "Recursos Humanos" a **Human Capital Management (HCM)** para reflejar la gestión de Competencias, T&A y EHS.
+- **`Collaborator` confirma su dominio en HCM** — eliminado del `auth_service` (donde fue colocado erróneamente). Auth solo gestiona credenciales y tokens.
+- **4 Fases definidas**: Identidad Organizacional → Skills Engine → T&A → EHS + Domain Events (ver `README.md` y `/docs/HCM_SERVICE_SPECS.md`).
+- **Variable de entorno**: `CORE_HR_RFID_SALT` → `CORE_HCM_RFID_SALT`.
+- **docker-compose.yml**: Servicio `hr-service` → `hcm-service`. URL interna del Auth actualizada a `http://hcm-service:8000`.
+
+---
+
 ### [2026-04-16] - Phase 44: Media Assets & Storage Integration ✅
 - **Status**: ✅ COMPLETED — **Multi-tenant Asset Management**
-- **Model Expansion** (`models/collaborator.py`): 
+- **Model Expansion** (`models/collaborator.py`):
   - Added `photo_path` (String(255)) to persist S3 Object Keys.
 - **Domain Identity** (`domain/entities/collaborator_entities.py`): Updated `Collaborator` dataclass to include `photo_path`.
 - **Collaborator Service** (`services/collaborator_service.py`):
@@ -30,7 +41,7 @@
   - *HazMat & Medical Compliance (SCT/DOT)*: `hazardous_material_certified` (Boolean), `medical_certificate_expiry` (Date), `last_drug_test_date` (Date)
   - *Industrial Safety*: `blood_type`, `emergency_contact` (JSONB: standardized `{name, relationship, phone, alt_phone}`)
   - *ERP Bridge*: `m3_operator_id`, `job_title`
-- **Pydantic Schemas** (`schemas/collaborator.py`): 
+- **Pydantic Schemas** (`schemas/collaborator.py`):
   - RFC regex from legacy .NET (`Interno.Domain/InternoExtensions.cs`) ported to `Field(pattern=...)`
   - CURP full 18-char pattern with state code validation
   - `EligibilityResponse` with `details` breakdown (document, expiry_date, days_remaining)

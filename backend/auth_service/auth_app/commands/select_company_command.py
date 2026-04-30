@@ -10,6 +10,7 @@ from auth_app.core.security import create_access_token, create_refresh_token, ha
 from auth_app.core.config import settings
 from auth_app.models.refresh_token import RefreshToken
 from auth_app.models.user import User
+from auth_app.models.company import Company
 from common.exceptions import UnauthorizedException
 from common.responses import ApiResponse
 from auth_app.infrastructure.clients.subscription_client import SubscriptionClient
@@ -117,7 +118,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     hr_res = await client.post(
-                        f"{settings.HR_SERVICE_URL}/api/v1/internal/collaborators/verify",
+                        f"{settings.HCM_SERVICE_URL}/api/v1/internal/collaborators/verify",
                         json={
                             "company_id": str(command.company_id),
                             "internal_id": None, # Usamos discovery por UUID de colaborador
@@ -128,7 +129,8 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                     )
                 
                 if hr_res.status_code == 200:
-                    hr_data = hr_res.json()
+                    hr_response = hr_res.json()
+                    hr_data = hr_response.get("data", {})
                     matches = hr_data.get("matches", [])
                     if matches:
                         # ¡Luis Torres detectado para esta empresa!
@@ -219,7 +221,17 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
 
         # Fetch user to hydrate email in response
         user_obj = await self.db.get(User, command.user_id)
-        user_email = user_obj.email if user_obj else None
+        from auth_app.models.user_credential import UserCredential
+        from sqlalchemy import select
+        cred = await self.db.execute(select(UserCredential).where(UserCredential.user_id == command.user_id))
+        primary_cred = cred.first()
+        user_email = primary_cred[0].email if primary_cred else None
+        
+        full_name = getattr(user_obj, "full_name", None)
+        if not full_name and user_obj:
+            first = getattr(user_obj, "first_name", "") or ""
+            last = getattr(user_obj, "last_name_pat", "") or ""
+            full_name = f"{first} {last}".strip()
 
         return {
             "access_token": access_token,
@@ -233,7 +245,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "scopes": ucr.scopes,
             "permissions": permissions,
             "user_email": user_email,
-            "user_full_name": user_email,  # Fallback: email until full_name is added to User model
+            "user_full_name": full_name or user_email,
         }
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 

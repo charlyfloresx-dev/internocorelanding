@@ -22,12 +22,12 @@ Esperamos a que los microservicios terminen su `lifespan` (creación de tablas).
 > El Auth Service y el HR Service crean automáticamente sus tablas al iniciar.
 
 ### 4. Siembra de Datos Maestros (Seed) // turbo
-Ejecuta ambos seeds en orden: primero Auth (usuarios + empresas) y luego HR (colaboradores + RFIDs).
+Ejecuta ambos seeds en orden: primero Auth (usuarios + empresas) y luego HCM (colaboradores + RFIDs).
 ```powershell
 python backend/auth_service/scripts/seed.py
 ```
 ```powershell
-python backend/hr_service/scripts/seed.py
+python backend/hcm_service/scripts/seed.py
 ```
 
 ### 5. Verificación de Autenticación // turbo

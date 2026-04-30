@@ -21,9 +21,9 @@ class AuthSettings(InternoSettings):
         default="http://subscription-service:8000",
         validation_alias=AliasChoices("CORE_SUBSCRIPTION_URL", "SUBSCRIPTION_SERVICE_URL")
     )
-    HR_SERVICE_URL: str = Field(
-        default="http://hr-service:8000",
-        validation_alias=AliasChoices("CORE_HR_URL", "HR_SERVICE_URL")
+    HCM_SERVICE_URL: str = Field(
+        default="http://hcm-service:8000",
+        validation_alias=AliasChoices("CORE_HCM_URL", "HCM_SERVICE_URL")
     )
     
     # OAuth
@@ -31,6 +31,12 @@ class AuthSettings(InternoSettings):
     FB_APP_ID: str = Field(default="", validation_alias=AliasChoices("CORE_FB_APP_ID", "FB_APP_ID"))
     FB_APP_SECRET: str = ""
     AZURE_CLIENT_ID: str = ""
+    
+    # WebAuthn
+    WEBAUTHN_RP_ID: str = Field(default="", validation_alias=AliasChoices("CORE_WEBAUTHN_RP_ID", "WEBAUTHN_RP_ID"))
+    WEBAUTHN_RP_NAME: str = Field(default="Interno Core Biometrics", validation_alias=AliasChoices("CORE_WEBAUTHN_RP_NAME", "WEBAUTHN_RP_NAME"))
+    WEBAUTHN_ORIGIN: str = Field(default="", validation_alias=AliasChoices("CORE_WEBAUTHN_ORIGIN", "WEBAUTHN_ORIGIN"))
+
 
     @property
     def ASYNC_DATABASE_URL(self) -> str:

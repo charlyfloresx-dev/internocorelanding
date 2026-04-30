@@ -66,12 +66,12 @@ async def collaborator_login(
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.post(
-                f"{settings.HR_SERVICE_URL}/api/v1/internal/collaborators/verify",
+                f"{settings.HCM_SERVICE_URL}/api/v1/internal/collaborators/verify",
                 json=payload,
                 headers={"X-Internal-Api-Key": settings.INTERNAL_API_KEY},
             )
     except Exception as exc:
-        logger.error(f"❌ hr_service error: {exc}")
+        logger.error(f"hr_service error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="HR Service no disponible.",
@@ -91,7 +91,8 @@ async def collaborator_login(
         )
 
     # ── Step 2: Handle Multi-Match Discovery ───────────────────────────────────
-    hr_data = response.json()
+    hr_response = response.json()
+    hr_data = hr_response.get("data", {})
     matches = hr_data.get("matches", [])
     
     if not matches:

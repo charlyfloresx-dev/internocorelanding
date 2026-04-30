@@ -74,6 +74,7 @@ def create_final_access_token(
     status: str = "TRIAL",
     readonly: bool = False,
     correlation_id: Optional[str] = None,
+    extra_data: Optional[dict] = None,
 ) -> str:
     """
     Phase-2 token: final JWT scoped to a specific company.
@@ -86,11 +87,12 @@ def create_final_access_token(
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    return _encode({
+    payload = {
         "exp": expire,
         "sub": str(subject),
         "typ": "access",
         "company_id": str(company_id),
+        "cid": str(company_id), # Alias used by legacy Kiosk components
         "group_id": str(group_id) if group_id else None,
         "role_names": roles,
         "scopes": scopes,
@@ -98,7 +100,13 @@ def create_final_access_token(
         "status": status,
         "readonly": readonly,
         "correlation_id": correlation_id,
-    })
+    }
+    
+    # Merge extra data (e.g. Industrial Identity)
+    if extra_data:
+        payload.update(extra_data)
+        
+    return _encode(payload)
 
 
 def create_access_token(subject: str, company_id: str, data: dict) -> str:
@@ -116,6 +124,7 @@ def create_access_token(subject: str, company_id: str, data: dict) -> str:
         status=data.get("status", "TRIAL"),
         readonly=data.get("readonly", False),
         correlation_id=data.get("correlation_id"),
+        extra_data=data,
     )
 
 

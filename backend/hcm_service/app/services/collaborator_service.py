@@ -2,7 +2,7 @@ import csv
 import io
 import uuid
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import UploadFile, HTTPException, status
 
 import re

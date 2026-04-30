@@ -22,32 +22,34 @@ class LoginQueryHandler(IQueryHandler[CompanyAccessDto]):
         self.db = db
 
     async def handle(self, query: LoginQuery) -> CompanyAccessDto:
-        # 1. Buscar identidades asociadas al email (BaseRepository para User)
-        user_repo = BaseRepository(User, self.db)
-        
-        # Filtramos manualmente por email ya que no hay company_id en este punto (identidad multi-silo)
-        stmt = select(User).where(User.email == query.email)
+        from auth_app.models.user_credential import UserCredential
+        # 1. Buscar la credencial por email
+        stmt = select(UserCredential).where(
+            UserCredential.email == query.email,
+            UserCredential.credential_type == "PASSWORD"
+        )
         result = await self.db.execute(stmt)
-        users = result.scalars().all()
+        credential = result.scalar_one_or_none()
 
-        if not users:
+        if not credential:
             raise UnauthorizedException(message="Incorrect email or password")
 
         # 2. Validar credenciales
-        valid_user = None
-        for u in users:
-            if verify_password(query.password, u.hashed_password) and u.is_active:
-                valid_user = u
-                break
-        
-        if not valid_user:
+        if not verify_password(query.password, credential.hashed_password) or not credential.is_active:
             raise UnauthorizedException(message="Incorrect credentials or inactive account")
+            
+        # Validar que el usuario global esté activo
+        user = await self.db.get(User, credential.user_id)
+        if not user or not user.is_active:
+            raise UnauthorizedException(message="Inactive account")
+            
+        valid_user = user
 
         # 3. Handshake Token
         selection_token = create_selection_token(subject=str(valid_user.id))
 
-        # 4. Obtener membresías de todas las identidades encontradas
-        all_user_ids = [u.id for u in users]
+        # 4. Obtener membresías del usuario
+        all_user_ids = [valid_user.id]
         ucr_stmt = (
             select(UserCompanyRole)
             .where(UserCompanyRole.user_id.in_(all_user_ids))

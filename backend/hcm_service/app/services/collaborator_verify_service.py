@@ -37,7 +37,7 @@ async def verify_collaborator(
         
         # 2. Global Discovery by Internal ID
         if not collaborators and not request.company_id:
-            logger.info(f"🔍 ID {request.internal_id} no encontrado localmente. Intentando descubrimiento global...")
+            logger.info(f"ID {request.internal_id} no encontrado localmente. Intentando descubrimiento global...")
             collaborators = await repo.get_by_internal_id(request.internal_id, None)
 
         # 3. Collaborative PIN Verification (if provided)
@@ -50,13 +50,13 @@ async def verify_collaborator(
         else:
             # Si NO se provee PIN, solo permitimos si el colaborador NO TIENE pin configurado?
             # O permitimos login 1-factor por ID (Barcode) por requerimiento del usuario.
-            logger.info(f"🔓 Login 1-factor detectado para ID: {request.internal_id}")
+            logger.info(f"Login 1-factor detectado para ID: {request.internal_id}")
             pass # Mantenemos la lista de encontrados
 
     elif request.pin_code:
         # Fallback: Si llega solo PIN, podría ser un escaneo de código de barras 
         # enviado al campo equivocado por el frontend. Intentamos buscar por ID.
-        logger.info(f"⚠️ Detectado PIN sin ID. Intentando tratar PIN como ID: {request.pin_code}")
+        logger.info(f"Detectado PIN sin ID. Intentando tratar PIN como ID: {request.pin_code}")
         collaborators = await repo.get_by_internal_id(request.pin_code, request.company_id)
         if not collaborators and not request.company_id:
             collaborators = await repo.get_by_internal_id(request.pin_code, None)
