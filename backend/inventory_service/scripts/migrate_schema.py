@@ -214,7 +214,6 @@ async def apply_migrations(engine):
     import inventory_app.models.inter_company_transfer
     import inventory_app.models.document
     import inventory_app.models.movement
-    import inventory_app.models.concept
     import inventory_app.models.warehouse
     import inventory_app.models.backflush_error
     import inventory_app.models.bom

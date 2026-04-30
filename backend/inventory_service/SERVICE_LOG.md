@@ -1,5 +1,12 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-04-30)
+**Global Middleware Lockdown (Fase 74)**
+- **Controlled Degradation**: El `InternoCoreGlobalMiddleware` ahora consume los claims `status` y `readonly` del JWT para imponer bloqueos de escritura.
+- **Error 402 Integration**: Implementación de la respuesta `402 Payment Required` para transacciones en modo `RESTRICTED`.
+- **UI Reactivity**: El componente `InventoryDocumentComponent` se sincronizó con el estado `isReadOnly` para deshabilitar controles nativamente.
+- **Status**: ✅ COMPLETED - Inventory Protected by Subscription Guard.
+
 ## 🕒 Última Actividad (2026-04-27)
 **Forensic Audit & Financial Mapping (Fase 71)**
 - **Forensic Audit Engine**: Implementado el endpoint `/api/v1/audit/` para trazabilidad inmutable de transacciones.

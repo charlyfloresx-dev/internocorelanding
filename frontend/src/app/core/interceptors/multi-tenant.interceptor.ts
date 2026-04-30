@@ -134,6 +134,14 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      // --- 💳 GRACE PERIOD & PAYMENT REQUIRED (Phase 19) ---
+      if (error.status === 402) {
+        toast.warning(
+          error.error?.message || 'Suscripción restringida por falta de pago.',
+          'Pago Requerido'
+        );
+      }
+
       // Logic for connectivity and auxiliary service failure resilience
       const isAuxiliaryService = req.url.includes('/currencies/') || req.url.includes('/health');
       

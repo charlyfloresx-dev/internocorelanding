@@ -131,13 +131,15 @@ services:
     volumes:
       - ./backend/inventory_service:/app
       - ./backend/common:/app/common
+      - ./backend/notification_service/notification_app:/app/notification_app
+      - ./backend/master_data_service/master_app:/app/master_app
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
-      - PYTHONPATH=/app:/app/inventory_service
+      - PYTHONPATH=/app
     depends_on:
       postgres-db:
         condition: service_healthy

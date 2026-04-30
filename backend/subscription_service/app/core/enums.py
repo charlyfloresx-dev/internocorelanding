@@ -4,6 +4,8 @@ class SubscriptionStatus(str, Enum):
     TRIAL = "TRIAL"
     ACTIVE = "ACTIVE"
     PAST_DUE = "PAST_DUE"
+    RESTRICTED = "RESTRICTED"
+    UNPAID = "UNPAID"
     EXPIRED = "EXPIRED"
     CANCELED = "CANCELED"
 

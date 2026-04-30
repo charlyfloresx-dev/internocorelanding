@@ -5,6 +5,15 @@ The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitl
 
 ---
 
+## Phase 74 – Controlled Service Degradation & Entitlements ✅
+**Status**: ✅ Completed · **Date**: 2026-04-30
+- **L7 Enforcement**: Integration with global middleware to block restricted/unpaid tenants.
+- **Entitlements API**: Implementation of `/internal/entitlements/{company_id}` for cross-service status resolution.
+- **Grace Period**: Implementation of `GracePeriodService` for auto-transitions.
+- **Webhook**: Handled `invoice.payment_failed` from Stripe.
+
+---
+
 ## Phase 36 – Multi-Tenant Data Consistency & Stabilization ✅
 **Status**: ✅ Completed · **Date**: 2026-03-24
 - **Homologation**: Unified subscription seeding for `Enterprise`, `Logistics`, and `Demo` across the entire ecosystem.

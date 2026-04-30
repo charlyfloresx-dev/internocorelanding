@@ -55,6 +55,14 @@ export const enum ValidationStatus {
   UNDER_REVIEW = 'UNDER_REVIEW'
 }
 
+export const enum SubscriptionStatus {
+  ACTIVE = 'ACTIVE',
+  PAST_DUE = 'PAST_DUE',
+  RESTRICTED = 'RESTRICTED',
+  UNPAID = 'UNPAID',
+  CANCELED = 'CANCELED'
+}
+
 /**
  * Value Objects
  */
@@ -107,6 +115,8 @@ export interface AuthSession {
   user: AuthUser;
   roles: string[];
   permissions: string[];
+  status?: SubscriptionStatus;
+  readonly?: boolean;
 }
 
 

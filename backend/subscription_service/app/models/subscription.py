@@ -44,6 +44,7 @@ class Subscription(MultiTenantBase):
     status: Mapped[SubscriptionStatus] = mapped_column(
         String(20), default=SubscriptionStatus.TRIAL
     )
+    status_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     end_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     grace_period_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

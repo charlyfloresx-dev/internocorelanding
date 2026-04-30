@@ -6,9 +6,38 @@ from auth_app.core.security import verify_password
 from auth_app.domain.entities.user_aggregate import UserEntity
 
 
+from auth_app.infrastructure.clients.subscription_client import SubscriptionClient
+
 class AuthService:
     def __init__(self, user_repo: IUserRepository):
         self.user_repo = user_repo
+        self._sub_client = SubscriptionClient()
+
+    async def get_subscription_context(self, company_id: uuid.UUID, correlation_id: Optional[str] = None) -> Tuple[str, bool, List[str]]:
+        """
+        Resolves subscription status, readonly mode and active modules for a company.
+        """
+        try:
+            data = await self._sub_client.get_company_entitlements(
+                str(company_id), correlation_id=correlation_id
+            )
+            # Standard unwrapping of ApiResponse structure if present
+            entitlements = data.get("data", data) if isinstance(data, dict) else {}
+            meta = data.get("meta", {}) if isinstance(data, dict) else {}
+            
+            status = meta.get("status", entitlements.get("status", "TRIAL"))
+            readonly = entitlements.get("readonly", False)
+            modules = meta.get("modules", entitlements.get("modules", ["auth_core", "inventory_core"]))
+            
+            # If status is PAST_DUE, force readonly
+            if status == "PAST_DUE":
+                readonly = True
+                
+            return status, readonly, modules
+        except Exception:
+            # Safe Fallback (Read-Only)
+            return "PAST_DUE", True, ["auth_core", "inventory_core"]
+
 
     # ── USER QUERIES ──────────────────────────────────────────────────────────
 

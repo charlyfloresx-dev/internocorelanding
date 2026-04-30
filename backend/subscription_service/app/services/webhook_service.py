@@ -26,17 +26,22 @@ class WebhookService:
         try:
             event = await self.payment_provider.verify_webhook(payload.decode('utf-8'), sig_header)
         except Exception as e:
-            logger.error(f"❌ Webhook Validation Error: {str(e)}")
+            logger.error(f"Webhook Validation Error: {str(e)}")
             return False
 
-        logger.info(f"🔔 WEBHOOK: Evento recibido -> {event['type']}")
+        logger.info(f"WEBHOOK: Evento recibido -> {event['type']}")
 
         # Manejo de eventos específicos
         if event['type'] == 'checkout.session.completed':
             session = event['data']
             success = await self._handle_checkout_completed(session)
             return "success" if success else False
-        
+            
+        elif event['type'] == 'invoice.payment_failed':
+            invoice = event['data']
+            success = await self._handle_payment_failed(invoice)
+            return "success" if success else False
+            
         return "ignored"
 
     async def _handle_checkout_completed(self, session: Any) -> bool:
@@ -72,5 +77,26 @@ class WebhookService:
             current_period_end=current_period_end,
             customer_name=session.get('customer_details', {}).get('name') or "Cliente",
             customer_email=session.get('customer_details', {}).get('email')
+        )
+        return success
+
+    async def _handle_payment_failed(self, invoice: Any) -> bool:
+        """
+        Procesa el fallo de un pago de suscripción.
+        """
+        stripe_sub_id = invoice.get('subscription')
+        stripe_customer_id = invoice.get('customer')
+        customer_email = invoice.get('customer_email')
+
+        if not stripe_sub_id:
+            logger.warning("invoice.payment_failed sin ID de suscripción. Ignorando.")
+            return False
+
+        logger.info(f"Procesando pago fallido para la suscripción Stripe: {stripe_sub_id}")
+        
+        success = await self.billing.handle_payment_failed(
+            stripe_sub_id=stripe_sub_id,
+            stripe_customer_id=stripe_customer_id,
+            customer_email=customer_email
         )
         return success

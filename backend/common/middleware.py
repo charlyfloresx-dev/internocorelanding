@@ -153,8 +153,41 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                         "message": "Security: Selection tokens restricted to handshake phase.",
                         "meta": {"trace_id": transaction_id}
                     }, cls=InternoCoreEncoder),
-                    media_type="application/json"
                 )
+
+            # 3.3. PHASE 19: GRACE PERIOD & DEGRADATION (Capa 7 Lockdown)
+            if hasattr(request.state, "user_token") and request.state.user_token:
+                sub_status = getattr(request.state.user_token, "status", "ACTIVE")
+                is_readonly = getattr(request.state.user_token, "readonly", False)
+                is_billing_route = "/billing" in path
+
+                if not is_billing_route:
+                    # Bloqueo total para UNPAID o CANCELED
+                    if sub_status in ["UNPAID", "CANCELED"]:
+                        logger.warning(f"Middleware Security: Access Blocked for UNPAID/CANCELED subscription. Path={path}")
+                        return Response(
+                            status_code=402,
+                            content=json.dumps({
+                                "status": "error",
+                                "message": "Subscription Unpaid. Full access blocked. Please update payment method.",
+                                "meta": {"trace_id": transaction_id}
+                            }, cls=InternoCoreEncoder),
+                            media_type="application/json"
+                        )
+                    
+                    # Bloqueo parcial (Solo Lectura) para RESTRICTED o flag readonly
+                    if (sub_status == "RESTRICTED" or is_readonly) and request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+                        logger.warning(f"Middleware Security: Write Access Blocked (RESTRICTED/readonly). Path={path}, Method={request.method}")
+                        return Response(
+                            status_code=402,
+                            content=json.dumps({
+                                "status": "error",
+                                "message": "Subscription Restricted (Read-Only Mode). Payment Required for write operations.",
+                                "meta": {"trace_id": transaction_id}
+                            }, cls=InternoCoreEncoder),
+                            media_type="application/json"
+                        )
+
         token_ctx = None
         if company_id or user_id:
             try:

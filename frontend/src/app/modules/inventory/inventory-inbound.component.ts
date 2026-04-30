@@ -40,6 +40,14 @@ function playBeep(type: 'success' | 'warning' | 'error') {
   template: `
     <div class="min-h-screen bg-surface-bg text-surface-text font-sans">
 
+      <!-- ── RESTRICTION BANNERS (Phase 19) ────────────────────────────────── -->
+      <div *ngIf="isUnpaid()" class="bg-red-600 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-center animate-pulse sticky top-0 z-[60]">
+        Cuenta Bloqueada por Falta de Pago - Acceso Restringido a Consultas
+      </div>
+      <div *ngIf="isReadOnly() && !isUnpaid()" class="bg-amber-600 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-center sticky top-0 z-[60]">
+        Modo Lectura Activo (Suscripción en Periodo de Gracia)
+      </div>
+
       <!-- ── HEADER ─────────────────────────────────────────────────────────── -->
       <div class="sticky top-0 z-30 bg-surface-card border-b border-surface-border px-4 py-3 flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-3">
@@ -59,8 +67,8 @@ function playBeep(type: 'success' | 'warning' | 'error') {
             class="w-9 h-9 rounded-xl bg-surface-bg border border-surface-border flex items-center justify-center hover:border-primary/50 transition-colors">
             <mat-icon class="text-sm" [class.animate-spin]="isLoading()">refresh</mat-icon>
           </button>
-          <button (click)="openBlindReceipt()"
-            class="px-3 py-1 bg-primary/20 border border-primary/30 rounded-lg text-[10px] text-primary font-black uppercase tracking-widest hover:bg-primary/30 transition-all">
+          <button (click)="openBlindReceipt()" [disabled]="isReadOnly()"
+            class="px-3 py-1 bg-primary/20 border border-primary/30 rounded-lg text-[10px] text-primary font-black uppercase tracking-widest hover:bg-primary/30 transition-all disabled:opacity-30">
             Recibo Ciego
           </button>
         </div>
@@ -191,7 +199,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
               </div>
 
               <!-- CONFIRM BUTTON - Big, fat, industrial -->
-              <button (click)="confirmReceipt()" [disabled]="isConfirming()"
+              <button (click)="confirmReceipt()" [disabled]="isConfirming() || isReadOnly()"
                 class="w-full py-5 rounded-2xl bg-emerald-500 text-white font-black uppercase text-sm tracking-widest
                        shadow-xl shadow-emerald-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all
                        disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3">
@@ -337,6 +345,9 @@ export class InventoryInboundComponent implements OnInit {
   private auth = inject(AuthService);
 
   // ── State ──────────────────────────────────────────────────────────────────
+  isReadOnly = this.auth.isReadOnly;
+  isUnpaid = this.auth.isUnpaid;
+
   isLoading = signal(false);
   isSearching = signal(false);
   isConfirming = signal(false);

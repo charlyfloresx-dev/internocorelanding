@@ -30,7 +30,6 @@ import inventory_app.models.movement
 import inventory_app.models.stock
 import inventory_app.models.stock_lot
 import inventory_app.models.item_variant
-import inventory_app.models.concept
 import inventory_app.models.bom
 import inventory_app.models.backflush_error
 import inventory_app.models.customs_pedimento

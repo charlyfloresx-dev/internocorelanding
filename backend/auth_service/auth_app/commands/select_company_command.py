@@ -87,6 +87,11 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
         )
 
         # 1. Obtener Entitlements (Licencias)
+        # We need an AuthService instance here, but for now we'll keep it simple or inject it.
+        # Actually, let's keep it as is or use the new service if possible.
+        # Since I'm refactoring, I'll pass auth_service to handle() or constructor.
+        # But wait, I'll just keep it here for now to avoid breaking too much, 
+        # but I'll update it to match the logic of the service.
         sub_client = SubscriptionClient()
         modules = ["auth_core", "inventory_core"]
         sub_status = "TRIAL"
@@ -96,17 +101,21 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             data = await sub_client.get_company_entitlements(
                 str(command.company_id), correlation_id=correlation_id
             )
-            if isinstance(data, dict):
-                meta = data.get("meta", {})
-                modules = meta.get("modules", modules)
-                sub_status = meta.get("status", sub_status)
-                if sub_status == "EXPIRED":
-                    return ApiResponse.error(message="Subscription expired", status_code=402)
-                if sub_status == "PAST_DUE":
-                    readonly = True
+            entitlements = data.get("data", data) if isinstance(data, dict) else {}
+            meta = data.get("meta", {}) if isinstance(data, dict) else {}
+            
+            sub_status = meta.get("status", entitlements.get("status", "TRIAL"))
+            readonly = entitlements.get("readonly", False)
+            modules = meta.get("modules", entitlements.get("modules", modules))
+            
+            if sub_status == "EXPIRED":
+                return ApiResponse.error(message="Subscription expired", status_code=402)
+            if sub_status == "PAST_DUE":
+                readonly = True
         except Exception as e:
             self.logger.warning(f"⚠️ [Handshake Fallback]: {e}")
             readonly = True
+            sub_status = "PAST_DUE"
 
         # 2. Verificar Asociación y Obtener Permisos via Repositories (Pure Domain)
         ucr = await self.ucr_repo.get_by_user_and_company(command.user_id, command.company_id)
@@ -246,6 +255,8 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "permissions": permissions,
             "user_email": user_email,
             "user_full_name": full_name or user_email,
+            "status": sub_status,
+            "readonly": readonly,
         }
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 
@@ -299,4 +310,6 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "scopes": scopes,
             "permissions": permissions,
             "user_full_name": full_name,
+            "status": sub_status,
+            "readonly": readonly,
         }

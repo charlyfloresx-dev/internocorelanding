@@ -1,19 +1,22 @@
-# InternoCore: Master Implementation History - 2026-04-30
+# Master Implementation History - 2026-04-30
+## Architecture: Reactive Industrial Subscription Guard
 
-## Architecture Change: HCM Microservice Extraction
-Hoy se finalizó la transición del módulo de RRHH desde un componente interno del `auth-service` (legacy) hacia un microservicio autónomo e industrial: `hcm_service`.
+### 1. Subscription-Aware Identity (Auth Service)
+We evolved the identity provider from a simple authentication service to a subscription-aware gatekeeper. 
+- **Pattern**: Zero Trust Hydration.
+- **Implementation**: The `auth_service` now fetches subscription metadata during token generation and refresh. Claims are embedded in the JWT to allow decentralized enforcement at the edge (API Gateways/Middlewares).
 
-### Key Decisions
-1. **Decoupled Identity Persistence**: Los colaboradores físicos (identidades de piso) ahora residen en `hcm_db`, mientras que las credenciales digitales de usuario residen en `auth_db`. El vínculo se realiza mediante el `collaborator_id` inyectado en el JWT.
-2. **Zero-Trust Edge Identity**: El JWT ahora transporta el `full_name` y el `internal_id` (badge) resueltos en el momento del login. Esto permite que los Kioscos y terminales de mano (Handhelds) muestren información del usuario sin realizar llamadas adicionales de "me/profile".
-3. **Synchronized Hashing**: Se estableció el SSOT (Single Source of Truth) para la sal de RFID (`CORE_HR_RFID_SALT`) en el archivo `.env` global, asegurando que el despliegue local y AWS utilicen la misma lógica criptográfica.
+### 2. Layer 7 Enforcement (Global Middleware)
+Access control is now enforced at the middleware layer using the JWT claims.
+- **Logic**: 
+  - `status == UNPAID` -> Block all traffic (Global Lock).
+  - `status == RESTRICTED` or `readonly == true` -> Block non-safe methods (POST, PUT, DELETE).
+- **Benefit**: Zero-latency enforcement without per-request database lookups for subscription state.
 
-### Technical Implementation
-- **Handshake de Descubrimiento**: El `auth-service` actúa como orquestador. Si un colaborador no está vinculado a una empresa específica, el sistema consulta al `hcm_service` globalmente para descubrir a qué tenants pertenece el badge escaneado.
-- **Middleware Compliance**: Se ajustaron los comandos de `select-company` y `collaborator-login` para cumplir con el esquema de respuesta estándar `{status, data, message}`, evitando errores de serialización.
-- **Log Sanitization**: Se aplicó una política estricta de "No Emojis" en logs para prevenir fallos de codificación en el driver de AWS CloudWatch.
+### 3. Sensory Reactivity (Angular 19 Signals)
+The frontend uses a pull-based reactive model via Signals to synchronize UI state with the session.
+- **Paywall Component**: A high-z-index overlay in the `AppComponent` that listens to the `isUnpaid` signal.
+- **Banner Feedback**: Components like `InventoryDocument` use `isReadOnly` to trigger visual warnings and disable form submissions.
 
-### Verification Result
-- **RFID Flow**: Success (Luis Torres - Logistic MX).
-- **PIN Flow**: Success with Discovery (Carlos Ramírez - Logistic US).
-- **Code Graph**: 100% compliance.
+### 4. Forensic Auditing
+- **Audit Script**: `audit_subscription_states.py` provides a suite of functional tests that simulate different subscription states and verify backend response codes (200 OK vs 402 Payment Required).

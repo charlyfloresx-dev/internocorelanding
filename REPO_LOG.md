@@ -2,6 +2,16 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
+### [2026-04-30] Phase 74: Controlled Service Degradation (Grace Period) & Reactive Lockdown
+- **Controlled Degradation Engine**: Implementación de un motor de bloqueo estructurado (L7) basado en el estado de la suscripción (`PAST_DUE`, `RESTRICTED`, `UNPAID`) sincronizado entre `auth_service` e `inventory_service`.
+- **Middleware Security Enforcement**: Refuerzo del `InternoCoreGlobalMiddleware` para retornar `402 Payment Required` en operaciones de escritura para inquilinos en modo `RESTRICTED` y bloqueo total para `UNPAID`.
+- **JWT Identity Enrichment**: Inyección de claims `status` y `readonly` en el JWT final y en los endpoints de `/refresh` y `/me` (Zero Trust) para hidratación de UI.
+- **Reactive UI Signals (Angular 19)**: Implementación de signals `isReadOnly()` y `isUnpaid()` en el `AuthService` para bloqueo sensorial inmediato.
+- **Global Paywall Overlay**: Despliegue de un overlay de bloqueo total en el `App` component para estados `UNPAID`, impidiendo el uso de la plataforma.
+- **Audit Suite**: Validación exitosa del cableado de seguridad mediante `audit_subscription_states.py` (5/5 tests passed).
+- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Status**: ✅ Phase 74 COMPLETED — Subscription Resilience & Reactive Lockdown Operational.
+
 ### [2026-04-30] Phase 73: HCM Microservice Migration & Industrial Auth Stabilization
 - **HCM Service Extraction**: Despliegue del microservicio `hcm_service` bajo Clean Architecture, desacoplando la gestión de colaboradores (RRHH) del núcleo de autenticación.
 - **Industrial Auth Handshake (RFID/PIN)**: Restauración del flujo de login industrial mediante escaneo de RFID (SHA-256) y PIN (Bcrypt) con descubrimiento automático de tenants.

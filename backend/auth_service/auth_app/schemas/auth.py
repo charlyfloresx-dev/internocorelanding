@@ -58,6 +58,10 @@ class AccessTokenResponse(BaseModel):
     # Campos de usuario para hidratar la sesión sin un request extra
     user_full_name: Optional[str] = None
     user_email: Optional[str] = None
+    
+    # Claims de suscripción (Fase 19)
+    status: str = "ACTIVE"
+    readonly: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

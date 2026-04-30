@@ -29,6 +29,8 @@ class SecurityContext(BaseModel):
     role: str = "OPERATOR"
     full_name: Optional[str] = None
     scopes: List[str]
+    status: str = "ACTIVE"
+    readonly: bool = False
 
 class SelectionTokenPayload(BaseModel):
     """
@@ -79,7 +81,9 @@ async def get_current_tenant_context(
             company_id=payload.company_id,
             role=payload.role,
             full_name=payload.full_name,
-            scopes=payload.scopes
+            scopes=payload.scopes,
+            status=payload.status,
+            readonly=payload.readonly
         )
 
     try:
@@ -102,7 +106,9 @@ async def get_current_tenant_context(
         company_id=header_company_id or payload.company_id,
         role=payload.role,
         full_name=payload.full_name,
-        scopes=payload.scopes
+        scopes=payload.scopes,
+        status=payload.status,
+        readonly=payload.readonly
     )
 
 def require_scope(required_scopes: List[str]):

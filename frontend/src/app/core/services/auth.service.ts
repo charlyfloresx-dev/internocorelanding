@@ -4,7 +4,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { lastValueFrom, Observable, BehaviorSubject, of } from 'rxjs';
-import { AuthSession, AuthHandshake, ApiResponse } from '../models/domain.types';
+import { AuthSession, AuthHandshake, ApiResponse, SubscriptionStatus } from '../models/domain.types';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -39,6 +39,10 @@ export class AuthService {
   public permissions = computed(() => this.session()?.permissions ?? []);
   public activeCompanyId = computed(() => this.session()?.company_id || null);
 
+  public subscriptionStatus = computed(() => this.session()?.status || SubscriptionStatus.ACTIVE);
+  
+  public isUnpaid = computed(() => this.subscriptionStatus() === SubscriptionStatus.UNPAID);
+
   public isSuperAdmin = computed(() => {
     const r = this.roles().map(x => x.toLowerCase());
     const p = this.permissions().map(x => x.toLowerCase());
@@ -46,7 +50,12 @@ export class AuthService {
   });
 
   public isReadOnly = computed(() => {
-    return this.roles().some(r => r.toLowerCase().includes('viewer')) || 
+    const isRestricted = this.subscriptionStatus() === SubscriptionStatus.RESTRICTED;
+    const isExplicitReadOnly = !!this.session()?.readonly;
+
+    return isRestricted || 
+           isExplicitReadOnly ||
+           this.roles().some(r => r.toLowerCase().includes('viewer')) || 
            this.permissions().some(p => p.toLowerCase().includes('read'));
   });
 

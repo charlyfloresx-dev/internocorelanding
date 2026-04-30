@@ -30,13 +30,13 @@ Ejemplos críticos a verificar:
 *   `APP_RUNNER_DEPLOY_GUIDE.md`: Chequear si existen nuevos parámetros o límites encontrados (ej. Cuotas).
 *   `AWS_Deployment_Strategy.md`: Actualizar topología si se migró un frontend o se cambió el plan.
 
-### 4. Actualizar REPO_LOG.md (Bitácora Maestra y Microservicios)
+### 4. Actualizar Bitácoras de Ingeniería (REPO_LOG y SERVICE_LOG)
 Escribir un resumen breve en el `REPO_LOG.md` raíz con los siguientes detalles de la fase actual:
 1. Número de la Fase y Objetivo (Ej. *Estabilización App Runner*).
 2. Tareas técnicas completadas con éxito.
 3. Decisiones Arquitectónicas o Workarounds aplicados.
 
-**IMPORTANTE:** Replicar un resumen técnico adaptado en el respectivo `REPO_LOG.md` de cada microservicio afectado (Ej. `backend/auth_service/REPO_LOG.md`) para mantener su contexto individualizado.
+**IMPORTANTE:** Replicar un resumen técnico adaptado en el respectivo `SERVICE_LOG.md` de cada microservicio afectado (Ej. `backend/auth_service/SERVICE_LOG.md`) para mantener su contexto individualizado y seguir el estándar de microservicios.
 
 ### 4.5. Consolidados Diarios y Planes de Implementación
 Para no contaminar la raíz documental, dividir y clasificar la jornada obligatoriamente respetando esta nomenclatura estricta:

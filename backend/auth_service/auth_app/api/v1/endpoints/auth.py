@@ -224,15 +224,23 @@ async def refresh_token_endpoint(
     permissions = await auth_service.get_user_permissions_for_company(user_id, company_id)
     roles = await auth_service.get_user_roles_for_company(user_id, company_id)
 
-    # Step 7 — Issue new tokens
+    # Step 7 — Re-verify Subscription
+    sub_status, sub_readonly, _ = await auth_service.get_subscription_context(company_id)
+
+    # Step 8 — Issue new tokens
     new_access = security.create_access_token(
         subject=str(user_id),
         company_id=str(company_id),
-        data={"role_names": roles, "scopes": permissions},
+        data={
+            "role_names": roles, 
+            "scopes": permissions,
+            "status": sub_status,
+            "readonly": sub_readonly
+        },
     )
     new_refresh_raw = security.create_refresh_token(subject=user_id, company_id=company_id)
 
-    # Step 8 — Persist new refresh record
+    # Step 9 — Persist new refresh record
     db.add(RefreshToken(
         user_id=user_id,
         company_id=company_id,
@@ -256,6 +264,8 @@ async def refresh_token_endpoint(
             scopes=permissions,
             permissions=permissions,
             user_full_name=getattr(user, "full_name", None) or user.email,
+            status=sub_status,
+            readonly=sub_readonly
         ),
         message="Token refreshed successfully.",
     )
@@ -347,6 +357,8 @@ async def get_current_user_info(
             scopes=context.scopes,
             user_full_name=getattr(user, "full_name", None) or user.email,
             user_email=user.email,
+            status=context.status,
+            readonly=context.readonly
         ),
         message="Session validated successfully.",
     )

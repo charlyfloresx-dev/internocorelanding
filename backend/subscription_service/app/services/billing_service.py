@@ -119,3 +119,58 @@ class BillingService:
         await self.repo.save_audit_log(audit_data)
         
         return True
+
+    async def handle_payment_failed(
+        self,
+        stripe_sub_id: str,
+        stripe_customer_id: Optional[str] = None,
+        customer_email: Optional[str] = None
+    ) -> bool:
+        """
+        Transiciona una suscripción al estado PAST_DUE tras un cobro fallido,
+        y delega el envío de notificaciones.
+        """
+        subscription = await self.repo.get_subscription_by_stripe_id(stripe_sub_id)
+        if not subscription:
+            logger.error(f"Suscripción {stripe_sub_id} no encontrada localmente.")
+            return False
+
+        before_state = {
+            "status": subscription.status,
+            "stripe_subscription_id": subscription.stripe_subscription_id
+        }
+
+        # Actualizar a PAST_DUE
+        update_data = {
+            "status": SubscriptionStatus.PAST_DUE,
+            "status_updated_at": datetime.now(timezone.utc),
+            "readonly": False  # PAST_DUE retains full access for the first 3 days
+        }
+        await self.repo.update_subscription(stripe_sub_id, update_data)
+
+        # Registrar en Auditoría
+        audit_data = {
+            "company_id": subscription.company_id,
+            "subscription_id": subscription.id,
+            "event_type": "PAYMENT_FAILED",
+            "before_state": before_state,
+            "after_state": {
+                "status": "PAST_DUE"
+            },
+            "reason": "Invoice payment failed webhook received."
+        }
+        await self.repo.save_audit_log(audit_data)
+
+        # --- OUTBOX PATTERN: Publish Notification Event ---
+        # Assuming a message broker is configured, we dispatch an event.
+        # This will be picked up by the notification_service.
+        event_payload = {
+            "company_id": str(subscription.company_id),
+            "event_type": "SUBSCRIPTION_PAYMENT_FAILED",
+            "email": customer_email,
+            "stripe_customer_id": stripe_customer_id
+        }
+        # e.g., await self.message_broker.publish("billing.events", event_payload)
+        logger.info(f"Published Notification Event for PAST_DUE: {event_payload}")
+
+        return True

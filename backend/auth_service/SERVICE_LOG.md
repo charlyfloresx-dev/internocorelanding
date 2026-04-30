@@ -1,5 +1,11 @@
 # Auth Service - Service Log
 
+## [2026-04-30] Phase 74: Subscription Claims & Zero Trust Validation
+- **Subscription Enrichment**: Se integró el `SubscriptionClient` en el `SelectCompanyCommandHandler` y el `AuthService` core para inyectar claims de estado de suscripción (`status`, `readonly`).
+- **Zero Trust Synchronization**: Actualización de los endpoints `/me` y `/refresh` para re-validar la suscripción en cada rotación de token, garantizando que el bloqueo sea inmediato ante cambios de estado en el backend de suscripciones.
+- **Security Context**: El `SecurityContext` de FastAPI ahora propaga los flags de suscripción a todos los microservicios aguas abajo.
+- **Status**: ✅ COMPLETED - Auth Pipeline Subscription-Aware.
+
 ## [2026-04-27] Phase 71: Multi-Currency & AWS Readiness
 - **Multi-Currency Support**: Actualizados los esquemas de `Company` para incluir `base_currency`, permitiendo la configuración de moneda nativa desde el onboarding.
 - **AWS Readiness Fix**: Eliminada la cadena hardcodeada `localhost` en la configuración de servicios para cumplir con los estándares de despliegue en la nube.
