@@ -24,5 +24,3 @@
 - [x] Run `generate_code_graph.py` and resolve violations.
 - [x] Update `REPO_LOG.md` with Phase 76 progress.
 - [x] Sync documentation using `sync-docs.md` workflow.
-- [x] Generate Backend Status Report (`backend_status_report_20260501.md`).
-- [x] Generate Frontend Status Report (`frontend_status_report_20260501.md`).

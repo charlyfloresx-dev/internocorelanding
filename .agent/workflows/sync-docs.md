@@ -26,12 +26,6 @@ Validar que el bloqueo reactivo funcione en tiempo real:
 ```
 > **Validación:** Confirmar visualmente el banner de "Pago Pendiente" o el error 402 en consola de red. No documentar si el webhook falla o el bypass de desarrollo está roto.
 
-### 3. Generar Status Report (Punto de Control)
-Si la auditoría es limpia, invocar el comando para generar un reporte del estado diario. Esto resumirá la fase completada.
-```text
-/status-report
-```
-
 ### 3. Actualizar Documentación FinOps & Infraestructura
 Revisar la carpeta `docs/infraestructura/` y verificar si es necesario actualizar alguna de las guías base basándose en los comandos y flujos estabilizados recientemente.
 Ejemplos críticos a verificar:
