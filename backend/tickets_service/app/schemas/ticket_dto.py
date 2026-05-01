@@ -13,6 +13,12 @@ class TicketBase(BaseModel):
 
 class TicketCreate(TicketBase):
     company_id: UUID
+    # --- Fase 5: Campos operacionales opcionales ---
+    module_origin: Optional[str] = None
+    area: Optional[str] = None
+    station_id: Optional[UUID] = None          # Requerido para MAINTENANCE
+    reported_by_id: Optional[UUID] = None      # Para notificaciones de cierre
+    source_service: Optional[str] = None       # "MANUAL", "INVENTORY", "MES"
 
 class TicketUpdate(BaseModel):
     title: Optional[str] = None
@@ -20,6 +26,10 @@ class TicketUpdate(BaseModel):
     priority: Optional[TicketPriority] = None
     status: Optional[TicketStatus] = None
     assigned_to_id: Optional[UUID] = None
+    # --- Fase 5: Campos actualizables ---
+    real_time_spent: Optional[int] = None      # Minutos reales invertidos
+    cost_estimate: Optional[Decimal] = None    # Costo actualizado
+    escalation_level: Optional[int] = None
 
 class TicketCommentBase(BaseModel):
     content: str
@@ -74,9 +84,18 @@ class TicketRead(TicketBase):
     area: Optional[str] = None
     estimated_time: Optional[int] = None
     real_time_spent: Optional[int] = None
-    cost_estimate: Optional[float] = None
+    cost_estimate: Optional[Decimal] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    # --- Fase 5: Campos operacionales ---
+    source_service: Optional[str] = None
+    station_id: Optional[UUID] = None
+    reported_by_id: Optional[UUID] = None
+    parent_ticket_id: Optional[UUID] = None
+    auto_close_on_event: Optional[str] = None
+    escalation_level: int = 0
+    resolved_at: Optional[datetime] = None
+    # Relationships
     comments: List[TicketCommentRead] = []
     history: List[TicketHistoryRead] = []
     resources: List[TicketResourceRead] = []

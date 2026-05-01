@@ -2,32 +2,96 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
-### [2026-04-30] Phase 74: Controlled Service Degradation (Grace Period) & Reactive Lockdown
-- **Controlled Degradation Engine**: Implementación de un motor de bloqueo estructurado (L7) basado en el estado de la suscripción (`PAST_DUE`, `RESTRICTED`, `UNPAID`) sincronizado entre `auth_service` e `inventory_service`.
-- **Middleware Security Enforcement**: Refuerzo del `InternoCoreGlobalMiddleware` para retornar `402 Payment Required` en operaciones de escritura para inquilinos en modo `RESTRICTED` y bloqueo total para `UNPAID`.
-- **JWT Identity Enrichment**: Inyección de claims `status` y `readonly` en el JWT final y en los endpoints de `/refresh` y `/me` (Zero Trust) para hidratación de UI.
+### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
+
+### [2026-05-01] Phase 75: Tickets Service — Remediación Crítica & Expansión Operacional
+- **Remediación de Precisión Financiera**: Migración de `float` a `Numeric(18, 8)` en `cost_estimate` del modelo `Ticket` y `Decimal` en DTOs para eliminar descuadres de Kardex.
+- **Seguridad Inter-servicio (HMAC)**: Implementación de validación criptográfica HMAC-SHA256 en el endpoint `/internal` con logging forense de intentos no autorizados vía `AuditService.track()`.
+- **Estandarización de Auditoría**: Reemplazo de `audit_repo.create_log` por `AuditService.track()` en todo el `TicketCommandHandler`.
+- **Alineación de Secretos**: Corregido `SECRET_KEY` del `tickets-service` en `docker-compose.yml` (era `changeme`).
+- **Subscription Seed Fix**: Extendida vigencia de suscripciones de desarrollo a 10 años (`timedelta(days=3650)`).
+- **Expansión del Modelo de Dominio (Fase 5)**: 4 nuevos `TicketType` industriales (`Mantenimiento`, `Recibo Material`, `Tiempo Muerto`, `Escalación`) y 7 nuevos campos en el modelo `Ticket` (`source_service`, `station_id`, `reported_by_id`, `parent_ticket_id`, `auto_close_on_event`, `escalation_level`, `resolved_at`).
+- **Self-Referential Hierarchy**: Relación `parent_ticket` ↔ `child_tickets` para cadenas de escalación.
+- **CQRS Expansion**: `CreateTicketCommand` ahora propaga todos los campos operacionales al repositorio.
+- **Status**: ✅ Phase 75 COMPLETED — Tickets Service Hardened & Operationally Expanded.
+
+### 🗓️ Abril 2026: Consolidación Cloud y Resiliencia de Suscripción
+
+### [2026-04-30] Phase 74: Bloqueo Reactivo por Suscripción & SaaS Integrity
+- **Motor de Degradación L7**: Implementación de un motor de bloqueo estructurado basado en el estado de la suscripción (`PAST_DUE`, `RESTRICTED`, `UNPAID`) sincronizado entre `auth_service`, `subscription_service` e `inventory_service`.
+- **Paywall Reactivo**: Los inquilinos en estado `RESTRICTED` solo tienen acceso de lectura (`402 Payment Required` en escrituras), mientras que los `UNPAID` enfrentan un bloqueo total mediante un **Global Paywall Overlay** en Angular 19.
+- **Middleware Security Enforcement**: Refuerzo del `InternoCoreGlobalMiddleware` para imponer el bloqueo de seguridad basado en claims `status` y `readonly`.
+- **JWT Identity Enrichment**: Inyección de claims en el JWT final y en los endpoints de `/refresh` y `/me` (Zero Trust) para hidratación de UI.
 - **Reactive UI Signals (Angular 19)**: Implementación de signals `isReadOnly()` y `isUnpaid()` en el `AuthService` para bloqueo sensorial inmediato.
-- **Global Paywall Overlay**: Despliegue de un overlay de bloqueo total en el `App` component para estados `UNPAID`, impidiendo el uso de la plataforma.
-- **Audit Suite**: Validación exitosa del cableado de seguridad mediante `audit_subscription_states.py` (5/5 tests passed).
-- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Auditoría Forense**: Validación exitosa del "cableado" de seguridad mediante `audit_subscription_states.py` (5/5 tests passed).
+- **Code Graph Invariants**: Integración del invariant `SUBSCRIPTION_GUARD_VIOLATION` para detectar fugas de seguridad en microservicios de escritura.
 - **Status**: ✅ Phase 74 COMPLETED — Subscription Resilience & Reactive Lockdown Operational.
 
-### [2026-04-30] Phase 73: HCM Microservice Migration & Industrial Auth Stabilization
+### [2026-04-30] Phase 73: Estabilización de Autenticación Industrial & HCM Migration
 - **HCM Service Extraction**: Despliegue del microservicio `hcm_service` bajo Clean Architecture, desacoplando la gestión de colaboradores (RRHH) del núcleo de autenticación.
 - **Industrial Auth Handshake (RFID/PIN)**: Restauración del flujo de login industrial mediante escaneo de RFID (SHA-256) y PIN (Bcrypt) con descubrimiento automático de tenants.
 - **JWT Identity Enrichment**: Inyección de claims operativos críticos (`full_name`, `internal_id`, `is_supervisor`, `wid`) en el JWT final, permitiendo operación Zero-Trust en dispositivos de borde.
-- **Configuration Centralization**: Migración de variables críticas (como `CORE_HR_RFID_SALT`) al `.env` global, eliminando inconsistencias entre servicios y simplificando el despliegue en AWS.
+- **Configuration Centralization**: Migración de variables críticas (como `CORE_HCM_RFID_SALT`) al `.env` global, eliminando inconsistencias entre servicios.
 - **AWS CloudWatch Readiness**: Sanitización total de logs eliminando emojis y caracteres especiales para asegurar compatibilidad con AWS CloudWatch Logs.
-- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
 - **Status**: ✅ Phase 73 COMPLETED — HCM Infrastructure & Industrial Auth Stabilized.
 
 ### [2026-04-28] Phase 72: Industrial WhatsApp Notifications & Virtual Group Broadcasting
-- **Twilio Production Integration**: Implementación del `WhatsAppClient` con soporte para la API de producción de Twilio (Basic Auth y payloads urlencoded), permitiendo el envío de mensajes de texto y templates.
-- **Virtual Group Engine**: Desarrollo de una arquitectura de "Grupos Virtuales" en el `notification_service`, permitiendo mapear un nombre lógico (ej. `ALERTAS_PLANTA`) a múltiples destinatarios individuales para superar las restricciones de grupos en el Sandbox de Twilio.
-- **Webhook Discovery & Security**: Despliegue del endpoint `/api/v1/whatsapp/webhook` con bypass de seguridad `X-Company-ID` en el middleware global, habilitando la captura automática de IDs de grupos/usuarios mediante el comando `/getid`.
-- **Broadcast Multitenant**: El `NotificationService` ahora procesa envíos masivos de forma atómica, registrando el estado de entrega individual por cada destinatario dentro de un grupo mapeado.
-- **Code Graph**: ✅ 100% Compliance — 14 microservicios, 0 errores críticos.
+- **Twilio Production Integration**: Implementación del `WhatsAppClient` con soporte para la API de producción de Twilio (Basic Auth y payloads urlencoded).
+- **Virtual Group Engine**: Desarrollo de una arquitectura de "Grupos Virtuales" en el `notification_service`, permitiendo mapear un nombre lógico (ej. `ALERTAS_PLANTA`) a múltiples destinatarios individuales para superar las restricciones de Sandbox.
+- **Webhook Discovery & Security**: Despliegue del endpoint `/api/v1/whatsapp/webhook` con bypass de seguridad `X-Company-ID` en el middleware global.
+- **Broadcast Multitenant**: El `NotificationService` ahora procesa envíos masivos de forma atómica, registrando el estado de entrega individual.
 - **Status**: ✅ Phase 72 COMPLETED — Industrial WhatsApp Pipeline Operational.
+
+### [2026-04-18] Estabilidad Cloud AWS
+- **CORS Resolution**: Se resolvió el bloqueo `400 Bad Request` ajustando el orden de carga de secretos en Python antes del montaje del middleware, solucionando la conectividad ALB.
+- **Microservices Rollout**: Despliegue industrial ECS validado. Conectividad E2E desde CloudFront confirmada en el Mission Control.
+
+### [2026-04-13] Gobernanza de Raíz
+- **CORE_ Prefix**: Estandarización del prefijo de variables de entorno de `INT_` a `CORE_` y limpieza profunda del directorio raíz para evitar polución de archivos.
+
+---
+
+## 🏛️ Arquitectura de Identidad (SSOT)
+El sistema opera bajo un protocolo de **Identidad Triple** consolidado:
+
+| Capa de Identidad | Método de Validación | Responsabilidad |
+| :--- | :--- | :--- |
+| **Identidad Digital** | OAuth2 / JWT (T1/T2) | Acceso a la plataforma y APIs. |
+| **Identidad Física** | RFID (SHA-256) / PIN | Operaciones en piso de producción (MES). |
+| **Identidad Legal** | company_id (Multi-tenant) | Aislamiento de datos y cumplimiento fiscal. |
+
+## 💰 Definición Financiera: La Tríada del Valor
+Desde abril de 2026, el sistema rige la existencia de cualquier producto bajo una relación jerárquica estricta:
+1.  **Landed Cost**: Costo de adquisición más gastos logísticos (Aduana/Flete).
+2.  **CPP / WAC**: Costo Promedio Ponderado para valuación de inventario contable.
+3.  **Transfer Price**: El contrato financiero sellado para movimientos entre empresas hermanas. (El precio de venta de Empresa A se convierte en el costo de Empresa B al despacho).
+
+> [!IMPORTANT]
+> **Nota de Seguridad (Zero-Trust)**: El BaseRepository captura el `company_id` directamente del JWT verificado. No se permite que el cliente envíe el ID del inquilino en operaciones de escritura para prevenir vulnerabilidades de tipo IDOR.
+
+## 📡 Mapa de Infraestructura (Puertos Core)
+| Servicio | Puerto | Función Crítica |
+| :--- | :--- | :--- |
+| **Auth** | 8001 | Handshake T1/T2 y Rotación de JWT. |
+| **Master Data** | 8003 | SSOT de Productos y Catálogos Corporativos. |
+| **HCM/HR** | 8004 | Identidad Física y Gestión de Colaboradores. |
+| **Inventory** | 8006 | Ledger inmutable y Saldos (Kardex). |
+| **Subscription** | 8002 | Gestión de Billing y Lockdowns L7. |
+
+### 🗓️ Marzo 2026: Identidad Triple y Seguridad Zero-Trust
+
+#### [2026-03-30] Hardening de Seguridad
+- **Refresh Token Rotation (RTR)**: Implementación de rotación estricta y taxonomía de tokens (access, refresh, selection).
+
+#### [2026-03-15] Sealed Price (Precio Sellado)
+- **Inmutabilidad Financiera**: Aprobación del patrón de transferencias Inter-Company: el precio de venta de la Empresa A se convierte en el costo de compra de la Empresa B al momento del despacho.
+
+#### [2026-03-03] Estructura de Holdings
+- **BusinessGroup Model**: Introducción de jerarquías para compartir catálogos maestros entre empresas del mismo grupo.
+
+---
+
+### Historical Archive (Legacy Phases)
 
 ### [2026-04-27] Phase 71: Financial Valuation & Forensic Audit (Ledger Stabilization)
 - **Forensic Audit Engine**: Despliegue del endpoint `/api/v1/audit/` en el `inventory_service` para exponer el historial inmutable de transacciones (Ledger).

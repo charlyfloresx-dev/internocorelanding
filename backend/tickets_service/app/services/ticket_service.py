@@ -62,7 +62,15 @@ class TicketService:
             "tenant_id": company_id,
             "created_by": system_user_id,
             "deduplication_hash": dedup_hash,
+            "source_service": cmd.source_service,
         }
+        # Fase 5: Campos operacionales opcionales
+        if cmd.station_id:
+            data["station_id"] = cmd.station_id
+        if cmd.area:
+            data["area"] = cmd.area
+        if cmd.parent_ticket_id:
+            data["parent_ticket_id"] = cmd.parent_ticket_id
 
         ticket = await self.repo.create(data)
 

@@ -3,6 +3,8 @@ from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 import uuid
+from decimal import Decimal
+from common.services.audit_service import AuditService
 
 from app.domain.ports.ticket_repository import ITicketRepository
 from app.domain.ports.inventory_client import IInventoryClient
@@ -27,12 +29,18 @@ class CreateTicketCommand(BaseModel):
     company_id: UUID
     assigned_to_id: Optional[UUID] = None
     created_by_id: UUID
+    # --- Fase 5: Campos Operacionales ---
+    station_id: Optional[UUID] = None
+    reported_by_id: Optional[UUID] = None
+    parent_ticket_id: Optional[UUID] = None
+    source_service: Optional[str] = None
+    escalation_level: int = 0
 
 
 class ConsumeResourceDto(BaseModel):
     resource_id: UUID
     warehouse_id: UUID
-    quantity: float
+    quantity: Decimal
 
 
 class ConsumeResourcesCommand(BaseModel):
@@ -73,7 +81,7 @@ class TicketCommandHandler:
 
         ticket = await self._service.create_ticket(ticket_create_dto, cmd.created_by_id)
 
-        # Metadatos de ejecución (módulo/área) — post-creación
+        # Metadatos de ejecución (módulo/área/operacionales) — post-creación
         updates = {}
         if cmd.module_origin:
             updates["module_origin"] = cmd.module_origin
@@ -81,19 +89,30 @@ class TicketCommandHandler:
             updates["area"] = cmd.area
         if cmd.assigned_to_id:
             updates["assigned_to_id"] = cmd.assigned_to_id
+        if cmd.station_id:
+            updates["station_id"] = cmd.station_id
+        if cmd.reported_by_id:
+            updates["reported_by_id"] = cmd.reported_by_id
+        if cmd.parent_ticket_id:
+            updates["parent_ticket_id"] = cmd.parent_ticket_id
+        if cmd.source_service:
+            updates["source_service"] = cmd.source_service
+        if cmd.escalation_level > 0:
+            updates["escalation_level"] = cmd.escalation_level
 
         if updates:
             ticket = await self.repo.update(ticket.id, cmd.company_id, updates)
 
         # Forensic audit trail
-        if self.audit_repo:
-            await self.audit_repo.create_log(
-                user_id=cmd.created_by_id,
-                action="CREATE_TICKET",
-                resource_id=ticket.id,
-                company_id=cmd.company_id,
-                details=f"Ticket created: {ticket.title}"
-            )
+        await AuditService.track(
+            user_id=cmd.created_by_id,
+            action="CREATE_TICKET",
+            resource=f"ticket:{ticket.id}",
+            metadata={
+                "company_id": str(cmd.company_id),
+                "details": f"Ticket created: {ticket.title}"
+            }
+        )
         logger.info(f"AUDIT | User {cmd.created_by_id} | CREATE | Ticket {ticket.id} | {ticket.title}")
 
         return ticket
@@ -131,14 +150,15 @@ class TicketCommandHandler:
         )
 
         # Forensic audit trail
-        if self.audit_repo:
-            await self.audit_repo.create_log(
-                user_id=cmd.user_id,
-                action="CONSUME_RESOURCES",
-                resource_id=ticket.id,
-                company_id=cmd.company_id,
-                details=f"Resources consumed: {resource_ids}"
-            )
+        await AuditService.track(
+            user_id=cmd.user_id,
+            action="CONSUME_RESOURCES",
+            resource=f"ticket:{ticket.id}",
+            metadata={
+                "company_id": str(cmd.company_id),
+                "details": f"Resources consumed: {resource_ids}"
+            }
+        )
         logger.info(f"AUDIT | User {cmd.user_id} | CONSUME_RESOURCES | Ticket {ticket.id} | {resource_ids}")
 
         return await self.repo.get_by_id(ticket.id, cmd.company_id)

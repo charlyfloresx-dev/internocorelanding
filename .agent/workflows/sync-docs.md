@@ -10,15 +10,23 @@ Ejecutar este workflow cuando:
 
 ## Tareas
 
-### 1. Auditoría del Gráfico de Código (Code Graph)
-Ejecutar el script de auditoría automatizada para validar _Invariants_ (FinOps, CORS, multi-tenant):
+### 1. Auditoría del Gráfico de Código (Code Graph) & SaaS Integrity
+Ejecutar el script de auditoría automatizada para validar _Invariants_ (FinOps, CORS, Multi-tenant, y Subscription Guard):
 // turbo
 ```bash
 python backend/scripts/generate_code_graph.py
 ```
-> **Validación:** Si el script falla con Exit Code 1 o reporta Errores Críticos (Ej. Inicios de Load Balancer que rompan el presupuesto), detener el workflow de documentación y avisar al usuario. No documentar arquitectura inválida.
+> **Validación:** Si el script reporta `SUBSCRIPTION_GUARD_VIOLATION`, detener el workflow. El sistema no es seguro para producción si hay fugas en el paywall industrial.
 
-### 2. Generar Status Report (Punto de Control)
+### 2. Prueba de Fuego Sensorial (Stripe Webhook)
+Validar que el bloqueo reactivo funcione en tiempo real:
+// turbo
+```bash
+& "C:\Users\flore\Downloads\stripe_1.37.2_windows_x86_64\stripe.exe" trigger invoice.payment_failed
+```
+> **Validación:** Confirmar visualmente el banner de "Pago Pendiente" o el error 402 en consola de red. No documentar si el webhook falla o el bypass de desarrollo está roto.
+
+### 3. Generar Status Report (Punto de Control)
 Si la auditoría es limpia, invocar el comando para generar un reporte del estado diario. Esto resumirá la fase completada.
 ```text
 /status-report

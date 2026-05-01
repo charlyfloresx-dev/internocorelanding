@@ -186,8 +186,8 @@ services:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
-      - SECRET_KEY=changeme
-      - CORE_SECRET_KEY=changeme
+      - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app:/app/tickets_service
     depends_on:
       postgres-db:

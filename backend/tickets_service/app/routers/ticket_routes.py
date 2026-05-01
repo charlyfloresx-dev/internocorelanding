@@ -1,5 +1,9 @@
 from typing import List, Optional
 import uuid
+import hmac
+import hashlib
+from app.core.config import settings
+from common.services.audit_service import AuditService
 from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.database import get_db
@@ -31,8 +35,31 @@ async def create_internal_ticket(
     Endpoint inter-servicio para creación automática de tickets.
     Invocado por inventory_service u otros servicios internos.
     Incluye lógica de debouncing SHA256 para prevenir duplicados.
-    TODO: Validar HMAC signature con secreto compartido.
     """
+    if not x_service_signature:
+        await AuditService.track(
+            user_id="SYSTEM",
+            action="UNAUTHORIZED_ACCESS",
+            resource="ticket_internal_api",
+            metadata={"company_id": str(x_company_id), "details": "Missing HMAC signature"}
+        )
+        raise HTTPException(status_code=403, detail="Firma de servicio requerida")
+
+    expected_signature = hmac.new(
+        settings.SECRET_KEY.encode(),
+        x_company_id.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_signature, x_service_signature):
+        await AuditService.track(
+            user_id="SYSTEM",
+            action="UNAUTHORIZED_ACCESS",
+            resource="ticket_internal_api",
+            metadata={"company_id": str(x_company_id), "details": "Invalid HMAC signature"}
+        )
+        raise HTTPException(status_code=403, detail="Firma de servicio inválida")
+
     service = TicketService(db)
     company_id = uuid.UUID(x_company_id)
     ticket, is_new = await service.create_internal_ticket_with_debouncing(cmd, company_id)

@@ -45,6 +45,7 @@ class BillingService:
         # 3. Registrar Intento en Auditoría
         audit_data = {
             "company_id": company_id,
+            "tenant_id": company_id,
             "subscription_id": uuid.uuid4(),
             "event_type": "BILLING_SESSION_CREATED",
             "before_state": {},
@@ -106,6 +107,7 @@ class BillingService:
         # Registrar en Auditoría
         audit_data = {
             "company_id": company_id,
+            "tenant_id": company_id,
             "subscription_id": subscription.id,
             "event_type": "PAYMENT_SUCCESS",
             "before_state": before_state,
@@ -151,6 +153,7 @@ class BillingService:
         # Registrar en Auditoría
         audit_data = {
             "company_id": subscription.company_id,
+            "tenant_id": subscription.tenant_id or subscription.company_id,
             "subscription_id": subscription.id,
             "event_type": "PAYMENT_FAILED",
             "before_state": before_state,

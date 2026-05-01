@@ -69,7 +69,7 @@ async def seed_entitlements(db, company_id: uuid.UUID):
                 plan_id=plan_pro.id,
                 status=SubscriptionStatus.ACTIVE,
                 start_date=datetime.now(timezone.utc),
-                end_date=datetime.now(timezone.utc) + timedelta(days=365)
+                end_date=datetime.now(timezone.utc) + timedelta(days=3650)
             )
             db.add(sub)
             logger.info(f"    ➕ Suscripción creada para: {company_id}")

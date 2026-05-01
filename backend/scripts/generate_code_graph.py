@@ -270,6 +270,20 @@ class CodeGraphGenerator:
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
+        # 3. Subscription Guard Compliance (SaaS Integrity - Phase 74/19)
+        # Verifies that write operations in critical services are aware of the readonly status.
+        write_methods = ["post", "put", "patch", "delete", "create_", "update_", "delete_"]
+        critical_write_services = ["inventory_service", "mes_service", "wms_service", "asset_manager_service"]
+        if ms in critical_write_services and any(m in node.name.lower() for m in write_methods):
+            if "/app/api/" in rel_path or "/app/services/" in rel_path:
+                # We expect them to at least reference SecurityContext or the status claim
+                # if they are performing domain-level enforcement or if the middleware is bypassed
+                if "status" not in source.lower() and "readonly" not in source.lower() and "security_context" not in source.lower():
+                     # Only warning because global middleware handles most cases, but domain-level awareness is preferred for granular feedback
+                     err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "SUBSCRIPTION_AWARENESS_WARNING: Write operation in critical service might be missing subscription-state awareness (readonly/status)"}
+                     self.graph["invariants_errors"].append(err)
+                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
     def print_report(self):
         critical = [e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"]
         warnings = [e for e in self.graph["invariants_errors"] if e["severity"] == "WARNING"]

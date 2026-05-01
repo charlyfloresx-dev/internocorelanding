@@ -1,5 +1,10 @@
 # Notification Service – Log
 
+## 🕒 Última Actividad (2026-04-28)
+**Pipeline de Notificaciones WhatsApp (Fase 72)**
+- **Twilio Integration**: Integración con Twilio para el envío de alertas industriales.
+- **Virtual Groups**: Creación de "Grupos Virtuales" para superar las limitaciones del Sandbox de Twilio, permitiendo envíos multi-destinatario atomizados.
+
 ## 🕒 Última Actividad (2026-04-27)
 **Notification State Persistence (Fase 71)**
 - **Read-Status Fix**: Implementado logging de `rowcount` en el endpoint `mark_as_read` para diagnosticar fallos de persistencia.

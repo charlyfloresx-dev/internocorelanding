@@ -61,6 +61,11 @@ async def stripe_webhook(
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
     
+    # Dev bypass for 'stripe trigger' without secret
+    from app.core.config import settings
+    if not sig_header and settings.ENV_MODE == "development" and not settings.stripe.int_stripe_webhook_secret:
+        sig_header = "dev_bypass"
+    
     if not sig_header:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Falta firma")
 

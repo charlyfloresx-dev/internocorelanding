@@ -17,6 +17,10 @@ class ISubscriptionRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_subscription_by_stripe_id(self, stripe_subscription_id: str) -> Optional[Any]:
+        ...
+
+    @abstractmethod
     async def create_subscription(self, subscription_data: dict) -> Any:
         ...
 

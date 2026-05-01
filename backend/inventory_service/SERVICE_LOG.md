@@ -1,17 +1,22 @@
 # Service Log — Inventory Service
 
 ## 🕒 Última Actividad (2026-04-30)
-**Global Middleware Lockdown (Fase 74)**
+**Global Middleware Lockdown & Financial SSOT (Fase 74)**
 - **Controlled Degradation**: El `InternoCoreGlobalMiddleware` ahora consume los claims `status` y `readonly` del JWT para imponer bloqueos de escritura.
+- **Definición Financiera (La Tríada)**: El sistema ahora rige la existencia de productos bajo: Landed Cost, CPP/WAC y Transfer Price.
+- **Inmutabilidad de Traslados**: Aprobación del patrón de transferencias Inter-Company: el precio de venta de la Empresa A se convierte en el costo de compra de la Empresa B al despacho.
 - **Error 402 Integration**: Implementación de la respuesta `402 Payment Required` para transacciones en modo `RESTRICTED`.
-- **UI Reactivity**: El componente `InventoryDocumentComponent` se sincronizó con el estado `isReadOnly` para deshabilitar controles nativamente.
-- **Status**: ✅ COMPLETED - Inventory Protected by Subscription Guard.
+- **Zero-Trust Enforcement**: Bloqueo de IDOR mediante captura de `company_id` desde JWT en `BaseRepository`.
+- **Status**: ✅ COMPLETED - Inventory Protected by Subscription Guard & Financial SSOT.
+
+## 🕒 Última Actividad (2026-03-15)
+**Sealed Price (Precio Sellado) & Inter-Company Governance**
+- **Sealed Price Pattern**: Aprobación inmutable del patrón de transferencias Inter-Company: el precio de venta de la Empresa A se convierte en el costo de compra de la Empresa B al momento del despacho, sin cambios posteriores.
+- **Financial Triad**: Consolidación del SSOT Financiero regido por la tríada: Landed Cost, CPP / WAC y Transfer Price.
+- **Kardex Inmutability**: El ledger ahora garantiza que cualquier movimiento financiero sea inalterable una vez sellado.
 
 ## 🕒 Última Actividad (2026-04-27)
 **Forensic Audit & Financial Mapping (Fase 71)**
-- **Forensic Audit Engine**: Implementado el endpoint `/api/v1/audit/` para trazabilidad inmutable de transacciones.
-- **SQLAlchemy Attribute Fix**: Corregido el conflicto de mapeo entre `_amount` (código) y `unit_price` (DB) para asegurar la persistencia de datos financieros en el ledger.
-- **Audit UI Integration**: Sincronización exitosa con el nuevo componente de auditoría en el frontend.
 
 ## 🕒 Última Actividad (2026-04-21)
 **Hierarchical Inventory Visibility (Fase 67)**

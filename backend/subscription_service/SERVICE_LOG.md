@@ -5,12 +5,14 @@ The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitl
 
 ---
 
-## Phase 74 – Controlled Service Degradation & Entitlements ✅
+## Phase 74 – Controlled Service Degradation & SaaS Integrity ✅
 **Status**: ✅ Completed · **Date**: 2026-04-30
-- **L7 Enforcement**: Integration with global middleware to block restricted/unpaid tenants.
+- **L7 Enforcement**: Integration with global middleware to block restricted/unpaid tenants based on subscription state.
+- **Motor de Degradación**: Implementación de un motor de bloqueo basado en el estado de la suscripción (`PAST_DUE`, `RESTRICTED`, `UNPAID`).
+- **Paywall Reactivo**: Los inquilinos en estado `RESTRICTED` solo tienen acceso de lectura (`402 Payment Required` en escrituras), mientras que los `UNPAID` enfrentan un bloqueo total mediante un **Global Paywall Overlay** en Angular 19.
 - **Entitlements API**: Implementation of `/internal/entitlements/{company_id}` for cross-service status resolution.
-- **Grace Period**: Implementation of `GracePeriodService` for auto-transitions.
-- **Webhook**: Handled `invoice.payment_failed` from Stripe.
+- **Webhook**: Handled `invoice.payment_failed` from Stripe with dev-bypass for sensorial validation.
+- **Audit Logs**: Forensic tracking of all subscription status changes with `tenant_id` enforcement.
 
 ---
 

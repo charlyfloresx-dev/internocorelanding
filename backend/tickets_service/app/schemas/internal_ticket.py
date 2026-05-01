@@ -16,4 +16,9 @@ class InternalTicketCreate(BaseModel):
     transaction_id: Optional[UUID] = Field(None, description="Traceability UUID")
     deep_link_id: Optional[UUID] = Field(None, description="Deep link reference for the UI")
     
+    # --- Fase 5: Campos Operacionales ---
+    station_id: Optional[UUID] = Field(None, description="MES Station UUID (required for MAINTENANCE)")
+    parent_ticket_id: Optional[UUID] = Field(None, description="Parent ticket for ESCALATION/DOWNTIME")
+    area: Optional[str] = Field(None, description="Área operacional: Producción, Almacén, Mantenimiento")
+    
     metadata: Optional[dict] = Field(None, description="Additional context freeform dictionary")

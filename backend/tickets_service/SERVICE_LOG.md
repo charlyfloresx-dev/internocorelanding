@@ -100,7 +100,62 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## Missing Logic / Pending Backlog
 - Automated tests for `create_internal_ticket_with_debouncing` (burst window mocking).
-- HMAC signature verification with shared static secret.
 - Background Consumer to process state updates originated from other services.
 - GraphQL/REST endpoints for frontend dashboard (MTTR, MTBF, OEE).
 
+---
+
+### Phase 4: Remediación Crítica & Auditoría (Nivel 2 y 3) ✅
+- **Status**: Completed (2026-05-01)
+- **Fixes Applied**:
+  - ✅ **Precisión Numérica**: Refactorizado `cost_estimate` en `ticket.py` a `Numeric(18, 8)` y `Decimal` en DTOs para evitar pérdida de precisión financiera en Kardex.
+  - ✅ **Seguridad Inter-servicio (HMAC)**: Implementada validación criptográfica HMAC-SHA256 en `/internal` usando `SECRET_KEY` para bloquear inyección de tickets falsos.
+  - ✅ **Auditoría Forense Estándar**: Sustituidas las llamadas a `audit_repo` por `AuditService.track()` con parámetros estandarizados (`resource`, `metadata`).
+  - ✅ **SECRET_KEY Alineado**: Corregido `docker-compose.yml` para usar `DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345` (era `changeme`), alineando con el resto de servicios.
+  - ✅ **Subscription Seed**: Actualizado `subscription_service/scripts/seed.py` con `timedelta(days=3650)` para evitar bloqueos por suscripción vencida durante desarrollo.
+
+---
+
+### Phase 5: Expansión del Modelo de Dominio (Motor Operacional) ✅
+- **Status**: Completed (2026-05-01)
+- **Objetivo**: Transformar el servicio de helpdesk a Motor Operacional Industrial con 4 flujos de trabajo.
+- **Changes Applied**:
+  - ✅ **Enums Expandidos**: `TicketType` ahora incluye `Mantenimiento`, `Recibo Material`, `Tiempo Muerto`, `Escalación`.
+  - ✅ **Modelo Expandido**: `Ticket` incluye 7 nuevos campos:
+    - `source_service` (String) — Origen del ticket: INVENTORY, MES, MANUAL, SENSOR
+    - `station_id` (UUID, indexed) — Weak ref a estación MES para Mantenimiento
+    - `reported_by_id` (UUID) — Para notificaciones de cierre al reportante
+    - `parent_ticket_id` (UUID, FK self-ref) — Jerarquía de escalación
+    - `auto_close_on_event` (String) — Evento de cierre automático: KARDEX_ENTRY_CONFIRMED
+    - `escalation_level` (Integer, default=0) — Nivel de escalación jerárquica
+    - `resolved_at` (DateTime TZ) — Para cálculo de MTTR
+  - ✅ **DTOs Expandidos**: `TicketRead`, `TicketCreate`, `TicketUpdate`, `InternalTicketCreate` actualizados.
+  - ✅ **CQRS Expandido**: `CreateTicketCommand` y handler propagan todos los campos nuevos.
+  - ✅ **Self-referential Relationship**: `parent_ticket` ↔ `child_tickets` para jerarquía.
+- **Validación**: Docker build + Uvicorn startup exitoso. Backward compatible.
+
+---
+
+### Estado Actual de Fases (Actualización de Log 2026-05-01)
+
+| Fase | Estado | Descripción |
+|---|---|---|
+| Fase 1: Bug Fixes | ✅ COMPLETADA | Outbox import, UUID fix, orphan decorator |
+| Fase 2: Estabilización | ✅ COMPLETADA | DTO enrichment, soft-delete, outbox config |
+| Fase 3: Kardex Integration | ✅ COMPLETADA | IInventoryClient, ConsumeResourcesCommand |
+| Fase 4: Remediación Crítica | ✅ COMPLETADA | Decimal, HMAC, AuditService.track |
+| Fase 5: Modelo Operacional | ✅ COMPLETADA | 4 flujos, 7 campos, enums industriales |
+| Fase 6: Notificaciones | 🚀 SIGUIENTE | Dispatcher + auto-cierre recibos |
+| Fase 7: Escalación Dinámica | 📋 PLANIFICADA | ESCALATION_MATRIX + watcher + firma forense |
+| Fase 8: Mantenimiento + StopLog | 📋 PLANIFICADA | Auto-StopLog + costo downtime |
+| Fase 9: Dashboard KPIs | 📋 PLANIFICADA | MTTR, MTBF, OEE, SLA compliance |
+
+---
+
+## Missing Logic / Pending Backlog
+- Automated tests for `create_internal_ticket_with_debouncing` (burst window mocking).
+- Background Consumer to process state updates originated from other services.
+- Alembic migration for Fase 5 schema changes (pending `alembic revision --autogenerate`).
+- NotificationDispatcher integration with `notification_service`.
+- EscalationWatcher background worker.
+- KPI REST endpoints (MTTR, MTBF, OEE).

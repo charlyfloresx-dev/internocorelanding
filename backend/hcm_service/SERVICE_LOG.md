@@ -6,13 +6,19 @@
 
 ---
 
-### [2026-04-30] - Phase 72: HR → HCM Rename & Domain Upgrade
+### [2026-04-30] - Phase 73: Estabilización de Autenticación Industrial
+- **HCM Migration**: Migración definitiva de la gestión de colaboradores al microservicio independiente `hcm_service`.
+- **RFID/PIN Restoration**: Restauración del flujo de login industrial mediante RFID (SHA-256) y PIN (Bcrypt).
+- **Identidad Triple (Física)**: Consolidación de la Identidad Física como el SSOT para operaciones en piso de producción (MES).
+- **Identidad Legal**: Aislamiento de datos mediante `company_id` para cumplimiento fiscal.
+- **Variable de entorno**: `CORE_HR_RFID_SALT` → `CORE_HCM_RFID_SALT`.
+- **Status**: ✅ COMPLETED - Industrial Identity Stabilized.
 
+---
+
+### [2026-04-30] - Phase 72: HR → HCM Rename & Domain Upgrade
 - **Rename**: Directorio `hr_service` → `hcm_service`. Imagen Docker `interno-backend-hcm-service:latest`. DB `hr_db` → `hcm_db`.
 - **Dominio elevado**: De "Recursos Humanos" a **Human Capital Management (HCM)** para reflejar la gestión de Competencias, T&A y EHS.
-- **`Collaborator` confirma su dominio en HCM** — eliminado del `auth_service` (donde fue colocado erróneamente). Auth solo gestiona credenciales y tokens.
-- **4 Fases definidas**: Identidad Organizacional → Skills Engine → T&A → EHS + Domain Events (ver `README.md` y `/docs/HCM_SERVICE_SPECS.md`).
-- **Variable de entorno**: `CORE_HR_RFID_SALT` → `CORE_HCM_RFID_SALT`.
 - **docker-compose.yml**: Servicio `hr-service` → `hcm-service`. URL interna del Auth actualizada a `http://hcm-service:8000`.
 
 ---

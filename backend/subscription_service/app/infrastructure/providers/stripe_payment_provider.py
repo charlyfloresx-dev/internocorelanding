@@ -49,6 +49,15 @@ class StripePaymentProvider(IPaymentProvider):
         return True
 
     async def verify_webhook(self, payload: str, sig_header: str) -> Dict[str, Any]:
+        # Dev bypass for 'stripe trigger' sensorial validation
+        if settings.ENV_MODE == "development" and not settings.stripe.int_stripe_webhook_secret:
+            import json
+            event_data = json.loads(payload)
+            return {
+                "type": event_data.get("type"),
+                "data": event_data.get("data", {}).get("object")
+            }
+
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.stripe.int_stripe_webhook_secret
         )

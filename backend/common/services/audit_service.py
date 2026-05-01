@@ -18,3 +18,8 @@ class AuditService:
         # En el futuro, esto insertará en la tabla audit_logs
         print(f"[{datetime.now()}] AUDIT: User {user_id} - {action} on {entity_name} ({entity_id})")
         return True
+
+    @staticmethod
+    async def track(user_id: Any, action: str, resource: str, metadata: dict):
+        print(f"[{datetime.now()}] AUDIT TRACK: User {user_id} - {action} on {resource} with meta: {metadata}")
+        return True
