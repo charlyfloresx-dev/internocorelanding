@@ -157,6 +157,15 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ---
 
+### Phase 7.5: Remediación de Enrutamiento & Sync Frontend ✅
+- **Status**: Completed (2026-05-01)
+- **Fixes Applied**:
+  - ✅ **Routing Remediation**: Eliminado prefijo redundante `/tickets` en el `APIRouter` de `ticket_routes.py` para evitar rutas anidadas (`/tickets/tickets`) al montar en el monolito.
+  - ✅ **Constants Endpoint**: Implementado `GET /config/constants` para exponer Enums de forma segura al frontend.
+  - ✅ **Frontend Alignment**: Sincronizado `SupportService` para consumir las constantes y habilitar reactividad total.
+
+---
+
 ### Estado Actual de Fases (Actualización de Log 2026-05-01)
 
 | Fase | Estado | Descripción |
@@ -168,6 +177,7 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 | Fase 5: Modelo Operacional | ✅ COMPLETADA | 4 flujos, 7 campos, enums industriales |
 | Fase 6: Notificaciones | ✅ COMPLETADA | Dispatcher + auto-cierre recibos |
 | Fase 7: Escalación Dinámica | ✅ COMPLETADA | Escalation Matrix + Watcher + AI Support |
+| Fase 7.5: Sync Frontend | ✅ COMPLETADA | Routing remediation & Constants API |
 | Fase 8: Mantenimiento + StopLog | 🚀 SIGUIENTE | Auto-StopLog + costo downtime |
 | Fase 9: Dashboard KPIs | 📋 PLANIFICADA | MTTR, MTBF, OEE, SLA compliance |
 

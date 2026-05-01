@@ -12,11 +12,12 @@ import {TranslatePipe} from '../../shared/pipes/translate.pipe';
 import {CurrencyService} from '../../core/services/currency.service';
 import {SystemHealthService} from '../../core/services/system-health.service';
 import {NotificationHubService} from '../../core/services/notification-hub.service';
+import {SupportDrawerComponent} from '../../shared/components/support-drawer.component';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe, SupportDrawerComponent],
   template: `
     <div 
       [class.dark]="themeService.darkMode()"
@@ -381,72 +382,26 @@ import {NotificationHubService} from '../../core/services/notification-hub.servi
                   <mat-icon class="text-xl">{{ themeService.darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
                 </button>
 
-                <!-- Notification Bell -->
-                <div class="relative">
+                  <!-- Support AI Drawer -->
                   <button 
-                    (click)="showNotifPanel.set(!showNotifPanel())"
-                    class="relative text-surface-text-muted hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-text/5"
-                    title="Notificaciones"
+                    (click)="isSupportDrawerOpen.set(true)"
+                    class="text-surface-text-muted hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-text/5"
+                    title="Soporte AI"
                   >
-                    <mat-icon class="text-xl">notifications</mat-icon>
-                    @if (notifHub.unreadCount() > 0) {
-                      <span class="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-0.5 bg-red-500 rounded-full border-2 border-surface-card text-[8px] font-black text-white flex items-center justify-center leading-none">
-                        {{ notifHub.unreadCount() > 9 ? '9+' : notifHub.unreadCount() }}
-                      </span>
-                    } @else {
-                      <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-surface-card"></span>
-                    }
+                    <mat-icon class="text-xl">support_agent</mat-icon>
                   </button>
 
-                  @if (showNotifPanel()) {
-                    <div class="absolute right-0 mt-2 w-96 bg-surface-card border border-surface-border rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                      <!-- Header -->
-                      <div class="px-5 py-3 border-b border-surface-border flex items-center justify-between bg-black/20">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-primary">Notificaciones</span>
-                        @if (notifHub.unreadCount() > 0) {
-                          <span class="text-[9px] text-surface-text-muted font-bold">{{ notifHub.unreadCount() }} sin leer</span>
-                        }
-                      </div>
-
-                      <!-- Notification List -->
-                      <div class="max-h-80 overflow-y-auto custom-scrollbar">
-                        @if (notifHub.notifications().length === 0) {
-                          <div class="py-10 flex flex-col items-center gap-2 opacity-30">
-                            <mat-icon class="text-4xl">notifications_none</mat-icon>
-                            <span class="text-[10px] font-bold uppercase tracking-widest">Sin notificaciones</span>
-                          </div>
-                        }
-                        @for (n of notifHub.notifications(); track n.id) {
-                          <button 
-                            (click)="handleNotificationClick(n)"
-                            class="w-full px-5 py-4 flex items-start gap-3 text-left hover:bg-white/5 transition-colors border-b border-surface-border/50 last:border-0"
-                          >
-                            <!-- Priority dot -->
-                            <div class="mt-0.5 w-2 h-2 rounded-full flex-shrink-0"
-                              [class.bg-red-500]="n.priority === 'CRITICAL'"
-                              [class.bg-orange-400]="n.priority === 'HIGH'"
-                              [class.bg-primary]="n.priority === 'MEDIUM'"
-                              [class.bg-surface-text-muted]="n.priority === 'LOW'"
-                            ></div>
-                            <div class="flex-1 min-w-0">
-                              <p class="text-[11px] font-black text-surface-text truncate">{{ n.title }}</p>
-                              <p class="text-[10px] text-surface-text-muted mt-0.5 leading-snug line-clamp-2">{{ n.message }}</p>
-                              <p class="text-[9px] text-surface-text-muted/50 mt-1.5 font-bold">{{ n.created_at | date:'dd/MM HH:mm' }}</p>
-                            </div>
-                          </button>
-                        }
-                      </div>
-                    </div>
-                    <!-- Overlay to close -->
-                    <div class="fixed inset-0 z-40 bg-transparent" (click)="showNotifPanel.set(false)"></div>
-                  }
+                  <div class="h-8 w-px bg-surface-border mx-2"></div>
                 </div>
-                
-                <div class="h-8 w-px bg-surface-border mx-2"></div>
               </div>
-            </div>
-          </header>
-        </div>
+            </header>
+          </div>
+
+          <!-- Support Drawer Instance -->
+          <app-support-drawer 
+            [isOpen]="isSupportDrawerOpen()" 
+            (closed)="isSupportDrawerOpen.set(false)"
+          ></app-support-drawer>
 
         <!-- Content Area -->
         <main 
@@ -484,6 +439,7 @@ export class MainLayoutComponent {
   isMobileMenuOpen = signal(false);
   isMobile = signal(false);
   showNotifPanel = signal(false);
+  isSupportDrawerOpen = signal(false);
   notifHub = inject(NotificationHubService);
 
   constructor() {

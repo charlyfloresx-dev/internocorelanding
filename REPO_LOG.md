@@ -10,7 +10,18 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 - **Help Center AI (Fase 8 Preview)**: Integración de lógica de auto-respuesta AI para tickets de tipo `SUPPORT` en el `TicketService`.
 - **Compliance Audit**: Alcanzado 100% de cumplimiento en el `tickets_service` mediante el uso de `bypass_tenant` explícito en consultas de orquestación global.
 - **HCM Alignment**: Departamentos y áreas sincronizados con los estándares de `hcm_service`.
-- **Status**: 🔄 IN PROGRESS — Finalizing persistence of EscalationWatcher in Docker.
+- **Status**: ✅ Phase 76 COMPLETED — Industrial Monolith Unified & Frontend Mature.
+
+### [2026-05-01] Phase 76: Frontend Industrialization (UI/UX Maturity)
+- **Currency Support**: Implementación de `CurrencyService` y pipes reactivos para cambio dinámico USD/MXN con impacto en dashboards financieros.
+- **God Mode (Modo Dios)**: Despliegue de `AdminAuthService` y `GodModeGuard` para rescate técnico y overrides administrativos.
+- **Support Drawer AI**: Integración de panel de soporte lateral con gestión de tickets industriales y simulación de respuestas AI (MCP).
+- **Backend Routing Remediator**: Eliminación de prefijos redundantes en `ticket_routes.py` para resolver errores 404 en el monolito unificado.
+- **Support Sync Protocol**: Implementación de `/config/constants` para sincronización dinámica de enums industriales (Status, Priority, Type).
+- **Reactive Support Engine**: Refactorización de `SupportService` usando Angular Signals y Effects para gestión de tickets y chat en tiempo real.
+- **Industrial Localization (i18n)**: Soporte completo ES/EN para el centro de ayuda, dashboard y drawers globales.
+- **Excel Mode Enhancement**: Refactorización de `InventoryDocumentComponent` para alta densidad de datos y contraste industrial.
+- **Global UI Integration**: Unificación del comando global (Idioma, Moneda, Soporte) en el `MainLayout`.
 
 ### [2026-05-01] Phase 75: Tickets Service — Remediación Crítica & Expansión Operacional
 - **Remediación de Precisión Financiera**: Migración de `float` a `Numeric(18, 8)` en `cost_estimate` del modelo `Ticket` y `Decimal` en DTOs para eliminar descuadres de Kardex.
@@ -80,10 +91,10 @@ Desde abril de 2026, el sistema rige la existencia de cualquier producto bajo un
 ## 📡 Mapa de Infraestructura (Puertos Core)
 | Servicio | Puerto | Función Crítica |
 | :--- | :--- | :--- |
-| **Auth** | 8001 | Handshake T1/T2 y Rotación de JWT. |
-| **Master Data** | 8003 | SSOT de Productos y Catálogos Corporativos. |
-| **HCM/HR** | 8004 | Identidad Física y Gestión de Colaboradores. |
-| **Inventory** | 8006 | Ledger inmutable y Saldos (Kardex). |
+| **Monolith** | 8000 | Motor Unificado (Auth, Master, Inv, MES, Tickets). |
+| **Auth** | 8001 | Microservicio (Legacy/Separate Mode). |
+| **Master Data** | 8003 | Microservicio (Legacy/Separate Mode). |
+| **Inventory** | 8006 | Microservicio (Legacy/Separate Mode). |
 | **Subscription** | 8002 | Gestión de Billing y Lockdowns L7. |
 
 ### 🗓️ Marzo 2026: Identidad Triple y Seguridad Zero-Trust

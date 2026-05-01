@@ -27,6 +27,13 @@ Industrialize the Tickets Service by implementing dynamic escalation rules and A
 - **Financial Precision**: Refactored `cost_estimate` to `Numeric(18, 8)` for Kardex alignment.
 - **HMAC Security**: Implemented SHA-256 HMAC validation for internal service-to-service ticket creation.
 - **Audit Service**: Standardized tracking via `AuditService.track()` across all command handlers.
+- **Routing Remediation**: Resolved 404 errors by removing redundant `/tickets` prefix in `ticket_routes.py`, aligning with monolith mounting patterns.
+
+#### 5. Frontend & Sync (Angular 19)
+- **Support Sync Protocol**: Implemented dynamic enum synchronization (Status, Priority, Type) via `/config/constants`.
+- **Reactive Support Engine**: Refactored `SupportService` with Signals/Effects for real-time ticket management.
+- **Industrial Localization**: Full ES/EN support for Support Drawer and Tickets Dashboard.
+- **Layout Stabilization**: Repaired `MainLayoutComponent` template and integrated global support access.
 
 ---
 

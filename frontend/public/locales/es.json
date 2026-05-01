@@ -208,6 +208,44 @@
       }
     }
   },
+  "support": {
+    "drawer_title": "Soporte Técnico",
+    "drawer_subtitle": "Centro de Ayuda AI",
+    "my_tickets": "Mis Tickets",
+    "new_ticket": "Nuevo Ticket",
+    "back_to_list": "Volver al historial",
+    "subject_label": "Asunto",
+    "priority_label": "Prioridad",
+    "description_label": "Descripción",
+    "create_button": "Crear Ticket",
+    "creating": "Creando...",
+    "chat_placeholder": "Escribe un mensaje...",
+    "empty_tickets": "No hay tickets activos",
+    "mcp_active": "Servicio Unificado Activo",
+    "status": {
+      "new": "Nuevo",
+      "in_progress": "En proceso",
+      "resolved": "Resuelto",
+      "closed": "Cerrado"
+    },
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
+    },
+    "dashboard": {
+      "title": "Centro de Soporte Industrial",
+      "subtitle": "Gestión de tickets, escalaciones y mantenimiento preventivo.",
+      "open_tickets": "Tickets Abiertos",
+      "in_progress": "En Proceso",
+      "resolved_today": "Resueltos Hoy",
+      "sla_risk": "SLA en Riesgo",
+      "search_placeholder": "Buscar por folio o descripción...",
+      "filter_priority": "Prioridad: Todas",
+      "filter_status": "Estado: Todos"
+    }
+  },
   "common": {
     "refresh": "Actualizar Datos",
     "menu": "Menú",

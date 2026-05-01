@@ -26,6 +26,7 @@ from common.config import settings
 from common.models import Company, BusinessGroup
 from common.enums import MovementType, ProductType
 from auth_app.models.user import User
+from auth_app.models.user_credential import UserCredential
 from auth_app.models.role import Role
 from auth_app.models.user_company_role import UserCompanyRole
 from auth_app.core.security import hash_password
@@ -151,12 +152,25 @@ async def seed_auth(session):
 
     if not await session.get(User, CHARLY_ID):
         charly = User(
-            id=CHARLY_ID, email="charly@interno.com",
-            hashed_password=hash_password("charly123"),
-            company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID,
-            version_id=1, is_active=True
+            id=CHARLY_ID,
+            first_name="Charly",
+            last_name_pat="Flores",
+            version_id=1,
+            is_active=True
         )
-        await _safe_add(session, charly, "Usuario: charly@interno.com")
+        await _safe_add(session, charly, "Usuario (Perfil): Charly Flores")
+
+        # Credenciales de Auth
+        charly_cred = UserCredential(
+            id=uuid.uuid4(),
+            user_id=CHARLY_ID,
+            email="charly@interno.com",
+            credential_type="PASSWORD",
+            hashed_password=hash_password("charly123"),
+            version_id=1,
+            is_active=True
+        )
+        await _safe_add(session, charly_cred, "Usuario (Auth): charly@interno.com")
 
         if role_admin:
             for sys_co_id in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID]:

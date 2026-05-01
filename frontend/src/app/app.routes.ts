@@ -34,6 +34,10 @@ export const routes: Routes = [
         loadComponent: () => import('./modules/monitor/resource-monitor.component').then(m => m.ResourceMonitorComponent)
       },
       {
+        path: 'monitor/tickets',
+        loadComponent: () => import('./modules/monitor/tickets/tickets-dashboard.component').then(m => m.TicketsDashboardComponent)
+      },
+      {
         path: 'inventory',
         children: [
           {

@@ -1,66 +1,46 @@
-# InternoCore: Frontend Status Report 2026-05-01
+# InternoCore Frontend Industrialization — Status Report [2026-05-01]
 
-## 📊 Completitud por Módulo (Angular 21 Zoneless)
+## 🚀 Overview
+The frontend has reached **Phase 76 Stabilization** with the implementation of critical industrial features for multi-tenant operations. The system now supports dynamic financial valuation, administrative rescue modes, and AI-assisted support.
 
-| Módulo | Ruta | Completitud | Estado | Descripción |
-| :--- | :--- | :--- | :--- | :--- |
-| **auth** | `/auth` | 100% | ✅ | T1/T2 Handshake, JWT Rotation, Tenant Selection. |
-| **core** | N/A | 95% | ✅ | Design System (Glassmorphism), Signals, Interceptors. |
-| **inventory** | `/inventory` | 95% | ✅ | Full WMS Loop: Inbound, Put-away, Picking, Shipping, Audit. |
-| **catalog** | `/catalog` | 95% | ✅ | Pricing Matrix, Product SSOT, UOM Resolution. |
-| **investments** | `/investments` | 85% | ✅ | Asset Manager Kanban, ROI Tooltips, GIS Mapping. |
-| **dashboard** | `/home` | 90% | ✅ | Reactive Widgets, Operational Control Tower. |
-| **production** | `/production` | 80% | 🟡 | MES Workstation UI, StopLog foundation. |
-| **admin** | `/admin` | 85% | ✅ | User management, Company settings, Role mapping. |
-| **shared** | N/A | 100% | ✅ | Reusable components, SecureImage Pipe, Forms. |
+## 💰 1. Financial Intelligence: Currency Support
+Enables real-time fiscal and operational valuation in multiple currencies.
+- **Service**: `CurrencyService` handles conversion rates (USD/MXN), precision rounding, and session persistence.
+- **Pipe**: `CurrencyFormatPipe` provides reactive formatting across the UI.
+- **Integration**:
+  - **Inventory Dashboard**: Total stock value displayed in the selected currency.
+  - **Inventory Documents**: Column-level currency conversion for movement totals.
 
----
+## ⚡ 2. Governance: God Mode & Master Admin
+A specialized tier of administrative access for technical recovery and high-level tenant management.
+- **Auth**: `AdminAuthService` manages a volatile high-security state.
+- **Guard**: `GodModeGuard` isolates administrative routes from standard users.
+- **Actions**:
+  - **Force Assign**: Re-assignment of locked industrial tickets.
+  - **Role Update**: Immediate elevation/demotion of tenant roles.
+  - **Subscription Override**: Manual bypass of subscription lockdowns for emergency operations.
+- **UI**: `GodModeComponent` provides a "Glassmorphic" command center with forensic logs.
 
-## 🔍 ¿Qué le falta a cada módulo?
+## 🤖 3. Industrial Support: AI Support Drawer
+A side-panel integration for managing support lifecycles within the MES/ERP context.
+- **Models**: `SupportModels` defines Ticket/Message schemas for the industrial backlog.
+- **Service**: `SupportService` orchestrates the local ticket state and simulates AI responses based on common issues (MCP Integration Ready).
+- **UI**: `SupportDrawerComponent` implements a premium sidebar chat interface and ticket creation form.
 
-### production
-- [ ] Integración con eventos de tiempo real de sensores/PLC.
-- [ ] Dashboard de OEE en tiempo real por estación.
+## 🔐 4. Security: Update Password
+Streamlined recovery flow for industrial operators.
+- **Component**: `UpdatePasswordComponent` with real-time password strength validation and industrial feedback loops.
 
-### inventory
-- [ ] Soporte Offline para scanners en zonas de baja cobertura.
-- [ ] Impresión directa de etiquetas ZPL desde el navegador.
-
-### investments
-- [ ] Integración directa con el API del RPPC para verificación de títulos.
-- [ ] Generación de reportes PDF de valuación inmobiliaria.
-
----
-
-## 🛠️ Cobertura Funcional Frontend→Backend
-
-| Capacidad | Alineación | Descripción |
-| :--- | :--- | :--- |
-| **Auth T1/T2** | 100% | Sincronización perfecta con `auth_service`. |
-| **WMS Loop** | 95% | Validado contra `inventory_service` Ledger. |
-| **Reactive Lockdowns** | 100% | Signals reaccionan a claims de suscripción (402). |
-| **Pricing Engine** | 90% | Sincronizado con Matrix inmutable del backend. |
+## 🎨 5. Global UI/UX & Styles
+- **Layout**: `MainLayout` updated to include the "Global Command Bar" (Language, Currency, Support, Notifications).
+- **Animations**: Added `pulse-glow` and `industrial-fade` in `styles.css`.
+- **Excel Mode**: `InventoryDocumentComponent` refactored for high-density data entry with improved contrast and `bg-surface` compliance.
 
 ---
 
-## 🔴 Bloqueos Principales
-
-| Prioridad | Bloqueo | Módulo Afectado |
-| :--- | :--- | :--- |
-| 🟡 **Medium** | Integración de Sensores en Piso | `production` |
-| 🟢 **Low** | Refactorización de CSS redundante | Global |
-
----
-
-## 📈 Resumen Comparativo Backend vs Frontend
-
-| Capa | Completitud Promedio | Estado Global |
-| :--- | :--- | :--- |
-| **Backend** | 92% | ✅ Estable |
-| **Frontend** | 91% | ✅ Estable |
-
----
-
-**Stack**: Angular 21 (Zoneless, Signals), TailwindCSS, Glassmorphism.
-**Estimado Global: 91.5%**
-**Fecha: 2026-05-01**
+### ⚠️ Integration Recommendations (Local Agent)
+To maintain build integrity, follow this dependency order when performing refactors or updates:
+1. **Models & Types**: Ensure `support.types.ts` is loaded first.
+2. **Services**: Load `CurrencyService` and `SupportService` before components.
+3. **Pipes & Shared**: Ensure `CurrencyFormatPipe` is registered in `SharedModule`.
+4. **Components**: Deploy UI components last.

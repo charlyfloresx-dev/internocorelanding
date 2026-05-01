@@ -3,11 +3,11 @@ import logging
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies.database import SessionLocal
-from app.infrastructure.repositories.ticket_repository import SQLAlchemyTicketRepository
-from app.infrastructure.repositories.escalation_repository import SQLAlchemyEscalationRepository
-from app.services.escalation_service import EscalationConfigService
-from app.core.constants import TicketStatus
+from tickets_app.dependencies.database import SessionLocal
+from tickets_app.infrastructure.repositories.ticket_repository import SQLAlchemyTicketRepository
+from tickets_app.infrastructure.repositories.escalation_repository import SQLAlchemyEscalationRepository
+from tickets_app.services.escalation_service import EscalationConfigService
+from tickets_app.core.constants import TicketStatus
 
 from common.services.audit_service import AuditService
 import hashlib

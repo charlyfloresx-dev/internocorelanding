@@ -33,10 +33,33 @@ services:
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - CORE_BACKEND_CORS_ORIGINS=["http://localhost:4200","http://localhost:8080"]
-      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service
+      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service
     depends_on:
       postgres-db:
         condition: service_healthy
+    networks:
+      - interno-network
+
+  tickets-escalation-worker:
+    build:
+      context: ../backend
+      dockerfile: Monolith.Dockerfile
+    container_name: tickets-escalation-worker
+    image: interno-monolith:latest
+    restart: always
+    command: python tickets_service/scripts/escalation_watcher.py
+    volumes:
+      - ../backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      interno-monolith:
+        condition: service_started
     networks:
       - interno-network
 

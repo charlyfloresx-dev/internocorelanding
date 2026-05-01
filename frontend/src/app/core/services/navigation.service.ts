@@ -97,6 +97,15 @@ export class NavigationService {
       ]
     },
     {
+      id: 'support',
+      label: 'Soporte y Mantenimiento',
+      translation_key: 'menu.support',
+      icon: 'confirmation_number',
+      subItems: [
+        { id: 'sup-tickets', label: 'Centro de Tickets', translation_key: 'menu.support_tickets', route: '/monitor/tickets' }
+      ]
+    },
+    {
       id: 'investments',
       label: 'Inversiones (CRM)',
       translation_key: 'menu.investments',

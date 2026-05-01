@@ -206,6 +206,44 @@
       }
     }
   },
+  "support": {
+    "drawer_title": "Technical Support",
+    "drawer_subtitle": "AI Help Center",
+    "my_tickets": "My Tickets",
+    "new_ticket": "New Ticket",
+    "back_to_list": "Back to history",
+    "subject_label": "Subject",
+    "priority_label": "Priority",
+    "description_label": "Description",
+    "create_button": "Create Ticket",
+    "creating": "Creating...",
+    "chat_placeholder": "Type a message...",
+    "empty_tickets": "No active tickets",
+    "mcp_active": "Unified Service Active",
+    "status": {
+      "new": "New",
+      "in_progress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "dashboard": {
+      "title": "Industrial Support Center",
+      "subtitle": "Ticket management, escalations and preventive maintenance.",
+      "open_tickets": "Open Tickets",
+      "in_progress": "In Progress",
+      "resolved_today": "Resolved Today",
+      "sla_risk": "SLA at Risk",
+      "search_placeholder": "Search by folio or description...",
+      "filter_priority": "Priority: All",
+      "filter_status": "Status: All"
+    }
+  },
   "common": {
     "refresh": "Refresh Data",
     "menu": "Menu",

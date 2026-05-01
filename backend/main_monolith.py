@@ -14,7 +14,14 @@ from slowapi.errors import RateLimitExceeded
 
 # 1. Configurar PYTHONPATH para incluir TODAS las carpetas de servicios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-services = ["auth_service", "master_data_service", "inventory_service", "notification_service"]
+services = [
+    "auth_service", 
+    "master_data_service", 
+    "inventory_service", 
+    "notification_service",
+    "tickets_service",
+    "mes_service"
+]
 for s in services:
     path = os.path.join(BASE_DIR, s)
     if path not in sys.path:
@@ -68,6 +75,18 @@ async def lifespan(app: FastAPI):
         
         # Notification Models
         import notification_app.models.notification
+
+        # Tickets Models
+        import tickets_app.models.ticket
+        import tickets_app.models.escalation_rule
+        import tickets_app.models.comments
+        
+        # MES Models
+        import mes_app.models.work_order
+        import mes_app.models.downtime
+        import mes_app.models.labor
+        import mes_app.models.shift
+
     except Exception as e:
         logging.warning(f"⚠️ Algunos modelos no pudieron ser pre-cargados: {e}")
 
@@ -102,8 +121,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="InternoCore Unified Monolith",
-    description="Unified Backend Engine for Auth, Master Data, Inventory and Notifications.",
-    version="3.3.0-industrial",
+    description="Unified Backend Engine for Auth, Master Data, Inventory, Tickets and MES.",
+    version="3.4.0-industrial",
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -144,7 +163,11 @@ async def global_unexpected_exception_handler(request: Request, exc: Exception):
 
 # 1. Auth
 from auth_app.api.v1.endpoints.auth import router as auth_router
+from auth_app.api.v1.endpoints.companies import router as companies_router
+from auth_app.api.v1.endpoints.users import router as users_router
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(companies_router, prefix="/api/v1/companies", tags=["Auth: Companies"])
+app.include_router(users_router, prefix="/api/v1/users", tags=["Auth: Users"])
 
 # 2. Master Data
 from master_app.api.v1.endpoints import products, prices, uom_router, categories, brands, concepts, warehouses, partners, gis_validator, locations
@@ -179,9 +202,24 @@ app.include_router(inter_company_transfers.router, prefix="/api/v1/inventory/tra
 from notification_app.api.v1.endpoints import notifications as notification_endpoints
 app.include_router(notification_endpoints.router, prefix="/api/v1/notifications", tags=["Notifications: Real-Time & History"])
 
+# 5. Tickets
+from tickets_app.routers import ticket_routes
+app.include_router(ticket_routes.router, prefix="/api/v1/tickets", tags=["Industrial: Tickets"])
+
+# 6. MES
+from mes_app.api.v1.endpoints import scan, dashboard as mes_dashboard, labor, downtime, work_order as mes_orders, sync as mes_sync, resource, shift
+app.include_router(scan.router, prefix="/api/v1/mes", tags=["MES: Scan"])
+app.include_router(mes_dashboard.router, prefix="/api/v1/mes/dashboard", tags=["MES: Dashboard"])
+app.include_router(labor.router, prefix="/api/v1/mes/labor", tags=["MES: Labor"])
+app.include_router(downtime.router, prefix="/api/v1/mes/downtime", tags=["MES: Downtime"])
+app.include_router(mes_orders.router, prefix="/api/v1/mes/orders", tags=["MES: Work Orders"])
+app.include_router(mes_sync.router, prefix="/api/v1/mes", tags=["MES: Sync"])
+app.include_router(resource.router, prefix="/api/v1/mes/resources", tags=["MES: Resources"])
+app.include_router(shift.router, prefix="/api/v1/mes/shifts", tags=["MES: Shifts"])
+
 @app.get("/")
 async def root():
-    return {"message": "InternoCore Unified Monolith is running", "services": ["Auth", "Master Data", "Inventory", "Notifications"], "docs": "/api/docs"}
+    return {"message": "InternoCore Unified Monolith is running", "services": ["Auth", "Master Data", "Inventory", "Notifications", "Tickets", "MES"], "docs": "/api/docs"}
 
 @app.get("/health")
 async def health():

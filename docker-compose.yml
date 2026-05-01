@@ -202,6 +202,7 @@ services:
       dockerfile: tickets_service/Dockerfile
     container_name: tickets-escalation-worker
     image: interno-backend-tickets-service:latest
+    restart: always
     command: python scripts/escalation_watcher.py
     volumes:
       - ./backend/tickets_service:/app/tickets_service
