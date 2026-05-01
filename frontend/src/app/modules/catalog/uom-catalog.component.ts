@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -6,12 +6,13 @@ import { MasterDataService, UOM, ApiResponse } from '../../core/services/master-
 import { NotificationService } from '../../core/services/notification.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { UomModalComponent } from '../../shared/components/uom-modal.component';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
+import { UomFormComponent } from '../../shared/components/uom-form.component';
 
 @Component({
   selector: 'app-uom-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, UomModalComponent],
+  imports: [CommonModule, MatIconModule, FormsModule],
   template: `
     <div class="p-8 space-y-8 animate-fade-in">
       <!-- Header: Control Grid Style -->
@@ -64,11 +65,6 @@ import { UomModalComponent } from '../../shared/components/uom-modal.component';
           </button>
         </div>
       </div>
-
-      <!-- Modal Wrapper -->
-      @if (isModalVisible()) {
-        <app-uom-modal #uomModal (saved)="onUomSaved($event)"></app-uom-modal>
-      }
 
       <!-- Control Grid Table -->
       <div class="industrial-card overflow-hidden">
@@ -181,9 +177,7 @@ export class UomCatalogComponent implements OnInit {
   loading = signal(false);
   searchQuery = '';
   statusFilter = 'ALL';
-  isModalVisible = signal(false);
-
-  @ViewChild('uomModal') uomModal!: UomModalComponent;
+  drawerService = inject(SideDrawerService);
 
   filteredUoms = computed(() => {
     let list = this.uoms();
@@ -208,6 +202,7 @@ export class UomCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadUoms();
+    this.drawerService.refresh$.subscribe(() => this.loadUoms());
   }
 
   t(key: string, fallback: string): string {
@@ -239,25 +234,26 @@ export class UomCatalogComponent implements OnInit {
   }
 
   onViewDetails(uom: UOM) {
-    this.notifications.info('Vista de Solo Lectura', `Visualizando detalles de ${uom.name}. Los registros globales no pueden ser modificados.`);
+    this.drawerService.open(UomFormComponent, {
+      title: 'Detalles de Unidad',
+      subtitle: 'Vista de Solo Lectura',
+      icon: 'straighten'
+    }, { item: uom });
   }
 
   openAddModal() {
-    this.isModalVisible.set(true);
-    setTimeout(() => {
-      this.uomModal.open();
+    this.drawerService.open(UomFormComponent, {
+      title: 'Nueva Unidad',
+      subtitle: 'Configuración de Magnitud',
+      icon: 'add_circle'
     });
   }
 
   onEditUom(uom: UOM) {
-    this.isModalVisible.set(true);
-    setTimeout(() => {
-      this.uomModal.open(uom);
-    });
-  }
-
-  onUomSaved(uom: UOM) {
-    this.loadUoms();
-    this.isModalVisible.set(false);
+    this.drawerService.open(UomFormComponent, {
+      title: 'Editar Unidad',
+      subtitle: 'Modificación de Magnitud',
+      icon: 'edit_square'
+    }, { item: uom });
   }
 }

@@ -1,16 +1,17 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { MasterDataService, Category, Brand } from '../../core/services/master-data.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { TranslationService } from '../../core/services/translation.service';
-import { CategoryBrandModalComponent } from '../../shared/components/category-brand-modal.component';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
+import { CategoryBrandFormComponent } from '../../shared/components/category-brand-form.component';
 
 @Component({
   selector: 'app-category-brand-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, CategoryBrandModalComponent],
+  imports: [CommonModule, MatIconModule, FormsModule],
   template: `
     <div class="p-8 space-y-8 animate-fade-in">
       <!-- Header: Control Grid Style -->
@@ -63,11 +64,6 @@ import { CategoryBrandModalComponent } from '../../shared/components/category-br
           </button>
         </div>
       </div>
-
-      <!-- Modal Wrapper -->
-      @if (isModalVisible()) {
-        <app-category-brand-modal #catBrandModal (saved)="onSaved($event)"></app-category-brand-modal>
-      }
 
       <!-- Tabs -->
       <div class="flex items-center gap-2 p-1 bg-surface-bg border border-surface-border rounded-2xl w-fit">
@@ -202,9 +198,7 @@ export class CategoryBrandCatalogComponent implements OnInit {
   brands = signal<Brand[]>([]);
   searchQuery = '';
   statusFilter = 'ALL';
-  isModalVisible = signal(false);
-
-  @ViewChild('catBrandModal') catBrandModal!: CategoryBrandModalComponent;
+  drawerService = inject(SideDrawerService);
 
   filteredItems = computed(() => {
     const list = this.activeTab() === 'categories' ? this.categories() : this.brands();
@@ -229,6 +223,10 @@ export class CategoryBrandCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadData();
+    // Listen for refreshes from the drawer
+    this.drawerService.refresh$.subscribe(() => {
+      this.loadData();
+    });
   }
 
   t(key: string, fallback: string): string {
@@ -259,21 +257,26 @@ export class CategoryBrandCatalogComponent implements OnInit {
   }
 
   onViewDetails(item: Category | Brand) {
-    this.notifications.info('Vista de Solo Lectura', `Visualizando detalles de ${item.name}. Los registros globales no pueden ser modificados.`);
+    this.drawerService.open(CategoryBrandFormComponent, {
+      title: this.activeTab() === 'categories' ? 'Detalles de Categoría' : 'Detalles de Marca',
+      subtitle: 'Vista de Solo Lectura',
+      icon: this.activeTab() === 'categories' ? 'folder' : 'diamond'
+    }, { context: this.activeTab(), item });
   }
 
   openAddModal() {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.catBrandModal.open(this.activeTab()));
+    this.drawerService.open(CategoryBrandFormComponent, {
+      title: this.activeTab() === 'categories' ? 'Nueva Categoría' : 'Nueva Marca',
+      subtitle: 'Administración de Taxonomía',
+      icon: 'add_circle'
+    }, { context: this.activeTab() });
   }
 
   onEditItem(item: Category | Brand) {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.catBrandModal.open(this.activeTab(), item));
-  }
-
-  onSaved(item: Category | Brand) {
-    this.loadData();
-    this.isModalVisible.set(false);
+    this.drawerService.open(CategoryBrandFormComponent, {
+      title: this.activeTab() === 'categories' ? 'Editar Categoría' : 'Editar Marca',
+      subtitle: 'Modificación de Atributos',
+      icon: 'edit_square'
+    }, { context: this.activeTab(), item });
   }
 }

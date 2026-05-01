@@ -1,17 +1,19 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { MasterDataService, Partner, PartnerType } from '../../core/services/master-data.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { PartnerModalComponent } from '../../shared/components/partner-modal.component';
 import { TranslationService } from '../../core/services/translation.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
+import { PartnerFormComponent } from '../../shared/components/partner-form.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-partner-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, PartnerModalComponent],
+  imports: [CommonModule, MatIconModule, FormsModule],
   template: `
     <div class="p-8 space-y-8 animate-fade-in">
       <!-- Header -->
@@ -61,7 +63,7 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
 
           <button 
-            (click)="openAddPartnerModal()"
+            (click)="openAddPartner()"
             class="flex items-center gap-3 px-8 py-3 bg-primary text-white dark:text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
           >
             <mat-icon class="text-sm">person_add</mat-icon>
@@ -140,7 +142,7 @@ import { AuthService } from '../../core/services/auth.service';
                         <mat-icon class="text-sm">history</mat-icon>
                       </button>
                       <button 
-                        (click)="openEditPartnerModal(partner)"
+                        (click)="openEditPartner(partner)"
                         class="p-2 hover:bg-primary/10 text-primary rounded-xl transition-all"
                       >
                         <mat-icon class="text-sm">edit</mat-icon>
@@ -154,11 +156,6 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
       </div>
     </div>
-
-    <!-- NEW PARTNER MODAL -->
-    @if (isAddingPartner()) {
-      <app-partner-modal #partnerModal (onSaved)="onPartnerSaved($event)" (onClosed)="closeModal()"></app-partner-modal>
-    }
   `,
   styles: [`
     :host { display: block; }
@@ -171,19 +168,18 @@ import { AuthService } from '../../core/services/auth.service';
     }
   `]
 })
-export class PartnerCatalogComponent implements OnInit {
-  masterData = inject(MasterDataService);
-  notifications = inject(NotificationService);
-  translation = inject(TranslationService);
-  auth = inject(AuthService);
+export class PartnerCatalogComponent implements OnInit, OnDestroy {
+  private masterData = inject(MasterDataService);
+  private notifications = inject(NotificationService);
+  private translation = inject(TranslationService);
+  private auth = inject(AuthService);
+  private drawerService = inject(SideDrawerService);
+  private refreshSub?: Subscription;
 
   partners = signal<Partner[]>([]);
   loading = signal(false);
   searchQuery = '';
   filterType = signal<'ALL' | 'SUPPLIER' | 'CUSTOMER'>('ALL');
-
-  isAddingPartner = signal(false);
-  @ViewChild('partnerModal') partnerModal!: PartnerModalComponent;
 
   isAdmin = computed(() => this.auth.roles().includes('admin'));
 
@@ -208,6 +204,11 @@ export class PartnerCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadPartners();
+    this.refreshSub = this.drawerService.refresh$.subscribe(() => this.loadPartners());
+  }
+
+  ngOnDestroy() {
+    this.refreshSub?.unsubscribe();
   }
 
   t(key: string, fallback: string): string {
@@ -223,39 +224,23 @@ export class PartnerCatalogComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading partners:', err);
-        this.partners.set([
-          { id: 'p1', name: 'Industrial Solutions S.A. de C.V.', code: 'PROV-001', tax_id: 'ISU123456ABC', type: 'SUPPLIER', status: 'ACTIVE', company_id: null, last_transaction_id: 'MOV-8821' },
-          { id: 'p2', name: 'Global Logistics Mexico', code: 'PROV-002', tax_id: 'GLM987654XYZ', type: 'SUPPLIER', status: 'ACTIVE', company_id: null, last_transaction_id: 'MOV-9012' },
-          { id: 'p3', name: 'Tech Parts Corp', code: 'PROV-003', tax_id: 'TPC555444QQQ', type: 'BOTH', status: 'ACTIVE', company_id: 'tenant-1', last_transaction_id: 'MOV-9944' },
-          { id: 'p4', name: 'Automotriz del Bajío', code: 'CLI-001', tax_id: 'ABA111222333', type: 'CUSTOMER', status: 'ACTIVE', company_id: 'tenant-1', last_transaction_id: 'MOV-1023' }
-        ] as Partner[]);
         this.loading.set(false);
       }
     });
   }
 
-  // === NEW PARTNER METHODS ===
-  openAddPartnerModal() {
-    this.isAddingPartner.set(true);
-    setTimeout(() => {
-      const defaultType = this.filterType() === 'ALL' ? PartnerType.BOTH : this.filterType() as unknown as PartnerType;
-      this.partnerModal.open(defaultType);
-    });
+  openAddPartner() {
+    const defaultType = this.filterType() === 'ALL' ? PartnerType.BOTH : this.filterType() as unknown as PartnerType;
+    this.drawerService.open(PartnerFormComponent, { 
+      title: 'Alta de Socio',
+      icon: 'person_add'
+    }, { defaultType });
   }
 
-  openEditPartnerModal(partner: Partner) {
-    this.isAddingPartner.set(true);
-    setTimeout(() => {
-      this.partnerModal.open(PartnerType.BOTH, partner);
-    });
-  }
-
-  closeModal() {
-    this.isAddingPartner.set(false);
-  }
-
-  onPartnerSaved(newPartner: Partner) {
-    this.loadPartners(); // Refresh list
-    this.isAddingPartner.set(false);
+  openEditPartner(partner: Partner) {
+    this.drawerService.open(PartnerFormComponent, { 
+      title: 'Edición de Socio',
+      icon: 'edit'
+    }, { partner });
   }
 }

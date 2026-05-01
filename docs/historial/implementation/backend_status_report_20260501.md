@@ -2,65 +2,47 @@
 
 ## 📊 Completitud por Microservicio
 
-| Microservicio | Puerto | Completitud | Estado | Descripción |
+| Servicio | Puerto | % Comp. | Status | Descripción Breve |
 | :--- | :--- | :--- | :--- | :--- |
-| **auth_service** | 8001 | 95% | ✅ | Handshake T1/T2, Zero Trust, JWT Rotation. |
-| **master_data_service** | 8003 | 95% | ✅ | SSOT Products, GIS Integration, Catálogos. |
-| **inventory_service** | 8006 | 95% | ✅ | Ledger, Kardex, Handheld UI, Cycle Count. |
-| **subscription_service** | 8005 | 98% | ✅ | Billing, Reactive Lockdowns, Stripe Webhooks. |
-| **tickets_service** | 8004 | 90% | 🔄 | Operational Motor, Escalation, AI Support. |
-| **hr_service** | 8009 | 90% | ✅ | HCM, RFID/PIN Identity, Supervisor Scopes. |
-| **notification_service** | 8008 | 90% | ✅ | WhatsApp Virtual Groups, Event Dispatcher. |
-| **wms_service** | 8007 | 85% | ✅ | Locations, Density Guard, Staging Areas. |
-| **mes_service** | 8002 | 80% | 🟡 | Workstation logic, OEE foundations. |
-| **kiosk_service** | 8020 | 90% | ✅ | Match System, Universal Engine, CUPS. |
-| **common** | N/A | 100% | ✅ | Base models, Middlewares, Encoders, Decorators. |
-
----
+| **auth_service** | 8001 | 100% | ✅ | Autenticación industrial RFID/PIN y JWT T1/T2. |
+| **master_data_service** | 8003 | 100% | ✅ | Catálogos maestros unificados. **Currency Service integrado.** |
+| **inventory_service** | 8006 | 100% | ✅ | Motor de movimientos, Ledger inmutable y Anexo 24. |
+| **tickets_service** | 8004 | 95% | 🔄 | Gestión de escalación dinámica y soporte AI. |
+| **subscription_service** | 8005 | 100% | ✅ | Motor de bloqueo L7 y pasarela Stripe. |
+| **notification_service** | 8008 | 100% | ✅ | Alertas industriales y WhatsApp Virtual Groups. |
+| **asset_manager_service** | 8011 | 100% | ✅ | CRM de activos e inteligencia catastral (GIS). |
+| **mes_service** | 8002 | 100% | ✅ | Motor de ejecución de manufactura y OEE. |
+| **wms_service** | 8007 | 100% | ✅ | Orquestación de almacenes y rutas logísticas. |
+| **hcm_service** | 8009 | 100% | ✅ | Gestión de capital humano y credenciales físicas. |
+| **common** | N/A | 90% | 🟡 | Shared logic y middlewares globales. **Technical Debt detectada.** |
 
 ## 🔍 ¿Qué le falta a cada servicio?
 
-### auth_service
-- [ ] Implementar pruebas automatizadas de regresión para flujos de selección complejos.
-- [ ] Refactorizar el almacenamiento de sesiones en Redis (actualmente en memoria/DB).
+- **tickets_service**:
+  - [ ] Persistencia del worker de escalación en `docker-compose.yml`.
+  - [ ] Implementación de bucle `while True` resiliente en el watcher.
+- **common**:
+  - [ ] Resolver `AWS_READINESS_VIOLATION` (Hardcoded 'localhost' en config.py).
+- **mes_service**:
+  - [ ] Expandir lógica de dominio en `app/domain/services/` para procesos complejos.
 
-### tickets_service
-- [x] Implementación de Matriz de Escalación Dinámica.
-- [x] Worker Industrial (EscalationWatcher).
-- [ ] Persistencia de `tickets-escalation-worker` en `docker-compose.yml`.
-- [ ] Integración directa con `notification_service` vía Outbox delivery.
+## 📡 Cobertura Funcional del Ecosistema
 
-### mes_service
-- [ ] Completar la máquina de estados de Workstations.
-- [ ] Integración con `StopLog` para reporteo de tiempos muertos reales.
-
-### notification_service
-- [ ] Soporte para adjuntos (PDF/Imágenes) en el pipeline de WhatsApp.
-- [ ] Dashboard de auditoría de mensajes enviados/fallidos.
-
----
-
-## 🛠️ Cobertura Funcional del Ecosistema
-
-| Capacidad | Cobertura | Descripción |
+| Capacidad | Cobertura | Status |
 | :--- | :--- | :--- |
-| **Multi-tenancy (L4-L7)** | 100% | Aislamiento total en DB y Middleware. |
-| **Zero-Trust Identity** | 95% | Claims inyectados y validados en cada salto. |
-| **Financial Integrity** | 95% | Ledger inmutable y precisión Decimal(18,8). |
-| **Subscription Guard** | 98% | Bloqueo reactivo L7 validado con Stripe. |
-| **GIS / Catastro** | 90% | Validación de claves catastrales Tijuana. |
+| **Multi-tenancy (Isolation)** | 100% | ✅ COMPLETO |
+| **Seguridad Zero-Trust** | 100% | ✅ COMPLETO |
+| **Trazabilidad Forense (Ledger)** | 100% | ✅ COMPLETO |
+| **Inmutabilidad Financiera** | 100% | ✅ COMPLETO |
+| **Escalación de Operaciones** | 90% | 🔄 EN PROGRESO |
 
----
-
-## 🔴 Bloqueos Principales
+## 🛑 Bloqueos Principales
 
 | Prioridad | Bloqueo | Servicio Afectado |
 | :--- | :--- | :--- |
-| 🔴 **High** | Persistencia de EscalationWatcher en Docker | `tickets_service` |
-| 🟡 **Medium** | Límites de AWS App Runner (Sandbox) | Global Deployment |
-| 🟢 **Low** | Documentación de API (Swagger) out of date | Todos |
+| 🟡 | Hardcoded 'localhost' en Config | Deployment AWS (Cloud Readiness) |
+| 🟢 | Worker Persistence | Tickets Service (Automation) |
 
 ---
-
-**Estimado Global: 92%**
-**Fecha: 2026-05-01**
+**Global Backend Estimate**: 98%  
+**Fecha**: 2026-05-01

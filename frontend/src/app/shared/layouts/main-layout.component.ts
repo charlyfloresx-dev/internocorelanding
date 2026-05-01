@@ -13,11 +13,12 @@ import {CurrencyService} from '../../core/services/currency.service';
 import {SystemHealthService} from '../../core/services/system-health.service';
 import {NotificationHubService} from '../../core/services/notification-hub.service';
 import {SupportDrawerComponent} from '../../shared/components/support-drawer.component';
+import {SideDrawerComponent} from '../../shared/components/side-drawer.component';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe, SupportDrawerComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe, SupportDrawerComponent, SideDrawerComponent],
   template: `
     <div 
       [class.dark]="themeService.darkMode()"
@@ -402,6 +403,9 @@ import {SupportDrawerComponent} from '../../shared/components/support-drawer.com
             [isOpen]="isSupportDrawerOpen()" 
             (closed)="isSupportDrawerOpen.set(false)"
           ></app-support-drawer>
+
+          <!-- Generic Side Drawer Instance -->
+          <app-side-drawer></app-side-drawer>
 
         <!-- Content Area -->
         <main 

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -6,12 +6,14 @@ import { MasterDataService, Concept } from '../../core/services/master-data.serv
 import { NotificationService } from '../../core/services/notification.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { ConceptModalComponent } from '../../shared/components/concept-modal.component';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
+import { ConceptFormComponent } from '../../shared/components/concept-form.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-concept-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, ConceptModalComponent],
+  imports: [CommonModule, MatIconModule, FormsModule],
   template: `
     <div class="p-8 space-y-8 animate-fade-in">
       <!-- Header -->
@@ -44,19 +46,14 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
           </button>
 
           <button 
-            (click)="openAddModal()"
+            (click)="openAddDrawer()"
             class="flex items-center gap-3 px-8 py-3 bg-primary text-white dark:text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
           >
-            <mat-icon class="text-sm">add</mat-icon>
+            <mat-icon class="text-sm">add_circle</mat-icon>
             {{ t('catalog.concepts.new', 'Nuevo Concepto') }}
           </button>
         </div>
       </div>
-
-      <!-- Modal Wrapper -->
-      @if (isModalVisible()) {
-        <app-concept-modal #conceptModal (saved)="onConceptSaved($event)"></app-concept-modal>
-      }
 
       <!-- Control Grid Table -->
       <div class="industrial-card overflow-hidden">
@@ -170,7 +167,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
               <select 
                 id="preview-concept-select"
                 [(ngModel)]="previewConceptId"
-                class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-surface-text outline-none focus:border-primary transition-all appearance-none shadow-lg"
+                class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] text-surface-text outline-none focus:border-primary transition-all appearance-none shadow-lg cursor-pointer"
               >
                 @for (c of concepts(); track c.id) {
                   <option [value]="c.id">{{ c.name }} ({{ c.operation_type }})</option>
@@ -194,7 +191,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
                   @if (cp.requires_target_warehouse) {
                     <div class="p-4 bg-primary/10 rounded-xl border border-primary/20 animate-in slide-in-from-top-2">
                       <span class="text-[9px] text-primary uppercase font-black">Almacén Destino (Requerido)</span>
-                      <select class="w-full bg-transparent border-none text-[11px] text-surface-text font-black uppercase tracking-widest outline-none mt-1">
+                      <select class="w-full bg-transparent border-none text-[11px] text-surface-text font-black uppercase tracking-widest outline-none mt-1 cursor-pointer">
                         <option>Seleccione destino...</option>
                         @for (wh of masterData.warehouses(); track wh.id) {
                           <option>{{ wh.name }}</option>
@@ -207,7 +204,7 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
                   @if (cp.requires_external_entity) {
                     <div class="p-4 bg-amber-500/10 rounded-xl border border-amber-500/20 animate-in slide-in-from-top-2">
                       <span class="text-[9px] text-amber-500 uppercase font-black">
-                        {{ cp.type === 'IN' ? 'Proveedor' : 'Cliente' }} (Requerido)
+                        {{ cp.type === 'IN' || cp.type === 'ENTRY' ? 'Proveedor' : 'Cliente' }} (Requerido)
                       </span>
                       <div class="flex items-center gap-2 mt-1">
                         <mat-icon class="text-sm text-amber-500/50">search</mat-icon>
@@ -257,19 +254,18 @@ import { ConceptModalComponent } from '../../shared/components/concept-modal.com
     }
   `]
 })
-export class ConceptCatalogComponent implements OnInit {
-  masterData = inject(MasterDataService);
-  notifications = inject(NotificationService);
-  translation = inject(TranslationService);
-  auth = inject(AuthService);
+export class ConceptCatalogComponent implements OnInit, OnDestroy {
+  public masterData = inject(MasterDataService);
+  private notifications = inject(NotificationService);
+  private translation = inject(TranslationService);
+  private auth = inject(AuthService);
+  private drawerService = inject(SideDrawerService);
+  private refreshSub?: Subscription;
 
   concepts = signal<Concept[]>([]);
   loading = signal(false);
   searchQuery = '';
   previewConceptId = '';
-  isModalVisible = signal(false);
-
-  @ViewChild('conceptModal') conceptModal!: ConceptModalComponent;
 
   isAdmin = computed(() => this.auth.roles().includes('admin'));
 
@@ -291,6 +287,11 @@ export class ConceptCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadConcepts();
+    this.refreshSub = this.drawerService.refresh$.subscribe(() => this.loadConcepts());
+  }
+
+  ngOnDestroy() {
+    this.refreshSub?.unsubscribe();
   }
 
   t(key: string, fallback: string): string {
@@ -302,7 +303,9 @@ export class ConceptCatalogComponent implements OnInit {
     this.masterData.getConcepts().subscribe({
       next: (res) => {
         this.concepts.set(res.data);
-        if (res.data.length > 0) this.previewConceptId = res.data[0].id;
+        if (res.data.length > 0 && !this.previewConceptId) {
+          this.previewConceptId = res.data[0].id;
+        }
         this.loading.set(false);
       },
       error: (err) => {
@@ -310,22 +313,20 @@ export class ConceptCatalogComponent implements OnInit {
         this.notifications.error('Error', 'No se pudieron cargar los conceptos desde el servidor.');
         this.loading.set(false);
       }
-
     });
   }
 
-  openAddModal() {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.conceptModal.open());
+  openAddDrawer() {
+    this.drawerService.open(ConceptFormComponent, {
+      title: 'Nuevo Concepto',
+      icon: 'add_circle'
+    });
   }
 
   onEditConcept(concept: Concept) {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.conceptModal.open(concept));
-  }
-
-  onConceptSaved(concept: Concept) {
-    this.loadConcepts();
-    this.isModalVisible.set(false);
+    this.drawerService.open(ConceptFormComponent, {
+      title: 'Editar Concepto',
+      icon: 'edit'
+    }, { concept });
   }
 }

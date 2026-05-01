@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
@@ -6,12 +6,13 @@ import { MasterDataService, Warehouse } from '../../core/services/master-data.se
 import { NotificationService } from '../../core/services/notification.service';
 import { TranslationService } from '../../core/services/translation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { WarehouseModalComponent } from '../../shared/components/warehouse-modal.component';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
+import { WarehouseFormComponent } from '../../shared/components/warehouse-form.component';
 
 @Component({
   selector: 'app-warehouse-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, WarehouseModalComponent],
+  imports: [CommonModule, MatIconModule, FormsModule],
   template: `
     <div class="p-8 space-y-8 animate-fade-in">
       <!-- Header -->
@@ -52,11 +53,6 @@ import { WarehouseModalComponent } from '../../shared/components/warehouse-modal
           </button>
         </div>
       </div>
-
-      <!-- Modal Wrapper -->
-      @if (isModalVisible()) {
-        <app-warehouse-modal #whModal (saved)="onWhSaved($event)"></app-warehouse-modal>
-      }
 
       <!-- Warehouses Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -150,13 +146,11 @@ export class WarehouseCatalogComponent implements OnInit {
   notifications = inject(NotificationService);
   translation = inject(TranslationService);
   auth = inject(AuthService);
+  drawerService = inject(SideDrawerService);
 
   warehouses = signal<Warehouse[]>([]);
   loading = signal(false);
   searchQuery = '';
-  isModalVisible = signal(false);
-
-  @ViewChild('whModal') whModal!: WarehouseModalComponent;
 
   isAdmin = computed(() => this.auth.roles().includes('admin'));
 
@@ -182,6 +176,7 @@ export class WarehouseCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadWarehouses();
+    this.drawerService.refresh$.subscribe(() => this.loadWarehouses());
   }
 
   t(key: string, fallback: string): string {
@@ -229,17 +224,18 @@ export class WarehouseCatalogComponent implements OnInit {
   }
 
   openAddModal() {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.whModal.open());
+    this.drawerService.open(WarehouseFormComponent, {
+      title: 'Nuevo Almacén',
+      subtitle: 'Configuración de Nodo Logístico',
+      icon: 'add_circle'
+    });
   }
 
   onEditWh(wh: Warehouse) {
-    this.isModalVisible.set(true);
-    setTimeout(() => this.whModal.open(wh));
-  }
-
-  onWhSaved(wh: Warehouse) {
-    this.loadWarehouses();
-    this.isModalVisible.set(false);
+    this.drawerService.open(WarehouseFormComponent, {
+      title: 'Editar Almacén',
+      subtitle: 'Gestión de Capacidad y Estado',
+      icon: 'edit_square'
+    }, { item: wh });
   }
 }

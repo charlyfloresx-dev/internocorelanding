@@ -32,11 +32,11 @@
     },
     "inter_service_deps": {
         "common": [
-            "master_data_service",
-            "mes_service",
             "subscription_service",
-            "auth_service",
-            "wms_service"
+            "wms_service",
+            "mes_service",
+            "master_data_service",
+            "auth_service"
         ],
         "inventory_service": [
             "notification_service"

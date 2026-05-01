@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ViewChild, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
 import { TranslationService } from '../../core/services/translation.service';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,16 +7,14 @@ import { MasterDataService, Product, SYSTEM_USER_ID, ProductStatus, VersionStatu
 import { AuthService } from '../../core/services/auth.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
-import { ModalService } from '../../core/services/modal.service';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
 import { ProductPriceListComponent } from './product-price-list.component';
-import { ProductWizardComponent } from './product-wizard.component';
-import { ProductModalComponent } from './product-modal.component';
 import { PriceImportDashboardComponent } from './price-import-dashboard.component';
 
 @Component({
   selector: 'app-product-catalog',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatDialogModule, TranslatePipe, ProductWizardComponent, ProductModalComponent],
+  imports: [CommonModule, MatIconModule, MatDialogModule, TranslatePipe],
   template: `
     <div class="space-y-8 animate-fade-in">
       <!-- Header -->
@@ -49,9 +47,7 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
         </div>
       </div>
 
-
-
-      <!-- ── Catalog Grid ── -->
+      <!-- Catalog Grid -->
       <div class="grid grid-cols-1 gap-8">
         <div class="industrial-card glass-card border-neon-blue-30">
           <div class="p-6 border-b border-surface-border flex items-center justify-between bg-surface-bg/30">
@@ -70,7 +66,7 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
             </div>
           </div>
 
-          <div class="relative">
+          <div class="relative overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-surface-bg/50">
@@ -162,9 +158,8 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                         >
                           <mat-icon class="text-sm">payments</mat-icon>
                           @if (getMissingFields(product).length > 0) {
-                            <!-- Small amber dot indicator -->
-                            <div class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-surface-bg shadow-sm" [title]="'Faltan datos críticos: ' + getMissingFields(product).join(', ')"></div>
-                                                @if (showActiveTooltip() && getFirstMissingProductId() === product.id) {
+                            <div class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-surface-bg shadow-sm"></div>
+                            @if (showActiveTooltip() && getFirstMissingProductId() === product.id) {
                                <div class="absolute right-[110%] top-[-50px] w-72 bg-surface-bg border-4 border-amber-500 rounded-3xl p-5 shadow-[0_30px_90px_rgba(245,158,11,0.4)] z-[9999] flex flex-col gap-4 animate-fade-in text-surface-text" 
                                     style="pointer-events: all;"
                                     (click)="$event.stopPropagation()">
@@ -177,7 +172,7 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                                      <mat-icon class="text-sm">close</mat-icon>
                                    </button>
                                  </div>
-                                 <p class="text-[10px] font-bold leading-tight text-left text-surface-text">
+                                 <p class="text-[10px] font-bold leading-tight text-left">
                                    Completa la configuración maestra para habilitar la trazabilidad:
                                  </p>
                                  <div class="flex flex-wrap gap-1">
@@ -206,7 +201,6 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                                    <span class="mt-1">Logística</span>
                                  </button>
                                  
-                                 <!-- Tail pointing right (Industrial Style) -->
                                  <div class="absolute top-1/2 -translate-y-1/2 -right-[10px] w-5 h-5 bg-surface-bg border-t-4 border-r-4 border-amber-500 transform rotate-45 z-[-1]"></div>
                                </div>
                              }
@@ -214,7 +208,7 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                         </button>
                         
                         @if (masterData.isGlobal(product)) {
-                          <button class="p-2 text-surface-text-muted/30 cursor-not-allowed" [title]="'catalog.global_readonly' | translate:'Solo Lectura'">
+                          <button class="p-2 text-surface-text-muted/30 cursor-not-allowed" title="Solo Lectura">
                             <mat-icon class="text-sm">lock</mat-icon>
                           </button>
                         } @else {
@@ -225,14 +219,13 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                             <mat-icon class="text-sm">edit</mat-icon>
                           </button>
 
-                          @if (isAdmin()) {
-                            <button 
-                              class="p-2 text-surface-text-muted hover:text-red-400 transition-colors"
-                              (click)="deleteProduct(product)"
-                            >
-                              <mat-icon class="text-sm">delete</mat-icon>
-                            </button>
-                          }
+                          <button 
+                            *ngIf="isAdmin()"
+                            class="p-2 text-surface-text-muted hover:text-red-400 transition-colors"
+                            (click)="deleteProduct(product)"
+                          >
+                            <mat-icon class="text-sm">delete</mat-icon>
+                          </button>
                         }
                       </div>
                     </td>
@@ -241,9 +234,9 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                   <!-- Detail View (Versions) -->
                   @if (isExpanded(product.id)) {
                     <tr class="bg-black/20">
-                      <td colspan="6" class="px-12 py-6">
+                      <td colspan="7" class="px-12 py-6">
                         <div class="border-l-2 border-primary/30 pl-6 space-y-4">
-                          <h3 class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">{{ 'catalog.versions.history' | translate:'Historial de Versiones' }}</h3>
+                          <h3 class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Historial de Versiones</h3>
                           
                           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @for (version of product.versions; track version.id) {
@@ -262,16 +255,16 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                                     {{ version.is_active ? 'check_circle' : 'radio_button_unchecked' }}
                                   </mat-icon>
                                   <span class="text-[9px] font-bold uppercase tracking-widest" [class.text-surface-text]="version.is_active" [class.text-surface-text-muted]="!version.is_active">
-                                    {{ (version.is_active ? 'catalog.versions.active' : 'catalog.versions.inactive') | translate:(version.is_active ? 'Activa' : 'Inactiva') }}
+                                    {{ version.is_active ? 'Activa' : 'Inactiva' }}
                                   </span>
                                 </div>
                                 <p class="text-[9px] text-surface-text-muted italic leading-relaxed">
-                                  {{ version.change_reason || ('catalog.versions.no_description' | translate:'Sin descripción') }}
+                                  {{ version.change_reason || 'Sin descripción' }}
                                 </p>
                               </div>
                             } @empty {
                               <div class="col-span-full py-4 text-center border border-dashed border-surface-border rounded-lg">
-                                <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">{{ 'catalog.versions.empty' | translate:'No hay versiones' }}</span>
+                                <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">No hay versiones</span>
                               </div>
                             }
                           </div>
@@ -281,10 +274,10 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
                   }
                 } @empty {
                   <tr>
-                    <td colspan="6" class="px-6 py-12 text-center">
+                    <td colspan="7" class="px-6 py-12 text-center">
                       <div class="flex flex-col items-center gap-2">
                         <mat-icon class="text-surface-text-muted/20 text-4xl h-10 w-10">inventory_2</mat-icon>
-                        <span class="text-xs font-bold text-surface-text-muted uppercase tracking-widest">{{ 'catalog.empty' | translate:'No hay productos' }}</span>
+                        <span class="text-xs font-bold text-surface-text-muted uppercase tracking-widest">No hay productos</span>
                       </div>
                     </td>
                   </tr>
@@ -294,23 +287,7 @@ import { PriceImportDashboardComponent } from './price-import-dashboard.componen
           </div>
         </div>
       </div>
-    </div> <!-- End of animate-fade-in -->
-    <!-- Product Creation Wizard -->
-    @if (isWizardOpen()) {
-      <app-product-wizard
-        (onSaved)="onProductWizardSaved()"
-        (onClosed)="isWizardOpen.set(false)"
-      ></app-product-wizard>
-    }
-
-    <!-- Detailed Product Modal (Edit/Single Create) -->
-    @if (isProductModalOpen()) {
-      <app-product-modal 
-        #productModal
-        (saved)="loadProducts()"
-        (close)="isProductModalOpen.set(false)"
-      ></app-product-modal>
-    }
+    </div>
   `,
   styles: [`
     :host { display: block; }
@@ -337,18 +314,14 @@ export class ProductCatalogComponent implements OnInit {
   private notifications = inject(NotificationService);
   private auth = inject(AuthService);
   private dialog = inject(MatDialog);
-  private modalService = inject(ModalService);
-
-  @ViewChild('productModal') productModal!: ProductModalComponent;
   
   products = signal<Product[]>([]);
   expandedIds = signal<Set<string>>(new Set());
   selectedProductForPrice = signal<Product | null>(null);
-  isWizardOpen = signal(false);
-  isProductModalOpen = signal(false);
   showIncompletePanel = signal(true);
   filterIncomplete = signal(false);
   isAdmin = signal(false);
+  drawerService = inject(SideDrawerService);
 
   constructor() {
     effect(() => {
@@ -382,6 +355,7 @@ export class ProductCatalogComponent implements OnInit {
 
   ngOnInit() {
     this.loadProducts();
+    this.drawerService.refresh$.subscribe(() => this.loadProducts());
   }
 
   loadProducts() {
@@ -468,18 +442,12 @@ export class ProductCatalogComponent implements OnInit {
       return;
     }
     
-    // Option to choose between Wizard or Single
-    if (confirm('¿Deseas usar el Alta Rápida (Excel)?')) {
-      this.isWizardOpen.set(true);
-    } else {
-      this.isProductModalOpen.set(true);
-      setTimeout(() => this.productModal.open(), 0);
-    }
-  }
-
-  onProductWizardSaved() {
-    this.isWizardOpen.set(false);
-    this.loadProducts();
+    // Open Product Form in Drawer
+    this.drawerService.open(ProductPriceListComponent, {
+      title: 'Nuevo Producto',
+      subtitle: 'Configuración Maestra de Item',
+      icon: 'add_box'
+    }, { activeTab: 'INFO' });
   }
 
   getVersionStatusClass(status: VersionStatus): string {
@@ -494,16 +462,11 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   managePrices(product: Product) {
-    this.modalService.open(ProductPriceListComponent, { 
-      product, 
-      activeTab: 'GLOBAL' 
-    }, {
-      width: '100vw',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      height: '100vh',
-      panelClass: ['bg-transparent', 'shadow-none', 'p-0', 'm-0', 'border-0']
-    });
+    this.drawerService.open(ProductPriceListComponent, {
+      title: 'Gestión de Precios',
+      subtitle: product.sku + ' - ' + product.name,
+      icon: 'payments'
+    }, { product, activeTab: 'GLOBAL' });
   }
 
   editProduct(product: Product) {
@@ -515,29 +478,19 @@ export class ProductCatalogComponent implements OnInit {
       return;
     }
     
-    this.modalService.open(ProductPriceListComponent, { 
-      product, 
-      activeTab: 'INFO' 
-    }, {
-      width: '100vw',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      height: '100vh',
-      panelClass: ['bg-transparent', 'shadow-none', 'p-0', 'm-0', 'border-0']
-    });
+    this.drawerService.open(ProductPriceListComponent, {
+      title: 'Editar Producto',
+      subtitle: product.sku + ' - ' + product.name,
+      icon: 'edit_note'
+    }, { product, activeTab: 'INFO' });
   }
 
   manageLogistics(product: Product) {
-    this.modalService.open(ProductPriceListComponent, { 
-      product, 
-      activeTab: 'LOGISTICA' 
-    }, {
-      width: '100vw',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      height: '100vh',
-      panelClass: ['bg-transparent', 'shadow-none', 'p-0', 'm-0', 'border-0']
-    });
+    this.drawerService.open(ProductPriceListComponent, {
+      title: 'Logística de Producto',
+      subtitle: product.sku + ' - ' + product.name,
+      icon: 'local_shipping'
+    }, { product, activeTab: 'LOGISTICA' });
   }
 
   async deleteProduct(product: Product) {
