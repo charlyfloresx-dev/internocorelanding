@@ -37,13 +37,44 @@ Industrialize the Tickets Service by implementing dynamic escalation rules and A
 
 ---
 
-## 🛠️ Infrastructure & Compliance
-- **Code Graph Compliance**: 100% (0 errors).
-- **Stripe Integration**: Validated reactive triggers for `invoice.payment_failed` (Phase 74).
-- **AWS Readiness**: App Runner deployment guides updated and secrets injection hardened.
+## Phase 77: Consolidación de Microservicios (Currency Service)
+
+### Objective
+Integrate the standalone `currency_service` into the `master_data_service` monolith to reduce architectural fragmentation and centralize operational financial data.
+
+### Technical Architecture
+
+#### 1. Model Consolidation
+- **Migration**: Moved `CurrencyExchangeRate` to `master_app/models/exchange_rate.py`.
+- **Integrity**: Integrated into the unified `lifespan` of the monolith for automated schema synchronization.
+- **Audit**: Maintained support for "is_suspicious" flags and "is_verified" logic for industrial exchange rates.
+
+#### 2. Industrial Rate Provider
+- **Implementation**: Created `ExternalRateProvider` using the Strategy pattern.
+- **Connectors**:
+  - **Banxico (FIX)**: Primary source for MXN/USD with secure token support.
+  - **Frankfurter (BCE)**: Secondary source for EUR/JPY/GBP.
+- **Resilience**: Implemented automatic fallback and 10% variation detection.
+
+#### 3. Repository & Service Layer
+- **Interface Integration**: Merged new industrial logic with legacy master data currency methods in `ICurrencyRepository`.
+- **Tenant Isolation**: Fixed `MISSING_TENANT_FILTER` in `verify_rate` and `get_by_id` by enforcing `company_id` validation from the JWT context.
+- **Unified Service**: `CurrencyService` now coordinates between the local cache (DB) and external providers.
+
+#### 4. Frontend & API
+- **Endpoint Unification**: Router registered at `/api/v1/currencies`.
+- **Frontend Sync**: Verified `CurrencyService` (Angular) compatibility with the new unified prefix.
+- **Compliance**: Verified 100% compliance via Code Graph Auditor after decommission.
 
 ---
 
-**Status**: ✅ Phase 75 COMPLETED | 🔄 Phase 76 FINALIZING (Docker Persistence).
+## 🛠️ Infrastructure & Compliance
+- **Code Graph Compliance**: 100% (0 errors in master_data_service).
+- **Service Decommission**: Folder `backend/currency_service` removed from the repository.
+- **AWS Readiness**: Banxico token integrated via `CORE_BANXICO_TOKEN` in `common/config.py`.
+
+---
+
+**Status**: ✅ Phase 77 COMPLETED | 🚀 Monolith Architecture Consolidated.
 **Architect**: Antigravity AI
 **Date**: 2026-05-01

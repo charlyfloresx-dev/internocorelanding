@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy import select, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.ports.currency_repository import ICurrencyRepository
-from app.domain.entities.currency_entities import CurrencyRate
-from app.models.exchange_rate import CurrencyExchangeRate
+from master_app.domain.repositories.currency import ICurrencyRepository
+from master_app.domain.entities.currency import CurrencyRate
+from master_app.models.exchange_rate import CurrencyExchangeRate
+from common.models import Company
 
 class SQLAlchemyCurrencyRepository(ICurrencyRepository):
     def __init__(self, session: AsyncSession):
@@ -74,21 +75,24 @@ class SQLAlchemyCurrencyRepository(ICurrencyRepository):
     async def get_by_id(self, rate_id: UUID, company_id: Optional[UUID] = None) -> Optional[CurrencyRate]:
         stmt = select(CurrencyExchangeRate).where(CurrencyExchangeRate.id == rate_id)
         if company_id:
-             stmt = stmt.where(CurrencyExchangeRate.company_id == company_id)
+            stmt = stmt.where(CurrencyExchangeRate.company_id == company_id)
         result = await self.session.execute(stmt)
         orm = result.scalars().first()
         return self._to_domain(orm)
 
     async def verify_rate(self, rate_id: UUID, company_id: Optional[UUID] = None) -> bool:
-        record = await self.get_by_id(rate_id, company_id)
-        if record:
-            record.is_verified = True
+        stmt = select(CurrencyExchangeRate).where(CurrencyExchangeRate.id == rate_id)
+        if company_id:
+            stmt = stmt.where(CurrencyExchangeRate.company_id == company_id)
+        result = await self.session.execute(stmt)
+        orm = result.scalars().first()
+        if orm:
+            orm.is_verified = True
             await self.session.flush()
             return True
         return False
 
     async def has_automatic_rates_today(self, company_id: UUID) -> bool:
-        """Checks if there's any automatic record for today."""
         today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         stmt = (
             select(CurrencyExchangeRate.id)
@@ -101,3 +105,18 @@ class SQLAlchemyCurrencyRepository(ICurrencyRepository):
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none() is not None
+
+    # Legacy implementations
+    async def get_company_base_currency(self, company_id: UUID) -> str:
+        result = await self.session.execute(
+            select(Company.base_currency).where(Company.id == company_id)
+        )
+        base = result.scalar_one_or_none()
+        return base or "USD"
+
+    async def get_distinct_target_currencies(self, company_id: UUID) -> List[str]:
+        query = select(CurrencyExchangeRate.target_currency).where(
+            CurrencyExchangeRate.company_id == company_id
+        ).distinct()
+        distinct_targets = (await self.session.execute(query)).scalars().all()
+        return list(distinct_targets)

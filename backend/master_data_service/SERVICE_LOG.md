@@ -1,3 +1,10 @@
+### [2026-05-01] Phase 77: Currency Service Integration ✅
+- **Consolidación Core**: Migración exitosa de toda la lógica de `currency_service` al paquete `master_app`.
+- **Industrial Rate Provider**: Implementación del cliente de **Banxico (FIX)** y **Frankfurter** con soporte para tokens de seguridad y fallback de mercados.
+- **Unified Repository**: Integración de `SQLAlchemyCurrencyRepository` con soporte multi-tenant validado al 100% (Corrected: `company_id` filters in `get_by_id` and `verify_rate`).
+- **Endpoint Registration**: Los endpoints `/currencies/*` ahora se sirven directamente desde el motor de Master Data.
+- **Status**: ✅ COMPLETED — **Currency SSOT Stabilized**
+
 ### [2026-04-30] Phase 74: Subscription-Aware & Financial SSOT
 - **SaaS Integrity**: El servicio ahora impone bloqueos de escritura para inquilinos en estado `RESTRICTED` o `UNPAID` mediante la sincronización con el `subscription_service`.
 - **Definición Financiera (La Tríada)**: Consolidación de los tres pilares del valor: Landed Cost, CPP / WAC y Transfer Price como SSOT.

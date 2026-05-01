@@ -5,9 +5,9 @@ from typing import Optional
 
 from sqlalchemy import String, Numeric, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
-
+from common.infrastructure.models.base import Base
 from common.models import MultiTenantBase
 
 class CurrencyExchangeRate(MultiTenantBase):

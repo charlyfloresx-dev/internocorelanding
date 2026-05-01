@@ -64,6 +64,7 @@ async def lifespan(app: FastAPI):
         import master_app.models.product_price
         import master_app.models.movement_concept
         import master_app.models.uom
+        import master_app.models.exchange_rate
         
         # Inventory Models
         import inventory_app.models.inventory
@@ -170,7 +171,7 @@ app.include_router(companies_router, prefix="/api/v1/companies", tags=["Auth: Co
 app.include_router(users_router, prefix="/api/v1/users", tags=["Auth: Users"])
 
 # 2. Master Data
-from master_app.api.v1.endpoints import products, prices, uom_router, categories, brands, concepts, warehouses, partners, gis_validator, locations
+from master_app.api.v1.endpoints import products, prices, uom_router, categories, brands, concepts, warehouses, partners, gis_validator, locations, currency
 app.include_router(products.router, prefix="/api/v1/products", tags=["Master: Products"])
 app.include_router(prices.router, prefix="/api/v1/prices", tags=["Master: Product Prices"])
 app.include_router(uom_router.router, prefix="/api/v1/uoms", tags=["Master: UOMs"])
@@ -181,6 +182,7 @@ app.include_router(warehouses.router, prefix="/api/v1/warehouses", tags=["Master
 app.include_router(partners.router, prefix="/api/v1/partners", tags=["Master: Partners"])
 app.include_router(gis_validator.router, prefix="/api/v1/gis", tags=["Master: GIS"])
 app.include_router(locations.router, prefix="/api/v1/locations", tags=["Master: Locations"])
+app.include_router(currency.router, prefix="/api/v1/currencies", tags=["Master: Currency"])
 
 # 3. Inventory
 from inventory_app.api.v1.endpoints import (

@@ -89,11 +89,12 @@ async def get_category_service(repo: SQLAlchemyMasterDataRepository = Depends(ge
 async def get_uom_service(repo: SQLAlchemyMasterDataRepository = Depends(get_master_data_repository)) -> UOMService:
     return UOMService(repo)
 
+from master_app.infrastructure.repositories.currency_repository import SQLAlchemyCurrencyRepository
+from master_app.infrastructure.clients.rate_provider import ExternalRateProvider
+
 async def get_currency_repository(db: AsyncSession = Depends(get_db)) -> SQLAlchemyCurrencyRepository:
     return SQLAlchemyCurrencyRepository(db)
 
-from master_app.infrastructure.clients.currency_client import ExternalCurrencyClient
-
 async def get_currency_service(repo: SQLAlchemyCurrencyRepository = Depends(get_currency_repository)) -> CurrencyService:
-    client = ExternalCurrencyClient()
-    return CurrencyService(repository=repo, client=client)
+    provider = ExternalRateProvider(banxico_token=settings.int_banxico_token)
+    return CurrencyService(repo, rate_provider=provider)

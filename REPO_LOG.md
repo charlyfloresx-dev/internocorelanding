@@ -4,6 +4,15 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-01] Phase 77: Consolidación de Microservicios (Currency Service Integration)
+- **Consolidación del Monolito**: Integración total del `currency_service` dentro del `master_data_service` para reducir la fragmentación y centralizar los Datos Maestros Financieros.
+- **Rate Provider Industrial**: Implementación de `ExternalRateProvider` con soporte para **Banxico (FIX)** y **Frankfurter (BCE)** con lógica de fallback automática.
+- **Inmutabilidad Financiera**: Migración del modelo `CurrencyExchangeRate` con soporte para auditoría de cambios y flags de variaciones sospechosas (>10%).
+- **Unified API Routing**: Registro de endpoints unificados en `/api/v1/currencies` bajo el router de Master Data.
+- **Compliance Audit**: Alcanzado 100% de cumplimiento en multi-tenancy para el repositorio de divisas (Fix: `MISSING_TENANT_FILTER`).
+- **Decommissioning**: Eliminación exitosa de la carpeta `backend/currency_service` y sus recursos asociados, validado por el Code Graph Auditor.
+- **Status**: ✅ Phase 77 COMPLETED — Currency Infrastructure Consolidated & Decommissioned.
+
 ### [2026-05-01] Phase 76: Escalación Dinámica Multi-tenant & Soporte AI
 - **Matriz de Escalación Dinámica**: Implementación de `EscalationRule` y motor de búsqueda con fallback por área (`Producción`, `Almacén`, `Soporte`, `_default`).
 - **Worker Industrial (EscalationWatcher)**: Creación de un worker funcional para el escaneo de SLAs y disparo de eventos de escalación automatizada.
