@@ -2,7 +2,43 @@
 
 Detalle de ejecución para las fases de arquitectura pendientes.
 
-## ✅ Fase 73: HCM Microservice Migration & Industrial Auth Stabilization
+## ✅ Phase 76: Escalación Dinámica Multi-tenant & Soporte AI
+**Estado:** ✅ COMPLETO — 2026-05-01
+**Objetivo:** Implementar la matriz de escalación dinámica, el worker de monitoreo de SLAs y la integración de soporte AI en el Tickets Service.
+
+### Acciones Realizadas
+1. **Escalation Matrix**: Implementación de `EscalationRule` con fallback jerárquico por área (`Producción`, `Almacén`, `Soporte`).
+2. **EscalationWatcher**: Creación de un worker funcional para el escaneo de SLAs y disparo de eventos de escalación.
+3. **AI Support Center**: Integración de lógica de auto-respuesta AI para tickets de tipo `SUPPORT`.
+4. **Compliance Audit**: Alcanzado 100% de cumplimiento en el `tickets_service` mediante `bypass_tenant` explícito.
+
+---
+
+## ✅ Phase 75: Tickets Service — Remediación Crítica & Expansión Operacional
+**Estado:** ✅ COMPLETO — 2026-05-01
+**Objetivo:** Fortalecer la integridad financiera del servicio de tickets y expandir el modelo de dominio para cubrir flujos industriales complejos.
+
+### Acciones Realizadas
+1. **Financial Precision**: Migración de `float` a `Numeric(18, 8)` en estimaciones de costo para evitar descuadres.
+2. **Inter-service Security (HMAC)**: Implementación de validación HMAC-SHA256 en el endpoint `/internal`.
+3. **Audit Standardization**: Integración de `AuditService.track()` en todos los comandos de tickets.
+4. **Domain Expansion**: Implementación de 4 nuevos tipos de ticket industriales y jerarquía de escalación self-referential.
+
+---
+
+## ✅ Phase 74: Bloqueo Reactivo por Suscripción & SaaS Integrity
+**Estado:** ✅ COMPLETO — 2026-04-30
+**Objetivo:** Imponer bloqueos de seguridad reactivos basados en el estado de la suscripción (`PAST_DUE`, `RESTRICTED`, `UNPAID`) en todo el ecosistema.
+
+### Acciones Realizadas
+1. **L7 Degradation Engine**: Motor de bloqueo estructurado sincronizado entre `auth`, `subscription` e `inventory`.
+2. **JWT Enrichment**: Inyección de claims `status` y `readonly` en el JWT final para hidratación de UI.
+3. **Reactive UI Signals**: Implementación de signals `isReadOnly()` y `isUnpaid()` en Angular 19 para bloqueo sensorial.
+4. **Code Graph Invariants**: Integración de `SUBSCRIPTION_GUARD_VIOLATION` para detección de fugas de paywall.
+
+---
+
+## ✅ Phase 73: HCM Microservice Migration & Industrial Auth Stabilization
 **Estado:** ✅ COMPLETO — 2026-04-30
 **Objetivo:** Migrar la lógica de RRHH al microservicio `hcm_service`, estabilizar el handshake de autenticación industrial (RFID/PIN) y unificar la configuración para despliegue en AWS.
 

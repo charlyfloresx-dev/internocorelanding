@@ -143,6 +143,7 @@ class TicketCommandHandler:
         resource_ids = [str(r.resource_id) for r in cmd.resources]
         await self.repo.add_history_entry(
             ticket_id=ticket.id,
+            company_id=cmd.company_id,
             change_type="resources_consumed",
             old_value=None,
             new_value=f"resources: {resource_ids}",

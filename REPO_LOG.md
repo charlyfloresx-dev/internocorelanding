@@ -4,6 +4,14 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-01] Phase 76: Escalación Dinámica Multi-tenant & Soporte AI
+- **Matriz de Escalación Dinámica**: Implementación de `EscalationRule` y motor de búsqueda con fallback por área (`Producción`, `Almacén`, `Soporte`, `_default`).
+- **Worker Industrial (EscalationWatcher)**: Creación de un worker funcional para el escaneo de SLAs y disparo de eventos de escalación automatizada.
+- **Help Center AI (Fase 8 Preview)**: Integración de lógica de auto-respuesta AI para tickets de tipo `SUPPORT` en el `TicketService`.
+- **Compliance Audit**: Alcanzado 100% de cumplimiento en el `tickets_service` mediante el uso de `bypass_tenant` explícito en consultas de orquestación global.
+- **HCM Alignment**: Departamentos y áreas sincronizados con los estándares de `hcm_service`.
+- **Status**: 🔄 IN PROGRESS — Finalizing persistence of EscalationWatcher in Docker.
+
 ### [2026-05-01] Phase 75: Tickets Service — Remediación Crítica & Expansión Operacional
 - **Remediación de Precisión Financiera**: Migración de `float` a `Numeric(18, 8)` en `cost_estimate` del modelo `Ticket` y `Decimal` en DTOs para eliminar descuadres de Kardex.
 - **Seguridad Inter-servicio (HMAC)**: Implementación de validación criptográfica HMAC-SHA256 en el endpoint `/internal` con logging forense de intentos no autorizados vía `AuditService.track()`.

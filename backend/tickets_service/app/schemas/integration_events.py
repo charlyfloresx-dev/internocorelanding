@@ -31,3 +31,55 @@ class TicketCreatedEvent(BaseModel):
     
     # Optional metadata that might be useful for Notification Routing
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+# --- Fase 6: Eventos de Estado y Notificación ---
+
+class TicketStatusChangedEvent(BaseModel):
+    """
+    Dispatched when a ticket's status changes.
+    The notification_service uses `recipient_id` to route the alert
+    to the original reporter/creator of the ticket.
+    """
+    event_id: UUID = Field(default_factory=uuid.uuid4)
+    event_type: str = "TicketStatusChangedEvent"
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0"
+
+    ticket_id: UUID
+    company_id: UUID
+    reference_code: str
+    title: str
+    old_status: str
+    new_status: str
+    recipient_id: UUID           # A quién notificar (reported_by o created_by)
+    changed_by_id: UUID          # Quién hizo el cambio
+    area: Optional[str] = None
+    module_origin: Optional[str] = None
+    ticket_type: Optional[str] = None
+    priority: Optional[str] = None
+
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class TicketAutoClosedEvent(BaseModel):
+    """
+    Dispatched when a ticket is auto-closed by an external event
+    (e.g., Kardex entry confirmed for MATERIAL_RECEIPT tickets).
+    Notifies the original creator that the ticket was resolved automatically.
+    """
+    event_id: UUID = Field(default_factory=uuid.uuid4)
+    event_type: str = "TicketAutoClosedEvent"
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0"
+
+    ticket_id: UUID
+    company_id: UUID
+    reference_code: str
+    title: str
+    trigger_event: str           # e.g., "KARDEX_ENTRY_CONFIRMED"
+    recipient_id: UUID           # Creador original a notificar
+    source_service: Optional[str] = None
+
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+

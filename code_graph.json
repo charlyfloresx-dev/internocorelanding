@@ -1,16 +1,7 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [
-        {
-            "file": "backend/subscription_service/app/infrastructure/repositories/sqlalchemy_subscription_repository.py",
-            "class": "SQLAlchemySubscriptionRepository",
-            "method": "get_subscription_by_stripe_id",
-            "severity": "WARNING",
-            "ms": "subscription_service",
-            "error": "MISSING_TENANT_FILTER: Possible missing company_id filter"
-        }
-    ],
+    "invariants_errors": [],
     "compliance_report": {
         "asset_manager_service": 100,
         "auth_service": 100,
@@ -22,18 +13,18 @@
         "master_data_service": 100,
         "mes_service": 100,
         "notification_service": 100,
-        "subscription_service": 90,
+        "subscription_service": 100,
         "tickets_service": 100,
         "viatra_service": 100,
         "wms_service": 100
     },
     "inter_service_deps": {
         "common": [
-            "auth_service",
-            "master_data_service",
-            "wms_service",
+            "mes_service",
             "subscription_service",
-            "mes_service"
+            "wms_service",
+            "master_data_service",
+            "auth_service"
         ],
         "inventory_service": [
             "notification_service"

@@ -22,3 +22,9 @@ class InternalTicketCreate(BaseModel):
     area: Optional[str] = Field(None, description="Área operacional: Producción, Almacén, Mantenimiento")
     
     metadata: Optional[dict] = Field(None, description="Additional context freeform dictionary")
+
+class InternalTicketResolve(BaseModel):
+    ticket_id: UUID
+    trigger_event: str = Field(..., description="Event that caused auto-closure, e.g. KARDEX_ENTRY_CONFIRMED")
+    source_service: str = Field(..., description="Service emitting the resolution")
+    resolution_notes: str = Field(..., description="Notes regarding the automatic resolution")

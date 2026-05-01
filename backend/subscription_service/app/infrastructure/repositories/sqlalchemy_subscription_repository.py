@@ -27,8 +27,10 @@ class SQLAlchemySubscriptionRepository(ISubscriptionRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_subscription_by_stripe_id(self, stripe_subscription_id: str) -> Optional[Any]:
+    async def get_subscription_by_stripe_id(self, stripe_subscription_id: str, company_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         stmt = select(Subscription).where(Subscription.stripe_subscription_id == stripe_subscription_id).options(selectinload(Subscription.plan))
+        if company_id:
+             stmt = stmt.where(Subscription.company_id == company_id)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 

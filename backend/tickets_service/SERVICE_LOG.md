@@ -138,6 +138,27 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ### Estado Actual de Fases (Actualización de Log 2026-05-01)
 
+---
+
+### Phase 6: Notificaciones & Auto-cierre ✅
+- **Status**: Completed (2026-05-01)
+- **Features**:
+  - ✅ **Outbox Dispatcher**: Integración del motor de notificaciones para `TicketCreated` y `TicketStatusChanged`.
+  - ✅ **Auto-cierre**: Lógica de cierre automático de tickets de `Recibo Material` al confirmar entrada en Kardex.
+
+---
+
+### Phase 7: Escalación Dinámica Multi-tenant ✅
+- **Status**: Completed (2026-05-01)
+- **Features**:
+  - ✅ **Escalation Matrix**: Implementación de `EscalationRule` con fallback jerárquico (`Producción` -> `Almacén` -> `Soporte`).
+  - ✅ **EscalationWatcher**: Script industrial funcional para escaneo de SLAs y disparo de escalaciones automatizadas.
+  - ✅ **Soporte AI (Preview)**: Integración de lógica de auto-respuesta AI para tickets de tipo `SUPPORT`.
+
+---
+
+### Estado Actual de Fases (Actualización de Log 2026-05-01)
+
 | Fase | Estado | Descripción |
 |---|---|---|
 | Fase 1: Bug Fixes | ✅ COMPLETADA | Outbox import, UUID fix, orphan decorator |
@@ -145,17 +166,17 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 | Fase 3: Kardex Integration | ✅ COMPLETADA | IInventoryClient, ConsumeResourcesCommand |
 | Fase 4: Remediación Crítica | ✅ COMPLETADA | Decimal, HMAC, AuditService.track |
 | Fase 5: Modelo Operacional | ✅ COMPLETADA | 4 flujos, 7 campos, enums industriales |
-| Fase 6: Notificaciones | 🚀 SIGUIENTE | Dispatcher + auto-cierre recibos |
-| Fase 7: Escalación Dinámica | 📋 PLANIFICADA | ESCALATION_MATRIX + watcher + firma forense |
-| Fase 8: Mantenimiento + StopLog | 📋 PLANIFICADA | Auto-StopLog + costo downtime |
+| Fase 6: Notificaciones | ✅ COMPLETADA | Dispatcher + auto-cierre recibos |
+| Fase 7: Escalación Dinámica | ✅ COMPLETADA | Escalation Matrix + Watcher + AI Support |
+| Fase 8: Mantenimiento + StopLog | 🚀 SIGUIENTE | Auto-StopLog + costo downtime |
 | Fase 9: Dashboard KPIs | 📋 PLANIFICADA | MTTR, MTBF, OEE, SLA compliance |
 
 ---
 
 ## Missing Logic / Pending Backlog
-- Automated tests for `create_internal_ticket_with_debouncing` (burst window mocking).
-- Background Consumer to process state updates originated from other services.
-- Alembic migration for Fase 5 schema changes (pending `alembic revision --autogenerate`).
-- NotificationDispatcher integration with `notification_service`.
-- EscalationWatcher background worker.
-- KPI REST endpoints (MTTR, MTBF, OEE).
+- [ ] Automated tests for `create_internal_ticket_with_debouncing` (burst window mocking).
+- [ ] Persistencia de `tickets-escalation-worker` en `docker-compose.yml`.
+- [ ] Implementación de `while True` loop en `escalation_watcher.py`.
+- [ ] Alembic migration for Fase 5/6/7 schema changes.
+- [ ] KPI REST endpoints (MTTR, MTBF, OEE).
+

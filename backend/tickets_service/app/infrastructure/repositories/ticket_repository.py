@@ -3,8 +3,9 @@ from uuid import UUID
 from datetime import datetime
 import uuid
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.domain.ports.ticket_repository import ITicketRepository
 from app.models.ticket import Ticket
@@ -41,7 +42,7 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             priority=data["priority"],
             status=data.get("status", TicketStatus.NEW),
             company_id=company_id,
-            tenant_id=data.get("tenant_id", company_id),  # fallback tenant_id
+            tenant_id=data.get("tenant_id", company_id),
             created_by=data["created_by"],
             deduplication_hash=data.get("deduplication_hash"),
             module_origin=data.get("module_origin"),
@@ -55,6 +56,7 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         # Initial history entry
         await self.add_history_entry(
             ticket_id=ticket.id,
+            company_id=company_id,
             change_type="ticket_created",
             old_value=None,
             new_value=ticket.status.value if hasattr(ticket.status, 'value') else str(ticket.status),
@@ -62,11 +64,15 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         )
 
         await self._session.commit()
-        await self._session.refresh(ticket)
-        return ticket
+        return await self.get_by_id(ticket.id, company_id)
 
     async def get_by_id(self, ticket_id: UUID, company_id: UUID) -> Optional[Ticket]:
-        stmt = select(Ticket).where(
+        stmt = select(Ticket).options(
+            selectinload(Ticket.comments),
+            selectinload(Ticket.history),
+            selectinload(Ticket.resources),
+            selectinload(Ticket.stop_logs)
+        ).where(
             Ticket.id == ticket_id,
             Ticket.company_id == company_id
         )
@@ -74,7 +80,12 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         return result.scalar_one_or_none()
 
     async def list_by_company(self, company_id: UUID) -> list[Ticket]:
-        stmt = select(Ticket).where(
+        stmt = select(Ticket).options(
+            selectinload(Ticket.comments),
+            selectinload(Ticket.history),
+            selectinload(Ticket.resources),
+            selectinload(Ticket.stop_logs)
+        ).where(
             Ticket.company_id == company_id,
             Ticket.is_active == True
         )
@@ -117,6 +128,7 @@ class SQLAlchemyTicketRepository(ITicketRepository):
     async def add_history_entry(
         self,
         ticket_id: UUID,
+        company_id: UUID,
         change_type: str,
         old_value: Optional[str],
         new_value: str,
@@ -124,18 +136,20 @@ class SQLAlchemyTicketRepository(ITicketRepository):
     ) -> None:
         history = TicketHistory(
             ticket_id=ticket_id,
+            company_id=company_id,
+            tenant_id=company_id,
             change_type=change_type,
             old_value=old_value,
             new_value=new_value,
             changed_by_id=changed_by_id
         )
         self._session.add(history)
-        # No commit aquí - el commit lo hace el método principal del repositorio
 
     async def add_comment(self, ticket_id: UUID, company_id: UUID, content: str, author_id: UUID) -> TicketComment:
         comment = TicketComment(
             ticket_id=ticket_id,
             company_id=company_id,
+            tenant_id=company_id,
             content=content,
             author_id=author_id,
             created_by=author_id
@@ -146,7 +160,12 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         return comment
 
     async def get_by_dedup_hash(self, dedup_hash: str, company_id: UUID) -> Optional[Ticket]:
-        stmt = select(Ticket).where(
+        stmt = select(Ticket).options(
+            selectinload(Ticket.comments),
+            selectinload(Ticket.history),
+            selectinload(Ticket.resources),
+            selectinload(Ticket.stop_logs)
+        ).where(
             Ticket.deduplication_hash == dedup_hash,
             Ticket.company_id == company_id,
             Ticket.status.in_([TicketStatus.NEW, TicketStatus.IN_PROGRESS])
@@ -157,8 +176,21 @@ class SQLAlchemyTicketRepository(ITicketRepository):
     async def add_outbox_event(self, company_id: UUID, event_type: str, payload: str) -> None:
         outbox_event = OutboxEvent(
             company_id=company_id,
+            tenant_id=company_id,
             event_type=event_type,
             payload=payload
         )
         self._session.add(outbox_event)
         await self._session.commit()
+
+    async def get_tickets_for_escalation(self) -> List[Ticket]:
+        """
+        Retorna tickets activos (no resueltos/cerrados) para revisión de SLA.
+        Este método es de orquestación global (bypass_tenant).
+        """
+        stmt = select(Ticket).where(
+            Ticket.is_active == True,
+            Ticket.status.in_([TicketStatus.NEW, TicketStatus.IN_REVIEW, TicketStatus.ASSIGNED, TicketStatus.IN_PROGRESS])
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()

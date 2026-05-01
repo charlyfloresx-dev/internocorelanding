@@ -41,7 +41,7 @@ class ITicketRepository(ABC):
         ...
 
     @abstractmethod
-    async def add_history_entry(self, ticket_id: UUID, change_type: str, old_value: Optional[str], new_value: str, changed_by_id: UUID) -> None:
+    async def add_history_entry(self, ticket_id: UUID, company_id: UUID, change_type: str, old_value: Optional[str], new_value: str, changed_by_id: UUID) -> None:
         """Agrega una entrada al historial del ticket."""
         ...
 

@@ -17,7 +17,7 @@ class ISubscriptionRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_subscription_by_stripe_id(self, stripe_subscription_id: str) -> Optional[Any]:
+    async def get_subscription_by_stripe_id(self, stripe_subscription_id: str, company_id: Optional[uuid.UUID] = None) -> Optional[Any]:
         ...
 
     @abstractmethod
