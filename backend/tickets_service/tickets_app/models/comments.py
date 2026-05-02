@@ -13,4 +13,4 @@ class TicketComment(MultiTenantBase):
     author_id: Mapped[uuid.UUID] = mapped_column(sqlalchemy_UUID(as_uuid=True), nullable=False)
     
     # Relationships
-    ticket: Mapped["tickets_app.models.ticket.Ticket"] = relationship("tickets_app.models.ticket.Ticket", back_populates="comments")
+    ticket: Mapped["Ticket"] = relationship("Ticket", back_populates="comments")

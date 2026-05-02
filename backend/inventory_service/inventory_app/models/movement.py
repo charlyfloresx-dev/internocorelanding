@@ -33,7 +33,7 @@ class Movement(MultiTenantBase):
     available_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0.0, nullable=False)
     customs_pedimento_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID, index=True, nullable=True)
     source_movement_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID, index=True, nullable=True)
-    expiry_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    expiry_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Categorization
     concept_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=True)

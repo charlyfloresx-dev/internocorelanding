@@ -17,8 +17,8 @@ sys.path.append(os.path.abspath(os.path.join(base_path, "..")))
 # 2. Importar Configuración y Modelos
 # Intentamos importar common.models.base_models.Base si todos heredan de ahí
 from common.infrastructure.models.base import MultiTenantBase as Base
-from app.core.config import settings
-from app.models import *
+from tickets_app.core.config import settings
+from tickets_app.models import *
 
 # 3. Configuración de Alembic
 config = context.config

@@ -1,6 +1,6 @@
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import uuid
 
 from sqlalchemy import select, func, and_
@@ -174,6 +174,22 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         return result.scalar_one_or_none()
 
     async def add_outbox_event(self, company_id: UUID, event_type: str, payload: str) -> None:
+        # DEBOUNCING (Evitar Tormentas de Eventos)
+        # Verificamos si existe un evento idéntico en los últimos 10 segundos
+        debounce_window = datetime.now(timezone.utc) - timedelta(seconds=10)
+        
+        stmt = select(OutboxEvent).where(
+            OutboxEvent.company_id == company_id,
+            OutboxEvent.event_type == event_type,
+            OutboxEvent.payload == payload,
+            OutboxEvent.created_at >= debounce_window
+        ).order_by(OutboxEvent.created_at.desc()).limit(1)
+        
+        recent_event = await self._session.execute(stmt)
+        if recent_event.scalar_one_or_none():
+            # Ya existe un evento reciente idéntico, ignoramos para debouncing
+            return
+
         outbox_event = OutboxEvent(
             company_id=company_id,
             tenant_id=company_id,

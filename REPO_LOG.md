@@ -4,6 +4,13 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-02] Phase 79: Tickets Event Flow & System Resilience
+- **Monolith Integration Fixes**: Recreación de contenedores forzando recargas, estabilizando el ruteo interno de `/api/v1/events` y logrando validación de eventos (202 Accepted).
+- **Timezone Standardization**: Eliminación del error `asyncpg` mediante la migración global de columnas Naive a `DateTime(timezone=True)` (Afectando Outbox, Inventory, y Notifications).
+- **Outbox Debouncing (Event Storm Prevention)**: Desarrollo de lógica en el Repositorio de Tickets limitando tormentas de eventos. Criterio de validación mediante queries asíncronas con ventanas de tiempo (10 segundos) y validado con suite de `pytest`.
+- **E2E Ticket Loop**: Comprobación total de creación de tickets mediante el motor Outbox, extrayendo el mensaje exitosamente y procesando la validación del SLA con el `EscalationWatcher`.
+- **Status**: ✅ Phase 79 COMPLETED — Tickets Event Flow & Resilience Stabilized.
+
 ### [2026-05-01] Phase 78: Master Data Industrialization (SideDrawer Migration)
 - **Industrial UI Upgrade**: Complete refactor of `WarehouseFormComponent` and `ConceptFormComponent` to match premium glassmorphic standards with sticky footers and industrial iconography.
 - **SideDrawer Unification**: All catalog modules (`Partners`, `Concepts`, `Warehouses`, `UOMs`, `Categories/Brands`) now use the centralized `SideDrawerService` with strict `DrawerOptions` typing.

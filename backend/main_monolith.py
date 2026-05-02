@@ -2,7 +2,9 @@ import os
 import sys
 import logging
 import importlib
-from fastapi import FastAPI, Request
+import uuid
+from fastapi import FastAPI, Request, Header, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.cors import CORSMiddleware
@@ -161,6 +163,11 @@ async def global_unexpected_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"status": "error", "message": "Internal Server Error", "meta": {"type": type(exc).__name__}})
 
 # ─── ROUTER REGISTRATION ───
+
+# 0. Integration Events (Priority)
+from common.infrastructure.database import get_db
+from notification_app.api.v1.endpoints import events as event_endpoints
+app.include_router(event_endpoints.router, prefix="/api/v1")
 
 # 1. Auth
 from auth_app.api.v1.endpoints.auth import router as auth_router

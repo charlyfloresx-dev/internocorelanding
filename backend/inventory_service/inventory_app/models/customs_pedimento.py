@@ -18,7 +18,7 @@ class CustomsPedimento(MultiTenantBase):
     pedimento_number: Mapped[str] = mapped_column(String(15), unique=True, index=True, nullable=False)
     customs_key: Mapped[str] = mapped_column(String(10), nullable=False) # e.g., IN, AF, RT, V1
     operation_type: Mapped[CustomsOperationType] = mapped_column(Enum(CustomsOperationType), nullable=False)
-    customs_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    customs_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
     is_temporary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     # Financial fields for customs compliance

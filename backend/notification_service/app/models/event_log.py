@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import String, DateTime, UUID as sqlalchemy_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from common.models import MultiTenantBase
@@ -14,7 +14,7 @@ class ProcessedEvent(MultiTenantBase):
     # but id (from MultiTenantBase) is the technical PK.
     event_id: Mapped[uuid.UUID] = mapped_column(sqlalchemy_UUID(as_uuid=True), index=True, unique=True, nullable=False)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    processed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self):
         return f"<ProcessedEvent(id={self.event_id}, type={self.event_type})>"

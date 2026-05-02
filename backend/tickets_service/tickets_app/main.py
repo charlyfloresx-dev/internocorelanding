@@ -22,7 +22,7 @@ async def health_check():
 # Include Routers
 # Use the common api_v1_str if available, otherwise fallback to "/api/v1"
 api_v1_prefix = getattr(settings, "int_api_v1_str", "/api/v1")
-app.include_router(ticket_routes.router, prefix=api_v1_prefix)
+app.include_router(ticket_routes.router, prefix=f"{api_v1_prefix}/tickets")
 
 if __name__ == "__main__":
     import uvicorn

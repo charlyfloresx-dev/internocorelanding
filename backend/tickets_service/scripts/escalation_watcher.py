@@ -80,7 +80,7 @@ class EscalationWatcher:
         )
         
         # Dispatch Event (Outbox) for Notifications
-        from app.schemas.integration_events import TicketStatusChangedEvent
+        from tickets_app.schemas.integration_events import TicketStatusChangedEvent
         event = TicketStatusChangedEvent(
             ticket_id=ticket.id,
             company_id=ticket.company_id,

@@ -221,6 +221,32 @@ services:
     networks:
       - interno-network
 
+  # --- TICKETS OUTBOX WORKER (Integration Events) ---
+  tickets-outbox-worker:
+    build:
+      context: ./backend
+      dockerfile: tickets_service/Dockerfile
+    container_name: tickets-outbox-worker
+    image: interno-backend-tickets-service:latest
+    restart: always
+    command: python scripts/outbox_worker.py
+    volumes:
+      - ./backend/tickets_service:/app/tickets_service
+      - ./backend/common:/app/common
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/tickets_service
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8000/api/v1/events
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      tickets-service:
+        condition: service_started
+    networks:
+      - interno-network
+
   # --- MES SERVICE (Producción y Órdenes) ---
   mes-service:
     build:

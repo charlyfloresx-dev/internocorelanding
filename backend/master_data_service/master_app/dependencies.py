@@ -15,8 +15,6 @@ from master_app.services.product_brand_service import ProductBrandService
 from master_app.services.product_category_service import ProductCategoryService
 from master_app.services.uom_service import UOMService
 from master_app.services.currency_service import CurrencyService
-from master_app.infrastructure.repositories.sqlalchemy_currency_repository import SQLAlchemyCurrencyRepository
-from master_app.infrastructure.clients.currency_client import DummyCurrencyClient
 from common.domain.entities.user_context import UserContext
 from common.context import request_context
 

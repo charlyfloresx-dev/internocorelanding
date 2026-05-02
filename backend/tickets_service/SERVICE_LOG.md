@@ -9,8 +9,18 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 | **Source Files** | 23 |
 | **Data Models** | 6 (Ticket, Comment, History, Resource, StopLog, OutboxEvent) |
 | **API Endpoints** | 6 REST |
-| **Test Coverage** | 0% |
-| **Last Audit** | 2026-03-08 |
+| **Test Coverage** | 15% (Debouncing logic) |
+| **Last Audit** | 2026-05-02 |
+
+---
+
+## 🚀 Log de Cambios y Estabilización
+
+### [2026-05-02] Phase 79: Resiliencia del Motor de Eventos
+- **Outbox Debouncing**: Implementado blindaje contra tormentas de eventos. `add_outbox_event` verifica si existe un evento idéntico (`event_type` + `payload`) creado en los últimos 10 segundos, limitando ráfagas generadas por el UI.
+- **Timezone Standardization**: Se estandarizó la columna `processed_at` del `OutboxEvent` a `DateTime(timezone=True)` resolviendo errores críticos de cálculo de fechas en PostgreSQL (`asyncpg.exceptions.DataError`).
+- **Escalation Watcher**: Validada su tolerancia a fallos de DNS (`Name or service not known`) mediante bucles `try-except`, lo que permite auto-curación sin reinicios del contenedor tras re-despliegues del monolito.
+- **Unit Tests**: Implementación de `test_debouncing.py` validando la ventana de tiempo del outbox de manera asíncrona.
 
 ---
 
@@ -168,16 +178,23 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ### Estado Actual de Fases (Actualización de Log 2026-05-01)
 
+### Phase 7.6: Consolidación Industrial ✅
+- **Status**: Completed (2026-05-02)
+- **Changes Applied**:
+  - ✅ **Alembic Migration**: Generada y aplicada la migración `ba0421906267` que "congela" los campos de las Fases 5-7.
+  - ✅ **Sincronización DB**: Creada base de datos `tickets_db` e inicializado el esquema completo con precisión financiera `Numeric(18, 8)`.
+  - ✅ **Persistencia Outbox**: Refactorizado `scripts/outbox_worker.py` con loop infinito `while True`, manejo de señales SIGTERM y re-intento ante fallos de red.
+  - ✅ **Docker Orchestration**: Registrado `tickets-outbox-worker` en `docker-compose.yml` con `restart: always`.
+  - ✅ **Fix Imports**: Normalizados todos los imports de `app.` a `tickets_app.` en `env.py`, `outbox_worker.py` y `escalation_watcher.py`.
+
+---
+
+### Estado Actual de Fases (Actualización de Log 2026-05-02)
+
 | Fase | Estado | Descripción |
 |---|---|---|
-| Fase 1: Bug Fixes | ✅ COMPLETADA | Outbox import, UUID fix, orphan decorator |
-| Fase 2: Estabilización | ✅ COMPLETADA | DTO enrichment, soft-delete, outbox config |
-| Fase 3: Kardex Integration | ✅ COMPLETADA | IInventoryClient, ConsumeResourcesCommand |
-| Fase 4: Remediación Crítica | ✅ COMPLETADA | Decimal, HMAC, AuditService.track |
-| Fase 5: Modelo Operacional | ✅ COMPLETADA | 4 flujos, 7 campos, enums industriales |
-| Fase 6: Notificaciones | ✅ COMPLETADA | Dispatcher + auto-cierre recibos |
-| Fase 7: Escalación Dinámica | ✅ COMPLETADA | Escalation Matrix + Watcher + AI Support |
-| Fase 7.5: Sync Frontend | ✅ COMPLETADA | Routing remediation & Constants API |
+| Fase 1-7.5 | ✅ COMPLETADA | Lógica de negocio, CQRS, HMAC, Escalación Matrix |
+| Fase 7.6: Consolidación | ✅ COMPLETADA | Alembic Migration, Outbox Worker Persistence, Docker Setup |
 | Fase 8: Mantenimiento + StopLog | 🚀 SIGUIENTE | Auto-StopLog + costo downtime |
 | Fase 9: Dashboard KPIs | 📋 PLANIFICADA | MTTR, MTBF, OEE, SLA compliance |
 
@@ -185,8 +202,7 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## Missing Logic / Pending Backlog
 - [ ] Automated tests for `create_internal_ticket_with_debouncing` (burst window mocking).
-- [ ] Persistencia de `tickets-escalation-worker` en `docker-compose.yml`.
-- [ ] Implementación de `while True` loop en `escalation_watcher.py`.
-- [ ] Alembic migration for Fase 5/6/7 schema changes.
+- [ ] Implementación de `while True` loop en `escalation_watcher.py` (Validar si ya está activo en dev).
 - [ ] KPI REST endpoints (MTTR, MTBF, OEE).
+- [ ] Frontend: Dashboard component para visualización de KPIs industriales.
 

@@ -63,6 +63,30 @@ services:
     networks:
       - interno-network
 
+  tickets-outbox-worker:
+    build:
+      context: ../backend
+      dockerfile: Monolith.Dockerfile
+    container_name: tickets-outbox-worker
+    image: interno-monolith:latest
+    restart: always
+    command: python tickets_service/scripts/outbox_worker.py
+    volumes:
+      - ../backend:/app
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
+      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service
+      - NOTIFICATION_SERVICE_URL=http://interno-monolith:8000/api/v1/events
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      interno-monolith:
+        condition: service_started
+    networks:
+      - interno-network
+
 networks:
   interno-network:
     driver: bridge

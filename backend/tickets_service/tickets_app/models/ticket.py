@@ -69,16 +69,16 @@ class Ticket(MultiTenantBase):
 
     # Relationships
     comments: Mapped[List["TicketComment"]] = relationship(
-        "tickets_app.models.comments.TicketComment", back_populates="ticket", cascade="all, delete-orphan"
+        "TicketComment", back_populates="ticket", cascade="all, delete-orphan"
     )
     history: Mapped[List["TicketHistory"]] = relationship(
-        "tickets_app.models.history.TicketHistory", back_populates="ticket", cascade="all, delete-orphan"
+        "TicketHistory", back_populates="ticket", cascade="all, delete-orphan"
     )
     resources: Mapped[List["TicketResource"]] = relationship(
-        "tickets_app.models.resource.TicketResource", back_populates="ticket", cascade="all, delete-orphan"
+        "TicketResource", back_populates="ticket", cascade="all, delete-orphan"
     )
     stop_logs: Mapped[List["StopLog"]] = relationship(
-        "tickets_app.models.stop_log.StopLog", back_populates="ticket", cascade="all, delete-orphan",
+        "StopLog", back_populates="ticket", cascade="all, delete-orphan",
         foreign_keys="StopLog.ticket_id"
     )
     # Self-referential: tickets de escalación apuntando al ticket padre
