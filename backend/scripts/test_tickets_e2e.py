@@ -66,7 +66,39 @@ async def validate_tickets():
             tickets_list = r_list.json()["data"]
             print(f"[+] Total tickets encontrados: {len(tickets_list)}")
             
-            # 5. Check Outbox (Optional validation)
+            # 5. Check Technicians Workload
+            print("[*] Obteniendo carga de técnicos...")
+            r_workload = await client.get(f"{BASE_URL}/tickets/technicians/workload", headers=headers)
+            if r_workload.status_code != 200:
+                print(f"[-] Error al obtener workload: {r_workload.text}")
+            else:
+                workload = r_workload.json()["data"]
+                print(f"[+] Carga de técnicos obtenida correctamente ( {len(workload)} técnicos activos )")
+            
+            # 6. Test Triage Ticket
+            # Find a ticket that is PENDING_APPROVAL or NEW
+            target_ticket = next((t for t in tickets_list if t["status"] in ["PENDING_APPROVAL", "NEW"]), None)
+            if not target_ticket:
+                # Use the one we just created
+                target_ticket = ticket
+                
+            print(f"[*] Haciendo triaje del ticket {target_ticket['reference_code']}...")
+            triage_payload = {
+                "action": "APPROVE",
+                "comment": "Aprobado automáticamente por script E2E"
+            }
+            r_triage = await client.post(
+                f"{BASE_URL}/tickets/{target_ticket['id']}/triage", 
+                json=triage_payload, 
+                headers=headers
+            )
+            if r_triage.status_code != 200:
+                print(f"[-] Error en triaje: {r_triage.text}")
+            else:
+                triage_resp = r_triage.json()["data"]
+                print(f"[+] Triaje exitoso. Nuevo estado: {triage_resp['status']}")
+            
+            # 7. Check Outbox (Optional validation)
             # print("📬 Verificando eventos en Outbox (vía DB)...")
             
         except Exception as e:

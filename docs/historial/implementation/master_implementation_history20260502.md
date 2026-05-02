@@ -1,26 +1,16 @@
-# Master Implementation History - 2026-05-02
+# Historial de Implementación Maestro - 2026-05-02
 
-## Objetivo: Industrialización de Arquitectura de Tickets (Event-Driven)
-**Fase:** Estabilización de Eventos y Timezones en el Monolito.
+## Fase 80: Ticket Triage Workflow & API Hardening
 
-### 1. Resolución de Ruteo en el Monolito
-El Monolito no estaba tomando los cambios del router de eventos.
-Se aplicó un `docker restart interno-monolith` forzoso, confirmando la lectura del nuevo código.
-El endpoint `/api/v1/events` ahora retorna `202 Accepted` desde el Worker de Tickets.
+### Contexto Arquitectónico
+El flujo de triaje industrializado requería que los supervisores pudieran aprobar y despachar técnicos desde un dashboard Kanban sin perder visibilidad global. Sin embargo, el endpoint `/triage` estaba experimentando fallos de autorización por la falta de unificación en los _claims_ del token JWT (usando un campo no existente `roles`). Adicionalmente, el alta de tickets colapsaba por concurrencia asíncrona generando el mismo folio por cuenta de la naturaleza transaccional lenta del PostgreSQL local.
 
-### 2. Estandarización Multi-Tenant de Timezones (Aware vs Naive)
-El framework subyacente requiere PostgreSQL `TIMESTAMP WITH TIME ZONE`. 
-Se detectaron columnas desfasadas usando `DateTime` normal. Se auditaron y corrigieron a `DateTime(timezone=True)`:
-- `tickets_service`: `OutboxEvent.processed_at`
-- `inventory_service`: `Movement.expiry_date`, `CustomsPedimento.customs_date`
-- `notification_service`: `CompanyNotificationConfig.created_at/updated_at`, `ProcessedEvent.processed_at`
-Se alteraron las columnas en vivo a `TIMESTAMP WITH TIME ZONE USING [column] AT TIME ZONE 'UTC'`.
+### Soluciones Implementadas
+1. **Unificación de Identidad**: Se reemplazó el uso de `.roles` (que arrojaba AttributeError) a `.role_names` conforme al estándar de `TokenPayload` y se removieron dependencias de repositorio inexistentes (`get_tickets_with_visibility` -> `get_tickets`).
+2. **Generador Atómico UUID**: Se modificó `_generate_ref_code` para que, en caso de colisión (evaluada globalmente), utilice el Unix timestamp actual como sub-folio (ej. `TKT-2026-89452`) evadiendo así caídas del microservicio bajo condiciones de multi-tenancy masiva.
+3. **Reorganización de Router API**: Promoción del path de analítica `technicians/workload` a la parte superior del árbol de router en FastAPI, evadiendo la captura del path regex variable de `{ticket_id}`.
 
-### 3. Sistema de Prevención de Tormentas de Eventos (Debouncing)
-Para prevenir tormentas de escritura de tickets repetidos / spam en el Outbox, se implementó en `TicketRepository.add_outbox_event` un sistema de mitigación:
-- **Ventana:** 10 segundos.
-- **Validación:** Select + Order By Limit 1 del payload idéntico.
-- **Pruebas:** Cobertura exitosa en `test_debouncing.py` (Mockeado con Pytest Asyncio).
-
-### Próximos Pasos (Frontend)
-El backend es sólido. Procedemos a habilitar el UI reactivo con Angular Signals, requiriendo llamadas dinámicas de configuración (`/config/constants`) para poblar los selectores contextualmente (`MAINTENANCE` activa `station_id`, `SUPPORT` activa AI, etc).
+### Criterios de Éxito Validados
+- Pruebas E2E exitosas (creación y listado de 5+ tickets).
+- Dashboard frontend carga columnas sin 500 Internals.
+- Container (`interno-monolith`) re-creado, optimizado, y desplegado.

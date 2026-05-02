@@ -16,6 +16,7 @@ from tickets_app.schemas.ticket_dto import (
     TicketCommentRead, 
     TicketCommentCreate, 
     TicketCommentBase,
+    TicketTriage,
     ApiResponse
 )
 from tickets_app.schemas.escalation_dto import EscalationRuleRead
@@ -28,6 +29,21 @@ from tickets_app.infrastructure.inventory_client import HttpInventoryClient
 from tickets_app.services.escalation_service import EscalationConfigService
 
 router = APIRouter(tags=["tickets"])
+
+@router.get("/technicians/workload")
+@router.get("/technicians/workload/")
+async def get_technicians_workload(
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(get_current_user)
+):
+    """
+    Retorna la carga de trabajo actual de los técnicos del tenant.
+    Útil para el triaje inteligente en el Dashboard.
+    """
+    service = TicketService(SQLAlchemyTicketRepository(db))
+    workload = await service.get_technician_workload(uuid.UUID(user.company_id))
+    return ApiResponse(data=workload, message="Carga de trabajo obtenida")
+
 
 @router.post("/internal", response_model=ApiResponse)
 async def create_internal_ticket(
@@ -179,6 +195,29 @@ async def list_tickets(
     service = TicketService(SQLAlchemyTicketRepository(db))
     tickets = await service.get_tickets(uuid.UUID(user.company_id))
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
+
+@router.post("/{ticket_id}/triage", response_model=ApiResponse)
+async def triage_ticket(
+    ticket_id: uuid.UUID,
+    cmd: TicketTriage,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(get_current_user)
+):
+    service = TicketService(SQLAlchemyTicketRepository(db))
+    is_supervisor = "supervisor" in [r.lower() for r in user.role_names] or "admin" in [r.lower() for r in user.role_names]
+    try:
+        ticket = await service.triage_ticket(
+            ticket_id=ticket_id,
+            company_id=uuid.UUID(user.company_id),
+            cmd=cmd,
+            user_id=uuid.UUID(user.sub),
+            is_supervisor=is_supervisor
+        )
+        return ApiResponse(data=TicketRead.model_validate(ticket), message="Triaje completado exitosamente")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 
 @router.get("/{ticket_id}", response_model=ApiResponse)
 async def get_ticket(

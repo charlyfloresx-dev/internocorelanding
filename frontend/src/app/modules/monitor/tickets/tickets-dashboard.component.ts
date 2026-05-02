@@ -1,235 +1,443 @@
-import { Component, OnInit, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupportService as TicketService } from '../../../core/services/support.service';
-import { Ticket, TicketStatus, TicketPriority, ApiResponse } from '../../../core/models/support.types';
+import { AuthService } from '../../../core/services/auth.service';
+import { Ticket, TicketStatus, TicketPriority } from '../../../core/models/support.types';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
+import { SideDrawerService } from '../../../core/services/side-drawer.service';
+import { TicketsFormComponent } from './components/tickets-form.component';
+import { AdminService, AdminUser } from '../../../core/services/admin.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-tickets-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe],
+  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule],
   template: `
-    <div class="p-6 space-y-6">
-      <!-- Header -->
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold text-white flex items-center gap-2 uppercase tracking-tighter">
-            <mat-icon class="text-blue-400">confirmation_number</mat-icon>
-            {{ 'support.dashboard.title' | translate:'Centro de Soporte Industrial' }}
-          </h1>
-          <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">{{ 'support.dashboard.subtitle' | translate:'Gestión de tickets, escalaciones y mantenimiento preventivo.' }}</p>
-        </div>
-        <button class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 uppercase text-xs font-black tracking-widest">
-          <mat-icon class="text-sm">add</mat-icon>
-          {{ 'support.new_ticket' | translate:'Nuevo Ticket' }}
-        </button>
-      </div>
-
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">{{ 'support.dashboard.open_tickets' | translate:'Tickets Abiertos' }}</p>
-              <h3 class="text-3xl font-black text-white mt-1">{{ openCount() }}</h3>
-            </div>
-            <div class="bg-blue-500/10 p-3 rounded-xl">
-              <mat-icon class="text-blue-400">schedule</mat-icon>
-            </div>
+    <div class="p-6 animate-fade-in flex flex-col min-h-full w-full">
+      
+      <!-- Compact Industrial Header (Filter Bar) -->
+      <header class="mb-6 flex flex-wrap justify-between items-center bg-surface-card border border-surface-border rounded-2xl px-6 py-3 shadow-sm backdrop-blur-md no-print z-50">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <mat-icon class="text-xl text-primary">support_agent</mat-icon>
+          </div>
+          <div class="flex flex-col">
+            <h1 class="text-lg font-black tracking-tight text-surface-text leading-none">
+              Support <span class="text-primary">Tickets</span>
+            </h1>
+            <span class="text-[9px] font-black text-surface-text-muted uppercase tracking-[0.2em] mt-1">
+              {{ 'support.dashboard.kanban' | translate:'TICKETS KANBAN DASHBOARD' }}
+            </span>
           </div>
         </div>
+
+        <div class="flex items-center gap-6">
+          
+          <!-- View Toggle (Supervisors only) -->
+          <div *ngIf="isSupervisor()" class="hidden md:flex bg-surface-text/[0.05] p-1 rounded-xl">
+            <button 
+              (click)="viewFilter.set('MINE')"
+              [class.bg-white]="viewFilter() === 'MINE'"
+              [class.text-surface-text]="viewFilter() === 'MINE'"
+              [class.shadow-sm]="viewFilter() === 'MINE'"
+              [class.text-surface-text-muted]="viewFilter() !== 'MINE'"
+              class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+              {{ 'support.dashboard.my_tickets' | translate:'MIS TICKETS' }}
+            </button>
+            <button 
+              (click)="viewFilter.set('ALL')"
+              [class.bg-white]="viewFilter() === 'ALL'"
+              [class.text-surface-text]="viewFilter() === 'ALL'"
+              [class.shadow-sm]="viewFilter() === 'ALL'"
+              [class.text-surface-text-muted]="viewFilter() !== 'ALL'"
+              class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+              {{ 'support.dashboard.dept_tickets' | translate:'DEPARTAMENTO' }}
+            </button>
+          </div>
+
+          <div class="hidden sm:block h-8 w-px bg-surface-border/60"></div>
+          
+          <div class="flex items-center gap-3 relative">
+             <span class="hidden sm:inline text-[9px] font-black text-surface-text-muted uppercase tracking-widest">{{ 'support.dashboard.sla_compliance' | translate:'SLA CUMPLIMIENTO:' }}</span>
+             <span class="text-sm font-black text-surface-text">98.5%</span>
+             <mat-icon class="text-emerald-500 text-sm">trending_up</mat-icon>
+          </div>
+          <div class="hidden sm:block h-8 w-px bg-surface-border/60"></div>
+          <button (click)="openNewTicket()" class="bg-primary hover:bg-primary-dark text-white rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95">
+            <mat-icon class="text-[18px]">add</mat-icon>
+            <span class="text-[10px] font-black uppercase tracking-wider">{{ 'support.dashboard.new_ticket' | translate:'NUEVO TICKET' }}</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Kanban Board -->
+      <div class="flex-1 flex flex-col lg:flex-row gap-6 w-full pb-10 custom-scrollbar overflow-x-auto">
         
-        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">{{ 'support.dashboard.in_progress' | translate:'En Proceso' }}</p>
-              <h3 class="text-3xl font-black text-amber-400 mt-1">{{ inProgressCount() }}</h3>
+        <!-- COLUMN 1: DETECTADAS (NUEVOS + PENDING APPROVAL) -->
+        <div class="lg:flex flex-1 flex-col min-w-0 transition-all animate-fade-in !overflow-visible min-w-[340px]"
+             (dragover)="onDragOver($event)"
+             (drop)="onDrop($event, 'NEW')">
+          <div class="flex justify-between items-center px-4 mb-3">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full bg-primary"></div>
+              <h2 class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">{{ 'support.status.new_plural' | translate:'NUEVOS' }}</h2>
             </div>
-            <div class="bg-amber-500/10 p-3 rounded-xl">
-              <mat-icon class="text-amber-400">engineering</mat-icon>
-            </div>
+            <span class="text-[10px] font-black text-surface-text-muted px-2 py-0.5 rounded-md bg-surface-text/5 border border-surface-border">{{ ticketsNew().length }}</span>
           </div>
-        </div>
-
-        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">{{ 'support.dashboard.resolved_today' | translate:'Resueltos Hoy' }}</p>
-              <h3 class="text-3xl font-black text-emerald-400 mt-1">{{ resolvedTodayCount() }}</h3>
-            </div>
-            <div class="bg-emerald-500/10 p-3 rounded-xl">
-              <mat-icon class="text-emerald-400">check_circle</mat-icon>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm relative overflow-hidden group">
-          <div class="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform"></div>
-          <div class="flex justify-between items-start relative z-10">
-            <div>
-              <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">{{ 'support.dashboard.sla_risk' | translate:'SLA en Riesgo' }}</p>
-              <h3 class="text-3xl font-black text-rose-400 mt-1">{{ slaRiskCount() }}</h3>
-            </div>
-            <div class="bg-rose-500/10 p-3 rounded-xl">
-              <mat-icon class="text-rose-400">priority_high</mat-icon>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filters & Search -->
-      <div class="flex flex-col md:flex-row gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50 backdrop-blur-md">
-        <div class="relative flex-1">
-          <mat-icon class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">search</mat-icon>
-          <input 
-            type="text" 
-            [placeholder]="'support.dashboard.search_placeholder' | translate:'Buscar por folio o descripción...'" 
-            class="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-700"
-          >
-        </div>
-        <div class="flex gap-2">
-          <select class="bg-slate-950/50 border border-slate-800 text-slate-400 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all">
-            <option value="">{{ 'support.dashboard.filter_priority' | translate:'Prioridad: Todas' }}</option>
-            <option value="CRITICAL">{{ 'support.priority.critical' | translate:'Crítica' }}</option>
-            <option value="HIGH">{{ 'support.priority.high' | translate:'Alta' }}</option>
-            <option value="MEDIUM">{{ 'support.priority.medium' | translate:'Media' }}</option>
-            <option value="LOW">{{ 'support.priority.low' | translate:'Baja' }}</option>
-          </select>
-          <select class="bg-slate-950/50 border border-slate-800 text-slate-400 rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all">
-            <option value="">{{ 'support.dashboard.filter_status' | translate:'Estado: Todos' }}</option>
-            <option value="NEW">{{ 'support.status.new' | translate:'Nuevo' }}</option>
-            <option value="IN_PROGRESS">{{ 'support.status.in_progress' | translate:'En Proceso' }}</option>
-            <option value="RESOLVED">{{ 'support.status.resolved' | translate:'Resuelto' }}</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Tickets Grid -->
-      <div class="grid grid-cols-1 gap-4 pb-12">
-        @for (ticket of tickets(); track ticket.id) {
-          <div class="bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl hover:bg-slate-900/60 hover:border-slate-700 transition-all cursor-pointer group relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-1 h-full" [class]="getPriorityBorderClass(ticket.priority)"></div>
-            
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-              <div class="flex items-start gap-5">
-                <div [class]="getPriorityClass(ticket.priority)" class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-xl transition-transform group-hover:scale-105">
-                  <mat-icon>{{ getTicketTypeIcon(ticket.id) }}</mat-icon>
-                </div>
-                <div class="space-y-1">
-                  <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-black text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 uppercase tracking-[0.2em]">
-                      {{ ticket.reference_code }}
-                    </span>
-                    <span [class]="getStatusClass(ticket.status)" class="text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
-                      {{ 'support.status.' + ticket.status.toLowerCase() | translate:ticket.status }}
-                    </span>
+          
+          <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
+            @for (ticket of ticketsNew(); track ticket.id) {
+              <div draggable="true" 
+                   (dragstart)="onDragStart($event, ticket)" 
+                   [class.border-l-primary]="ticket.status !== 'PENDING_APPROVAL'"
+                   [class.border-l-amber-500]="ticket.status === 'PENDING_APPROVAL'"
+                   [class.ring-2]="ticket.status === 'PENDING_APPROVAL'"
+                   [class.ring-amber-500/30]="ticket.status === 'PENDING_APPROVAL'"
+                   [class.bg-amber-500/[0.02]]="ticket.status === 'PENDING_APPROVAL'"
+                   class="bg-surface-card border border-surface-border border-l-[4px] rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group w-full">
+                
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
+                    <h4 class="text-[13px] font-black text-surface-text">{{ ticket.reference_code || ('#TKT-' + ticket.id.slice(-4).toUpperCase()) }}</h4>
                   </div>
-                  <h4 class="text-white font-bold text-lg group-hover:text-blue-400 transition-colors uppercase tracking-tight">{{ ticket.title }}</h4>
-                  <p class="text-slate-500 text-sm line-clamp-1 font-medium italic">{{ ticket.description }}</p>
+                  <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border"
+                        [ngClass]="ticket.status === 'PENDING_APPROVAL' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-primary/10 text-primary border-primary/20'">
+                    {{ ticket.status }}
+                  </span>
                 </div>
-              </div>
-              
-              <div class="flex items-center gap-8 text-[10px] border-t md:border-t-0 border-slate-800/50 pt-4 md:pt-0">
-                <div class="flex flex-col items-end">
-                  <span class="text-slate-600 font-black uppercase tracking-[0.2em] mb-1">Responsable</span>
-                  <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-                       <mat-icon class="text-[14px]">person</mat-icon>
+                
+                <div class="flex items-start gap-3 mb-6">
+                  <mat-icon class="text-surface-text-muted text-[16px] mt-0.5">engineering</mat-icon>
+                  <div>
+                    <h5 class="text-[11px] font-black text-surface-text leading-snug uppercase">{{ ticket.title }}</h5>
+                    <p class="text-[9px] text-surface-text-muted mt-1 line-clamp-2 leading-relaxed italic">{{ ticket.description }}</p>
+                  </div>
+                </div>
+                
+                <div class="flex justify-between items-end border-t border-surface-border/50 pt-3">
+                  <div>
+                    <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1">{{ 'support.dashboard.priority_type' | translate:'PRIORIDAD' }}</p>
+                    <p class="text-[11px] font-black" [ngClass]="getPriorityTextColor(ticket.priority)">{{ ticket.priority }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
+                      <mat-icon class="text-[8px]">event</mat-icon> {{ 'support.dashboard.registered_at' | translate:'REGISTRO' }}
+                    </p>
+                    <p class="text-[11px] font-black text-surface-text">{{ ticket.created_at | date:'dd/MM/yyyy' }}</p>
+                  </div>
+                </div>
+
+                <!-- Supervision Action Row -->
+                <div *ngIf="isSupervisor() && (ticket.status === 'PENDING_APPROVAL' || !ticket.assigned_to_id)" class="mt-4 pt-3 border-t border-dashed border-primary/20">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex flex-col">
+                      <span class="text-[7px] font-black text-primary uppercase tracking-widest">{{ 'support.dashboard.quick_triage' | translate:'TRIAJE RÁPIDO' }}</span>
                     </div>
-                    <span class="text-slate-300 font-bold uppercase tracking-tighter">{{ ticket.assigned_to_id || 'PENDIENTE' }}</span>
+                    <div class="flex gap-2">
+                      <button *ngIf="ticket.status === 'PENDING_APPROVAL'" 
+                              (click)="handleQuickApprove(ticket)"
+                              [disabled]="isLoadingTriage()"
+                              class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1 transition-all shadow-sm active:scale-95 disabled:opacity-50">
+                        <mat-icon class="text-[14px]">check_circle</mat-icon>
+                        <span class="text-[9px] font-black uppercase">{{ 'common.approve' | translate:'APROBAR' }}</span>
+                      </button>
+                      
+                      <button [matMenuTriggerFor]="techMenu"
+                              [disabled]="isLoadingTriage()"
+                              class="bg-primary/10 hover:bg-primary/20 text-primary rounded-lg px-3 py-1.5 flex items-center gap-1 transition-all border border-primary/20 active:scale-95 disabled:opacity-50">
+                        <mat-icon class="text-[14px]">person_add</mat-icon>
+                        <span class="text-[9px] font-black uppercase">{{ 'common.assign' | translate:'ASIGNAR' }}</span>
+                      </button>
+
+                      <mat-menu #techMenu="matMenu">
+                        <div class="px-3 py-2 border-b border-surface-border">
+                          <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-widest">SELECCIONAR TÉCNICO</p>
+                        </div>
+                        <button mat-menu-item *ngFor="let tech of technicians()" (click)="handleQuickAssign(ticket, tech.id)">
+                          <div class="flex flex-col py-1">
+                            <span class="text-xs font-black text-surface-text">{{ tech.full_name }}</span>
+                            <span class="text-[9px] text-surface-text-muted flex items-center gap-1">
+                              <mat-icon class="text-[10px]" [ngClass]="getTechWorkload(tech.id) > 3 ? 'text-amber-500' : 'text-emerald-500'">task_alt</mat-icon>
+                              {{ getTechWorkload(tech.id) }} tickets activos
+                            </span>
+                          </div>
+                        </button>
+                      </mat-menu>
+                    </div>
                   </div>
                 </div>
-                <div class="flex flex-col items-end min-w-[100px]">
-                  <span class="text-slate-600 font-black uppercase tracking-[0.2em] mb-1">Registro</span>
-                  <span class="text-slate-400 font-mono">{{ ticket.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
-                </div>
-                <mat-icon class="text-slate-700 group-hover:text-blue-500 transition-colors">chevron_right</mat-icon>
               </div>
-            </div>
+            }
+            @if (ticketsNew().length === 0) {
+              <div class="flex-1 flex flex-col items-center justify-center text-surface-text-muted opacity-30 select-none">
+                <mat-icon class="text-4xl mb-2">dashboard_customize</mat-icon>
+                <p class="text-[8px] font-black uppercase tracking-[0.3em]">{{ 'support.dashboard.no_tickets' | translate:'SIN TICKETS' }}</p>
+              </div>
+            }
           </div>
-        } @empty {
-          <div class="text-center py-24 bg-slate-900/10 border-2 border-dashed border-slate-800/50 rounded-[2rem] backdrop-blur-sm">
-            <div class="w-20 h-20 bg-slate-800/30 rounded-full flex items-center justify-center mx-auto mb-6">
-              <mat-icon class="text-4xl text-slate-700">find_in_page</mat-icon>
+        </div>
+
+        <!-- COLUMN 2: EN PROCESO -->
+        <div class="lg:flex flex-1 flex-col min-w-0 transition-all animate-fade-in !overflow-visible min-w-[340px]"
+             (dragover)="onDragOver($event)"
+             (drop)="onDrop($event, 'IN_PROGRESS')">
+          <div class="flex justify-between items-center px-4 mb-3">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full bg-amber-500"></div>
+              <h2 class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">{{ 'support.status.in_progress' | translate:'EN PROCESO' }}</h2>
             </div>
-            <h3 class="text-xl font-black text-slate-500 uppercase tracking-tighter">No hay tickets activos</h3>
-            <p class="text-slate-600 text-[10px] font-black uppercase tracking-widest mt-2 max-w-xs mx-auto leading-relaxed">
-              El sistema de monitoreo está limpio. Los paros operativos y solicitudes de mantenimiento aparecerán aquí.
-            </p>
+            <span class="text-[10px] font-black text-surface-text-muted px-2 py-0.5 rounded-md bg-surface-text/5 border border-surface-border">{{ ticketsInProgress().length }}</span>
           </div>
-        }
+          
+          <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
+            @for (ticket of ticketsInProgress(); track ticket.id) {
+              <div draggable="true" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-amber-500 rounded-xl p-4 shadow-sm hover:border-amber-500/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group w-full">
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
+                    <h4 class="text-[13px] font-black text-surface-text">{{ ticket.reference_code || ('#TKT-' + ticket.id.slice(-4).toUpperCase()) }}</h4>
+                  </div>
+                  <span class="bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-amber-500/20">
+                    {{ ticket.status }}
+                  </span>
+                </div>
+                
+                <div class="flex items-start gap-3 mb-6">
+                  <mat-icon class="text-surface-text-muted text-[16px] mt-0.5">engineering</mat-icon>
+                  <div>
+                    <h5 class="text-[11px] font-black text-surface-text leading-snug uppercase">{{ ticket.title }}</h5>
+                    <p class="text-[9px] text-surface-text-muted mt-1 line-clamp-2 leading-relaxed italic">{{ ticket.description }}</p>
+                  </div>
+                </div>
+                
+                <div class="flex justify-between items-end border-t border-surface-border/50 pt-3">
+                  <div>
+                    <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1">{{ 'support.dashboard.priority_type' | translate:'PRIORIDAD' }}</p>
+                    <p class="text-[11px] font-black" [ngClass]="getPriorityTextColor(ticket.priority)">{{ ticket.priority }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
+                      <mat-icon class="text-[8px]">person</mat-icon> {{ 'support.dashboard.responsible' | translate:'RESPONSABLE' }}
+                    </p>
+                    <p class="text-[11px] font-black text-amber-500">{{ ticket.assigned_to_id || ('support.dashboard.pending' | translate:'PENDIENTE') }}</p>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- COLUMN 3: RESUELTOS -->
+        <div class="lg:flex flex-1 flex-col min-w-0 transition-all animate-fade-in !overflow-visible min-w-[340px]"
+             (dragover)="onDragOver($event)"
+             (drop)="onDrop($event, 'RESOLVED')">
+          <div class="flex justify-between items-center px-4 mb-3">
+            <div class="flex items-center gap-2">
+              <div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+              <h2 class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">{{ 'support.status.resolved_plural' | translate:'RESUELTOS' }}</h2>
+            </div>
+            <span class="text-[10px] font-black text-surface-text-muted px-2 py-0.5 rounded-md bg-surface-text/5 border border-surface-border">{{ ticketsResolved().length }}</span>
+          </div>
+          
+          <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
+            @for (ticket of ticketsResolved(); track ticket.id) {
+              <div draggable="true" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-emerald-500 rounded-xl p-4 shadow-sm hover:border-emerald-500/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group opacity-75 hover:opacity-100 w-full">
+                <div class="flex justify-between items-start mb-4">
+                  <div>
+                    <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
+                    <h4 class="text-[13px] font-black text-surface-text line-through decoration-surface-border">{{ ticket.reference_code || ('#TKT-' + ticket.id.slice(-4).toUpperCase()) }}</h4>
+                  </div>
+                  <span class="bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-emerald-500/20">
+                    {{ ticket.status }}
+                  </span>
+                </div>
+                
+                <div class="flex items-start gap-3 mb-6">
+                  <mat-icon class="text-surface-text-muted text-[16px] mt-0.5">check_circle</mat-icon>
+                  <div>
+                    <h5 class="text-[11px] font-black text-surface-text leading-snug uppercase">{{ ticket.title }}</h5>
+                    <p class="text-[9px] text-surface-text-muted mt-1 line-clamp-1 italic">{{ ticket.description }}</p>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
       </div>
     </div>
   `,
   styles: [`
-    :host { display: block; min-height: 100vh; background: transparent; }
-    .industrial-card {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.5) 0%, rgba(2, 6, 23, 0.7) 100%);
-    }
+    :host { display: block; }
+    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.6); }
   `]
 })
 export class TicketsDashboardComponent implements OnInit {
   private ticketService = inject(TicketService);
+  private drawerService = inject(SideDrawerService);
+  private authService = inject(AuthService);
+  private adminService = inject(AdminService);
+  private toastService = inject(ToastService);
 
   tickets = signal<Ticket[]>([]);
-  openCount = signal(0);
-  inProgressCount = signal(0);
-  resolvedTodayCount = signal(0);
-  slaRiskCount = signal(0);
+  viewFilter = signal<'ALL' | 'MINE'>('ALL');
+  
+  // Supervision data
+  technicians = signal<AdminUser[]>([]);
+  workload = signal<Record<string, number>>({});
+  isLoadingTriage = signal<boolean>(false);
+  
+  isSupervisor = computed(() => {
+    const roles = this.authService.roles();
+    return roles.some(r => r.toLowerCase() === 'supervisor' || r.toLowerCase() === 'admin');
+  });
 
   constructor() {
     effect(() => {
-      const ts = this.ticketService.tickets();
+      let ts = this.ticketService.tickets();
+      const session = this.authService.session();
+      const userId = session?.user_id;
+      
+      if (this.viewFilter() === 'MINE' && userId) {
+        ts = ts.filter(t => t.assigned_to_id === userId);
+      }
       this.tickets.set(ts);
-      this.calculateStats(ts);
     });
   }
 
+  // Kanban derived states
+  ticketsNew = computed(() => this.tickets().filter(t => t.status === TicketStatus.NEW || t.status === TicketStatus.PENDING_APPROVAL));
+  ticketsInProgress = computed(() => this.tickets().filter(t => t.status === TicketStatus.IN_PROGRESS || t.status === TicketStatus.ASSIGNED || t.status === TicketStatus.IN_REVIEW));
+  ticketsResolved = computed(() => this.tickets().filter(t => t.status === TicketStatus.RESOLVED || t.status === TicketStatus.CLOSED));
+
+  // Drag and drop state
+  draggedTicket: Ticket | null = null;
+
   ngOnInit() {
     this.ticketService.loadTickets();
+    
+    if (this.isSupervisor()) {
+      this.loadSupervisionData();
+    }
+
+    // Escuchar recargas desde el drawer
+    this.drawerService.refresh$.subscribe(() => {
+      this.ticketService.loadTickets();
+      if (this.isSupervisor()) this.loadSupervisionData();
+    });
   }
 
+  async loadSupervisionData() {
+    try {
+      this.adminService.getUsers().subscribe(res => {
+        if (res.data) {
+          this.technicians.set(res.data.filter(u => 
+            u.role_name.toLowerCase().includes('technician') || 
+            u.role_name.toLowerCase().includes('user') ||
+            u.role_name.toLowerCase().includes('oper')
+          ));
+        }
+      });
 
-  calculateStats(tickets: Ticket[]) {
-    this.openCount.set(tickets.filter(t => t.status === TicketStatus.NEW).length);
-    this.inProgressCount.set(tickets.filter(t => t.status === TicketStatus.IN_PROGRESS).length);
-    this.resolvedTodayCount.set(tickets.filter(t => t.status === TicketStatus.RESOLVED).length);
-    this.slaRiskCount.set(tickets.filter(t => t.priority === TicketPriority.CRITICAL && t.status !== TicketStatus.CLOSED).length);
-  }
-
-  getPriorityClass(priority: TicketPriority): string {
-    switch (priority) {
-      case TicketPriority.CRITICAL: return 'bg-rose-500/20 text-rose-500 border border-rose-500/30';
-      case TicketPriority.HIGH: return 'bg-orange-500/20 text-orange-500 border border-orange-500/30';
-      case TicketPriority.MEDIUM: return 'bg-blue-500/20 text-blue-500 border border-blue-500/30';
-      default: return 'bg-slate-800 text-slate-500 border border-slate-700';
+      const wl = await this.ticketService.getTechniciansWorkload();
+      this.workload.set(wl);
+    } catch (err) {
+      console.error('Error loading supervision data:', err);
     }
   }
 
-  getPriorityBorderClass(priority: TicketPriority): string {
-    switch (priority) {
-      case TicketPriority.CRITICAL: return 'bg-rose-500';
-      case TicketPriority.HIGH: return 'bg-orange-500';
-      case TicketPriority.MEDIUM: return 'bg-blue-500';
-      default: return 'bg-slate-700';
+  async handleQuickApprove(ticket: Ticket) {
+    this.isLoadingTriage.set(true);
+    try {
+      await this.ticketService.triageTicket(ticket.id, 'APPROVE', undefined, 'Aprobación rápida desde Dashboard');
+      this.toastService.success('Ticket aprobado correctamente');
+      this.loadSupervisionData();
+    } catch (err: any) {
+      this.toastService.error(err.message || 'Error al aprobar ticket');
+    } finally {
+      this.isLoadingTriage.set(false);
     }
   }
 
-  getStatusClass(status: TicketStatus): string {
-    switch (status) {
-      case TicketStatus.NEW: return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-      case TicketStatus.IN_PROGRESS: return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-      case TicketStatus.RESOLVED: return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-      case TicketStatus.CLOSED: return 'bg-slate-500/10 text-slate-500 border border-slate-500/20';
-      default: return 'bg-slate-500/10 text-slate-400';
+  async handleQuickAssign(ticket: Ticket, techId: string) {
+    this.isLoadingTriage.set(true);
+    try {
+      await this.ticketService.triageTicket(ticket.id, 'REASSIGN', techId, 'Asignación rápida desde Dashboard');
+      this.toastService.success('Ticket asignado correctamente');
+      this.loadSupervisionData();
+    } catch (err: any) {
+      this.toastService.error(err.message || 'Error al asignar ticket');
+    } finally {
+      this.isLoadingTriage.set(false);
     }
   }
 
-  getTicketTypeIcon(id: string): string {
-    return 'confirmation_number';
+  getTechWorkload(techId: string): number {
+    return this.workload()[techId] || 0;
+  }
+
+  openNewTicket() {
+    this.drawerService.open(TicketsFormComponent, {
+      title: 'TECHNICAL SUPPORT',
+      subtitle: 'AI HELP CENTER',
+      icon: 'smart_toy',
+      width: 'w-[400px]'
+    }, {
+      context: 'support',
+      isEdit: false
+    });
+  }
+
+  onDragStart(event: DragEvent, ticket: Ticket) {
+    this.draggedTicket = ticket;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+  }
+
+  onDrop(event: DragEvent, newStatusStr: string) {
+    event.preventDefault();
+    if (!this.draggedTicket) return;
+
+    let newStatus = TicketStatus.NEW;
+    if (newStatusStr === 'IN_PROGRESS') newStatus = TicketStatus.IN_PROGRESS;
+    if (newStatusStr === 'RESOLVED') newStatus = TicketStatus.RESOLVED;
+
+    if (this.draggedTicket.status !== newStatus) {
+      const ticketId = this.draggedTicket.id;
+      const updatedTickets = this.tickets().map(t => 
+        t.id === ticketId ? { ...t, status: newStatus } : t
+      );
+      this.tickets.set(updatedTickets);
+
+      this.ticketService.updateTicketStatus(ticketId, newStatus).catch(() => {
+        this.ticketService.loadTickets();
+      });
+    }
+    
+    this.draggedTicket = null;
+  }
+
+  getPriorityTextColor(priority: string): string {
+    const p = (priority || '').toUpperCase();
+    if (p.includes('CRITICAL') || p.includes('ALTA')) return 'text-rose-500';
+    if (p.includes('HIGH')) return 'text-orange-500';
+    if (p.includes('MEDIUM') || p.includes('MEDIA')) return 'text-sky-500';
+    return 'text-emerald-500';
   }
 }

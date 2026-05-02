@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 import uuid
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,10 +25,25 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         self._session = session
 
     async def _generate_ref_code(self, company_id: UUID) -> str:
-        """Genera el folio TKT-YYYY-NNNN scoped por empresa."""
+        """Genera el folio TKT-YYYY-NNNN globalmente único. Resiliente a colisiones."""
         current_year = datetime.now().year
-        count = await self.count_by_company_year(company_id, current_year)
-        return f"TKT-{current_year}-{count + 1:04d}"
+        pattern = f"TKT-{current_year}-%"
+        # Count ALL tickets globally for this year (constraint is global, not per-company)
+        stmt = select(func.count(Ticket.id)).where(
+            Ticket.reference_code.like(pattern)
+        )
+        result = await self._session.execute(stmt)
+        count = result.scalar() or 0
+        # Add uuid suffix for extra uniqueness in case of race conditions
+        ref = f"TKT-{current_year}-{count + 1:04d}"
+        # Verify it doesn't exist
+        check = select(func.count(Ticket.id)).where(Ticket.reference_code == ref)
+        exists = (await self._session.execute(check)).scalar() or 0
+        if exists > 0:
+            # Fallback: use timestamp-based suffix
+            import time
+            ref = f"TKT-{current_year}-{int(time.time()) % 100000:05d}"
+        return ref
 
     async def create(self, data: dict) -> Ticket:
         company_id = data["company_id"]
@@ -89,6 +104,41 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             Ticket.company_id == company_id,
             Ticket.is_active == True
         )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_by_visibility(
+        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None
+    ) -> list[Ticket]:
+        stmt = select(Ticket).options(
+            selectinload(Ticket.comments),
+            selectinload(Ticket.history),
+            selectinload(Ticket.resources),
+            selectinload(Ticket.stop_logs)
+        ).where(
+            Ticket.company_id == company_id,
+            Ticket.is_active == True
+        )
+        
+        if not is_admin:
+            if is_supervisor:
+                if department_area:
+                    stmt = stmt.where(
+                        (Ticket.area == department_area) | 
+                        (Ticket.created_by == user_id) | 
+                        (Ticket.assigned_to_id == user_id)
+                    )
+                else:
+                    stmt = stmt.where(
+                        (Ticket.created_by == user_id) | 
+                        (Ticket.assigned_to_id == user_id)
+                    )
+            else:
+                stmt = stmt.where(
+                    (Ticket.created_by == user_id) | 
+                    (Ticket.assigned_to_id == user_id)
+                )
+
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
@@ -221,3 +271,21 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         )
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_technician_workload(self, company_id: UUID) -> dict:
+        """Retorna un mapa de {user_id: count} con la carga de tickets activos."""
+        stmt = select(Ticket.assigned_to_id, func.count(Ticket.id)).where(
+            Ticket.company_id == company_id,
+            Ticket.is_active == True,
+            Ticket.status.in_([
+                TicketStatus.ASSIGNED, 
+                TicketStatus.IN_PROGRESS, 
+                TicketStatus.IN_REVIEW, 
+                TicketStatus.ON_HOLD
+            ])
+        ).group_by(Ticket.assigned_to_id)
+        
+        result = await self._session.execute(stmt)
+        # result.all() devuelve una lista de tuplas (user_id, count)
+        rows = result.all()
+        return {str(row[0]): row[1] for row in rows if row[0]}

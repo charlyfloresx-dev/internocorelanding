@@ -58,13 +58,13 @@ export class SupportService {
     }
   }
 
-  async createTicket(title: string, description: string, priority: TicketPriority = TicketPriority.MEDIUM) {
+  async createTicket(title: string, description: string, priority: TicketPriority = TicketPriority.MEDIUM, area?: string) {
     const companyId = this.authService.activeCompanyId();
     if (!companyId) return;
 
     this._loading.set(true);
     try {
-      const payload = {
+      const payload: any = {
         title,
         description,
         priority,
@@ -72,6 +72,10 @@ export class SupportService {
         ticket_type: 'Soporte',
         source_service: 'MANUAL'
       };
+
+      if (area) {
+        payload.area = area;
+      }
 
       const response = await firstValueFrom(
         this.http.post<ApiResponse<Ticket>>(this.baseUrl, payload)
@@ -120,6 +124,61 @@ export class SupportService {
     } catch (err) {
       console.error('Error adding comment:', err);
       throw err;
+    }
+  }
+
+  async updateTicketStatus(ticketId: string, newStatus: string) {
+    try {
+      const response = await firstValueFrom(
+        this.http.patch<ApiResponse<Ticket>>(`${this.baseUrl}/${ticketId}`, { status: newStatus })
+      );
+      
+      if (response.data) {
+        // Actualizamos localmente
+        this._tickets.update(ts => ts.map(t => t.id === ticketId ? { ...t, status: response.data.status } : t));
+      }
+      return response.data;
+    } catch (err) {
+      console.error('Error updating ticket status:', err);
+      // Reload tickets to restore correct state on error
+      this.loadTickets();
+      throw err;
+    }
+  }
+
+  /**
+   * Phase 10: Triage logic for supervisors
+   */
+  async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', newAssignedToId?: string, comment?: string) {
+    try {
+      const payload: any = { action };
+      if (newAssignedToId) payload.new_assigned_to_id = newAssignedToId;
+      if (comment) payload.comment = comment;
+
+      const response = await firstValueFrom(
+        this.http.post<ApiResponse<Ticket>>(`${this.baseUrl}/${ticketId}/triage`, payload)
+      );
+
+      if (response.data) {
+        // Actualizamos localmente la señal
+        this._tickets.update(ts => ts.map(t => t.id === ticketId ? response.data : t));
+      }
+      return response.data;
+    } catch (err) {
+      console.error('Error in triage action:', err);
+      throw err;
+    }
+  }
+
+  async getTechniciansWorkload(): Promise<Record<string, number>> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ApiResponse<Record<string, number>>>(`${this.baseUrl}/technicians/workload`)
+      );
+      return response.data || {};
+    } catch (err) {
+      console.error('Error loading technician workload:', err);
+      return {};
     }
   }
 }

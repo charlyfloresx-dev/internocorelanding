@@ -355,8 +355,8 @@ async def get_current_user_info(
             roles=[], # TODO: Fetch roles if needed
             permissions=context.scopes,
             scopes=context.scopes,
-            user_full_name=getattr(user, "full_name", None) or user.email,
-            user_email=user.email,
+            user_full_name=getattr(user, "full_name", None) or "User",
+            user_email=getattr(user, "email", "N/A"),
             status=context.status,
             readonly=context.readonly
         ),

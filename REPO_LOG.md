@@ -4,6 +4,13 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-02] Phase 80: Ticket Triage Workflow & API Hardening
+- **Triage API Stabilization**: Corregidos errores críticos 500 en la lectura de claims del JWT (`user.roles` a `user.role_names`) en `ticket_routes.py` para permitir la asignación fluida desde el Kanban.
+- **Reference Collision Immunity**: Refactorizado el algoritmo de generación de folios (`_generate_ref_code`) implementando conteos globales atómicos y fallback por timestamp, erradicando los `UniqueViolationError` en multi-tenant concurrent conditions.
+- **Workload Metrics Enablement**: Fixeado el route matching 404 para `/tickets/technicians/workload` promocionando el endpoint y configurando su UI component para carga dinámica de técnicos.
+- **Automated E2E Testing Expansion**: Ampliada la suite de pruebas `test_tickets_e2e.py` garantizando la cobertura de los endpoints de Workload y Triage.
+- **Status**: ✅ Phase 80 COMPLETED — Triage Engine Hardened & UI Data Bound.
+
 ### [2026-05-02] Phase 79: Tickets Event Flow & System Resilience
 - **Monolith Integration Fixes**: Recreación de contenedores forzando recargas, estabilizando el ruteo interno de `/api/v1/events` y logrando validación de eventos (202 Accepted).
 - **Timezone Standardization**: Eliminación del error `asyncpg` mediante la migración global de columnas Naive a `DateTime(timezone=True)` (Afectando Outbox, Inventory, y Notifications).

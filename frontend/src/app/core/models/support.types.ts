@@ -1,12 +1,13 @@
 export enum TicketStatus {
-  NEW = "Nuevo",
-  IN_REVIEW = "En revisión",
-  ASSIGNED = "Asignado",
-  IN_PROGRESS = "En progreso",
-  ON_HOLD = "En espera",
-  RESOLVED = "Resuelto",
-  CLOSED = "Cerrado",
-  CANCELED = "Cancelado"
+  NEW = "NEW",
+  PENDING_APPROVAL = "PENDING_APPROVAL",
+  IN_REVIEW = "IN_REVIEW",
+  ASSIGNED = "ASSIGNED",
+  IN_PROGRESS = "IN_PROGRESS",
+  ON_HOLD = "ON_HOLD",
+  RESOLVED = "RESOLVED",
+  CLOSED = "CLOSED",
+  CANCELED = "CANCELED"
 }
 
 export enum TicketPriority {
@@ -46,7 +47,15 @@ export interface Ticket {
   created_at: string;
   updated_at?: string;
   assigned_to_id?: string;
+  area?: string;
+  department_id?: string;
   comments?: TicketComment[];
+}
+
+export interface TicketTriage {
+  action: 'APPROVE' | 'REASSIGN';
+  new_assigned_to_id?: string;
+  comment?: string;
 }
 
 export interface ApiResponse<T> {

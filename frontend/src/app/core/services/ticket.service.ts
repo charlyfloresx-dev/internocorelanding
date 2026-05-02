@@ -15,6 +15,10 @@ export class TicketService {
     return this.http.get<ApiResponse<Ticket[]>>(this.apiUrl);
   }
 
+  getConfigConstants(): Observable<ApiResponse<any>> {
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/config/constants`);
+  }
+
   getTicket(id: string): Observable<ApiResponse<Ticket>> {
     return this.http.get<ApiResponse<Ticket>>(`${this.apiUrl}/${id}`);
   }

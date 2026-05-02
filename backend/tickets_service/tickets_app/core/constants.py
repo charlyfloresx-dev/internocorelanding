@@ -2,6 +2,7 @@ from enum import Enum
 
 class TicketStatus(str, Enum):
     NEW = "Nuevo"
+    PENDING_APPROVAL = "Pendiente de Aprobación"
     IN_REVIEW = "En revisión"
     ASSIGNED = "Asignado"
     IN_PROGRESS = "En progreso"

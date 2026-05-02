@@ -17,12 +17,16 @@ class TicketService:
         self.repo = repo
 
     async def create_ticket(self, cmd: TicketCreate, user_id: uuid.UUID) -> "Ticket":  # noqa: F821
+        status = TicketStatus.NEW
+        if getattr(cmd, "assigned_to_id", None):
+            status = TicketStatus.PENDING_APPROVAL
+
         data = {
             "title": cmd.title,
             "description": cmd.description,
             "ticket_type": cmd.ticket_type,
             "priority": cmd.priority,
-            "status": TicketStatus.NEW,
+            "status": status,
             "company_id": cmd.company_id,
             "tenant_id": cmd.company_id,
             "created_by": user_id,
@@ -261,8 +265,111 @@ class TicketService:
             
         return resolved_tickets
 
+    async def get_tickets_with_visibility(
+        self,
+        company_id: uuid.UUID,
+        user_id: uuid.UUID,
+        is_admin: bool,
+        is_supervisor: bool,
+        department_area: Optional[str] = None
+    ) -> List["Ticket"]:  # noqa: F821
+        return await self.repo.list_by_visibility(
+            company_id, user_id, is_admin, is_supervisor, department_area
+        )
+
     async def get_tickets(self, company_id: uuid.UUID) -> List["Ticket"]:  # noqa: F821
         return await self.repo.list_by_company(company_id)
+
+    async def triage_ticket(
+        self,
+        ticket_id: uuid.UUID,
+        company_id: uuid.UUID,
+        cmd: "TicketTriage",  # noqa: F821
+        user_id: uuid.UUID,
+        is_supervisor: bool
+    ) -> "Ticket":  # noqa: F821
+        if not is_supervisor:
+            raise ValueError("Solo los supervisores pueden realizar el triaje de tickets")
+
+        ticket = await self.repo.get_by_id(ticket_id, company_id)
+        if not ticket:
+            raise ValueError("Ticket not found")
+
+        updates = {}
+        old_status = ticket.status.value
+        
+        if cmd.action.value == "APPROVE":
+            updates["status"] = TicketStatus.ASSIGNED
+            new_status = TicketStatus.ASSIGNED.value
+        elif cmd.action.value == "REASSIGN":
+            if not cmd.new_assigned_to_id:
+                raise ValueError("new_assigned_to_id required for REASSIGN action")
+            updates["assigned_to_id"] = cmd.new_assigned_to_id
+            updates["status"] = TicketStatus.ASSIGNED
+            new_status = TicketStatus.ASSIGNED.value
+            
+            # Auditoría: hash del operador
+            hash_str = f"{user_id}_{ticket_id}_{cmd.new_assigned_to_id}"
+            import hashlib
+            updates["deduplication_hash"] = hashlib.sha256(hash_str.encode()).hexdigest()
+            
+            await self.repo.add_history_entry(
+                ticket_id=ticket.id,
+                company_id=company_id,
+                change_type="assignment_triage",
+                old_value=str(ticket.assigned_to_id) if ticket.assigned_to_id else None,
+                new_value=str(cmd.new_assigned_to_id),
+                changed_by_id=user_id
+            )
+        else:
+            raise ValueError("Invalid triage action")
+        
+        await self.repo.add_history_entry(
+            ticket_id=ticket.id,
+            company_id=company_id,
+            change_type="status_change",
+            old_value=old_status,
+            new_value=new_status,
+            changed_by_id=user_id
+        )
+        
+        if cmd.comment:
+            await self.repo.add_comment(
+                ticket_id=ticket.id,
+                company_id=company_id,
+                content=f"[TRIAGE] {cmd.comment}",
+                author_id=user_id
+            )
+            
+        await self.repo.update(ticket.id, company_id, updates)
+        
+        # Dispatch status changed event (acts as TicketAssignedEvent for now)
+        from tickets_app.schemas.integration_events import TicketStatusChangedEvent
+        recipient_id = cmd.new_assigned_to_id if cmd.action.value == "REASSIGN" else ticket.assigned_to_id
+        if not recipient_id:
+            recipient_id = ticket.created_by
+            
+        event = TicketStatusChangedEvent(
+            ticket_id=ticket.id,
+            company_id=ticket.company_id,
+            reference_code=ticket.reference_code,
+            title=ticket.title,
+            old_status=old_status,
+            new_status=new_status,
+            recipient_id=recipient_id,
+            changed_by_id=user_id,
+            area=ticket.area,
+            module_origin=ticket.module_origin,
+            ticket_type=ticket.ticket_type.value if ticket.ticket_type else None,
+            priority=ticket.priority.value if ticket.priority else None,
+        )
+        await self.repo.add_outbox_event(
+            company_id=company_id,
+            event_type=event.event_type,
+            payload=event.model_dump_json()
+        )
+        
+        return await self.repo.get_by_id(ticket.id, company_id)
 
     async def get_ticket(self, ticket_id: uuid.UUID, company_id: uuid.UUID) -> Optional["Ticket"]:  # noqa: F821
         return await self.repo.get_by_id(ticket_id, company_id)
@@ -376,3 +483,7 @@ class TicketService:
 
         await self.repo.soft_delete(ticket_id, company_id)
         return await self.repo.get_by_id(ticket_id, company_id)
+
+    async def get_technician_workload(self, company_id: uuid.UUID) -> dict:
+        """Delegación de carga de técnicos al repositorio."""
+        return await self.repo.get_technician_workload(company_id)

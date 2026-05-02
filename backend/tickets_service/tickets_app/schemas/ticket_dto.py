@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Any
 from decimal import Decimal
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
+from enum import Enum
 
 class TicketBase(BaseModel):
     title: str = Field(..., min_length=5, max_length=100)
@@ -19,6 +20,16 @@ class TicketCreate(TicketBase):
     station_id: Optional[UUID] = None          # Requerido para MAINTENANCE
     reported_by_id: Optional[UUID] = None      # Para notificaciones de cierre
     source_service: Optional[str] = None       # "MANUAL", "INVENTORY", "MES"
+    assigned_to_id: Optional[UUID] = None
+
+class TicketTriageAction(str, Enum):
+    APPROVE = "APPROVE"
+    REASSIGN = "REASSIGN"
+
+class TicketTriage(BaseModel):
+    action: TicketTriageAction
+    new_assigned_to_id: Optional[UUID] = None
+    comment: Optional[str] = None
 
 class TicketUpdate(BaseModel):
     title: Optional[str] = None

@@ -39,6 +39,13 @@ class ITicketRepository(ABC):
         ...
 
     @abstractmethod
+    async def list_by_visibility(
+        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None
+    ) -> List["Ticket"]:  # noqa: F821
+        """Lista tickets aplicando reglas jerárquicas de visibilidad."""
+        ...
+
+    @abstractmethod
     async def update(self, ticket_id: UUID, company_id: UUID, data: dict) -> Optional["Ticket"]:  # noqa: F821
         """Actualiza campos de un ticket. Maneja commit internamente."""
         ...
@@ -71,4 +78,9 @@ class ITicketRepository(ABC):
     @abstractmethod
     async def add_outbox_event(self, company_id: UUID, event_type: str, payload: str) -> None:
         """Persiste un evento en el Outbox para entrega garantizada."""
+        ...
+
+    @abstractmethod
+    async def get_technician_workload(self, company_id: UUID) -> dict:
+        """Retorna un mapa de {user_id: count} con la carga de tickets activos."""
         ...

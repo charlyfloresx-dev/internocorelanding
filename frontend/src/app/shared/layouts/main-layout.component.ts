@@ -14,11 +14,13 @@ import {SystemHealthService} from '../../core/services/system-health.service';
 import {NotificationHubService} from '../../core/services/notification-hub.service';
 import {SupportDrawerComponent} from '../../shared/components/support-drawer.component';
 import {SideDrawerComponent} from '../../shared/components/side-drawer.component';
+import {SideDrawerService} from '../../core/services/side-drawer.service';
+import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tickets-form.component';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe, SupportDrawerComponent, SideDrawerComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, TranslatePipe, KeyValuePipe, SideDrawerComponent],
   template: `
     <div 
       [class.dark]="themeService.darkMode()"
@@ -385,7 +387,7 @@ import {SideDrawerComponent} from '../../shared/components/side-drawer.component
 
                   <!-- Support AI Drawer -->
                   <button 
-                    (click)="isSupportDrawerOpen.set(true)"
+                    (click)="openSupportDrawer()"
                     class="text-surface-text-muted hover:text-primary transition-colors p-2 rounded-lg hover:bg-surface-text/5"
                     title="Soporte AI"
                   >
@@ -397,12 +399,6 @@ import {SideDrawerComponent} from '../../shared/components/side-drawer.component
               </div>
             </header>
           </div>
-
-          <!-- Support Drawer Instance -->
-          <app-support-drawer 
-            [isOpen]="isSupportDrawerOpen()" 
-            (closed)="isSupportDrawerOpen.set(false)"
-          ></app-support-drawer>
 
           <!-- Generic Side Drawer Instance -->
           <app-side-drawer></app-side-drawer>
@@ -443,8 +439,8 @@ export class MainLayoutComponent {
   isMobileMenuOpen = signal(false);
   isMobile = signal(false);
   showNotifPanel = signal(false);
-  isSupportDrawerOpen = signal(false);
   notifHub = inject(NotificationHubService);
+  drawerService = inject(SideDrawerService);
 
   constructor() {
     this.checkMobile();
@@ -581,5 +577,17 @@ export class MainLayoutComponent {
       console.log(`[MainLayout] Navigating to notification link: ${actionUrl}`);
       this.router.navigateByUrl(actionUrl);
     }
+  }
+
+  openSupportDrawer() {
+    this.drawerService.open(TicketsFormComponent, {
+      title: 'SOPORTE TÉCNICO',
+      subtitle: 'CENTRO DE AYUDA AI',
+      icon: 'support_agent',
+      width: 'w-[400px]'
+    }, {
+      context: 'support',
+      isEdit: false
+    });
   }
 }

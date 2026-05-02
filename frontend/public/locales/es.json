@@ -223,10 +223,15 @@
     "empty_tickets": "No hay tickets activos",
     "mcp_active": "Servicio Unificado Activo",
     "status": {
-      "new": "Nuevo",
-      "in_progress": "En proceso",
-      "resolved": "Resuelto",
-      "closed": "Cerrado"
+      "NEW": "Nuevo",
+      "PENDING_APPROVAL": "Pendiente de Aprobación",
+      "IN_REVIEW": "En revisión",
+      "ASSIGNED": "Asignado",
+      "IN_PROGRESS": "En proceso",
+      "ON_HOLD": "En espera",
+      "RESOLVED": "Resuelto",
+      "CLOSED": "Cerrado",
+      "CANCELED": "Cancelado"
     },
     "priority": {
       "low": "Baja",
@@ -243,7 +248,9 @@
       "sla_risk": "SLA en Riesgo",
       "search_placeholder": "Buscar por folio o descripción...",
       "filter_priority": "Prioridad: Todas",
-      "filter_status": "Estado: Todos"
+      "filter_status": "Estado: Todos",
+      "my_tickets": "Mis Tickets",
+      "dept_tickets": "Departamento"
     }
   },
   "common": {
