@@ -78,6 +78,10 @@ export const routes: Routes = [
             loadComponent: () => import('./modules/inventory/inventory-shipping.component').then(m => m.InventoryShippingComponent)
           },
           {
+            path: 'pending-putaway',
+            loadComponent: () => import('./modules/inventory/pending-putaway.component').then(m => m.PendingPutawayComponent)
+          },
+          {
             path: 'put-away', // Phase 42.8: Relocation Handheld
             loadComponent: () => import('./modules/inventory/inventory-put-away.component').then(m => m.InventoryPutAwayComponent)
           },

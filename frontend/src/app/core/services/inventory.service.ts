@@ -15,7 +15,9 @@ import {
   CategoryRead, 
   BrandRead,
   ProductRead,
-  ApiResponse
+  ApiResponse,
+  LocationDensity,
+  PendingPutawayItem
 } from '../models/domain.types';
 
 @Injectable({
@@ -518,14 +520,33 @@ export class InventoryService {
   }
 
   /**
-   * [Phase 49] Density Guard: Checks real-time occupancy and capacity.
+   * [Phase 49 & 83] Density Guard: Checks real-time occupancy and capacity.
    */
-  async getLocationDensity(warehouseId: string, locationCode: string): Promise<ApiResponse<any>> {
+  async getLocationDensity(warehouseId: string, locationCode: string): Promise<ApiResponse<LocationDensity>> {
     return lastValueFrom(
-      this.http.get<ApiResponse<any>>(`${this.apiUrl}/inventory/locations/${locationCode}/density`, {
+      this.http.get<ApiResponse<LocationDensity>>(`${this.apiUrl}/inventory/locations/${locationCode}/density`, {
         params: { warehouse_id: warehouseId }
       })
     );
+  }
+
+  /**
+   * [Phase 83] WMS: Get queue of pending put-away movements
+   */
+  getPendingPutaway(warehouseId?: string, limit: number = 100, offset: number = 0): Observable<ApiResponse<PendingPutawayItem[]>> {
+    let params: any = { limit, offset };
+    if (warehouseId) params.warehouse_id = warehouseId;
+    return this.http.get<ApiResponse<PendingPutawayItem[]>>(`${this.apiUrl}/inventory/locations/pending-putaway`, { params });
+  }
+
+  /**
+   * [Phase 83] WMS: Get all locations with density info
+   */
+  getWarehouseLocations(warehouseId?: string, zoneType?: string): Observable<ApiResponse<LocationDensity[]>> {
+    let params: any = {};
+    if (warehouseId) params.warehouse_id = warehouseId;
+    if (zoneType) params.zone_type = zoneType;
+    return this.http.get<ApiResponse<LocationDensity[]>>(`${this.apiUrl}/inventory/locations`, { params });
   }
 
   /**

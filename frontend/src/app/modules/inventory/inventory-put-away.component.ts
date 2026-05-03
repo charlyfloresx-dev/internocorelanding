@@ -205,8 +205,32 @@ function playIndustrialBeep(frequency: number = 200, duration: number = 0.3) {
                 <span class="text-sm font-black text-surface-text">{{ identifiedItem()?.from_location }}</span>
               </div>
               <div class="flex justify-between items-center py-4 border-b border-surface-border">
+                <span class="text-[10px] font-black text-surface-text-muted uppercase">Pedimento</span>
+                <span class="text-xs font-black px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded border border-indigo-500/30">
+                  {{ identifiedItem()?.pedimento || 'N/A' }}
+                </span>
+              </div>
+              <div class="flex justify-between items-center py-4 border-b border-surface-border">
                 <span class="text-[10px] font-black text-surface-text-muted uppercase">Destino</span>
-                <span class="text-sm font-black text-emerald-400">{{ destScan }}</span>
+                <div class="flex flex-col items-end">
+                  <span class="text-sm font-black text-emerald-400">{{ destScan }}</span>
+                  <div class="flex gap-1 mt-1">
+                    <span class="text-[8px] font-black px-1.5 py-0.5 rounded bg-surface-bg border border-surface-border text-surface-text-muted">
+                      {{ locationDensity()?.zone_type }}
+                    </span>
+                    <span class="text-[8px] font-black px-1.5 py-0.5 rounded"
+                          [class.bg-blue-500]="locationDensity()?.storage_type === 'COLD'"
+                          [class.text-blue-100]="locationDensity()?.storage_type === 'COLD'"
+                          [class.bg-orange-500]="locationDensity()?.storage_type === 'HAZMAT'"
+                          [class.text-orange-100]="locationDensity()?.storage_type === 'HAZMAT'"
+                          [class.bg-surface-bg]="locationDensity()?.storage_type === 'DRY'"
+                          [class.border]="locationDensity()?.storage_type === 'DRY'"
+                          [class.border-surface-border]="locationDensity()?.storage_type === 'DRY'"
+                          [class.text-surface-text-muted]="locationDensity()?.storage_type === 'DRY'">
+                      {{ locationDensity()?.storage_type }}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div class="flex justify-between items-center py-4 border-b border-surface-border">
                 <span class="text-[10px] font-black text-surface-text-muted uppercase">Densidad Rack</span>
@@ -413,11 +437,10 @@ export class InventoryPutAwayComponent implements OnInit {
       const item = this.identifiedItem();
       const nextOccupancy = res.data.current_occupancy + item.quantity;
       
-      // If capacity is defined and exceeded, warn immediately
+      // Density Guard local warning (will let backend decide on hard block for overrides)
       if (res.data.max_capacity > 0 && nextOccupancy > res.data.max_capacity) {
-        this.toast.error(`¡CAPACIDAD EXCEDIDA! La ubicación solo soporta ${res.data.max_capacity}.`, 'Density Guard 🚨');
-        playIndustrialBeep(110, 0.8);
-        return;
+        this.toast.warning(`¡ATENCIÓN! La ubicación solo soporta ${res.data.max_capacity} unidades. Requiere autorización.`, 'Density Guard 🟡');
+        playIndustrialBeep(200, 0.4);
       }
 
       playIndustrialBeep(880, 0.15);
@@ -455,7 +478,14 @@ export class InventoryPutAwayComponent implements OnInit {
       
     } catch (e: any) {
       const msg = e?.error?.message || 'Error al sincronizar re-ubicación.';
-      this.toast.error(msg, 'Sync Error');
+      
+      if (msg.includes('ERR_LOCATION_OVERFLOW_UNITS')) {
+        this.toast.error('Capacidad de unidades excedida en el Rack. Requiere autorización del Manager.', 'Density Guard 🚨');
+      } else if (msg.includes('ERR_LOCATION_OVERFLOW_WEIGHT')) {
+        this.toast.error('BLOQUEO DE SEGURIDAD: Límite de peso físico excedido. Riesgo de colapso estructural.', 'Peligro 🛑');
+      } else {
+        this.toast.error(msg, 'Sync Error');
+      }
       playIndustrialBeep(110, 0.6); // Very low beep = critical failure
     } finally {
       this.isProcessing.set(false);

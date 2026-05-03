@@ -56,14 +56,11 @@ export class NavigationService {
       label: 'Inventarios',
       translation_key: 'menu.inventory',
       icon: 'inventory_2',
-      permissions: ['inv:movements:manage', 'inv:warehouse:manage', 'inventory:admin'],
+      permissions: ['inv:movements:manage', 'inv:warehouse:manage', 'inventory:admin', 'admin', 'accountant'],
       subItems: [
         { id: 'inv-dash', label: 'Dashboard Global', translation_key: 'menu.inventory_dashboard', route: '/inventory/dashboard' },
         { id: 'inv-stock', label: 'Stock por Almacén', translation_key: 'menu.inventory_stock', route: '/inventory/stock' },
-        { id: 'inv-receive', label: 'Recibir Materiales', translation_key: 'menu.inventory_receive', route: '/inventory/receive' },
-        { id: 'inv-docs', label: 'Movimientos', translation_key: 'menu.inventory_documents', route: '/inventory/documents' },
-        { id: 'inv-trans', label: 'Transferencias ICT', translation_key: 'menu.inventory_transfers', route: '/inventory/transfers' },
-        { id: 'inv-cycle', label: 'Auditoría Spot', translation_key: 'menu.inventory_cycle_count', route: '/inventory/cycle-count' },
+        { id: 'inv-docs', label: 'Movimientos de E/S', translation_key: 'menu.inventory_documents', route: '/inventory/documents' },
         { id: 'inv-audit', label: 'Forensic Audit', translation_key: 'menu.inventory_audit', route: '/inventory/audit' }
       ]
     },
@@ -87,11 +84,12 @@ export class NavigationService {
       label: 'WMS / Logística',
       translation_key: 'menu.wms',
       icon: 'conveyor_belt',
-      permissions: ['wms:admin', 'wms:manage', 'inv:warehouse:manage'],
+      permissions: ['wms:admin', 'wms:manage', 'inv:warehouse:manage', 'operator', 'wh_manager'],
       subItems: [
         { id: 'wms-receiving', label: 'Recibo', translation_key: 'menu.wms_receiving', route: '/inventory/inbound' },
+        { id: 'wms-pending-putaway', label: 'Cola Put-Away', translation_key: 'menu.wms_pending_putaway', route: '/inventory/pending-putaway' },
+        { id: 'wms-putaway', label: 'Put-Away (Handheld)', translation_key: 'menu.wms_putaway', route: '/inventory/put-away' },
         { id: 'wms-picking', label: 'Picking', translation_key: 'menu.wms_picking', route: '/inventory/picking' },
-        { id: 'wms-putaway', label: 'Put-Away', translation_key: 'menu.wms_putaway', route: '/inventory/put-away' },
         { id: 'wms-cycle', label: 'Conteo Cíclico', translation_key: 'menu.wms_cycle_count', route: '/inventory/cycle-count' },
         { id: 'wms-shipping', label: 'Embarques', translation_key: 'menu.wms_shipping', route: '/inventory/shipping' }
       ]

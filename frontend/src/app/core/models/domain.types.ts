@@ -430,3 +430,40 @@ export interface Concept extends AuditBase {
  * ERROR    — fetch failed, show retry/fallback UI
  */
 export type ConceptCatalogState = 'LOADING' | 'READY' | 'ERROR';
+
+/**
+ * [Phase 83] WMS Location Management Interfaces
+ */
+export interface LocationDensity {
+  location_code: string;
+  warehouse_id: string;
+  aisle?: string;
+  section?: string;
+  level?: string;
+  bin_slot?: string;
+  zone_type: string;
+  storage_type: string;
+  is_multisku: boolean;
+  is_virtual: boolean;
+  velocity_code?: string;
+  max_capacity: number;
+  max_weight_kg: number;
+  current_occupancy: number;
+  current_weight_kg: number;
+  available_space?: number;
+  utilization_percent: number;
+  density_status: 'OK' | 'WARNING' | 'FULL' | 'OVERFLOW' | 'UNLIMITED';
+}
+
+export interface PendingPutawayItem {
+  movement_id: string;
+  product_id: string;
+  warehouse_id: string;
+  quantity: number;
+  available_quantity: number;
+  current_location: string;
+  pedimento_number: string;
+  expiry_date?: string;
+  days_in_dock: number;
+  created_at?: string;
+}
