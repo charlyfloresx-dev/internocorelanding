@@ -1,9 +1,11 @@
+// temp_future/src/app/core/services/support.service.ts
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
+import { WebSocketService } from './websocket.service';
 import { environment } from '../../../environments/environment';
 import { Ticket, TicketComment, TicketPriority, TicketStatus, ApiResponse } from '../models/support.types';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, filter } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +13,7 @@ import { firstValueFrom } from 'rxjs';
 export class SupportService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private ws = inject(WebSocketService);
   private baseUrl = `${environment.ticketsUrl}/tickets`;
 
   private _tickets = signal<Ticket[]>([]);
@@ -25,6 +28,22 @@ export class SupportService {
 
   constructor() {
     this.loadConstants();
+    
+    // Escuchar actualizaciones de tickets en tiempo real
+    this.ws.messages$.pipe(
+      filter((msg: any) => msg.type === 'TICKET_UPDATE' || msg.type === 'TICKET_CREATED')
+    ).subscribe((msg: any) => {
+       console.log(`[SupportService] 🎫 Real-time ticket update (${msg.type}):`, msg.payload);
+       this.handleRealtimeTicketUpdate(msg.type, msg.payload);
+    });
+  }
+
+  private handleRealtimeTicketUpdate(type: string, payload: any) {
+    if (type === 'TICKET_CREATED') {
+      this._tickets.update(ts => [payload, ...ts]);
+    } else {
+      this._tickets.update(ts => ts.map(t => t.id === payload.id ? { ...t, ...payload } : t));
+    }
   }
 
   async loadConstants() {
@@ -81,11 +100,7 @@ export class SupportService {
         this.http.post<ApiResponse<Ticket>>(this.baseUrl, payload)
       );
 
-      if (response.data) {
-        this._tickets.update(ts => [response.data, ...ts]);
-        return response.data;
-      }
-      return null;
+      return response.data;
     } catch (err: any) {
       this._error.set(err.message || 'Error al crear ticket');
       throw err;
@@ -111,15 +126,6 @@ export class SupportService {
       const response = await firstValueFrom(
         this.http.post<ApiResponse<TicketComment>>(`${this.baseUrl}/${ticketId}/comments`, { content })
       );
-      
-      // Update the local ticket updatedAt if needed
-      this._tickets.update(ts => ts.map(t => {
-        if (t.id === ticketId) {
-          return { ...t, updated_at: new Date().toISOString() };
-        }
-        return t;
-      }));
-
       return response.data;
     } catch (err) {
       console.error('Error adding comment:', err);
@@ -132,23 +138,14 @@ export class SupportService {
       const response = await firstValueFrom(
         this.http.patch<ApiResponse<Ticket>>(`${this.baseUrl}/${ticketId}`, { status: newStatus })
       );
-      
-      if (response.data) {
-        // Actualizamos localmente
-        this._tickets.update(ts => ts.map(t => t.id === ticketId ? { ...t, status: response.data.status } : t));
-      }
       return response.data;
     } catch (err) {
       console.error('Error updating ticket status:', err);
-      // Reload tickets to restore correct state on error
       this.loadTickets();
       throw err;
     }
   }
 
-  /**
-   * Phase 10: Triage logic for supervisors
-   */
   async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', newAssignedToId?: string, comment?: string) {
     try {
       const payload: any = { action };
@@ -158,11 +155,6 @@ export class SupportService {
       const response = await firstValueFrom(
         this.http.post<ApiResponse<Ticket>>(`${this.baseUrl}/${ticketId}/triage`, payload)
       );
-
-      if (response.data) {
-        // Actualizamos localmente la señal
-        this._tickets.update(ts => ts.map(t => t.id === ticketId ? response.data : t));
-      }
       return response.data;
     } catch (err) {
       console.error('Error in triage action:', err);

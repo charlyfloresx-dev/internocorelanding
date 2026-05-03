@@ -1,10 +1,10 @@
 // temp_future/src/app/core/services/dashboard.service.ts
 import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { lastValueFrom, interval, Subscription } from 'rxjs';
-import { switchMap, startWith } from 'rxjs/operators';
+import { lastValueFrom, Subscription, filter } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
+import { WebSocketService } from './websocket.service';
 import { InventoryDocument, ApiResponse } from '../models/domain.types';
 
 export interface IntegrityMetrics {
@@ -32,6 +32,7 @@ export interface UsageMetrics {
 export class DashboardService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
+  private ws = inject(WebSocketService);
   private apiUrl = environment.masterDataUrl;
 
   // === Signals (Live State) ===
@@ -58,10 +59,8 @@ export class DashboardService {
     activityHeatmap: Array(7).fill(0).map(() => Array(24).fill(0))
   });
   
-  private pollingSub?: Subscription;
   private simulationInterval?: any;
-
-  private activeTelemetryCompany?: string;
+  private activeTelemetryCompany?: string | null = null;
 
   constructor() {
     // Security: Automatically clear data when company changes
@@ -69,22 +68,34 @@ export class DashboardService {
       const companyId = this.auth.activeCompanyId();
       const isAuth = this.auth.isAuthenticated();
       
+      console.log(`[DashboardService] 🏢 Company scope changed: ${companyId}`);
       this.resetState();
       
-      // Strict Gate: Only start telemetry if fully authenticated with a valid UUID company
       if (isAuth && companyId && this.isValidUUID(companyId)) {
         if (this.activeTelemetryCompany !== companyId) {
           console.log('[Dashboard] 🛰️ Active session detected. Starting telemetry.');
           this.activeTelemetryCompany = companyId;
-          this.startTelemetry();
+          this.fetchInitialDashboardData();
         }
       } else {
-        if (companyId && !this.isValidUUID(companyId)) {
-          console.warn('[Dashboard] 🛡️ Telemetry suppressed: Invalid Company Context Context detected.');
-        }
-        this.activeTelemetryCompany = undefined;
+        this.activeTelemetryCompany = null;
         this.stopTelemetry();
       }
+    });
+
+    // Escuchar actualizaciones de inventario en tiempo real vía WebSocket
+    this.ws.messages$.pipe(
+      filter((msg: any) => msg.type === 'INVENTORY_UPDATE' || msg.type === 'DASHBOARD_RESET')
+    ).subscribe((msg: any) => {
+       console.log(`[DashboardService] 🚀 Real-time event received (${msg.type}):`, msg.payload);
+       
+       if (msg.type === 'DASHBOARD_RESET') {
+         this.fetchInitialDashboardData();
+         return;
+       }
+
+       // Actualizar el feed de transacciones localmente
+       this.transactionFeed.update(prev => [msg.payload, ...prev].slice(0, 50));
     });
   }
 
@@ -110,43 +121,19 @@ export class DashboardService {
     });
   }
 
-  private apiFailures = 0;
-  private isApiOffline = false;
+  private async fetchInitialDashboardData() {
+    try {
+      const docs = await this.fetchLatestAudit();
+      this.processTelemetry(docs || []);
+      this.startSimulation();
+    } catch (e) {
+      console.error('[Dashboard] Error fetching initial data:', e);
+      this.processTelemetry([]);
+    }
+  }
 
-  private startTelemetry() {
-    this.stopTelemetry(); // Clean previous
-    
-    this.pollingSub = interval(30000).pipe(
-      startWith(0),
-      switchMap(async () => {
-        // CIRCUIT BREAKER: If we already know the API is offline, don't even try.
-        // This keeps the console clean by preventing persistent RED errors.
-        if (this.isApiOffline) {
-          return this.generateSyntheticDocs();
-        }
-
-        try {
-          const docs = await this.fetchLatestAudit();
-          this.apiFailures = 0; // Reset on success
-          return docs;
-        } catch (e) {
-          this.apiFailures++;
-          // If it fails 2 times, we surrender and go full Demo Mode to save terminal/console space
-          if (this.apiFailures >= 2) {
-            this.isApiOffline = true;
-            console.warn('[Dashboard] 🛡️ Circuit Breaker Tripped: API is unreachable. Switching to local telemetry to clean logs.');
-          }
-          return this.generateSyntheticDocs();
-        }
-      })
-    ).subscribe({
-      next: (docs: any) => this.processTelemetry(Array.isArray(docs) ? docs : []),
-      error: (err) => {
-        // Global error handler
-        this.processTelemetry(this.generateSyntheticDocs());
-      }
-    });
-
+  private startSimulation() {
+    this.stopTelemetry();
     // Start latency simulation
     this.simulationInterval = setInterval(() => {
       this.addLatencyPoint(Math.floor(Math.random() * 45) + 5); // 5-50ms
@@ -154,48 +141,27 @@ export class DashboardService {
     }, 5000);
   }
 
-  private generateSyntheticDocs(): InventoryDocument[] {
-    const types: any[] = ['ENTRADA', 'TRASPASO', 'SALIDA'];
-    const warehouses = ['WH-TIJ-01', 'WH-SD-02', 'PORT-ENS-01'];
-    
-    return Array(10).fill(0).map((_, i) => ({
-      id: `SYN-${1000 + i}`,
-      concept_type: types[Math.floor(Math.random() * types.length)],
-      warehouse_id: warehouses[Math.floor(Math.random() * warehouses.length)],
-      status: 'CONFIRMED',
-      created_at: new Date(Date.now() - (i * 1000 * 60)).toISOString(),
-      updated_at: new Date().toISOString(),
-      movements: [
-        { 
-          id: `M-${i}`, 
-          quantity: Math.floor(Math.random() * 100) + 1, 
-          is_weight_mismatch: Math.random() > 0.8 // 20% discrepancies
-        }
-      ]
-    } as any));
-  }
-
   private stopTelemetry() {
-    if (this.pollingSub) {
-      this.pollingSub.unsubscribe();
-    }
     if (this.simulationInterval) {
       clearInterval(this.simulationInterval);
+      this.simulationInterval = undefined;
     }
   }
 
   private async fetchLatestAudit(): Promise<InventoryDocument[]> {
-    const resp = await lastValueFrom(
-      this.http.get<ApiResponse<InventoryDocument[]>>(`${environment.inventoryUrl}/dashboard/movements?limit=15`)
-    );
-    return resp.data;
+    try {
+      const resp = await lastValueFrom(
+        this.http.get<ApiResponse<InventoryDocument[]>>(`${environment.inventoryUrl}/dashboard/movements?limit=15`)
+      );
+      return resp.data || [];
+    } catch (e) {
+      return [];
+    }
   }
 
   private processTelemetry(docs: InventoryDocument[]) {
-    // Logic to update feed with entry animations (handled by component via signals)
-    this.transactionFeed.set(docs.slice(0, 15)); // Latest 15
+    this.transactionFeed.set(docs.slice(0, 15));
     
-    // Calculate metrics from feed (mock logic)
     const total = docs.length;
     const discrepancies = docs.filter(d => (d.movements || []).some((m: any) => m.is_weight_mismatch)).length;
     const successful = total - discrepancies;
@@ -206,11 +172,6 @@ export class DashboardService {
       discrepancies: discrepancies,
       healthPercentage: total > 0 ? (successful / total) * 100 : 100
     });
-  }
-
-  async quickSwitchCompany(companyId: string) {
-    // Passthrough to AuthService
-    await this.auth.selectCompany(companyId);
   }
 
   addLatencyPoint(ms: number) {
@@ -224,11 +185,10 @@ export class DashboardService {
     this.usageMetrics.update(current => ({
       ...current,
       requestCount: current.requestCount + 1,
-      totalPayloadSize: current.totalPayloadSize + Math.round(payloadSize / 1024), // Convert to KB
-      operationQuota: Math.min(100, (current.requestCount + 1) / 500 * 100) // Mock limit 500
+      totalPayloadSize: current.totalPayloadSize + Math.round(payloadSize / 1024),
+      operationQuota: Math.min(100, (current.requestCount + 1) / 500 * 100)
     }));
 
-    // Update heatmap for current hour
     const now = new Date();
     const day = now.getDay();
     const hour = now.getHours();
@@ -237,5 +197,15 @@ export class DashboardService {
       newHeatmap[day][hour]++;
       return { ...current, activityHeatmap: newHeatmap };
     });
+  }
+
+  async quickSwitchCompany(companyId: string) {
+    console.log(`[DashboardService] Quick switching to: ${companyId}`);
+    try {
+      await this.auth.selectCompany(companyId);
+      // resetState() will be triggered by the effect in constructor
+    } catch (e) {
+      console.error('[DashboardService] Error switching company:', e);
+    }
   }
 }

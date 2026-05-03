@@ -120,10 +120,10 @@ class CodeGraphGenerator:
         self._check_circular_dependencies()
         if "mes_service" in self.lines_of_code and self.domain_services_count.get("mes_service", 0) == 0:
             self.graph["invariants_errors"].append({
-                "file": "backend/mes_service/app/domain/",
+                "file": "backend/mes_service/mes_app/domain/",
                 "severity": "WARNING",
                 "ms": "mes_service",
-                "error": "MISSING_DOMAIN_LOGIC_WARNING: mes_service has no complex logic in app/domain/services/"
+                "error": "MISSING_DOMAIN_LOGIC_WARNING: mes_service has no complex logic in mes_app/domain/services/"
             })
 
     def analyze_file(self, file_path: str):
@@ -178,7 +178,9 @@ class CodeGraphGenerator:
                  critical_fields = ["database", "url", "host", "uri"]
                  line_content = [line.lower() for line in content.split("\n") if "localhost" in line.lower()]
                  for line in line_content:
-                     if any(field in line for field in critical_fields):
+                     # Check for critical fields but EXCLUDE the word 'localhost' itself from the field check
+                     other_than_localhost = line.replace("localhost", "")
+                     if any(field in other_than_localhost for field in critical_fields):
                         err = {"file": rel_path, "severity": "WARNING", "ms": ms, "error": "AWS_READINESS_VIOLATION: Hardcoded 'localhost' detected in critical connection string, use env-injected variables"}
                         self.graph["invariants_errors"].append(err)
                         self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
@@ -227,7 +229,7 @@ class CodeGraphGenerator:
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
                 self._analyze_class(file_path, node, imports, ms)
-            if ("/app/domain/services/" in rel_path or "/app/services/" in rel_path) and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if ("_app/domain/services/" in rel_path or "_app/services/" in rel_path) and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 self.domain_services_count[ms] = self.domain_services_count.get(ms, 0) + 1
 
     def _analyze_class(self, file_path: str, node: ast.ClassDef, imports: Dict[str, str], ms: str):

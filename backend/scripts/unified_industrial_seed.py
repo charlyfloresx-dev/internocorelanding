@@ -46,6 +46,8 @@ ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
 LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
 LOGISTICS_US_ID = uuid.UUID("777cc8a6-34f9-42df-8f29-28254e0ad277")
 CHARLY_ID     = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
+TECH_ONE_ID   = uuid.UUID("11111111-bbaa-46e6-a7f0-aeb4b92b6d38")
+TECH_TWO_ID   = uuid.UUID("22222222-bbaa-46e6-a7f0-aeb4b92b6d38")
 
 # Catálogo de Productos y Variantes (SSOT — 5 productos x 3 variantes)
 # Fuente: seed_variants.py + setup_transfer_prices.py
@@ -179,6 +181,38 @@ async def seed_auth(session):
                     role_id=role_admin.id, tenant_id=sys_co_id,
                     scopes=["*"], is_new=False, version_id=1
                 ), f"RBAC: Charly -> admin en {sys_co_id}")
+
+    # Seed Technicians
+    role_tech = await _first(session, select(Role).where(Role.name == "technician"))
+    if not role_tech:
+        role_tech = Role(id=uuid.uuid4(), name="technician", is_system_role=True, tenant_id=ENTERPRISE_ID, version_id=1, is_active=True)
+        await _safe_add(session, role_tech, "Rol: technician")
+        role_tech = await _first(session, select(Role).where(Role.name == "technician"))
+
+    techs = [
+        (TECH_ONE_ID, "Roberto", "Mecánico", "roberto@interno.com"),
+        (TECH_TWO_ID, "Ana", "Operadora", "ana@interno.com")
+    ]
+    
+    for tid, fname, lname, email in techs:
+        if not await session.get(User, tid):
+            user_obj = User(
+                id=tid, first_name=fname, last_name_pat=lname, version_id=1, is_active=True
+            )
+            await _safe_add(session, user_obj, f"Usuario: {fname} {lname}")
+            
+            cred_obj = UserCredential(
+                id=uuid.uuid4(), user_id=tid, email=email, credential_type="PASSWORD",
+                hashed_password=hash_password("tech123"), version_id=1, is_active=True
+            )
+            await _safe_add(session, cred_obj, f"Usuario (Auth): {email}")
+            
+            if role_tech:
+                for sys_co_id in [LOGISTICS_MX_ID, LOGISTICS_US_ID]:
+                    await _safe_add(session, UserCompanyRole(
+                        user_id=tid, company_id=sys_co_id, role_id=role_tech.id,
+                        tenant_id=sys_co_id, scopes=["*"], is_new=False, version_id=1
+                    ), f"RBAC: {fname} -> technician en {sys_co_id}")
 
 
 async def seed_master_data(session):

@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Standalone Background Worker (Optimized for AWS / Multi-Tasking)
+  # This container handles Outbox processing and Escalation logic without API overhead.
+  tickets-unified-worker:
+    build:
+      context: ../backend
+      dockerfile: Monolith.Dockerfile
+    container_name: tickets-unified-worker
+    image: interno-monolith:latest
+    restart: always
+    command: python tickets_service/scripts/unified_worker.py
+    volumes:
+      - ../backend:/app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CORE_DATABASE_URL=${CORE_DATABASE_URL}
+      - CORE_SECRET_KEY=${CORE_SECRET_KEY}
+      - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service
+      - NOTIFICATION_SERVICE_URL=http://interno-monolith:8000/api/v1/events
+      - WORKER_POLL_INTERVAL_OUTBOX=5
+      - WORKER_POLL_INTERVAL_ESCALATION=60
+    # In AWS, these would be separate tasks or an ECS Service with lower CPU/RAM
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - interno-network
+
+networks:
+  interno-network:
+    external: true

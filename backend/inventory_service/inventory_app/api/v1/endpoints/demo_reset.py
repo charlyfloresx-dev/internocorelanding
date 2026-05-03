@@ -32,6 +32,7 @@ from common.enums import MovementType
 from inventory_app.models.item_variant import ItemVariant
 from inventory_app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
 from common.responses import ApiResponse
+from common.infrastructure.websocket import manager
 from common.security.auth_payload import TokenPayload
 
 logger = logging.getLogger("demo_reset")
@@ -332,6 +333,18 @@ async def demo_reset(
     logger.info(f"[demo-reset] Triggered by user={token.sub}, company={company_id}")
 
     result = await _run_demo_seed(company_id)
+
+    # Notificar al Dashboard que los datos han cambiado radicalmente
+    await manager.broadcast_to_company(
+        str(company_id),
+        {
+            "type": "DASHBOARD_RESET",
+            "payload": {
+                "message": "Demo data has been reset",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        }
+    )
 
     return ApiResponse(
         data=result,

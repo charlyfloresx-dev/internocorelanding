@@ -4,6 +4,7 @@ import { environment } from '../../../environments/environment';
 import { ApiResponse, ValidationStatus } from '../models/domain.types';
 import { AuthService } from './auth.service';
 import { interval, switchMap, catchError, of, Subscription } from 'rxjs';
+import { WebSocketService } from './websocket.service';
 
 export interface AppNotification {
   id: string;
@@ -25,42 +26,35 @@ export class NotificationHubService {
   private auth = inject(AuthService);
   private apiUrl = `${environment.notificationUrl}/notifications`;
 
+  private ws = inject(WebSocketService);
+  
   notifications = signal<AppNotification[]>([]);
   unreadCount = signal<number>(0);
   
-  private pollingSub?: Subscription;
-
   constructor() {
-    // Start polling when authenticated and company is selected
-    // Note: In a real app, this would be managed by a more central orchestrator
-  }
+    // Escuchar mensajes en tiempo real vía WebSocket
+    this.ws.messages$.subscribe(msg => {
+      if (msg.type === 'NOTIFICATION') {
+        console.log('[NotificationHub] 🔔 Real-time notification received:', msg.payload);
+        this.notifications.update(prev => [msg.payload, ...prev]);
+        this.unreadCount.update(c => c + 1);
+      }
+    });
 
-  startPolling() {
-    if (this.pollingSub) return;
-
-    this.pollingSub = interval(30000) // Poll every 30 seconds
-      .pipe(
-        switchMap(() => this.fetchNotifications()),
-        catchError(err => {
-          console.error('[NotificationHub] Polling error:', err);
-          return of([]);
-        })
-      )
-      .subscribe(data => {
-        this.notifications.set(data);
-        this.unreadCount.set(data.length); // Simplified
-      });
-      
-    // Initial fetch
+    // Carga inicial (una sola vez al iniciar)
     this.fetchNotifications().subscribe(data => {
       this.notifications.set(data);
       this.unreadCount.set(data.length);
     });
   }
 
+  startPolling() {
+    // Deprecated: No longer needed with WebSocket active
+    console.log('[NotificationHub] 🔌 WebSocket is now the primary data source.');
+  }
+
   stopPolling() {
-    this.pollingSub?.unsubscribe();
-    this.pollingSub = undefined;
+    // Deprecated: No polling to stop when using WebSockets
   }
 
   private fetchNotifications() {

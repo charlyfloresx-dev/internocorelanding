@@ -13,20 +13,28 @@ COPY common/requirements.txt /app/common/requirements.txt
 COPY auth_service/requirements.txt /app/auth_requirements.txt
 COPY master_data_service/requirements.txt /app/master_data_requirements.txt
 COPY inventory_service/requirements.txt /app/inventory_requirements.txt
+COPY notification_service/requirements.txt /app/notification_requirements.txt
+COPY tickets_service/requirements.txt /app/tickets_requirements.txt
+COPY mes_service/requirements.txt /app/mes_requirements.txt
+COPY subscription_service/requirements.txt /app/subscription_requirements.txt
 
 # Instalar todo en una sola capa
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /app/common/requirements.txt && \
     pip install --no-cache-dir -r /app/auth_requirements.txt && \
     pip install --no-cache-dir -r /app/master_data_requirements.txt || true && \
-    pip install --no-cache-dir -r /app/inventory_requirements.txt || true
+    pip install --no-cache-dir -r /app/inventory_requirements.txt || true && \
+    pip install --no-cache-dir -r /app/notification_requirements.txt || true && \
+    pip install --no-cache-dir -r /app/tickets_requirements.txt || true && \
+    pip install --no-cache-dir -r /app/mes_requirements.txt || true && \
+    pip install --no-cache-dir -r /app/subscription_requirements.txt || true
 
 # Copiar TODO el código base del backend
 # Esto incluye common, auth_service, master_data_service, inventory_service, etc.
 COPY . /app/
 
 # Configurar PYTHONPATH para que los servicios encuentren sus módulos internos
-ENV PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service
+ENV PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service:/app/subscription_service
 
 # Puerto unificado
 EXPOSE 8000

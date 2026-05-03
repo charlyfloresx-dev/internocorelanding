@@ -32,7 +32,7 @@ export class AdminService {
   private http = inject(HttpClient);
 
   getUsers(): Observable<ApiResponse<AdminUser[]>> {
-    return this.http.get<ApiResponse<AdminUser[]>>('/api/v2/admin/users/');
+    return this.http.get<ApiResponse<AdminUser[]>>('/api/v1/users/');
   }
 
   getRoles(): Observable<ApiResponse<AdminRole[]>> {

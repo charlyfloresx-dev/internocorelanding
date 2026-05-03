@@ -487,7 +487,7 @@ export class InventoryService {
     if (query) params.q = query;
     
     return lastValueFrom(
-      this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/customs/balances`, { params })
+      this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/reporting/customs/balances`, { params })
     );
   }
 

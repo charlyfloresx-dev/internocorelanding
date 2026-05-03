@@ -15,6 +15,7 @@ from auth_app.models.user_company_role import UserCompanyRole
 from auth_app.models.role import Role
 from auth_app.models.invitation import Invitation
 from auth_app.models.company import Company
+from auth_app.models.user_credential import UserCredential
 
 # 3. Schemas
 from auth_app.schemas.user import UserCreate, UserResponse 
@@ -28,7 +29,7 @@ from common.services.notification_client import notification_client # Ahora dele
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[UserResponse]])
+@router.get("/", response_model=ApiResponse)
 async def list_company_users(
     db: AsyncSession = Depends(get_db),
     context: SecurityContext = Depends(get_current_tenant_context)
@@ -39,20 +40,44 @@ async def list_company_users(
     """
     company_id = context.company_id
     
-    # Query para traer usuarios unidos por su relación con la empresa
     stmt = (
-        select(User)
+        select(User, UserCompanyRole, Role, UserCredential.email)
         .join(UserCompanyRole, User.id == UserCompanyRole.user_id)
+        .outerjoin(Role, UserCompanyRole.role_id == Role.id)
+        .outerjoin(UserCredential, User.id == UserCredential.user_id)
         .where(UserCompanyRole.company_id == company_id)
     )
     
     result = await db.execute(stmt)
-    users = result.scalars().all()
+    rows = result.all()
+    
+    users_data = []
+    # Deduplicate by user.id in case of multiple credentials
+    seen = set()
+    for user, ucr, role, email in rows:
+        if user.id in seen:
+            continue
+        seen.add(user.id)
+        
+        full_name = f"{user.first_name or ''} {user.last_name_pat or ''}".strip()
+        if not full_name:
+            full_name = "Usuario Desconocido"
+            
+        users_data.append({
+            "id": str(user.id),
+            "email": email or "no-email@interno.com",
+            "full_name": full_name,
+            "role_id": str(role.id) if role else None,
+            "role_name": role.name if role else "User",
+            "status": "active" if user.is_active else "inactive",
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "scopes": ucr.scopes or []
+        })
     
     return ApiResponse(
         status="success",
-        data=[UserResponse.model_validate(u) for u in users],
-        message=f"Found {len(users)} users for company {company_id}"
+        data=users_data,
+        message=f"Found {len(users_data)} users for company {company_id}"
     )
 
 @router.post("/invite", response_model=ApiResponse[InvitationResponse])

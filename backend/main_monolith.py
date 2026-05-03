@@ -3,7 +3,8 @@ import sys
 import logging
 import importlib
 import uuid
-from fastapi import FastAPI, Request, Header, Depends
+from datetime import datetime
+from fastapi import FastAPI, Request, Header, Depends, WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -22,7 +23,8 @@ services = [
     "inventory_service", 
     "notification_service",
     "tickets_service",
-    "mes_service"
+    "mes_service",
+    "subscription_service"
 ]
 for s in services:
     path = os.path.join(BASE_DIR, s)
@@ -34,15 +36,12 @@ from common.middleware import InternoCoreGlobalMiddleware
 from common.error_handlers import domain_exception_handler
 from common.exceptions import DomainException
 from common.security.limiter import limiter
+from common.infrastructure.database import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info("🚀 Iniciando InternoCore Monolith (Unified Engine)...")
-    
-    # 1. Motor de sincronización usando la URL global
-    from sqlalchemy.ext.asyncio import create_async_engine
-    from common.config import settings
-    from common.infrastructure.database import engine
+    logging.info("🚀 Iniciando InternoCore Monolith (Unified Engine v3.5.0)...")
+    print("!!!! MONOLITH STARTING - UNIQUE NAMESPACE MODE !!!!")
     
     # 2. Registro explícito de modelos para asegurar que Base.metadata los conozca
     from common.infrastructure.models.base import Base
@@ -89,6 +88,10 @@ async def lifespan(app: FastAPI):
         import mes_app.models.downtime
         import mes_app.models.labor
         import mes_app.models.shift
+        
+        # Subscription Models
+        import subscription_app.models.subscription
+        import subscription_app.models.wallet
 
     except Exception as e:
         logging.warning(f"⚠️ Algunos modelos no pudieron ser pre-cargados: {e}")
@@ -167,7 +170,13 @@ async def global_unexpected_exception_handler(request: Request, exc: Exception):
 # 0. Integration Events (Priority)
 from common.infrastructure.database import get_db
 from notification_app.api.v1.endpoints import events as event_endpoints
+from inventory_app.api.v1.endpoints.customs import router as customs_router
 app.include_router(event_endpoints.router, prefix="/api/v1")
+# Customs will be included below in Section 3 (Inventory) to maintain grouping
+
+@app.get("/api/v1/customs/debug-monolith")
+async def debug_customs_monolith():
+    return {"status": "ok", "message": "Hardcoded monolith customs path is reachable"}
 
 # 1. Auth
 from auth_app.api.v1.endpoints.auth import router as auth_router
@@ -192,20 +201,26 @@ app.include_router(locations.router, prefix="/api/v1/locations", tags=["Master: 
 app.include_router(currency.router, prefix="/api/v1/currencies", tags=["Master: Currency"])
 
 # 3. Inventory
-from inventory_app.api.v1.endpoints import (
-    transactions, reconciliation, boms, dashboard, 
-    inventory_search, inventory, customs, variants,
-    inter_company_transfers
-)
-app.include_router(transactions.router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
-app.include_router(reconciliation.router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
-app.include_router(boms.router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
-app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
-app.include_router(inventory_search.router, prefix="/api/v1/search", tags=["Inventory: Search"])
-app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
-app.include_router(customs.router, prefix="/api/v1/inventory/customs", tags=["Inventory: Customs"])
-app.include_router(variants.router, prefix="/api/v1/inventory/variants", tags=["Inventory: Variants"])
-app.include_router(inter_company_transfers.router, prefix="/api/v1/inventory/transfers/inter-company", tags=["Inventory: ICT"])
+from inventory_app.api.v1.endpoints.transactions import router as transactions_router
+from inventory_app.api.v1.endpoints.reconciliation import router as reconciliation_router
+from inventory_app.api.v1.endpoints.boms import router as boms_router
+from inventory_app.api.v1.endpoints.dashboard import router as inventory_dashboard_router
+from inventory_app.api.v1.endpoints.inventory_search import router as inventory_search_router
+from inventory_app.api.v1.endpoints.inventory import router as inventory_ops_router
+from inventory_app.api.v1.endpoints.customs import router as customs_router
+from inventory_app.api.v1.endpoints.variants import router as variants_router
+from inventory_app.api.v1.endpoints.inter_company_transfers import router as ict_router
+from inventory_app.api.v1.endpoints.demo_reset import router as demo_reset_router
+app.include_router(transactions_router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
+app.include_router(reconciliation_router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
+app.include_router(boms_router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
+app.include_router(inventory_dashboard_router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
+app.include_router(inventory_search_router, prefix="/api/v1/search", tags=["Inventory: Search"])
+app.include_router(inventory_ops_router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
+app.include_router(variants_router, prefix="/api/v1/inventory/variants", tags=["Inventory: Variants"])
+app.include_router(ict_router, prefix="/api/v1/inventory/transfers/inter-company", tags=["Inventory: ICT"])
+app.include_router(customs_router, prefix="/api/v1/reporting/customs", tags=["Inventory: Customs Reporting"])
+app.include_router(demo_reset_router, prefix="/api/v1", tags=["Inventory: Admin / Demo"])
 
 # 4. Notifications
 from notification_app.api.v1.endpoints import notifications as notification_endpoints
@@ -226,10 +241,45 @@ app.include_router(mes_sync.router, prefix="/api/v1/mes", tags=["MES: Sync"])
 app.include_router(resource.router, prefix="/api/v1/mes/resources", tags=["MES: Resources"])
 app.include_router(shift.router, prefix="/api/v1/mes/shifts", tags=["MES: Shifts"])
 
+# 7. Subscriptions & Billing
+from subscription_app.api.v1.endpoints import billing, wallet, admin as sub_admin
+app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing: Stripe Checkout"])
+app.include_router(wallet.router, prefix="/api/v1/wallet", tags=["Billing: Wallet"])
+app.include_router(sub_admin.router, prefix="/api/v1/admin/subscription", tags=["Billing: Admin"])
+
 @app.get("/")
 async def root():
-    return {"message": "InternoCore Unified Monolith is running", "services": ["Auth", "Master Data", "Inventory", "Notifications", "Tickets", "MES"], "docs": "/api/docs"}
+    return {"message": "InternoCore Unified Monolith is running", "services": ["Auth", "Master Data", "Inventory", "Notifications", "Tickets", "MES", "Subscription"], "docs": "/api/docs"}
 
+@app.get("/api/v1/health")
+@app.get("/api/v1/readiness")
 @app.get("/health")
-async def health():
-    return {"status": "online", "mode": "monolith", "engine": "FastAPI Unified v3.3"}
+async def health_check():
+    """
+    Endpoints de salud consolidados para orquestación (AWS/K8s/Docker).
+    """
+    return {
+        "status": "ready", 
+        "online": True,
+        "mode": "monolith", 
+        "engine": "FastAPI Unified v3.4",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+# ─── WEBSOCKET HUB (Phase 50: Zero Polling) ───
+from common.infrastructure.websocket import manager
+from fastapi import WebSocketDisconnect
+
+@app.websocket("/ws/{company_id}")
+async def websocket_endpoint(websocket: WebSocket, company_id: str):
+    await manager.connect(websocket, company_id)
+    try:
+        while True:
+            # Mantener la conexión abierta y escuchar latidos si es necesario
+            data = await websocket.receive_text()
+            # Opcional: Procesar comandos entrantes del cliente vía WS
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, company_id)
+    except Exception as e:
+        logging.error(f"WebSocket error for {company_id}: {e}")
+        manager.disconnect(websocket, company_id)

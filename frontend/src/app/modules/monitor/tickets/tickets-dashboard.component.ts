@@ -11,11 +11,12 @@ import { AdminService, AdminUser } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.component';
 
 @Component({
   selector: 'app-tickets-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule],
+  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule, TicketTriageDrawerComponent],
   template: `
     <div class="p-6 animate-fade-in flex flex-col min-h-full w-full">
       
@@ -92,13 +93,14 @@ import { MatButtonModule } from '@angular/material/button';
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsNew(); track ticket.id) {
               <div draggable="true" 
+                   (click)="selectedTicket.set(ticket)"
                    (dragstart)="onDragStart($event, ticket)" 
-                   [class.border-l-primary]="ticket.status !== 'PENDING_APPROVAL'"
-                   [class.border-l-amber-500]="ticket.status === 'PENDING_APPROVAL'"
-                   [class.ring-2]="ticket.status === 'PENDING_APPROVAL'"
-                   [class.ring-amber-500/30]="ticket.status === 'PENDING_APPROVAL'"
-                   [class.bg-amber-500/[0.02]]="ticket.status === 'PENDING_APPROVAL'"
-                   class="bg-surface-card border border-surface-border border-l-[4px] rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group w-full">
+                   [class.border-l-primary]="ticket.status !== TicketStatus.PENDING_APPROVAL"
+                   [class.border-l-amber-500]="ticket.status === TicketStatus.PENDING_APPROVAL"
+                   [class.ring-2]="ticket.status === TicketStatus.PENDING_APPROVAL"
+                   [class.ring-amber-500/30]="ticket.status === TicketStatus.PENDING_APPROVAL"
+                   [class.bg-amber-500/[0.02]]="ticket.status === TicketStatus.PENDING_APPROVAL"
+                   class="bg-surface-card border border-surface-border border-l-[4px] rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group w-full">
                 
                 <div class="flex justify-between items-start mb-4">
                   <div>
@@ -106,7 +108,7 @@ import { MatButtonModule } from '@angular/material/button';
                     <h4 class="text-[13px] font-black text-surface-text">{{ ticket.reference_code || ('#TKT-' + ticket.id.slice(-4).toUpperCase()) }}</h4>
                   </div>
                   <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border"
-                        [ngClass]="ticket.status === 'PENDING_APPROVAL' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-primary/10 text-primary border-primary/20'">
+                        [ngClass]="ticket.status === TicketStatus.PENDING_APPROVAL ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-primary/10 text-primary border-primary/20'">
                     {{ ticket.status }}
                   </span>
                 </div>
@@ -133,13 +135,13 @@ import { MatButtonModule } from '@angular/material/button';
                 </div>
 
                 <!-- Supervision Action Row -->
-                <div *ngIf="isSupervisor() && (ticket.status === 'PENDING_APPROVAL' || !ticket.assigned_to_id)" class="mt-4 pt-3 border-t border-dashed border-primary/20">
+                <div *ngIf="isSupervisor() && (ticket.status === TicketStatus.PENDING_APPROVAL || !ticket.assigned_to_id)" class="mt-4 pt-3 border-t border-dashed border-primary/20">
                   <div class="flex items-center justify-between gap-2">
                     <div class="flex flex-col">
                       <span class="text-[7px] font-black text-primary uppercase tracking-widest">{{ 'support.dashboard.quick_triage' | translate:'TRIAJE RÁPIDO' }}</span>
                     </div>
                     <div class="flex gap-2">
-                      <button *ngIf="ticket.status === 'PENDING_APPROVAL'" 
+                      <button *ngIf="ticket.status === TicketStatus.PENDING_APPROVAL" 
                               (click)="handleQuickApprove(ticket)"
                               [disabled]="isLoadingTriage()"
                               class="bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg px-3 py-1.5 flex items-center gap-1 transition-all shadow-sm active:scale-95 disabled:opacity-50">
@@ -196,7 +198,7 @@ import { MatButtonModule } from '@angular/material/button';
           
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsInProgress(); track ticket.id) {
-              <div draggable="true" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-amber-500 rounded-xl p-4 shadow-sm hover:border-amber-500/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group w-full">
+              <div draggable="true" (click)="selectedTicket.set(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-amber-500 rounded-xl p-4 shadow-sm hover:border-amber-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group w-full">
                 <div class="flex justify-between items-start mb-4">
                   <div>
                     <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
@@ -246,7 +248,7 @@ import { MatButtonModule } from '@angular/material/button';
           
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsResolved(); track ticket.id) {
-              <div draggable="true" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-emerald-500 rounded-xl p-4 shadow-sm hover:border-emerald-500/50 transition-all cursor-grab active:cursor-grabbing relative overflow-hidden group opacity-75 hover:opacity-100 w-full">
+              <div draggable="true" (click)="selectedTicket.set(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-emerald-500 rounded-xl p-4 shadow-sm hover:border-emerald-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group opacity-75 hover:opacity-100 w-full">
                 <div class="flex justify-between items-start mb-4">
                   <div>
                     <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
@@ -271,6 +273,12 @@ import { MatButtonModule } from '@angular/material/button';
 
       </div>
     </div>
+    
+    <!-- Triage Drawer -->
+    <app-ticket-triage-drawer 
+      [ticket]="selectedTicket()" 
+      (close)="selectedTicket.set(null)">
+    </app-ticket-triage-drawer>
   `,
   styles: [`
     :host { display: block; }
@@ -287,8 +295,10 @@ export class TicketsDashboardComponent implements OnInit {
   private adminService = inject(AdminService);
   private toastService = inject(ToastService);
 
+  TicketStatus = TicketStatus;
   tickets = signal<Ticket[]>([]);
   viewFilter = signal<'ALL' | 'MINE'>('ALL');
+  selectedTicket = signal<Ticket | null>(null);
   
   // Supervision data
   technicians = signal<AdminUser[]>([]);

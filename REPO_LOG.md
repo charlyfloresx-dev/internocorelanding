@@ -4,6 +4,14 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-03] Phase 81: Monolith Re-engineering & Customs Stability
+- **Monolith Namespace Stabilization**: Resolved systemic SQLAlchemy "Multiple classes found for path Product" crashes by renaming the subscription microservice package to `subscription_app` and enforcing absolute, service-qualified imports (`auth_app`, `master_app`, etc.) across the unified entry point.
+- **Routing & 404 Remediation**: Successfully mapped and validated the Customs Balance API within the `/api/v1/reporting/customs` namespace, ensuring full reachability from the Frontend Kanban.
+- **Dependency Unification (Stripe/MES)**: Updated the `Monolith.Dockerfile` to include all microservice requirements (`stripe`, etc.) and standardized the `PYTHONPATH` to include all service subdirectories.
+- **Unified Industrial Seed v4 Execution**: Populated the database with industrial warehouses, products, and variants, enabling immediate operational visibility for the Customs module.
+- **Audit Compliance**: Reached 100% CLEAN status in the Code Knowledge Graph Audit by fixing the "localhost" false-positive logic and modernizing the MES service domain logic paths.
+- **Status**: ✅ Phase 81 COMPLETED — Monolith Namespace Stabilized & Customs API Operational.
+
 ### [2026-05-02] Phase 80: Ticket Triage Workflow & API Hardening
 - **Triage API Stabilization**: Corregidos errores críticos 500 en la lectura de claims del JWT (`user.roles` a `user.role_names`) en `ticket_routes.py` para permitir la asignación fluida desde el Kanban.
 - **Reference Collision Immunity**: Refactorizado el algoritmo de generación de folios (`_generate_ref_code`) implementando conteos globales atómicos y fallback por timestamp, erradicando los `UniqueViolationError` en multi-tenant concurrent conditions.

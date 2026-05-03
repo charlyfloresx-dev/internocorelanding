@@ -16,6 +16,7 @@ from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository i
 from inventory_app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd, CycleCountPayload
 from common.responses import ApiResponse
 from inventory_app.services.transfer_service import TransferService
+from common.infrastructure.websocket import manager
 
 router = APIRouter()
 
@@ -43,6 +44,21 @@ async def create_movement(
     service = InventoryService(repo, None)
     try:
         movement = await service.register_movement(cmd, x_company_id)
+        
+        # [Zero Polling] Broadcast real-time update
+        await manager.broadcast_to_company(str(x_company_id), {
+            "type": "INVENTORY_UPDATE",
+            "company_id": str(x_company_id),
+            "payload": {
+                "id": str(movement.id),
+                "folio": getattr(movement, 'folio', 'MOV-' + str(movement.id)[:6]),
+                "concept_type": cmd.concept_type,
+                "warehouse_id": str(cmd.warehouse_id),
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": "System"
+            }
+        })
+        
         return ApiResponse(message="Movement recorded successfully", data={"id": movement.id})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -137,6 +153,20 @@ async def receive_transfer(
         if not movement:
              return ApiResponse(message="Transfer already received", data={})
         
+        # [Zero Polling] Broadcast real-time update
+        await manager.broadcast_to_company(str(x_company_id), {
+            "type": "INVENTORY_UPDATE",
+            "company_id": str(x_company_id),
+            "payload": {
+                "id": str(movement.id),
+                "folio": "TRF-REC-" + str(movement.id)[:6],
+                "concept_type": "ENTRADA",
+                "warehouse_id": str(cmd.to_warehouse_id),
+                "created_at": datetime.utcnow().isoformat(),
+                "created_by": "System"
+            }
+        })
+
         return ApiResponse(
             message="Transfer reception initiated (Laissez-Faire)", 
             data={"movement_id": movement.id, "status": "QUEUED_FOR_AUDIT"}

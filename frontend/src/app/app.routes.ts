@@ -173,6 +173,10 @@ export const routes: Routes = [
         ]
       },
       {
+        path: 'billing',
+        loadChildren: () => import('./modules/billing/billing.routes').then(m => m.BILLING_ROUTES)
+      },
+      {
         path: '',
         redirectTo: 'dashboard',
         pathMatch: 'full'

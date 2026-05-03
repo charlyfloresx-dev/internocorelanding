@@ -1,13 +1,13 @@
 export enum TicketStatus {
-  NEW = "NEW",
-  PENDING_APPROVAL = "PENDING_APPROVAL",
-  IN_REVIEW = "IN_REVIEW",
-  ASSIGNED = "ASSIGNED",
-  IN_PROGRESS = "IN_PROGRESS",
-  ON_HOLD = "ON_HOLD",
-  RESOLVED = "RESOLVED",
-  CLOSED = "CLOSED",
-  CANCELED = "CANCELED"
+  NEW = "Nuevo",
+  PENDING_APPROVAL = "Pendiente de Aprobación",
+  IN_REVIEW = "En revisión",
+  ASSIGNED = "Asignado",
+  IN_PROGRESS = "En progreso",
+  ON_HOLD = "En espera",
+  RESOLVED = "Resuelto",
+  CLOSED = "Cerrado",
+  CANCELED = "Cancelado"
 }
 
 export enum TicketPriority {

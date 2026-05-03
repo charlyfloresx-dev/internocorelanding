@@ -21,6 +21,7 @@ from tickets_app.schemas.ticket_dto import (
 )
 from tickets_app.schemas.escalation_dto import EscalationRuleRead
 from tickets_app.schemas.internal_ticket import InternalTicketCreate, InternalTicketResolve
+from common.infrastructure.websocket import manager
 from common.security.auth_payload import TokenPayload
 from tickets_app.services.ticket_commands import TicketCommandHandler, ConsumeResourcesCommand, ConsumeResourceDto
 from tickets_app.infrastructure.repositories.ticket_repository import SQLAlchemyTicketRepository
@@ -185,6 +186,16 @@ async def create_ticket(
          raise HTTPException(status_code=403, detail="No tienes permiso para crear tickets en esta compañía")
     
     ticket = await service.create_ticket(cmd, uuid.UUID(user.sub))
+    
+    # Broadcast en tiempo real
+    await manager.broadcast_to_company(
+        str(user.company_id),
+        {
+            "type": "TICKET_CREATED",
+            "payload": TicketRead.model_validate(ticket).model_dump()
+        }
+    )
+    
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket creado exitosamente")
 
 @router.get("/", response_model=ApiResponse)
@@ -213,6 +224,16 @@ async def triage_ticket(
             user_id=uuid.UUID(user.sub),
             is_supervisor=is_supervisor
         )
+        
+        # Broadcast en tiempo real
+        await manager.broadcast_to_company(
+            str(user.company_id),
+            {
+                "type": "TICKET_UPDATE",
+                "payload": TicketRead.model_validate(ticket).model_dump()
+            }
+        )
+        
         return ApiResponse(data=TicketRead.model_validate(ticket), message="Triaje completado exitosamente")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -242,6 +263,16 @@ async def update_ticket(
     ticket = await service.update_ticket(ticket_id, uuid.UUID(user.company_id), cmd, uuid.UUID(user.sub))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
+        
+    # Broadcast en tiempo real
+    await manager.broadcast_to_company(
+        str(user.company_id),
+        {
+            "type": "TICKET_UPDATE",
+            "payload": TicketRead.model_validate(ticket).model_dump()
+        }
+    )
+    
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket actualizado")
 
 @router.post("/{ticket_id}/comments", response_model=ApiResponse)

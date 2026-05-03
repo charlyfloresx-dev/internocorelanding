@@ -68,7 +68,8 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
             "/download/native",
             "/billing/webhook",
             "/whatsapp/webhook",
-            "/favicon.ico"
+            "/favicon.ico",
+            "/ws/"
         ]) or path == "/"
 
         # 2. TENANT EXTRACTION

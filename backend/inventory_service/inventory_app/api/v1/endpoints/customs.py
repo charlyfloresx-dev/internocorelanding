@@ -16,6 +16,14 @@ from common.security.auth_payload import TokenPayload
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+@router.get("/ping")
+async def ping_customs():
+    return {"status": "ok", "message": "Customs router is reachable"}
+
+@router.get("/test-balances")
+async def test_balances():
+    return {"status": "ok", "message": "Balances route logic is reachable"}
+
 @router.get(
     "/balances",
     # response_model=CustomsBalanceReportResponse, # Disabled to allow internal dict with meta

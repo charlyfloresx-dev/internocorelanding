@@ -166,7 +166,12 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
           <div class="bg-red-600 text-white px-8 py-2 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 z-30 shadow-lg animate-pulse">
             <mat-icon class="text-sm">lock</mat-icon>
             <span>Modo Lectura: Pago Pendiente - Funciones de escritura deshabilitadas</span>
-            <button class="bg-white text-red-600 px-3 py-1 rounded font-bold hover:bg-red-50 transition-colors">Regularizar</button>
+            <button 
+              (click)="router.navigate(['/billing/subscription'])"
+              class="bg-white text-red-600 px-3 py-1 rounded font-bold hover:bg-red-50 transition-colors"
+            >
+              Regularizar
+            </button>
           </div>
         }
 
@@ -412,7 +417,7 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
           <!-- Background Glow -->
           <div *ngIf="themeService.darkMode()" class="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 blur-[150px] pointer-events-none"></div>
           
-          <div class="relative z-10 max-w-7xl mx-auto">
+          <div class="relative max-w-7xl mx-auto">
             <router-outlet></router-outlet>
           </div>
         </main>
