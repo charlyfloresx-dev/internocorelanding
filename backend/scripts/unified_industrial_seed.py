@@ -20,10 +20,12 @@ from decimal import Decimal
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select, text
+from sqlalchemy import select, text, and_
+from sqlalchemy.exc import IntegrityError
 
 from common.config import settings
 from common.models import Company, BusinessGroup
+from common.services.audit_service import AuditService
 from common.enums import MovementType, ProductType
 from auth_app.models.user import User
 from auth_app.models.user_credential import UserCredential
@@ -122,9 +124,22 @@ async def _safe_add(session, obj, label=""):
     try:
         async with session.begin_nested():
             session.add(obj)
+            await session.flush()
+            
+            # [Fase 84] Auditoria Forense en Seed
+            await AuditService.log_action(
+                db=session,
+                user_id="SYSTEM_SEED",
+                action="SEED_CREATE",
+                entity_name=obj.__class__.__name__,
+                entity_id=getattr(obj, "id", "N/A"),
+                company_id=getattr(obj, "company_id", None)
+            )
         log.info("  OK   %s", label)
+    except IntegrityError as e:
+        log.warning("  SKIP %s (already exists: %s)", label, e.orig)
     except Exception as e:
-        log.warning("  SKIP %s (already exists or failed: %s)", label, type(e).__name__)
+        log.warning("  SKIP %s (failed: %s)", label, type(e).__name__)
 
 # --- Secciones de Seed ---
 async def seed_auth(session):
@@ -268,8 +283,10 @@ async def seed_master_data(session):
         await _safe_add(session, wh_ent, "Almacen Master: WH-001")
         wh_ent = await _first(session, select(MasterWarehouse).where(MasterWarehouse.id == wh_ent_id))
 
-    if wh_ent and not await _first(session, select(InventoryLocation).where(InventoryLocation.code == "LOC-AUDIT-01")):
-        await _safe_add(session, InventoryLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, max_capacity=100.0, version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
+    # --- Master Locations ---
+    from inventory_app.models.location import InventoryLocation as WmsLocation
+    await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, max_capacity_units=100.0, zone_type="QUALITY", storage_type="DRY", version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
+    await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-TIJ-RECV-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, zone_type="RECEIVING", storage_type="DRY", max_capacity_units=500.0, version_id=1, is_active=True), "Ubicacion: LOC-TIJ-RECV-01")
 
     # Catalog & Prices
     log.info("[3/5] Master Data: 5 Productos, Precios MXN/USD y Variantes...")
@@ -350,10 +367,36 @@ async def run_unified_seed():
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with AsyncSessionLocal() as session:
-        async with session.begin():
-            await seed_auth(session)
-            await seed_master_data(session)
-            await seed_inventory(session)
+        log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
+        await seed_auth(session)
+
+        log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
+        await seed_master_data(session)
+
+        log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
+        await seed_inventory(session)
+        
+        await session.commit()
+        log.info("[+] Secciones 1-4 comprometidas exitosamente.")
+        
+    # [Phase 83] Run the industrial locations layout and initial stock flows
+    try:
+        import sys
+        import os
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.append(backend_dir)
+        sys.path.append(os.path.join(backend_dir, "inventory_service"))
+        sys.path.append(os.path.join(backend_dir, "inventory_service", "scripts"))
+        
+        from flows.seed_locations import seed_locations
+        log.info("[5/5] WMS Industrial Layout: Generando Racks y Posiciones...")
+        await seed_locations()
+        
+        from flows.flow_1_entry import run_flow_1
+        log.info("[+] Seeding Initial Stock (Flow 1)...")
+        await run_flow_1()
+    except Exception as e:
+        log.warning(f"Failed to run external seed flows: {e}")
 
     log.info("=" * 55)
     log.info("   SEED COMPLETED SUCCESSFULLY")

@@ -24,17 +24,27 @@ It ensures all microservices are stopped before starting the monolith to avoid p
 
 // turbo
 3. Run Unified Industrial Seed (Idempotent)
+   This now includes Master Data, Auth, WMS Locations, and Initial Stock Flows.
    ```powershell
    docker exec interno-monolith python3 scripts/unified_industrial_seed.py
    ```
-   Expected output: `✅ SEED COMPLETADO EXITOSAMENTE`
+   Expected output: `✅ SEED COMPLETED SUCCESSFULLY`
 
 4. Smoke Test: Verify API Health
    ```powershell
    Invoke-RestMethod -Uri http://localhost:8000/health -Method Get
    ```
 
+// turbo
+5. Verify Forensic Audit Trail
+   ```powershell
+   docker exec interno-db psql -U user -d dbname -c "SELECT action, table_name, count(*) FROM audit_logs GROUP BY action, table_name;"
+   ```
+
 Notes:
 - This workflow uses `docker-compose.monolith.yml`.
 - Access the unified API at `http://localhost:8000`.
-- Authentication, Master Data, and Inventory are all handled by this single container.
+- All operations are now recorded in the Forensic Audit Ledger.
+
+---
+**Status:** ✅ Monolith Protocol Active (WMS Ready) — 2026-05-03

@@ -1,41 +1,37 @@
-# Workflow: Hard Reset Industrial 🏗️🔥
+# Workflow: Hard Reset Monolítico Industrial 🏗️🔥
 
-Este workflow realiza una limpieza profunda del ecosistema InternoCore, eliminando volúmenes, cache y recreando bases de datos desde cero.
+Este workflow realiza una limpieza profunda del ecosistema InternoCore Unificado, eliminando volúmenes, cache y recreando la base de datos maestra desde cero con trazabilidad forense.
 
 ## Pasos del Proceso
 
 ### 1. Demolición y Limpieza de Volúmenes // turbo
-Detiene todos los servicios y elimina volúmenes persistentes y orphans.
+Detiene todos los servicios del monolito y elimina volúmenes persistentes.
 ```powershell
-docker-compose down -v --remove-orphans
+docker compose -f docker/docker-compose.monolith.yml down -v --remove-orphans
 ```
 
 ### 2. Ignición de Servicios (Rebuild) // turbo
-Levanta los contenedores reconstruyendo las imágenes para asegurar que no haya código "fantasma" en el cache.
+Levanta los contenedores reconstruyendo las imágenes para asegurar la integridad del código.
 ```powershell
-docker-compose up -d --build
+docker compose -f docker/docker-compose.monolith.yml up -d --build
 ```
 
 ### 3. Sincronización de Esquemas y Salud
-Esperamos a que los microservicios terminen su `lifespan` (creación de tablas).
+Esperamos a que el monolito termine su `lifespan` (creación de tablas vía SQLAlchemy Metadata).
 > [!NOTE]
-> El Auth Service y el HR Service crean automáticamente sus tablas al iniciar.
+> El Monolito Unificado crea automáticamente todas las tablas (auth, master, inv, tickets) al iniciar.
 
-### 4. Siembra de Datos Maestros (Seed) // turbo
-Ejecuta ambos seeds en orden: primero Auth (usuarios + empresas) y luego HCM (colaboradores + RFIDs).
+### 4. Siembra de Datos Maestros Auditada (Unified Seed) // turbo
+Ejecuta el orquestador unificado que pobla Auth, Master Data y WMS Layout con logs de auditoría.
 ```powershell
-python backend/auth_service/scripts/seed.py
-```
-```powershell
-python backend/hcm_service/scripts/seed.py
+docker exec interno-monolith python3 scripts/unified_industrial_seed.py
 ```
 
-### 5. Verificación de Autenticación // turbo
-Valida que los canales Administrativo e Industrial estén operativos.
+### 5. Verificación de Reporte de Auditoría // turbo
+Valida que la inicialización haya generado el rastro forense obligatorio en la base de datos.
 ```powershell
-python backend/auth_service/scripts/full_auth_flow.py
-python backend/auth_service/scripts/kiosk_auth_flow.py
+docker exec interno-db psql -U user -d dbname -c "SELECT count(*) as total_audit_logs FROM audit_logs;"
 ```
 
 ---
-**Status:** ✅ Validated — Last successful run: 2026-04-14
+**Status:** ✅ Unified Monolith Ready — Last updated: 2026-05-03

@@ -76,11 +76,11 @@ async def run_flow_7():
         target_location = "01-01-01-A"
 
         cmd = StockRelocationCreate(
-            product_id=product_id,
+            product_id=uuid.UUID(pending[0]["product_id"]),
             uom_id=uom_id,
             warehouse_id=warehouse_id,
-            quantity=100.0,
-            from_location="SYS_RECEIVING",
+            quantity=min(100.0, pending[0]["available_quantity"]),
+            from_location="",
             to_location=target_location,
             notes="Flow 7: Put-away validation"
         )

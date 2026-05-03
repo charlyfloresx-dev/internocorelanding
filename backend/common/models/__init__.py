@@ -8,6 +8,8 @@ from common.models.idempotency_key import IdempotencyKey
 from common.repository import BaseRepository
 from common.models.file_metadata import FileMetadata
 from common.models.catalogs import BaseProduct, BaseWarehouse, BaseMovementConcept
+from common.models.location import InventoryLocation
+from common.models.location import ZoneType, StorageType
 
 __all__ = [
     "Base", 
@@ -23,5 +25,8 @@ __all__ = [
     "IdempotencyKey",
     "BaseProduct", 
     "BaseWarehouse", 
-    "BaseMovementConcept"
+    "BaseMovementConcept",
+    "InventoryLocation",
+    "ZoneType",
+    "StorageType"
 ]

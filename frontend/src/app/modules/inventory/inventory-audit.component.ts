@@ -22,97 +22,163 @@ interface AuditLog {
   standalone: true,
   imports: [CommonModule, MatIconModule, FormsModule],
   template: `
-    <div class="space-y-8 animate-fade-in pb-24">
-      <!-- Header -->
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-500 shadow-sm">
-          <mat-icon class="text-2xl">security</mat-icon>
+    <div class="space-y-8 animate-fade-in pb-24 relative">
+      <!-- Forensic Background Pattern -->
+      <div class="fixed inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05] overflow-hidden z-0">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      </div>
+
+      <!-- Header Section -->
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-5">
+          <div class="w-14 h-14 bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+            <mat-icon class="text-3xl">fingerprint</mat-icon>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none">
+                Audit Log <span class="text-amber-500">Forensic</span>
+              </h1>
+              <div class="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[8px] font-bold text-emerald-500 uppercase tracking-tighter animate-pulse">
+                Live Ledger
+              </div>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 font-mono text-[10px] tracking-[0.3em] uppercase mt-1">
+              Registro inmutable de trazabilidad industrial
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic">
-            Audit Log Forensic
-          </h1>
-          <p class="text-slate-500 dark:text-slate-400 font-mono text-[9px] tracking-[0.2em] uppercase">
-            Registro inmutable de acciones y cambios en el sistema
-          </p>
+
+        <!-- Quick Stats -->
+        <div class="flex gap-4">
+          <div class="industrial-card px-4 py-2 flex flex-col items-center min-w-[100px] bg-white/5 backdrop-blur-md border-white/10">
+            <span class="text-[8px] font-black text-slate-500 uppercase tracking-widest">Total Eventos</span>
+            <span class="text-lg font-black text-surface-text leading-none">{{ logs().length }}</span>
+          </div>
+          <button (click)="loadLogs()" class="w-12 h-12 bg-primary/10 text-primary rounded-xl border border-primary/20 hover:bg-primary/20 transition-all flex items-center justify-center shadow-lg group">
+            <mat-icon class="group-hover:rotate-180 transition-transform duration-500">refresh</mat-icon>
+          </button>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="industrial-card p-6 flex flex-wrap gap-4 items-center justify-between">
-        <div class="flex flex-wrap gap-4 items-center">
-          <div class="flex flex-col gap-1">
-            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Acción</span>
-            <select [(ngModel)]="filterAction" (change)="loadLogs()" class="bg-surface-bg border border-surface-border rounded-lg px-3 py-2 text-[10px] font-bold text-surface-text outline-none focus:border-primary">
-              <option value="">TODAS</option>
-              <option value="INSERT">INSERT</option>
-              <option value="UPDATE">UPDATE</option>
-              <option value="DELETE">DELETE</option>
-              <option value="UNAUTHORIZED_WAREHOUSE_ACCESS">UNAUTHORIZED</option>
-            </select>
+      <!-- Advanced Filters -->
+      <div class="industrial-card p-2 bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl relative z-10">
+        <div class="flex flex-wrap items-center gap-2 p-4 border border-white/5 rounded-xl bg-black/10">
+          <div class="flex flex-col gap-1.5 flex-1 min-w-[180px]">
+            <label class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Filtrar por Acción</label>
+            <div class="relative group">
+              <select [(ngModel)]="filterAction" (change)="loadLogs()" class="w-full bg-surface-bg/50 border border-surface-border rounded-xl px-4 py-2.5 text-[11px] font-black text-surface-text outline-none focus:border-amber-500/50 appearance-none transition-all cursor-pointer">
+                <option value="">TODAS LAS ACCIONES</option>
+                <option value="INSERT">INSERT (MANUAL)</option>
+                <option value="SEED_CREATE">SEED_CREATE (SISTEMA)</option>
+                <option value="UPDATE">UPDATE (MODIFICACIÓN)</option>
+                <option value="DELETE">DELETE (ELIMINACIÓN)</option>
+                <option value="DENSITY_OVERFLOW">DENSITY_OVERFLOW (ALERTA)</option>
+                <option value="CREATE_MOVEMENT">CREATE_MOVEMENT (LOGÍSTICA)</option>
+              </select>
+              <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-sm">expand_more</mat-icon>
+            </div>
           </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tabla</span>
-            <select [(ngModel)]="filterTable" (change)="loadLogs()" class="bg-surface-bg border border-surface-border rounded-lg px-3 py-2 text-[10px] font-bold text-surface-text outline-none focus:border-primary">
-              <option value="">TODAS</option>
-              <option value="inventory_movements">Movements</option>
-              <option value="inventory_documents">Documents</option>
-              <option value="inventory_warehouses">Warehouses</option>
-            </select>
+
+          <div class="flex flex-col gap-1.5 flex-1 min-w-[180px]">
+            <label class="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Entidad de Datos</label>
+            <div class="relative">
+              <select [(ngModel)]="filterTable" (change)="loadLogs()" class="w-full bg-surface-bg/50 border border-surface-border rounded-xl px-4 py-2.5 text-[11px] font-black text-surface-text outline-none focus:border-amber-500/50 appearance-none transition-all cursor-pointer">
+                <option value="">TODAS LAS ENTIDADES</option>
+                <option value="inventory_movements">Movimientos de Inventario</option>
+                <option value="inventory_locations">Ubicaciones (WMS)</option>
+                <option value="products">Maestro de Productos</option>
+                <option value="users">Control de Usuarios</option>
+                <option value="audit_logs">Sistema de Auditoría</option>
+              </select>
+              <mat-icon class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-sm">expand_more</mat-icon>
+            </div>
           </div>
         </div>
-        <button (click)="loadLogs()" class="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all" title="Refrescar">
-          <mat-icon>refresh</mat-icon>
-        </button>
       </div>
 
-      <!-- Table -->
-      <div class="industrial-card overflow-hidden">
+      <!-- Ledger Table -->
+      <div class="industrial-card overflow-hidden bg-white/5 backdrop-blur-md border-white/10 shadow-2xl relative z-10">
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-surface-bg/50">
-                <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Timestamp</th>
-                <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Acción</th>
-                <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Tabla / ID</th>
-                <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">Usuario</th>
-                <th class="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-right">Detalles</th>
+              <tr class="bg-black/20 border-b border-white/5">
+                <th class="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Estampa de Tiempo</th>
+                <th class="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Acción / Protocolo</th>
+                <th class="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Entidad / Referencia</th>
+                <th class="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Operador</th>
+                <th class="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] text-right">Análisis</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-surface-border">
+            <tbody class="divide-y divide-white/5">
               @for (log of logs(); track log.id) {
-                <tr class="hover:bg-white/5 transition-all group">
-                  <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                      <span class="text-xs font-mono font-bold text-surface-text">{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
-                      <span class="text-[8px] text-slate-500 font-mono">{{ log.trace_id }}</span>
+                <tr class="hover:bg-white/[0.03] transition-all group cursor-pointer" (click)="selectedLog.set(log)">
+                  <td class="px-8 py-6">
+                    <div class="flex items-center gap-4">
+                      <div class="w-1 bg-primary/20 group-hover:bg-primary h-10 rounded-full transition-all"></div>
+                      <div class="flex flex-col">
+                        <span class="text-xs font-mono font-black text-surface-text tabular-nums italic">
+                          {{ log.timestamp | date:'dd/MM/yyyy' }}
+                        </span>
+                        <span class="text-[14px] font-mono font-bold text-primary tracking-tight tabular-nums">
+                          {{ log.timestamp | date:'HH:mm:ss' }}
+                        </span>
+                      </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4">
-                    <span [class]="getActionClass(log.action)" class="px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest border">
-                      {{ log.action }}
-                    </span>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                      <span class="text-[10px] font-black text-surface-text uppercase tracking-tight">{{ log.table_name }}</span>
-                      <span class="text-[8px] font-mono text-slate-500">{{ log.record_id }}</span>
+                  <td class="px-8 py-6">
+                    <div class="flex items-center gap-3">
+                      <div [class]="getActionClass(log.action)" class="w-8 h-8 rounded-lg border flex items-center justify-center shadow-inner">
+                        <mat-icon class="text-[16px]">{{ getActionIcon(log.action) }}</mat-icon>
+                      </div>
+                      <div class="flex flex-col">
+                        <span [class]="getActionTextClass(log.action)" class="text-[10px] font-black uppercase tracking-widest leading-none">
+                          {{ log.action }}
+                        </span>
+                        <span class="text-[8px] text-slate-500 font-mono mt-0.5 tracking-tighter">TRX-{{ log.trace_id.split('-')[0] }}</span>
+                      </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4">
-                    <span class="text-[10px] font-bold text-surface-text-muted uppercase">{{ log.user_id }}</span>
+                  <td class="px-8 py-6">
+                    <div class="flex flex-col">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-black text-surface-text uppercase tracking-tight italic">{{ log.table_name }}</span>
+                        @if (log.action === 'DENSITY_OVERFLOW') {
+                          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        }
+                      </div>
+                      <span class="text-[9px] font-mono text-slate-500 mt-0.5">{{ log.record_id }}</span>
+                    </div>
                   </td>
-                  <td class="px-6 py-4 text-right">
-                    <button (click)="selectedLog.set(log)" class="p-2 text-primary hover:bg-primary/10 rounded-lg transition-all">
-                      <mat-icon>visibility</mat-icon>
+                  <td class="px-8 py-6">
+                    <div class="flex items-center gap-2">
+                      <div class="w-6 h-6 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center">
+                        <mat-icon class="text-[12px] text-slate-400">person</mat-icon>
+                      </div>
+                      <span class="text-[11px] font-black text-surface-text-muted uppercase tracking-tighter">{{ log.user_id }}</span>
+                    </div>
+                  </td>
+                  <td class="px-8 py-6 text-right">
+                    <button class="w-10 h-10 flex items-center justify-center text-primary bg-primary/5 hover:bg-primary/20 border border-primary/20 rounded-xl transition-all shadow-lg ml-auto group-hover:scale-110">
+                      <mat-icon>analytics</mat-icon>
                     </button>
                   </td>
                 </tr>
               }
               @if (logs().length === 0) {
                 <tr>
-                  <td colspan="5" class="px-6 py-12 text-center text-slate-500 uppercase text-[10px] font-black tracking-widest">
-                    No se encontraron registros de auditoría
+                  <td colspan="5" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center gap-4 opacity-30">
+                      <mat-icon class="text-6xl">search_off</mat-icon>
+                      <span class="uppercase text-[12px] font-black tracking-[0.5em]">No se encontraron registros forenses</span>
+                    </div>
                   </td>
                 </tr>
               }
@@ -121,41 +187,106 @@ interface AuditLog {
         </div>
       </div>
 
-      <!-- Detail Modal -->
+      <!-- Premium Detail Drawer-Modal -->
       @if (selectedLog(); as log) {
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" (click)="selectedLog.set(null)">
-          <div class="industrial-card w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col p-8 space-y-6" (click)="$event.stopPropagation()">
-            <div class="flex items-center justify-between border-b border-surface-border pb-4">
-              <h3 class="text-xl font-black text-surface-text uppercase tracking-widest italic">Detalle de Auditoría</h3>
-              <button (click)="selectedLog.set(null)" class="text-slate-500 hover:text-white">
-                <mat-icon>close</mat-icon>
+        <div class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 md:p-12 animate-fade-in" (click)="selectedLog.set(null)">
+          <div class="industrial-card w-full max-w-6xl h-full max-h-[85vh] overflow-hidden flex flex-col p-0 bg-surface-bg border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)] relative" (click)="$event.stopPropagation()">
+            
+            <!-- Scanline Effect -->
+            <div class="absolute inset-0 pointer-events-none opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-20"></div>
+
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-8 border-b border-white/10 bg-black/20 relative z-30">
+              <div class="flex items-center gap-6">
+                <div [class]="getActionClass(log.action)" class="w-16 h-16 rounded-2xl border flex items-center justify-center shadow-2xl">
+                  <mat-icon class="text-3xl">{{ getActionIcon(log.action) }}</mat-icon>
+                </div>
+                <div>
+                  <h3 class="text-3xl font-black text-surface-text uppercase tracking-tighter italic leading-none">Expediente de Auditoría</h3>
+                  <div class="flex items-center gap-3 mt-2">
+                    <span class="text-[10px] font-mono text-primary font-bold">ID-AUDIT: {{ log.id.split('-')[0] }}</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-500"></span>
+                    <span class="text-[10px] font-mono text-slate-500">TRACE: {{ log.trace_id }}</span>
+                  </div>
+                </div>
+              </div>
+              <button (click)="selectedLog.set(null)" class="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 rounded-full transition-all border border-white/10 group">
+                <mat-icon class="group-hover:rotate-90 transition-transform">close</mat-icon>
               </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-2">
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="p-4 bg-white/5 rounded-xl border border-white/10">
-                  <span class="text-[8px] font-black text-slate-500 uppercase block mb-1">Acción</span>
-                  <span class="text-xs font-black text-primary">{{ log.action }}</span>
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8 relative z-30">
+              <!-- Identity Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="p-5 bg-black/30 rounded-2xl border border-white/5 hover:border-primary/30 transition-colors">
+                  <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Protocolo Operativo</span>
+                  <span [class]="getActionTextClass(log.action)" class="text-sm font-black italic">{{ log.action }}</span>
                 </div>
-                <div class="p-4 bg-white/5 rounded-xl border border-white/10">
-                  <span class="text-[8px] font-black text-slate-500 uppercase block mb-1">Tabla</span>
-                  <span class="text-xs font-black text-surface-text">{{ log.table_name }}</span>
+                <div class="p-5 bg-black/30 rounded-2xl border border-white/5 hover:border-primary/30 transition-colors">
+                  <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Entidad Afectada</span>
+                  <span class="text-sm font-black text-surface-text uppercase italic">{{ log.table_name }}</span>
                 </div>
-                <div class="p-4 bg-white/5 rounded-xl border border-white/10 col-span-2">
-                  <span class="text-[8px] font-black text-slate-500 uppercase block mb-1">Registro ID</span>
-                  <span class="text-[10px] font-mono font-bold text-surface-text">{{ log.record_id }}</span>
+                <div class="p-5 bg-black/30 rounded-2xl border border-white/5 hover:border-primary/30 transition-colors col-span-2">
+                  <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Referencia Única (Record ID)</span>
+                  <span class="text-xs font-mono font-bold text-primary truncate block">{{ log.record_id }}</span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 class="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-2 italic">Valor Anterior</h4>
-                  <pre class="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-slate-300 overflow-x-auto">{{ log.old_value | json }}</pre>
+              <!-- Value Comparison -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between px-2">
+                    <h4 class="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] italic">Estado Anterior (Snapshot)</h4>
+                    <mat-icon class="text-rose-500/30 text-sm">history</mat-icon>
+                  </div>
+                  <div class="group relative">
+                    <div class="absolute -inset-0.5 bg-rose-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                    <pre class="relative bg-black/60 p-6 rounded-2xl border border-white/10 text-[11px] font-mono text-slate-400 overflow-x-auto min-h-[200px] shadow-2xl custom-scrollbar leading-relaxed">
+                      @if (log.old_value) {
+                        {{ log.old_value | json }}
+                      } @else {
+                        <div class="flex flex-col items-center justify-center h-32 opacity-20">
+                          <mat-icon class="text-4xl mb-2">block</mat-icon>
+                          <span class="uppercase font-black text-[10px] tracking-widest">Inexistente / NULL</span>
+                        </div>
+                      }
+                    </pre>
+                  </div>
                 </div>
-                <div>
-                  <h4 class="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2 italic">Valor Nuevo</h4>
-                  <pre class="bg-black/40 p-4 rounded-xl border border-white/5 text-[10px] font-mono text-slate-300 overflow-x-auto">{{ log.new_value | json }}</pre>
+
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between px-2">
+                    <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] italic">Estado Final (Comprometido)</h4>
+                    <mat-icon class="text-emerald-500/30 text-sm">verified</mat-icon>
+                  </div>
+                  <div class="group relative">
+                    <div class="absolute -inset-0.5 bg-emerald-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                    <pre class="relative bg-black/60 p-6 rounded-2xl border border-white/10 text-[11px] font-mono text-emerald-50/70 overflow-x-auto min-h-[200px] shadow-2xl custom-scrollbar leading-relaxed">
+                      @if (log.new_value) {
+                        {{ log.new_value | json }}
+                      } @else {
+                        <div class="flex flex-col items-center justify-center h-32 opacity-20">
+                          <mat-icon class="text-4xl mb-2">delete_sweep</mat-icon>
+                          <span class="uppercase font-black text-[10px] tracking-widest">Registro Eliminado</span>
+                        </div>
+                      }
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Metadata -->
+              <div class="pt-8 border-t border-white/5 flex flex-wrap justify-between items-center gap-4 text-slate-500">
+                <div class="flex items-center gap-2">
+                  <mat-icon class="text-sm">schedule</mat-icon>
+                  <span class="text-[10px] font-mono uppercase tracking-widest">Ejecución: {{ log.timestamp | date:'full' }}</span>
+                </div>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <mat-icon class="text-sm">fingerprint</mat-icon>
+                    <span class="text-[10px] font-mono uppercase tracking-widest">Sello: {{ log.id }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -165,10 +296,13 @@ interface AuditLog {
     </div>
   `,
   styles: [`
-    :host { display: block; }
+    :host { display: block; position: relative; }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     pre { white-space: pre-wrap; word-break: break-all; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class InventoryAuditComponent implements OnInit {
@@ -199,11 +333,47 @@ export class InventoryAuditComponent implements OnInit {
 
   getActionClass(action: string) {
     switch (action) {
-      case 'INSERT': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-      case 'UPDATE': return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-      case 'DELETE': return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
-      case 'UNAUTHORIZED_WAREHOUSE_ACCESS': return 'bg-red-500/20 text-red-500 border-red-500/50';
-      default: return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
+      case 'INSERT': 
+      case 'SEED_CREATE': 
+        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]';
+      case 'UPDATE': 
+        return 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]';
+      case 'DELETE': 
+        return 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.1)]';
+      case 'DENSITY_OVERFLOW': 
+        return 'bg-red-600/20 text-red-500 border-red-600/50 shadow-[0_0_20px_rgba(220,38,38,0.2)] animate-pulse';
+      case 'CREATE_MOVEMENT':
+        return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]';
+      case 'UNAUTHORIZED_WAREHOUSE_ACCESS': 
+        return 'bg-black text-rose-600 border-rose-900 shadow-[0_0_30px_rgba(225,29,72,0.3)]';
+      default: 
+        return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
+    }
+  }
+
+  getActionTextClass(action: string) {
+    switch (action) {
+      case 'INSERT': 
+      case 'SEED_CREATE': return 'text-emerald-500';
+      case 'UPDATE': return 'text-amber-500';
+      case 'DELETE': return 'text-rose-500';
+      case 'DENSITY_OVERFLOW': return 'text-red-500 font-black underline decoration-double';
+      case 'CREATE_MOVEMENT': return 'text-indigo-400';
+      case 'UNAUTHORIZED_WAREHOUSE_ACCESS': return 'text-rose-700';
+      default: return 'text-slate-500';
+    }
+  }
+
+  getActionIcon(action: string) {
+    switch (action) {
+      case 'INSERT': return 'add_circle';
+      case 'SEED_CREATE': return 'auto_awesome';
+      case 'UPDATE': return 'edit_note';
+      case 'DELETE': return 'delete_forever';
+      case 'DENSITY_OVERFLOW': return 'report_problem';
+      case 'CREATE_MOVEMENT': return 'swap_horiz';
+      case 'UNAUTHORIZED_WAREHOUSE_ACCESS': return 'gpp_bad';
+      default: return 'event_note';
     }
   }
 }

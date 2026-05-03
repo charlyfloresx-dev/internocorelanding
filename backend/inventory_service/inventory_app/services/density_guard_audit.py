@@ -62,6 +62,23 @@ async def _execute_audit(warehouse_id, location_code, quantity_moved, movement_i
         
         # 5. Notify via INTERNAL Service if overflow
         if is_overflow:
+            from common.services.audit_service import AuditService
+            await AuditService.log_action(
+                db=session,
+                user_id="SYSTEM_DENSITY_GUARD",
+                action="DENSITY_OVERFLOW",
+                entity_name="inventory_locations",
+                entity_id=location_code,
+                company_id=company_id,
+                details=f"Overflow detected: {occupancy}/{capacity}",
+                new_value={
+                    "loc": location_code,
+                    "occupancy": float(occupancy),
+                    "capacity": float(capacity),
+                    "movement_id": str(movement_id)
+                }
+            )
+            
             # Injecting the notification service with the active session
             notif_service = NotificationService(session)
             await notif_service.notify_role(

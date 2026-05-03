@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
         # Master Data Models
         import master_app.models.product
         import master_app.models.warehouse
-        import master_app.models.location
+        import common.models.location # [Phase 84] SSOT Consolidado
         import master_app.models.product_price
         import master_app.models.movement_concept
         import master_app.models.uom
@@ -69,9 +69,9 @@ async def lifespan(app: FastAPI):
         
         # Inventory Models
         import inventory_app.models.inventory
-        import inventory_app.models.location
+        # Re-importing common.models.location is fine as it uses the same class
         import inventory_app.models.item_variant
-        import inventory_app.models.warehouse
+        # import inventory_app.models.warehouse # Consolidado con master_app.models.warehouse
         import inventory_app.models.document
         import inventory_app.models.inter_company_transfer
         
@@ -212,6 +212,8 @@ from inventory_app.api.v1.endpoints.variants import router as variants_router
 from inventory_app.api.v1.endpoints.inter_company_transfers import router as ict_router
 from inventory_app.api.v1.endpoints.demo_reset import router as demo_reset_router
 from inventory_app.api.v1.endpoints.locations import router as wms_locations_router  # [Phase 83] P0 Fix
+from inventory_app.api.v1.endpoints.audit import router as audit_router
+app.include_router(audit_router, prefix="/api/v1/audit", tags=["Global: Forensic Audit"])
 app.include_router(transactions_router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
 app.include_router(reconciliation_router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
 app.include_router(boms_router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])

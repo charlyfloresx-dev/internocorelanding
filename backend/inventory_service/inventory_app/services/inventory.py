@@ -53,23 +53,15 @@ class InventoryTransactionService:
             logger.debug(f"DENSITY_GUARD: No entity for {location_code}. Skipping (unlimited).")
             return
 
-        # ── Layer 1: Unit Capacity ─────────────────────────────────────────────
+        # ── Layer 1: Unit Capacity (Non-blocking Warning) ──────────────────────
         if location.max_capacity_units > 0:
             projected_units = location.current_units + quantity
             if projected_units > location.max_capacity_units:
-                if user_role == "WAREHOUSE_MANAGER":
-                    # Override allowed: manager accepts the risk
-                    logger.warning(
-                        f"DENSITY_OVERRIDE [UNITS]: Manager '{user_role}' authorized overflow "
-                        f"at {location_code}. Projected={projected_units} / "
-                        f"Max={location.max_capacity_units}. [AUDIT TRAIL REQUIRED]"
-                    )
-                else:
-                    raise ValueError(
-                        f"ERR_LOCATION_OVERFLOW_UNITS: La ubicacion '{location_code}' tiene "
-                        f"{location.current_units:.0f}/{location.max_capacity_units:.0f} unidades. "
-                        f"Capacidad insuficiente para {quantity:.0f} unidades adicionales."
-                    )
+                logger.warning(
+                    f"DENSITY_OVERFLOW_UNITS: La ubicación '{location_code}' ha excedido su capacidad "
+                    f"({location.current_units:.0f}/{location.max_capacity_units:.0f}). "
+                    f"Procesando {quantity:.0f} unidades adicionales bajo alerta de registro."
+                )
 
         # ── Layer 2: Weight (Safety-Critical — NO override) ────────────────────
         if location.max_weight_kg > 0 and product_weight_kg > 0:
@@ -197,10 +189,27 @@ class InventoryTransactionService:
             expiry_date=getattr(stmt, 'expiry_date', None)
         )
 
+        from common.services.audit_service import AuditService
         await self.repository.record_movement(
             movement, 
             from_reservation=stmt.fulfill_reservation,
             client_request_id=client_request_id
+        )
+        
+        # [Fase 84] Auditoria Forense Unificada
+        await AuditService.log_action(
+            db=self.repository.session,
+            user_id=user_id,
+            action="CREATE_MOVEMENT",
+            entity_name="inventory_movements",
+            entity_id=movement.id,
+            company_id=company_id,
+            new_value={
+                "type": movement.movement_type,
+                "qty": float(movement.quantity),
+                "sku": str(movement.product_id),
+                "loc": movement.location
+            }
         )
         return movement
 

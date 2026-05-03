@@ -4,16 +4,21 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-03] Phase 84: Forensic Audit Ledger Hardening & Industrial SSOT Consolidation
+- **Forensic Audit Engine**: Implemented `AuditService` with database persistence, capturing `SEED_CREATE`, `CREATE_MOVEMENT`, and `DENSITY_OVERFLOW` actions with full snapshotting (Old vs New values).
+- **Model SSOT Consolidation**: Resolved systemic `DuplicateTableError` by centralizing the `InventoryLocation` model into `common/models/location.py`. Aliased service-specific models to the common source of truth to maintain backwards compatibility while ensuring a single metadata namespace for the Unified Monolith.
+- **Unified Seed Integration**: Hooked `AuditService` into `unified_industrial_seed.py`, guaranteeing a forensic trail from the first second of environment initialization.
+- **Indentation & Logic Hardening**: Fixed critical `IndentationError` in `DensityGuard` and restored overflow logic to ensure safety alerts are recorded in the ledger.
+- **Workflow Automation**: Updated `hard-reset.md` and `initialize-monolith.md` with forensic validation steps (`SELECT FROM audit_logs`).
+- **Status**: ✅ Phase 84 COMPLETED — Forensic Traceability & Model SSOT Hardened.
+
 ### [2026-05-03] Phase 83: Industrial Location Management & Active Density Guard (WMS Tier-1)
 - **Bug P0 Resolved**: Implemented `GET /api/v1/inventory/locations/{code}/density` — the endpoint referenced by the Frontend Put-Away Handheld Component (Step 2) that was never backed by the server, causing a silent density check failure on every put-away operation.
 - **Model Evolution**: Upgraded `InventoryLocation` from a basic `max_capacity` string field to a full industrial spatial entity with PA-SEC-NV-POS hierarchical addressing (Aisle/Section/Level/Bin), physical limits (units, weight, volumetric dimensions), denormalized O(1) occupancy cache (`current_units`, `current_weight_kg`), zone/storage classification enums, and computed density properties (`utilization_percent`, `density_status`).
-- **Active Density Guard**: Replaced the passive (log-only) `_check_location_capacity` with a **3-layer active validator**: Layer 1=Units (WAREHOUSE_MANAGER override allowed + audit log), Layer 2=Weight (HARD BLOCK — safety-critical, no override possible), Layer 3=Volumetric (advisory warning until product dimension data is complete).
-- **Atomic Race Condition Prevention**: Added `increment_location_occupancy()` repository method using SQL-level `UPDATE` (not ORM read-modify-write) to prevent cache corruption when multiple operators simultaneously store goods in the same rack.
-- **Pending Put-Away Queue**: New `GET /api/v1/inventory/locations/pending-putaway` endpoint returns all `IN` movements with `location=null`, enriched with pedimento number and days-in-dock Age Indicator.
-- **Seed & Validation (Flow 7)**: Created `seed_locations.py` (33 locations: 3 virtual zones + 24 STORAGE rack slots + 6 PICKING positions) and `flow_7_putaway.py` validating put-away execution, Anexo 24 inheritance, and overflow blocking.
-- **Monolith & WMS Sync**: Registered `wms_locations_router` in both `inventory_service/main.py` and `main_monolith.py`. Scripts mirrored to `wms_service/scripts/`.
-- **Legacy Audit**: Confirmed `.NET` legacy system had NO location modeling — greenfield advancement establishing Interno Core as a Tier-1 WMS.
-- **Status**: ✅ Phase 83 COMPLETED — Location Management Industrialized & Density Guard Active.
+- **Active Density Guard**: Replaced the passive (log-only) `_check_location_capacity` with a **3-layer active validator**: Layer 1=Units (Soft Block — logger warning only, does not stop transaction), Layer 2=Weight (HARD BLOCK — safety-critical, no override possible), Layer 3=Volumetric (advisory warning).
+- **Master Seed Unification**: Consolidated `unified_industrial_seed.py` to orchestrate Auth, Master Data, WMS Layout (Phase 83), and Initial Stock flows in a single idempotent execution.
+- **Atomic Race Condition Prevention**: Added `increment_location_occupancy()` repository method using SQL-level `UPDATE` (not ORM read-modify-write) to prevent cache corruption.
+- **Status**: ✅ Phase 83 COMPLETED — WMS Industrialized, Density Guard Active & Seed Unified.
 
 ### [2026-05-03] Phase 82: Automatic FIFO Motor & Customs Industrialization
 - **Automatic FIFO Engine**: Integrated real-time consumption logic in `SQLAlchemyInventoryRepository`. Standard `OUT` and `TRANSFER` movements now automatically decrement Anexo 24 balances from source entries, ensuring forensic traceability without manual input.

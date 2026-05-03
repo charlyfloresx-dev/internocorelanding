@@ -39,7 +39,7 @@ class InternoAuthClient:
                 return True
             except Exception as e:
                 logger.error(f"Login failed: {e}")
-                if hasattr(response, 'text'): logger.error(f"Response: {response.text}")
+                if 'response' in locals() and hasattr(response, 'text'): logger.error(f"Response: {response.text}")
                 return False
 
     async def select_company(self, company_id: Optional[str] = None) -> Optional[str]:
@@ -75,7 +75,7 @@ class InternoAuthClient:
                 return self.access_token
             except Exception as e:
                 logger.error(f"Select company failed: {e}")
-                if hasattr(response, 'text'): logger.error(f"Response: {response.text}")
+                if 'response' in locals() and hasattr(response, 'text'): logger.error(f"Response: {response.text}")
                 return None
 
     def get_headers(self) -> Dict[str, str]:

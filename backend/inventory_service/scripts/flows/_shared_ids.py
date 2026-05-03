@@ -103,7 +103,7 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
         "product_id":   prod.id,
         "location_id":  loc.id,
         "location_code": loc.code,
-        "location_capacity": float(loc.max_capacity),
+        "location_capacity": float(loc.max_capacity_units),
         "pedimento_id": ped.id,
         "concepts":     concepts
     }

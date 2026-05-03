@@ -1764,8 +1764,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 Movement.location,
                 Movement.created_at,
                 Movement.customs_pedimento_id,
-                CustomsPedimento.pedimento_number,
-                CustomsPedimento.expiry_date
+                CustomsPedimento.pedimento_number
             )
             .outerjoin(CustomsPedimento, Movement.customs_pedimento_id == CustomsPedimento.id)
             .where(and_(*conditions))
@@ -1794,7 +1793,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 "available_quantity": float(r.available_quantity),
                 "current_location": r.location or "SYS_RECEIVING",
                 "pedimento_number": r.pedimento_number or "GENERAL/STOCK",
-                "expiry_date": r.expiry_date.isoformat() if r.expiry_date else None,
+                "expiry_date": None,
                 "days_in_dock": days_in_dock,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
             })
