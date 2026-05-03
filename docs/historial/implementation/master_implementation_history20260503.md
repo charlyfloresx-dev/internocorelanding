@@ -1,20 +1,34 @@
-# Master Implementation History - 2026-05-03
+# InternoCore: Master Implementation History - 2026-05-03
 
-## Problem Statement
-The InternoCore Monolith was suffering from systemic routing failures (404) on the Customs API and persistent SQLAlchemy crashes (`InvalidRequestError` and `Mapper[Product] collision`). These were caused by ambiguous package names (multiple services using an `app/` folder) and conflicting PYTHONPATH configurations.
+## Fase: Industrialización de Inventarios y Aduanas (Fase 82)
 
-## Solution Architecture: The "Unique App" Pattern
-We implemented a strict namespace isolation strategy:
-1.  **Unique Package Renaming**: Renamed all `app/` folders to `[service]_app/` (e.g., `subscription_app`, `auth_app`, `master_app`).
-2.  **Absolute Import Enforcement**: Refactored `main_monolith.py` to use absolute paths for every service inclusion. This prevents the Python interpreter from confusing one `app` with another during the unified startup sequence.
-3.  **Unified Dependency Layer**: Injected all service `requirements.txt` files into a single `Monolith.Dockerfile` to ensure that critical libraries like `stripe` are globally available.
-4.  **Audit Logic Synchronization**: Updated the audit listeners in `main_monolith.py` to use the new unique namespaces, ensuring that SQLAlchemy metadata registration is idempotent.
+### 1. Estabilización de Flujos Industriales (Suite de 6 Flujos)
+Se completó la ejecución y validación de la suite completa de movimientos de inventario sobre el Monolito InternoCore.
 
-## Outcomes
-- **Customs API**: Fully reachable at `/api/v1/reporting/customs/balances`.
-- **System Stability**: The monolith now starts in "Unique Namespace Mode" with 0 table re-definition warnings.
-- **Audit Compliance**: 100% CLEAN report in the Code Knowledge Graph.
+| ID | Flujo | Resultado | Validación Clave |
+| :--- | :--- | :--- | :--- |
+| **01** | Entry (Entrada) | ✅ PASS | Inyección de `customs_pedimento_id` exitosa. |
+| **02** | Exit (Salida) | ✅ PASS | Consumo automático de `available_quantity` vía FIFO. |
+| **03** | Internal Transfer | ✅ PASS | Traspaso entre almacenes de la misma empresa. |
+| **04** | ICT National | ✅ PASS | Transferencia inter-company (Enterprise -> Logistics MX). |
+| **05** | ICT Binational | ✅ PASS | Cruce fronterizo con Pedimento obligatorio (MX -> US). |
+| **06** | Purchase Variants | ✅ PASS | Alta masiva de variantes de productos industriales. |
 
-## Key Technical Decisions
-- **Avoid Implicit Discovery**: Switched to explicit import-based registration in the monolith entry point.
-- **Path Stripping in Auditor**: Updated the auditor to handle the new `_app` suffix for domain logic validation.
+### 2. Innovación: Motor FIFO Automático
+Se eliminó la necesidad de llamar manualmente al servicio de descarga FIFO.
+- **Archivo:** `sqlalchemy_inventory_repository.py`
+- **Lógica:** Cualquier movimiento con cantidad negativa que no tenga un `source_movement_id` pre-asignado activa la búsqueda de entradas con saldo disponible.
+- **Prioridad:** Fecha de creación (FIFO).
+- **Protección:** No re-consume movimientos que ya traen un plan de descarga de servicios superiores (como Traspasos).
+
+### 3. Plan: Gestión de Locaciones (Próximo Módulo)
+El objetivo es transformar el "REC-DOCK" (Muelle de Recibo) en un sistema de Rack eficiente.
+
+#### Componentes Planeados:
+1. **Density Guard Handler:** Validación asíncrona de capacidad física.
+2. **Location Assign UI:** Pantalla de "Put-away" con semáforo de saturación.
+3. **Traceability Bridge:** Visualización del Pedimento/Vencimiento durante la estiba.
+
+### 4. Auditoría de Invariantes
+- **Estatus:** 100% CLEAN.
+- **Script:** `generate_code_graph.py` detectó 0 errores de multi-tenancy o seguridad.

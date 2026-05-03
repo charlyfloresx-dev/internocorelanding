@@ -4,6 +4,13 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
 
+### [2026-05-03] Phase 82: Automatic FIFO Motor & Customs Industrialization
+- **Automatic FIFO Engine**: Integrated real-time consumption logic in `SQLAlchemyInventoryRepository`. Standard `OUT` and `TRANSFER` movements now automatically decrement Anexo 24 balances from source entries, ensuring forensic traceability without manual input.
+- **Cross-Border Validation (Flow 5)**: Successfully executed and validated the Binational Inter-Company Transfer flow (MX -> US), enforcing mandatory Customs Pedimento presence for legal compliance.
+- **Industrial Flow Suite (6/6)**: Validated the complete inventory lifecycle across the unified monolith: Entry, Exit (FIFO), Internal Transfer, National ICT, Binational ICT, and Bulk Variant Purchase.
+- **Dependency & Encoding Hardening**: Resolved Windows-specific Unicode encoding issues in seed scripts and standardized `PYTHONPATH` for host-based validation of the monolith architecture.
+- **Status**: ✅ Phase 82 COMPLETED — Customs Integrity Hardened & FIFO Motor Active.
+
 ### [2026-05-03] Phase 81: Monolith Re-engineering & Customs Stability
 - **Monolith Namespace Stabilization**: Resolved systemic SQLAlchemy "Multiple classes found for path Product" crashes by renaming the subscription microservice package to `subscription_app` and enforcing absolute, service-qualified imports (`auth_app`, `master_app`, etc.) across the unified entry point.
 - **Routing & 404 Remediation**: Successfully mapped and validated the Customs Balance API within the `/api/v1/reporting/customs` namespace, ensuring full reachability from the Frontend Kanban.

@@ -70,13 +70,13 @@ PRODUCT_CATALOG = [
 
 async def seed_variants():
     print("==================================================")
-    print("🚀 SEED: REGISTRANDO NÚMEROS DE PARTE Y VARIANTES")
-    print(f"🏢 Empresa ID: {CO_ENTERPRISE_ID}")
+    print("SEED: REGISTRANDO NUMEROS DE PARTE Y VARIANTES")
+    print(f"Empresa ID: {CO_ENTERPRISE_ID}")
     print("==================================================")
     
     async with AsyncSessionLocal() as session:
         for prod in PRODUCT_CATALOG:
-            print(f"\n📦 Producto: {prod['name']} (SKU: {prod['sku']})")
+            print(f"\nProducto: {prod['name']} (SKU: {prod['sku']})")
             
             for var in prod['variants']:
                 variant_id = uuid.uuid4()
@@ -107,10 +107,10 @@ async def seed_variants():
                     "co_id": CO_ENTERPRISE_ID,
                     "now": now
                 })
-                print(f"   ↳ Variante: {var['brand']} | MPN: {var['mpn']} [OK]")
+                print(f"   - Variante: {var['brand']} | MPN: {var['mpn']} [OK]")
         
         await session.commit()
-    print("\n✅ Seed finalizado exitosamente.")
+    print("\nSeed finalizado exitosamente.")
 
 if __name__ == "__main__":
     asyncio.run(seed_variants())

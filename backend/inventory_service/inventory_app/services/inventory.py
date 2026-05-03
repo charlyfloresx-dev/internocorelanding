@@ -132,8 +132,9 @@ class InventoryTransactionService:
             document_id=stmt.reference_id or uuid.uuid4(),
             user_id=user_id,
             validation_status="CLEAN" if not stmt.location else "PENDING", # Laissez-Faire: Start as pending only if location exists for audit
-            available_quantity=Decimal(str(stmt.quantity_change)) # Essential for Occupancy sum
-
+            available_quantity=Decimal(str(stmt.quantity_change)), # Essential for Occupancy sum
+            customs_pedimento_id=getattr(stmt, 'customs_pedimento_id', None),
+            expiry_date=getattr(stmt, 'expiry_date', None)
         )
 
         await self.repository.record_movement(
@@ -184,7 +185,9 @@ class InventoryTransactionService:
             price=Money(amount=cmd.unit_price, currency=cmd.currency),
             movement_type=cmd.movement_type,
             document_type=cmd.document_type,
-            document_id=cmd.document_id
+            document_id=cmd.document_id,
+            customs_pedimento_id=getattr(cmd, 'customs_pedimento_id', None),
+            available_quantity=cmd.quantity if cmd.movement_type in ["IN", "ADJUSTMENT"] and cmd.quantity > 0 else Decimal("0.0")
         )
         
         # 3. Atomically update stock via Repository

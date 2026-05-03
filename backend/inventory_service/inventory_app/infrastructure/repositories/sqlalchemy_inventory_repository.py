@@ -267,7 +267,47 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
 
         self.session.add(movement_model)
         
-        # We handle commitments in repository
+        # --- [NEW] AUTOMATIC FIFO CONSUMPTION (Anexo 24) ---
+        # Only run if it's an outgoing movement AND no source is already specified.
+        # This allows higher-level handlers (like TransferService) to provide their own FIFO plan.
+        is_outgoing = movement.movement_type in ["OUT", "TRANSFER", "TRANSFER_OUT", "ADJUSTMENT"]
+        has_no_source = getattr(movement, 'source_movement_id', None) is None
+        
+        if is_outgoing and movement.quantity < 0 and has_no_source:
+            qty_to_consume = abs(movement.quantity)
+            
+            # Find available movements FIFO (ordered by created_at)
+            fifo_stmt = (
+                select(Movement)
+                .where(
+                    and_(
+                        Movement.product_id == movement.product_id,
+                        Movement.warehouse_id == movement.warehouse_id,
+                        Movement.company_id == movement.company_id,
+                        Movement.available_quantity > 0
+                    )
+                )
+                .order_by(Movement.created_at.asc())
+            )
+            
+            res = await self.session.execute(fifo_stmt)
+            available_movs = res.scalars().all()
+            
+            for am in available_movs:
+                if qty_to_consume <= 0:
+                    break
+                
+                can_take = min(am.available_quantity, qty_to_consume)
+                am.available_quantity -= can_take
+                qty_to_consume -= can_take
+                
+                # Link source movement for traceability (Audit Trail)
+                if movement_model.source_movement_id is None:
+                    movement_model.source_movement_id = am.id
+            
+            if qty_to_consume > 0:
+                logger.warning(f"FIFO_UNDERFLOW: Could not fully satisfy consumption for {movement.product_id}. Remaining: {qty_to_consume}")
+
         await self.session.flush()
 
         available = stock.available_quantity

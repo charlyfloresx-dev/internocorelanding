@@ -47,6 +47,7 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
     from master_app.models.uom import UOM
     from master_app.models.product import Product
     from master_app.models.location import InventoryLocation
+    from inventory_app.models.customs_pedimento import CustomsPedimento
 
     # Almacen
     wh = (await session.execute(
@@ -76,6 +77,13 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
     if not loc:
         raise RuntimeError("Ubicacion LOC-AUDIT-01 no encontrada. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
+    # Pedimento (Resolve any valid pedimento for the company)
+    ped = (await session.execute(
+        select(CustomsPedimento).where(CustomsPedimento.company_id == CO_ENTERPRISE_ID).limit(1)
+    )).scalars().first()
+    if not ped:
+        raise RuntimeError("No se encontro Pedimento para Enterprise. Ejecuta primero: python backend/scripts/seed_customs.py")
+
     # Conceptos
     from master_app.models.movement_concept import MovementConcept
     concepts_res = await session.execute(select(MovementConcept).where(MovementConcept.group_id == uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")))
@@ -96,5 +104,6 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
         "location_id":  loc.id,
         "location_code": loc.code,
         "location_capacity": float(loc.max_capacity),
+        "pedimento_id": ped.id,
         "concepts":     concepts
     }

@@ -31,9 +31,11 @@ class InventoryTransactionCreate(BaseModel):
     fulfill_reservation: bool = False
     reference_id: Optional[Union[uuid.UUID, str]] = None
     location: Optional[str] = None
+    customs_pedimento_id: Optional[Union[uuid.UUID, str]] = None
+    expiry_date: Optional[datetime] = None
     comments: Optional[str] = None
 
-    @field_validator('uom_id', 'concept_id', 'target_warehouse_id', 'reference_id', 'location', mode='before')
+    @field_validator('uom_id', 'concept_id', 'target_warehouse_id', 'reference_id', 'location', 'customs_pedimento_id', mode='before')
     @classmethod
     def sanitize_optional_fields(cls, v):
         return _sanitize_uuid_field(v)
@@ -49,8 +51,10 @@ class DocumentLine(BaseModel):
     unit_price: float = 0.0
     currency: str = "MXN"
     location: Optional[str] = None
+    customs_pedimento_id: Optional[Union[uuid.UUID, str]] = None
+    expiry_date: Optional[datetime] = None
 
-    @field_validator('uom_id', mode='before')
+    @field_validator('uom_id', 'customs_pedimento_id', mode='before')
     @classmethod
     def sanitize_uom_id(cls, v):
         return _sanitize_uuid_field(v)
