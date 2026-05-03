@@ -23,16 +23,76 @@ class InventoryTransactionService:
         self.repository = repo
         self.md_client = md_client
 
-    async def _check_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, quantity: Decimal, company_id: uuid.UUID):
+    async def _check_location_capacity(
+        self,
+        warehouse_id: uuid.UUID,
+        location_code: str,
+        quantity: Decimal,
+        company_id: uuid.UUID,
+        product_weight_kg: Decimal = Decimal("0.0"),
+        product_volume_cm3: Decimal = Decimal("0.0"),
+        user_role: str = "OPERATOR"
+    ):
         """
-        [Phase 64] Passive Density Check: Log-only validation during synchronous flow.
-        The real audit happens in the background.
+        [Phase 83] Active Density Guard — Triple-Layer Validation.
+        Replaces the former passive (log-only) implementation.
+
+        Layer 1 — Units:     Blockable with WAREHOUSE_MANAGER override (+ audit log).
+        Layer 2 — Weight:    HARD BLOCK, no override. Safety-critical invariant.
+                             (Ignoring rack weight limits = occupational hazard risk.)
+        Layer 3 — Volume:    Advisory warning only (until product dim data is complete).
+
+        Backwards compatible: if no InventoryLocation record exists → no limit applied.
         """
         if not location_code or quantity <= 0:
             return
 
-        # Passive log - won't block the transaction
-        logger.debug(f"PASSIVE_CHECK: Movement to {location_code} initiated. Audit will follow in background.")
+        location = await self.repository.get_location_entity(warehouse_id, location_code, company_id)
+        if not location:
+            # Location not registered in the system — no constraint, legacy compatible
+            logger.debug(f"DENSITY_GUARD: No entity for {location_code}. Skipping (unlimited).")
+            return
+
+        # ── Layer 1: Unit Capacity ─────────────────────────────────────────────
+        if location.max_capacity_units > 0:
+            projected_units = location.current_units + quantity
+            if projected_units > location.max_capacity_units:
+                if user_role == "WAREHOUSE_MANAGER":
+                    # Override allowed: manager accepts the risk
+                    logger.warning(
+                        f"DENSITY_OVERRIDE [UNITS]: Manager '{user_role}' authorized overflow "
+                        f"at {location_code}. Projected={projected_units} / "
+                        f"Max={location.max_capacity_units}. [AUDIT TRAIL REQUIRED]"
+                    )
+                else:
+                    raise ValueError(
+                        f"ERR_LOCATION_OVERFLOW_UNITS: La ubicacion '{location_code}' tiene "
+                        f"{location.current_units:.0f}/{location.max_capacity_units:.0f} unidades. "
+                        f"Capacidad insuficiente para {quantity:.0f} unidades adicionales."
+                    )
+
+        # ── Layer 2: Weight (Safety-Critical — NO override) ────────────────────
+        if location.max_weight_kg > 0 and product_weight_kg > 0:
+            projected_weight = location.current_weight_kg + (product_weight_kg * quantity)
+            if projected_weight > location.max_weight_kg:
+                raise ValueError(
+                    f"ERR_LOCATION_OVERFLOW_WEIGHT: La ubicacion '{location_code}' soporta "
+                    f"max {location.max_weight_kg:.1f} kg. "
+                    f"Peso proyectado: {projected_weight:.1f} kg. "
+                    f"Riesgo de colapso estructural — sin override posible."
+                )
+
+        # ── Layer 3: Volumetric (Advisory — no hard block yet) ─────────────────
+        if location.volume_cm3 > 0 and product_volume_cm3 > 0:
+            required_volume = product_volume_cm3 * quantity
+            if required_volume > location.volume_cm3:
+                logger.warning(
+                    f"DENSITY_VOLUME_WARNING: {location_code} volumetric overflow projected. "
+                    f"Required={required_volume:.0f} cm3, Slot={location.volume_cm3:.0f} cm3. "
+                    f"Advisory only — populate product dimensions to activate hard block."
+                )
+
+
 
     async def create_transaction(
         self,

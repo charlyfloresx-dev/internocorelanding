@@ -1,0 +1,330 @@
+# Plan de Implementación: Gestión Industrial de Locaciones & Density Guard Activo
+
+## Objetivo
+Evolucionar el sistema de locaciones de InternoCore de un campo `String` pasivo a una **entidad espacial completa** con jerarquía física (Pasillo/Sección/Nivel/Gaveta), validación volumétrica en tiempo real, y trazabilidad de Anexo 24 durante el proceso de acomodo (Put-away).
+
+## Contexto de Auditoría
+
+### Lo que YA existe (No duplicar)
+
+| Componente | Estado | Archivo |
+| :--- | :--- | :--- |
+| **Modelo `InventoryLocation`** | Básico (`max_capacity` genérico) | [location.py](file:///c:/API/interno/backend/inventory_service/inventory_app/models/location.py) |
+| **Endpoint `POST /relocate`** | Funcional (transactions.py L465) | [transactions.py](file:///c:/API/interno/backend/inventory_service/inventory_app/api/v1/endpoints/transactions.py#L465-L498) |
+| **DTO `StockRelocationCreate`** | Funcional | [inventory.py](file:///c:/API/interno/backend/inventory_service/inventory_app/schemas/inventory.py#L108-L118) |
+| **Servicio `relocate_stock()`** | Funcional con herencia Anexo 24 | [inventory.py](file:///c:/API/interno/backend/inventory_service/inventory_app/services/inventory.py#L265-L361) |
+| **Repo `get_location_occupancy()`** | Funcional (SUM de `available_quantity`) | [sqlalchemy_inventory_repository.py](file:///c:/API/interno/backend/inventory_service/inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py#L1636-L1650) |
+| **Repo `get_location_capacity()`** | Funcional (lee `max_capacity`) | [sqlalchemy_inventory_repository.py](file:///c:/API/interno/backend/inventory_service/inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py#L1652-L1666) |
+| **`density_guard_audit.py`** | Background only (pasivo) | [density_guard_audit.py](file:///c:/API/interno/backend/inventory_service/inventory_app/services/density_guard_audit.py) |
+| **Frontend `InventoryPutAwayComponent`** | Completo (3-step handheld UI) | [inventory-put-away.component.ts](file:///c:/API/interno/frontend/src/app/modules/inventory/inventory-put-away.component.ts) |
+| **Frontend `relocateStock()`** | Funcional | [inventory.service.ts](file:///c:/API/interno/frontend/src/app/core/services/inventory.service.ts#L497-L509) |
+| **Frontend `getLocationDensity()`** | Existe pero **ROTO** (sin backend) | [inventory.service.ts](file:///c:/API/interno/frontend/src/app/core/services/inventory.service.ts#L523-L529) |
+
+### Lo que FALTA (Gaps Críticos)
+
+| Gap | Impacto | Prioridad |
+| :--- | :--- | :--- |
+| **Endpoint `GET /locations/{code}/density`** | Frontend Put-Away falla en Step 2 | 🔴 P0 |
+| **Modelo de locación sin jerarquía espacial** | No hay Pasillo/Sección/Nivel/Gaveta | 🟡 P1 |
+| **Density Guard solo pasivo** | No bloquea overflow en tiempo real | 🟡 P1 |
+| **Sin validación volumétrica ni de peso** | Solo valida por piezas | 🟢 P2 |
+| **Sin endpoint `GET /pending-putaway`** | No hay vista de "pendientes de acomodo" | 🟡 P1 |
+| **Sin seed de locaciones en el demo** | La pantalla no tiene data para visualizar | 🟡 P1 |
+
+### Auditoría del Código Legacy (.NET)
+
+> [!NOTE]
+> El sistema legacy en `Interno.Inventory` (.NET) **no tenía modelado de locaciones**. No existen entidades para `Rack`, `Aisle` o `Bin`. Las ubicaciones eran strings libres. El `Warehouse.cs` solo contenía `Capacity` (float) y `UnitCode` a nivel de almacén completo, sin granularidad por posición.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Activación del Density Guard Real-time**: En Fase 2, el método `_check_location_capacity` pasará de "log-only" a **bloqueo activo**. Esto significa que un operador **no podrá** forzar un acomodo si la locación está llena, a menos que tenga rol `WAREHOUSE_MANAGER` (override de seguridad con registro de auditoría).
+
+> [!WARNING]
+> **Migración de Modelo**: La Fase 1 agrega columnas nuevas al modelo `InventoryLocation`. Si ya existen registros en `inventory_locations`, las columnas nuevas tendrán defaults seguros (`0.0` para dimensiones, `STORAGE` para `zone_type`). No es destructivo.
+
+---
+
+## Proposed Changes
+
+### Fase 1: Evolución del Modelo de Datos (Infraestructura)
+
+**Objetivo:** Dotar a `InventoryLocation` de atributos espaciales industriales sin romper la compatibilidad existente.
+
+---
+
+#### [MODIFY] [location.py](file:///c:/API/interno/backend/inventory_service/inventory_app/models/location.py)
+
+Reemplazar el modelo básico por la versión industrial completa:
+
+```python
+# Nuevos campos a agregar al modelo existente:
+
+# Jerarquía Espacial (PA-SEC-NV-POS)
+aisle: str(10)        # Pasillo (ej. "01")
+section: str(10)      # Columna/Bay (ej. "05")
+level: str(10)        # Nivel/Shelf (ej. "02")
+bin_slot: str(10)     # Gaveta/Bin (ej. "A")
+
+# Clasificación Lógica
+zone_type: Enum       # RECEIVING, STORAGE, PICKING, QUALITY, SHIPPING, TRANSIT
+storage_type: Enum    # DRY, COLD, HAZMAT, LOCKED
+is_multisku: bool     # ¿Permite mezclar SKUs en la misma posición?
+velocity_code: str(1) # A (alta rotación), B (media), C (baja)
+
+# Density Guard: Límites Físicos
+max_weight_kg: Decimal    # Peso máximo soportado por el rack
+width_cm: Decimal         # Ancho del slot
+height_cm: Decimal        # Alto del slot
+depth_cm: Decimal         # Profundidad del slot
+
+# Ocupación Actual (Cache para performance)
+current_units: Decimal    # Unidades actualmente almacenadas
+current_weight_kg: Decimal # Peso actual almacenado
+
+# Flags
+is_virtual: bool          # Para SYS_RECEIVING, SYS_TRANSIT, SYS_QUALITY
+```
+
+**Decisión de diseño:** Los campos `current_units` y `current_weight_kg` son **caches desnormalizados** que se actualizan atómicamente en cada `relocate_stock`. Esto elimina el `SUM()` constante sobre millones de movimientos en producción.
+
+---
+
+#### [NEW] Seed de Locaciones para Demo
+
+Crear `backend/inventory_service/scripts/flows/seed_locations.py` con locaciones realistas:
+
+- **Muelle de Recibo**: `SYS_RECEIVING` (zone_type=RECEIVING, is_virtual=true, max_capacity=9999)
+- **Rack A (Pasillo 01)**: 3 secciones × 4 niveles × 2 bins = 24 locaciones tipo STORAGE
+- **Zona de Picking**: 6 locaciones tipo PICKING con `velocity_code=A`
+- **Zona de Calidad**: 2 locaciones tipo QUALITY con `is_multisku=false`
+- **Muelle de Embarque**: `SYS_SHIPPING` (zone_type=SHIPPING, is_virtual=true)
+
+---
+
+### Fase 2: Activación del Density Guard Real-time (Lógica de Dominio)
+
+**Objetivo:** Transformar la validación de "log-only" a "bloqueo activo" con 3 capas de protección.
+
+---
+
+#### [MODIFY] [inventory.py (servicio)](file:///c:/API/interno/backend/inventory_service/inventory_app/services/inventory.py#L26-L36)
+
+Reemplazar el método `_check_location_capacity` pasivo por la versión industrial:
+
+```python
+async def _check_location_capacity(self, warehouse_id, location_code, quantity, company_id, 
+                                     product_weight_kg=None, product_volume_cm3=None,
+                                     user_role="OPERATOR"):
+    """
+    [Phase 83] Active Density Guard: Triple-Layer Validation.
+    """
+    location = await self.repository.get_location_entity(warehouse_id, location_code, company_id)
+    if not location:
+        return  # Locaciones no registradas = sin límite (backwards compatible)
+
+    # Layer 1: Validación de Unidades
+    if location.max_capacity_units > 0:
+        projected = location.current_units + quantity
+        if projected > location.max_capacity_units:
+            if user_role != "WAREHOUSE_MANAGER":
+                raise ValueError("ERR_LOCATION_OVERFLOW_UNITS")
+            # Manager override: registrar auditoría
+            logger.warning(f"DENSITY_OVERRIDE: Manager authorized overflow at {location_code}")
+
+    # Layer 2: Validación de Peso (Seguridad Industrial)
+    if location.max_weight_kg > 0 and product_weight_kg:
+        projected_weight = location.current_weight_kg + (product_weight_kg * quantity)
+        if projected_weight > location.max_weight_kg:
+            raise ValueError("ERR_LOCATION_OVERFLOW_WEIGHT")  # Sin override (seguridad)
+
+    # Layer 3: Validación Volumétrica
+    if location.volume_cm3 > 0 and product_volume_cm3:
+        projected_volume = product_volume_cm3 * quantity
+        # Solo warning por ahora (data de volumen de productos aún incompleta)
+        if projected_volume > location.volume_cm3:
+            logger.warning(f"DENSITY_VOLUME_WARNING: {location_code} projected overflow")
+```
+
+---
+
+#### [MODIFY] [sqlalchemy_inventory_repository.py](file:///c:/API/interno/backend/inventory_service/inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py)
+
+Agregar métodos nuevos:
+
+- **`get_location_entity()`**: Retorna el objeto `InventoryLocation` completo (no solo capacity).
+- **`update_location_occupancy()`**: Actualiza atómicamente `current_units` y `current_weight_kg` tras cada movimiento.
+- **`get_pending_putaway_movements()`**: Query que lista movimientos `IN` donde `location IS NULL` o `location = 'SYS_RECEIVING'`.
+
+---
+
+### Fase 3: Exposición de API (Backend Endpoints)
+
+**Objetivo:** Crear los endpoints faltantes que el frontend ya espera y agregar el listado de pendientes.
+
+---
+
+#### [NEW] `backend/inventory_service/inventory_app/api/v1/endpoints/locations.py`
+
+Router dedicado para locaciones con los siguientes endpoints:
+
+| Método | Ruta | Descripción |
+| :--- | :--- | :--- |
+| `GET` | `/locations/{code}/density` | **P0**: Retorna ocupación actual, capacidad máxima y % de utilización. **Este es el endpoint que el frontend ya llama y no existe.** |
+| `GET` | `/locations/pending-putaway` | Lista de movimientos pendientes de ubicar (location=null). Incluye SKU, cantidad, pedimento y días en recibo. |
+| `GET` | `/locations` | Lista todas las locaciones de un almacén con su semáforo de densidad. |
+| `POST` | `/locations/seed` | (Solo dev) Siembra locaciones demo para un almacén. |
+
+**Contrato de `GET /locations/{code}/density`** (lo que el frontend espera):
+```json
+{
+  "status": "success",
+  "data": {
+    "location_code": "01-05-02-A",
+    "warehouse_id": "uuid",
+    "max_capacity": 100,
+    "current_occupancy": 65,
+    "available_space": 35,
+    "utilization_percent": 65,
+    "zone_type": "STORAGE",
+    "is_multisku": true,
+    "max_weight_kg": 500,
+    "current_weight_kg": 180
+  }
+}
+```
+
+**Contrato de `GET /locations/pending-putaway`**:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "movement_id": "uuid",
+      "product_id": "uuid",
+      "sku": "ECM-600",
+      "product_name": "Engine Control Module",
+      "variant_brand": "Bosch",
+      "quantity": 100,
+      "pedimento_number": "244030001234567",
+      "expiry_date": "2027-05-03",
+      "days_in_dock": 0,
+      "warehouse_id": "uuid",
+      "warehouse_name": "WH-001"
+    }
+  ]
+}
+```
+
+---
+
+#### [MODIFY] [transactions.py](file:///c:/API/interno/backend/inventory_service/inventory_app/api/v1/endpoints/transactions.py#L465-L498)
+
+Enriquecer el endpoint `POST /relocate` existente:
+- Agregar llamada al Density Guard activo **antes** de ejecutar `relocate_stock`.
+- Actualizar `current_units` de la locación destino tras el commit.
+- Retornar el `pedimento_number` heredado en el response para feedback visual.
+
+---
+
+### Fase 4: Enriquecimiento del Frontend (Angular)
+
+**Objetivo:** Evolucionar el componente Put-Away existente y crear la vista de pendientes.
+
+---
+
+#### [MODIFY] [inventory-put-away.component.ts](file:///c:/API/interno/frontend/src/app/modules/inventory/inventory-put-away.component.ts)
+
+El componente ya tiene la lógica de 3 pasos y el semáforo de densidad. Los cambios son:
+
+1. **Step 2 (Scan Destination)**: Agregar visualización de `zone_type` y `storage_type` para que el operador sepa si la locación es DRY/COLD/HAZMAT.
+2. **Step 3 (Confirm)**: Agregar badge de Pedimento heredado para cumplimiento visual Anexo 24.
+3. **Manejo de ERR_LOCATION_OVERFLOW**: Mostrar el toast de error específico con las 3 capas (unidades/peso/volumen).
+
+#### [NEW] `pending-putaway.component.ts`
+
+Nueva pantalla accesible desde el Dashboard de Inventarios:
+
+- Lista de cards con SKU, cantidad, pedimento, y **"Age Indicator"** (días en recibo).
+- Botón de acción rápida "Ubicar" que abre el flujo de Put-Away pre-cargando el item seleccionado.
+- Filtros por almacén y por zona (RECEIVING, TRANSIT).
+
+#### [MODIFY] [inventory.service.ts](file:///c:/API/interno/frontend/src/app/core/services/inventory.service.ts)
+
+Agregar métodos:
+- `getPendingPutaway(warehouseId)`: Llama a `GET /locations/pending-putaway`.
+- `getWarehouseLocations(warehouseId)`: Llama a `GET /locations`.
+
+---
+
+### Fase 5: Seed de Demo & Validación E2E
+
+**Objetivo:** Poblar el demo con data realista para visualización inmediata.
+
+---
+
+#### [NEW] `backend/inventory_service/scripts/flows/seed_locations.py`
+
+Script que crea:
+1. 30+ locaciones físicas distribuidas en 3 pasillos.
+2. 3 locaciones virtuales (SYS_RECEIVING, SYS_TRANSIT, SYS_QUALITY).
+3. Capacidades variadas (50-500 unidades, 100-2000 kg).
+
+#### [NEW] `backend/inventory_service/scripts/flows/flow_7_putaway.py`
+
+Script de validación que:
+1. Toma los 150 items del Flow 1 (actualmente en `location=null`).
+2. Los reubica a `01-01-01-A` y `01-01-02-A` usando `relocate_stock`.
+3. Valida que el `customs_pedimento_id` se hereda correctamente.
+4. Intenta un overflow forzado y confirma el error `ERR_LOCATION_OVERFLOW_UNITS`.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+```bash
+# 1. Seed de locaciones
+python backend/inventory_service/scripts/flows/seed_locations.py
+
+# 2. Validación de Put-away con herencia Anexo 24
+python backend/inventory_service/scripts/flows/flow_7_putaway.py
+
+# 3. Auditoría de invariantes
+python backend/scripts/generate_code_graph.py
+```
+
+### Manual Verification
+1. Navegar a `http://localhost:4200/inventory/put-away`.
+2. Escanear un SKU del Flow 6 (Variantes).
+3. Escanear la locación `01-01-01-A`.
+4. Confirmar que el **semáforo de densidad** muestra el porcentaje correcto.
+5. Confirmar que el **badge de Pedimento** aparece en Step 3.
+6. Intentar saturar una locación y verificar el toast de `ERR_LOCATION_OVERFLOW`.
+
+---
+
+## Orden de Ejecución
+
+```mermaid
+graph TD
+    F1[Fase 1: Modelo de Datos] --> F2[Fase 2: Density Guard Activo]
+    F2 --> F3[Fase 3: Endpoints API]
+    F3 --> F4[Fase 4: Frontend Angular]
+    F3 --> F5[Fase 5: Seed & Validación]
+    F4 --> V[Verificación E2E]
+    F5 --> V
+```
+
+| Fase | Estimación | Archivos Impactados |
+| :--- | :--- | :--- |
+| Fase 1 | 15 min | 1 modelo + 1 seed script |
+| Fase 2 | 20 min | 1 servicio + 1 repositorio |
+| Fase 3 | 25 min | 1 nuevo router + 1 modificación |
+| Fase 4 | 30 min | 1 nuevo componente + 2 modificaciones |
+| Fase 5 | 15 min | 2 scripts + ejecución |
+| **Total** | **~2 horas** | **~10 archivos** |

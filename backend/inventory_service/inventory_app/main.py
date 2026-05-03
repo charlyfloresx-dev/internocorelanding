@@ -61,7 +61,8 @@ from inventory_app.api.v1.endpoints import (
     inventory,
     customs,
     variants,
-    audit
+    audit,
+    locations   # [Phase 83] WMS Location Management & Density Guard
 )
 
 # Registro de Routers
@@ -82,6 +83,7 @@ app.include_router(
     tags=["Inter-Company Transfers (Trusted Broker)"]
 )
 app.include_router(variants.router, prefix="/api/v1/inventory", tags=["Industrial Variants (Supplier Mappings)"])
+app.include_router(locations.router, prefix="/api/v1/inventory", tags=["WMS — Location Management (Density Guard)"])  # [Phase 83] P0 Fix
 
 
 @app.get("/health")

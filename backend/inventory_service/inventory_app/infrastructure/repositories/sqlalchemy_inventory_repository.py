@@ -1652,9 +1652,10 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
     async def get_location_capacity(self, warehouse_id: uuid.UUID, location_code: str, company_id: uuid.UUID) -> Decimal:
         """
         Recupera la capacidad máxima configurada. Retorna 0 si no hay límite definido.
+        [DEPRECATED for Active Guard — use get_location_entity() which returns full object]
         """
         from inventory_app.models.location import InventoryLocation
-        stmt = select(InventoryLocation.max_capacity).where(
+        stmt = select(InventoryLocation.max_capacity_units).where(
             and_(
                 InventoryLocation.warehouse_id == warehouse_id,
                 InventoryLocation.code == location_code,
@@ -1664,6 +1665,141 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         result = await self.session.execute(stmt)
         capacity = result.scalar()
         return Decimal(str(capacity)) if capacity is not None else Decimal("0.0")
+
+    async def get_location_entity(
+        self,
+        warehouse_id: uuid.UUID,
+        location_code: str,
+        company_id: uuid.UUID
+    ):
+        """
+        [Phase 83] Returns the full InventoryLocation entity for Active Density Guard.
+        Includes current_units, max_capacity_units, max_weight_kg, volume_cm3, etc.
+        Returns None if location not registered (backwards compatible = no limit).
+        """
+        from inventory_app.models.location import InventoryLocation
+        stmt = select(InventoryLocation).where(
+            and_(
+                InventoryLocation.warehouse_id == warehouse_id,
+                InventoryLocation.code == location_code,
+                InventoryLocation.company_id == company_id
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def increment_location_occupancy(
+        self,
+        warehouse_id: uuid.UUID,
+        location_code: str,
+        company_id: uuid.UUID,
+        delta_units: Decimal,
+        delta_weight_kg: Decimal = Decimal("0.0")
+    ) -> None:
+        """
+        [Phase 83] Atomically updates the denormalized occupancy cache.
+        Uses SQL-level UPDATE (not Python ORM read-modify-write) to prevent
+        race conditions when multiple operators work the same rack simultaneously.
+
+        delta_units can be negative (for RELOC_OUT from a location).
+        INVARIANT: Only called from relocate_stock and put_away flows.
+        """
+        import sqlalchemy as sa
+        from inventory_app.models.location import InventoryLocation
+
+        stmt = (
+            sa.update(InventoryLocation)
+            .where(
+                and_(
+                    InventoryLocation.warehouse_id == warehouse_id,
+                    InventoryLocation.code == location_code,
+                    InventoryLocation.company_id == company_id
+                )
+            )
+            .values(
+                current_units=InventoryLocation.current_units + delta_units,
+                current_weight_kg=InventoryLocation.current_weight_kg + delta_weight_kg,
+            )
+        )
+        await self.session.execute(stmt)
+        # NOTE: Caller is responsible for session.commit()
+
+    async def get_pending_putaway_movements(
+        self,
+        company_id: uuid.UUID,
+        warehouse_id: uuid.UUID = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> list:
+        """
+        [Phase 83] Returns IN movements pending physical placement.
+        Criteria: movement_type IN ('IN','RELOC_IN') AND (location IS NULL OR location = 'SYS_RECEIVING')
+        Enriched with pedimento number and days in dock for the Put-Away UI.
+        """
+        from inventory_app.models.customs_pedimento import CustomsPedimento
+        from inventory_app.models.movement import Movement
+        import sqlalchemy as sa
+        from datetime import datetime, timezone
+
+        conditions = [
+            Movement.company_id == company_id,
+            Movement.movement_type.in_(["IN", "RELOC_IN"]),
+            Movement.available_quantity > 0,
+            sa.or_(
+                Movement.location.is_(None),
+                Movement.location == "SYS_RECEIVING",
+                Movement.location == ""
+            )
+        ]
+        if warehouse_id:
+            conditions.append(Movement.warehouse_id == warehouse_id)
+
+        stmt = (
+            select(
+                Movement.id,
+                Movement.product_id,
+                Movement.warehouse_id,
+                Movement.quantity,
+                Movement.available_quantity,
+                Movement.location,
+                Movement.created_at,
+                Movement.customs_pedimento_id,
+                CustomsPedimento.pedimento_number,
+                CustomsPedimento.expiry_date
+            )
+            .outerjoin(CustomsPedimento, Movement.customs_pedimento_id == CustomsPedimento.id)
+            .where(and_(*conditions))
+            .order_by(Movement.created_at.asc())  # FIFO: oldest first
+            .limit(limit)
+            .offset(offset)
+        )
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        now = datetime.now(timezone.utc)
+        pending = []
+        for r in rows:
+            created = r.created_at
+            if created and created.tzinfo is None:
+                from datetime import timezone as tz
+                created = created.replace(tzinfo=tz.utc)
+            days_in_dock = (now - created).days if created else 0
+
+            pending.append({
+                "movement_id": str(r.id),
+                "product_id": str(r.product_id),
+                "warehouse_id": str(r.warehouse_id),
+                "quantity": float(r.quantity),
+                "available_quantity": float(r.available_quantity),
+                "current_location": r.location or "SYS_RECEIVING",
+                "pedimento_number": r.pedimento_number or "GENERAL/STOCK",
+                "expiry_date": r.expiry_date.isoformat() if r.expiry_date else None,
+                "days_in_dock": days_in_dock,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
+
+        return pending
 
     async def get_detailed_stock_report(self, warehouse_id: uuid.UUID, company_id: uuid.UUID) -> List[dict]:
         """

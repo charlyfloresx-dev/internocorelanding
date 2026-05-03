@@ -211,6 +211,7 @@ from inventory_app.api.v1.endpoints.customs import router as customs_router
 from inventory_app.api.v1.endpoints.variants import router as variants_router
 from inventory_app.api.v1.endpoints.inter_company_transfers import router as ict_router
 from inventory_app.api.v1.endpoints.demo_reset import router as demo_reset_router
+from inventory_app.api.v1.endpoints.locations import router as wms_locations_router  # [Phase 83] P0 Fix
 app.include_router(transactions_router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
 app.include_router(reconciliation_router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
 app.include_router(boms_router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
@@ -221,6 +222,7 @@ app.include_router(variants_router, prefix="/api/v1/inventory/variants", tags=["
 app.include_router(ict_router, prefix="/api/v1/inventory/transfers/inter-company", tags=["Inventory: ICT"])
 app.include_router(customs_router, prefix="/api/v1/reporting/customs", tags=["Inventory: Customs Reporting"])
 app.include_router(demo_reset_router, prefix="/api/v1", tags=["Inventory: Admin / Demo"])
+app.include_router(wms_locations_router, prefix="/api/v1/inventory", tags=["WMS: Location Management (Density Guard)"])  # [Phase 83] P0 Fix
 
 # 4. Notifications
 from notification_app.api.v1.endpoints import notifications as notification_endpoints
