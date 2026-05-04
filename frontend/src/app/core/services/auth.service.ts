@@ -59,6 +59,12 @@ export class AuthService {
            this.permissions().some(p => p.toLowerCase().includes('read'));
   });
 
+  public hasPermission(permission: string): boolean {
+    const current = this.permissions();
+    if (this.isSuperAdmin()) return true;
+    return current.includes(permission) || current.includes('*');
+  }
+
   constructor(private router: Router) {
     // Initial silent restoration from storage (optimistic UI)
     if (this.isBrowser) {

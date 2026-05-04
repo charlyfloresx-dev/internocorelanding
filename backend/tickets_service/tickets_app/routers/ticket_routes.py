@@ -207,6 +207,24 @@ async def list_tickets(
     tickets = await service.get_tickets(uuid.UUID(user.company_id))
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
 
+@router.get("/mine", response_model=ApiResponse)
+async def list_my_tickets(
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(get_current_user)
+):
+    """
+    Retorna tickets creados por o asignados al usuario actual en su empresa activa.
+    """
+    service = TicketService(SQLAlchemyTicketRepository(db))
+    # Usamos list_by_visibility con flags de usuario normal para filtrar lo propio
+    tickets = await service.get_tickets_with_visibility(
+        company_id=uuid.UUID(user.company_id),
+        user_id=uuid.UUID(user.sub),
+        is_admin=False,
+        is_supervisor=False
+    )
+    return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
+
 @router.post("/{ticket_id}/triage", response_model=ApiResponse)
 async def triage_ticket(
     ticket_id: uuid.UUID,

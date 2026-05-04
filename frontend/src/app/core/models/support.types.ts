@@ -46,6 +46,7 @@ export interface Ticket {
   ticket_type: TicketType;
   created_at: string;
   updated_at?: string;
+  created_by: string;
   assigned_to_id?: string;
   area?: string;
   department_id?: string;

@@ -2,6 +2,7 @@ import {inject, Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {ApiResponse} from '../models/api.types';
+import {environment} from '../../../environments/environment';
 
 export interface AdminUser {
   id: string;
@@ -31,28 +32,31 @@ export interface InvitationCreate {
 export class AdminService {
   private http = inject(HttpClient);
 
-  getUsers(): Observable<ApiResponse<AdminUser[]>> {
-    return this.http.get<ApiResponse<AdminUser[]>>('/api/v1/users/');
+  getUsers(q?: string): Observable<ApiResponse<AdminUser[]>> {
+    let url = `${environment.apiUrl}/api/v1/users/`;
+    if (q) {
+      url += `?q=${encodeURIComponent(q)}`;
+    }
+    return this.http.get<ApiResponse<AdminUser[]>>(url);
   }
 
   getRoles(): Observable<ApiResponse<AdminRole[]>> {
-    return this.http.get<ApiResponse<AdminRole[]>>('/api/v2/admin/roles');
+    return this.http.get<ApiResponse<AdminRole[]>>(`${environment.apiUrl}/api/v2/admin/roles`);
   }
 
   inviteUser(invitation: InvitationCreate): Observable<ApiResponse<{code: string}>> {
-    return this.http.post<ApiResponse<{code: string}>>('/api/v2/admin/users/invite', invitation);
+    return this.http.post<ApiResponse<{code: string}>>(`${environment.apiUrl}/api/v2/admin/users/invite`, invitation);
   }
 
   assignRole(email: string, roleId: string): Observable<ApiResponse<void>> {
-    return this.http.post<ApiResponse<void>>('/api/v2/admin/users/assign-role', { email, role_id: roleId });
+    return this.http.post<ApiResponse<void>>(`${environment.apiUrl}/api/v2/admin/users/assign-role`, { email, role_id: roleId });
   }
 
   updateScopes(userId: string, scopes: string[]): Observable<ApiResponse<void>> {
-    // Assuming a PATCH or PUT endpoint for updating user scopes
-    return this.http.patch<ApiResponse<void>>(`/api/v2/admin/users/${userId}/scopes`, { scopes });
+    return this.http.patch<ApiResponse<void>>(`${environment.apiUrl}/api/v2/admin/users/${userId}/scopes`, { scopes });
   }
 
   revokeAccess(userId: string): Observable<ApiResponse<void>> {
-    return this.http.delete<ApiResponse<void>>(`/api/v2/admin/users/${userId}`);
+    return this.http.delete<ApiResponse<void>>(`${environment.apiUrl}/api/v2/admin/users/${userId}`);
   }
 }

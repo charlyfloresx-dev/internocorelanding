@@ -5,6 +5,7 @@
     "compliance_report": {
         "asset_manager_service": 100,
         "auth_service": 100,
+        "cmms_service": 100,
         "common": 100,
         "hcm_service": 100,
         "inventory_service": 100,
@@ -20,10 +21,10 @@
     "inter_service_deps": {
         "common": [
             "master_data_service",
-            "wms_service",
             "mes_service",
-            "auth_service",
-            "subscription_service"
+            "subscription_service",
+            "wms_service",
+            "auth_service"
         ],
         "inventory_service": [
             "notification_service"

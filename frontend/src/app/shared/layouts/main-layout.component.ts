@@ -35,15 +35,14 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
         class="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] animate-in fade-in duration-300"
       ></div>
 
-      <!-- Sidebar Navigation (Two Columns) -->
       <div 
-        class="fixed lg:relative flex h-full z-[60] no-print transition-transform duration-500 ease-out"
+        class="fixed lg:relative flex h-full z-[100] no-print transition-transform duration-500 ease-out"
         [class.-translate-x-full]="!isMobileMenuOpen() && isMobile()"
         [class.translate-x-0]="isMobileMenuOpen() || !isMobile()"
       >
         
         <!-- Column 1: Icon Bar (Fixed 80px) -->
-        <aside class="w-20 bg-nav-bar border-r border-surface-border flex flex-col items-center py-6 z-50 shadow-2xl transition-colors duration-300">
+        <aside class="w-20 bg-nav-bar border-r border-surface-border flex flex-col items-center py-6 z-[110] shadow-2xl transition-colors duration-300">
           <!-- Custom Logo SVG -->
           <div class="w-12 h-12 mb-10 flex items-center justify-center relative group/logo cursor-pointer" (click)="isMobileMenuOpen.set(false)">
             <div class="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse group-hover:bg-primary/40 transition-all"></div>
@@ -81,59 +80,146 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
             }
           </nav>
 
-          <!-- Health Indicator -->
-          <div class="mt-auto flex flex-col items-center gap-4">
-            <div class="flex flex-col items-center gap-1 group/health cursor-help" [title]="'Última revisión: ' + (healthService.lastCheck() | date:'HH:mm:ss')">
-              <div class="w-2 h-2 rounded-full transition-all duration-500"
+          <!-- Column 1 Footer Buttons: Premium User Context -->
+          <div class="mt-auto flex flex-col items-center gap-3 pb-6 w-full px-2">
+            
+            <!-- Health Indicator (Subtle) -->
+            <div class="flex items-center justify-center mb-2 group/health cursor-help" [title]="'System Health: ' + healthService.overallStatus()">
+              <div class="w-1.5 h-1.5 rounded-full"
                    [ngClass]="{
-                     'bg-neon-green neon-glow-green animate-pulse': healthService.overallStatus() === 'online',
-                     'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]': healthService.overallStatus() === 'degraded',
-                     'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-bounce': healthService.overallStatus() === 'offline'
+                     'bg-neon-green neon-glow-green': healthService.overallStatus() === 'online',
+                     'bg-yellow-500': healthService.overallStatus() === 'degraded',
+                     'bg-red-500 animate-pulse': healthService.overallStatus() === 'offline'
                    }"></div>
-              <span class="text-[8px] font-black uppercase tracking-tighter opacity-0 group-hover/health:opacity-100 transition-opacity"
-                    [ngClass]="{
-                      'text-neon-green': healthService.overallStatus() === 'online',
-                      'text-yellow-500': healthService.overallStatus() === 'degraded',
-                      'text-red-500': healthService.overallStatus() === 'offline'
-                    }">
-                {{ healthService.overallStatus() }}
-              </span>
             </div>
+
+            <!-- Quick Tickets (If allowed) -->
+            @if (authService.hasPermission('tickets:view')) {
+              <button 
+                routerLink="/monitor/tickets"
+                routerLinkActive="bg-primary/20 text-primary"
+                (click)="navService.closeSubMenu()"
+                class="w-12 h-12 flex items-center justify-center rounded-xl text-surface-text-muted hover:bg-primary/10 hover:text-primary transition-all relative group/tickets"
+              >
+                <mat-icon class="text-xl">confirmation_number</mat-icon>
+                <div class="absolute left-16 px-2 py-1 bg-surface-card border border-surface-border rounded text-[8px] font-bold uppercase opacity-0 group-hover/tickets:opacity-100 pointer-events-none transition-all whitespace-nowrap z-50">
+                  {{ 'menu.my_tickets' | translate:'Mis Tickets' }}
+                </div>
+              </button>
+            }
             
-            <button (click)="themeService.toggleDarkMode()" class="w-12 h-12 flex items-center justify-center rounded-xl text-surface-text-muted hover:bg-primary/10 hover:text-primary transition-all">
-              <mat-icon>{{ themeService.darkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-            </button>
-            
-            <button (click)="logout()" class="w-12 h-12 flex items-center justify-center rounded-xl text-red-500/60 hover:bg-red-500/10 hover:text-red-400 transition-all">
-              <mat-icon>logout</mat-icon>
+            <!-- User Profile Block -->
+            <button 
+              (click)="navService.toggleSubMenu('user')" 
+              [class.bg-primary/10]="navService.activeSubMenuId() === 'user'"
+              [class.ring-2]="navService.activeSubMenuId() === 'user'"
+              class="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-card border border-surface-border text-surface-text-muted hover:bg-primary/10 hover:text-primary transition-all relative group/user overflow-hidden"
+            >
+              @if (authService.currentUser()?.full_name) {
+                <span class="text-[10px] font-black tracking-tighter text-primary">
+                  {{ authService.currentUser()?.full_name?.substring(0,2)?.toUpperCase() }}
+                </span>
+              } @else {
+                <mat-icon>person</mat-icon>
+              }
+              
+              <!-- Operative Plan Glow (Only for Demo) -->
+              @if (isDemoCompany()) {
+                <div class="absolute inset-0 bg-primary/5 animate-pulse"></div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-nav-bar z-10"></div>
+              }
             </button>
           </div>
         </aside>
 
         <!-- Column 2: Fly-out Panel (260px) -->
         <aside 
-          class="w-64 bg-nav-panel backdrop-blur-3xl border-r border-surface-border flex flex-col transition-all duration-500 absolute left-20 h-full z-40 shadow-2xl transform"
+          class="w-64 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-r border-slate-200 dark:border-white/10 flex flex-col transition-all duration-500 absolute left-20 h-full z-[105] shadow-2xl transform"
           [class.translate-x-0]="navService.activeSubMenuId()"
           [class.-translate-x-full]="!navService.activeSubMenuId()"
           (mouseleave)="onMouseLeavePanel()"
         >
-          <div class="p-8 h-20 flex items-center border-b border-surface-border">
-            <span class="text-xs font-black text-surface-text uppercase tracking-[0.2em]">
-              {{ getActiveMenuItem()?.translation_key | translate:(getActiveMenuItem()?.label || 'Módulo') }}
+          <div class="p-8 h-20 flex items-center border-b border-slate-100 dark:border-white/10 bg-white/40 dark:bg-black/40">
+            <span class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+              {{ navService.activeSubMenuId() === 'user' ? ('auth.user_menu' | translate:'Menú de Usuario') : (getActiveMenuItem()?.translation_key | translate:(getActiveMenuItem()?.label || 'Módulo')) }}
             </span>
           </div>
 
           <div class="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
-            @if (getActiveSubItems(); as subItems) {
+            @if (navService.activeSubMenuId() === 'user') {
+              <!-- User Specific Menu -->
+              <!-- User Identity Header -->
+              <div class="px-2 mb-6">
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="text-[14px] font-black text-slate-900 dark:text-white truncate max-w-[150px]">
+                    {{ authService.currentUser()?.full_name }}
+                  </div>
+                  @if (isDemoCompany()) {
+                    <span class="px-1.5 py-0.5 rounded bg-primary/20 border border-primary/40 text-[7px] text-primary font-black uppercase tracking-widest animate-pulse">
+                      Operative Plan
+                    </span>
+                  }
+                </div>
+                <div class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mb-4 truncate">
+                  {{ authService.currentUser()?.email }}
+                </div>
+                
+                <button 
+                  (click)="navService.closeSubMenu()" 
+                  routerLink="/monitor/tickets"
+                  [queryParams]="{ filter: 'mine' }"
+                  class="bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-4 py-2 flex items-center gap-2 transition-all border border-primary/20 group-hover:scale-105 active:scale-95">
+                  <mat-icon class="text-[18px]">confirmation_number</mat-icon>
+                  <span class="text-[10px] font-black uppercase tracking-wider">Mis Tickets</span>
+                </button>
+              </div>
+
+              @if (navService.isAdmin()) {
+                <div class="pt-4 border-t border-slate-100 dark:border-white/5 space-y-1">
+                  <span class="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2 block px-2">Administración</span>
+                  
+                  <a 
+                    routerLink="/admin/users"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">group</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_users' | translate:'Usuarios' }}</span>
+                  </a>
+
+                  <a 
+                    routerLink="/admin/staff"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">badge</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_staff' | translate:'Personal de Planta' }}</span>
+                  </a>
+
+                  <a 
+                    routerLink="/system/config"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">settings_suggest</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_system' | translate:'Configuración' }}</span>
+                  </a>
+                </div>
+              }
+            } @else if (getActiveSubItems(); as subItems) {
               @for (sub of subItems; track sub.id) {
                 <a 
                   [routerLink]="sub.route"
-                  routerLinkActive="bg-primary/10 text-primary border-primary/20"
+                  [queryParams]="sub.queryParams || {}"
+                  routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
                   (click)="navService.closeSubMenu()"
-                  class="flex items-center gap-3 px-4 py-3 rounded-xl text-surface-text-muted hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
                 >
-                  <div class="w-1.5 h-1.5 rounded-full bg-surface-text-muted group-hover/sub:bg-primary transition-colors"></div>
-                  <span class="text-xs font-bold uppercase tracking-widest">{{ sub.translation_key | translate:sub.label }}</span>
+                  <div class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 group-hover/sub:bg-primary transition-colors"></div>
+                  <span class="text-[10px] font-bold uppercase tracking-widest">{{ sub.translation_key | translate:sub.label }}</span>
                 </a>
               }
             } @else {
@@ -144,18 +230,23 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
             }
           </div>
 
-          <!-- User Info (Bottom of Flyout) -->
-          <div class="p-6 border-t border-white/10 bg-black/30">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg bg-primary/30 flex items-center justify-center text-primary font-bold text-xs">
-                {{ authService.currentUser()?.full_name?.substring(0,2)?.toUpperCase() }}
+            <!-- Context Footer -->
+            <div class="flex flex-col gap-3">
+              <div class="px-4 py-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                <div class="text-[7px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Empresa Activa</div>
+                <div class="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">
+                  {{ ($any(authService.session())).company_name || 'InternoCore' }}
+                </div>
               </div>
-              <div class="flex flex-col min-w-0">
-                <span class="text-[10px] text-white font-bold truncate">{{ authService.currentUser()?.full_name }}</span>
-                <span class="text-[8px] text-surface-text-muted uppercase font-bold">{{ 'auth.session_active' | translate:'Sesión Activa' }}</span>
-              </div>
+
+              <button 
+                (click)="logout()"
+                class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-500 transition-all border border-red-500/10 group/logout"
+              >
+                <mat-icon class="text-lg">logout</mat-icon>
+                <span class="text-[10px] font-black uppercase tracking-[0.2em]">{{ 'auth.logout' | translate:'Cerrar Sesión' }}</span>
+              </button>
             </div>
-          </div>
         </aside>
       </div>
 
@@ -176,9 +267,9 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
         }
 
         <!-- Header Container -->
-        <div class="relative z-[60]">
+        <div class="relative z-[80]">
           <header 
-            class="h-20 bg-surface-card/80 backdrop-blur-xl border-b border-surface-border flex items-center justify-between px-4 md:px-8 shadow-2xl transition-all duration-300 no-print"
+            class="h-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 flex items-center justify-between px-4 md:px-8 shadow-2xl transition-all duration-300 no-print"
           >
             <div class="flex items-center gap-4">
               <!-- Hamburger Toggle (Mobile) -->
@@ -446,6 +537,11 @@ export class MainLayoutComponent {
   showNotifPanel = signal(false);
   notifHub = inject(NotificationHubService);
   drawerService = inject(SideDrawerService);
+  
+  // ✅ Detect if we are in the Operative Plan Demo
+  isDemoCompany = computed(() => {
+    return this.authService.activeCompanyId() === 'd3d3d3d3-bbaa-46e6-a7f0-aeb4b92b6d38';
+  });
 
   constructor() {
     this.checkMobile();
@@ -520,12 +616,12 @@ export class MainLayoutComponent {
 
   getActiveMenuItem() {
     const activeId = this.navService.activeSubMenuId();
-    return this.navService.menuItems().find(i => i.id === activeId);
+    return this.navService.menuItems().find((i: MenuItem) => i.id === activeId);
   }
 
   getActiveSubItems() {
     const activeId = this.navService.activeSubMenuId();
-    const item = this.navService.menuItems().find(i => i.id === activeId);
+    const item = this.navService.menuItems().find((i: MenuItem) => i.id === activeId);
     return item?.subItems || null;
   }
 

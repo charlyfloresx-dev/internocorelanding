@@ -31,6 +31,7 @@ router = APIRouter()
 
 @router.get("/", response_model=ApiResponse)
 async def list_company_users(
+    q: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     context: SecurityContext = Depends(get_current_tenant_context)
 ):
@@ -47,6 +48,17 @@ async def list_company_users(
         .outerjoin(UserCredential, User.id == UserCredential.user_id)
         .where(UserCompanyRole.company_id == company_id)
     )
+    
+    if q:
+        search_pattern = f"%{q}%"
+        from sqlalchemy import or_
+        stmt = stmt.where(
+            or_(
+                User.first_name.ilike(search_pattern),
+                User.last_name_pat.ilike(search_pattern),
+                UserCredential.email.ilike(search_pattern)
+            )
+        )
     
     result = await db.execute(stmt)
     rows = result.all()
@@ -70,7 +82,7 @@ async def list_company_users(
             "role_id": str(role.id) if role else None,
             "role_name": role.name if role else "User",
             "status": "active" if user.is_active else "inactive",
-            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "created_at": getattr(user, 'created_at').isoformat() if getattr(user, 'created_at', None) else None,
             "scopes": ucr.scopes or []
         })
     

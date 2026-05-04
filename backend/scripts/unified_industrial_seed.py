@@ -36,8 +36,12 @@ from master_app.models.uom import UOM
 from master_app.models.movement_concept import MovementConcept
 from master_app.models.warehouse import Warehouse as MasterWarehouse
 from master_app.models.location import InventoryLocation
+from common.models.enumeration import Enumeration
 from master_app.models.product import Product
+from master_app.models.partner import Partner
 from inventory_app.models.warehouse import Warehouse as InvWarehouse
+from tickets_app.models.ticket import Ticket
+from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("industrial-seed")
@@ -50,6 +54,7 @@ LOGISTICS_US_ID = uuid.UUID("777cc8a6-34f9-42df-8f29-28254e0ad277")
 CHARLY_ID     = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
 TECH_ONE_ID   = uuid.UUID("11111111-bbaa-46e6-a7f0-aeb4b92b6d38")
 TECH_TWO_ID   = uuid.UUID("22222222-bbaa-46e6-a7f0-aeb4b92b6d38")
+DEMO_ID       = uuid.UUID("d3d3d3d3-bbaa-46e6-a7f0-aeb4b92b6d38")
 
 # Catálogo de Productos y Variantes (SSOT — 5 productos x 3 variantes)
 # Fuente: seed_variants.py + setup_transfer_prices.py
@@ -141,6 +146,80 @@ async def _safe_add(session, obj, label=""):
     except Exception as e:
         log.warning("  SKIP %s (failed: %s)", label, type(e).__name__)
 
+async def seed_enumerations(session):
+    log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
+    enums_to_seed = [
+        # Tickets & Support
+        {"type": "TICKET_STATUS", "key": "OPEN", "label": "Abierto", "t_key": "enums.ticket_status.open", "sort": 1},
+        {"type": "TICKET_STATUS", "key": "IN_PROGRESS", "label": "En Progreso", "t_key": "enums.ticket_status.in_progress", "sort": 2},
+        {"type": "TICKET_STATUS", "key": "RESOLVED", "label": "Resuelto", "t_key": "enums.ticket_status.resolved", "sort": 3},
+        {"type": "TICKET_STATUS", "key": "CLOSED", "label": "Cerrado", "t_key": "enums.ticket_status.closed", "sort": 4},
+        {"type": "TICKET_PRIORITY", "key": "LOW", "label": "Baja", "t_key": "enums.ticket_priority.low", "sort": 1},
+        {"type": "TICKET_PRIORITY", "key": "MEDIUM", "label": "Media", "t_key": "enums.ticket_priority.medium", "sort": 2},
+        {"type": "TICKET_PRIORITY", "key": "HIGH", "label": "Alta", "t_key": "enums.ticket_priority.high", "sort": 3},
+        {"type": "TICKET_PRIORITY", "key": "CRITICAL", "label": "Crítica", "t_key": "enums.ticket_priority.critical", "sort": 4},
+        
+        # Assets & CMMS
+        {"type": "ASSET_STATUS", "key": "OPERATIONAL", "label": "Operativo", "t_key": "enums.asset_status.operational", "sort": 1},
+        {"type": "ASSET_STATUS", "key": "UNDER_MAINTENANCE", "label": "En Mantenimiento", "t_key": "enums.asset_status.maintenance", "sort": 2},
+        {"type": "ASSET_STATUS", "key": "OUT_OF_SERVICE", "label": "Fuera de Servicio", "t_key": "enums.asset_status.out_of_service", "sort": 3},
+        {"type": "WORK_ORDER_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.wo_status.draft", "sort": 1},
+        {"type": "WORK_ORDER_STATUS", "key": "SCHEDULED", "label": "Programada", "t_key": "enums.wo_status.scheduled", "sort": 2},
+        {"type": "WORK_ORDER_STATUS", "key": "IN_PROGRESS", "label": "En Ejecución", "t_key": "enums.wo_status.in_progress", "sort": 3},
+        {"type": "WORK_ORDER_STATUS", "key": "COMPLETED", "label": "Completada", "t_key": "enums.wo_status.completed", "sort": 4},
+
+        # Inventory Movements
+        {"type": "INVENTORY_MOVEMENT_TYPE", "key": "ENTRADA", "label": "Entrada", "t_key": "inventory.movement.entrada", "sort": 1},
+        {"type": "INVENTORY_MOVEMENT_TYPE", "key": "SALIDA", "label": "Salida", "t_key": "inventory.movement.salida", "sort": 2},
+        {"type": "INVENTORY_MOVEMENT_TYPE", "key": "TRASPASO", "label": "Traspaso", "t_key": "inventory.movement.traspaso", "sort": 3},
+        
+        # Product & Catalog Enums
+        {"type": "PRODUCT_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.product_status.draft", "sort": 1},
+        {"type": "PRODUCT_STATUS", "key": "ACTIVE", "label": "Activo", "t_key": "enums.product_status.active", "sort": 2},
+        {"type": "PRODUCT_STATUS", "key": "INACTIVE", "label": "Inactivo", "t_key": "enums.product_status.inactive", "sort": 3},
+        {"type": "PRODUCT_TYPE", "key": "GOODS", "label": "Material / Producto", "t_key": "enums.product_type.goods", "sort": 1},
+        {"type": "PRODUCT_TYPE", "key": "SERVICE", "label": "Servicio", "t_key": "enums.product_type.service", "sort": 2},
+        
+        # Currency & Finance
+        {"type": "CURRENCY", "key": "MXN", "label": "Pesos Mexicanos", "t_key": "enums.currency.mxn", "sort": 1},
+        {"type": "CURRENCY", "key": "USD", "label": "Dólares Americanos", "t_key": "enums.currency.usd", "sort": 2},
+        
+        # Partner Types
+        {"type": "PARTNER_TYPE", "key": "CUSTOMER", "label": "Cliente", "t_key": "enums.partner_type.customer", "sort": 1},
+        {"type": "PARTNER_TYPE", "key": "SUPPLIER", "label": "Proveedor", "t_key": "enums.partner_type.supplier", "sort": 2},
+        
+        # Warehouse Types
+        {"type": "WAREHOUSE_TYPE", "key": "PHYSICAL", "label": "Almacén Físico", "t_key": "enums.wh_type.physical", "sort": 1},
+        {"type": "WAREHOUSE_TYPE", "key": "VIRTUAL", "label": "Almacén Virtual", "t_key": "enums.wh_type.virtual", "sort": 2},
+        {"type": "WAREHOUSE_TYPE", "key": "TRANSIT", "label": "Tránsito", "t_key": "enums.wh_type.transit", "sort": 3},
+        {"type": "WAREHOUSE_TYPE", "key": "EXT_PARTNER", "label": "Gestionado por Terceros", "t_key": "enums.wh_type.ext", "sort": 4},
+        
+        # Inventory Document & Transfer Statuses
+        {"type": "DOCUMENT_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.doc_status.draft", "sort": 1},
+        {"type": "DOCUMENT_STATUS", "key": "PROCESSED", "label": "Procesado", "t_key": "enums.doc_status.processed", "sort": 2},
+        {"type": "DOCUMENT_STATUS", "key": "CANCELLED", "label": "Cancelado", "t_key": "enums.doc_status.cancelled", "sort": 3},
+        {"type": "TRANSFER_STATUS", "key": "PENDING", "label": "Pendiente", "t_key": "enums.trf_status.pending", "sort": 1},
+        {"type": "TRANSFER_STATUS", "key": "SHIPPED", "label": "Enviado", "t_key": "enums.trf_status.shipped", "sort": 2},
+        {"type": "TRANSFER_STATUS", "key": "DELIVERED", "label": "Recibido", "t_key": "enums.trf_status.delivered", "sort": 3},
+        {"type": "TRANSFER_STATUS", "key": "CANCELLED", "label": "Cancelado", "t_key": "enums.trf_status.cancelled", "sort": 4},
+        
+        # Product Version & Unit Types
+        {"type": "VERSION_STATUS", "key": "DESIGN", "label": "Diseño / Especificación", "t_key": "enums.ver_status.design", "sort": 1},
+        {"type": "VERSION_STATUS", "key": "EXPERIMENTAL", "label": "Prototipo / Experimental", "t_key": "enums.ver_status.experimental", "sort": 2},
+        {"type": "VERSION_STATUS", "key": "PUBLISHED", "label": "Publicado / Vigente", "t_key": "enums.ver_status.published", "sort": 3},
+        {"type": "UNIT_TYPE", "key": "BASE", "label": "Unidad Base (Contenedor)", "t_key": "enums.unit_type.base", "sort": 1},
+        {"type": "UNIT_TYPE", "key": "SALE", "label": "Unidad de Venta (Pieza)", "t_key": "enums.unit_type.sale", "sort": 2}
+    ]
+    for e in enums_to_seed:
+        stmt = select(Enumeration).where(Enumeration.type == e["type"], Enumeration.key == e["key"], Enumeration.company_id == None)
+        existing = (await session.execute(stmt)).scalar_one_or_none()
+        if not existing:
+            await _safe_add(session, Enumeration(
+                id=uuid.uuid4(), type=e["type"], key=e["key"], label=e["label"],
+                translation_key=e["t_key"], sort_order=e["sort"],
+                company_id=None, tenant_id=None, is_active=True, version_id=1, created_by=CHARLY_ID
+            ), f"Enum: {e['type']}.{e['key']}")
+
 # --- Secciones de Seed ---
 async def seed_auth(session):
     log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
@@ -153,7 +232,8 @@ async def seed_auth(session):
     for co_id, co_name in [
         (ENTERPRISE_ID, "Interno Enterprise"),
         (LOGISTICS_MX_ID, "Interno Logistics MX"),
-        (LOGISTICS_US_ID, "Interno Logistics US")
+        (LOGISTICS_US_ID, "Interno Logistics US"),
+        (DEMO_ID, "Demo Operativo S.A.")
     ]:
         if not await session.get(Company, co_id):
             await _safe_add(session, Company(
@@ -196,6 +276,14 @@ async def seed_auth(session):
                     role_id=role_admin.id, tenant_id=sys_co_id,
                     scopes=["*"], is_new=False, version_id=1
                 ), f"RBAC: Charly -> admin en {sys_co_id}")
+            
+            # Assignment for Demo Tenant (Operative Scopes)
+            await _safe_add(session, UserCompanyRole(
+                user_id=CHARLY_ID, company_id=DEMO_ID,
+                role_id=role_admin.id, tenant_id=DEMO_ID,
+                scopes=["master:catalog:manage", "inv:movements:manage", "tickets:manage", "tickets:view"], 
+                is_new=True, version_id=1
+            ), f"RBAC: Charly -> Operative Admin en DEMO")
 
     # Seed Technicians
     role_tech = await _first(session, select(Role).where(Role.name == "technician"))
@@ -249,17 +337,17 @@ async def seed_master_data(session):
 
     
     concepts_to_seed = [
-
-        ("Compra", MovementType.ENTRY, "ENT-PUR", True, False),
-        ("Ajuste Positivo", MovementType.ENTRY, "ENT-ADJ", False, False),
-        ("Venta", MovementType.OUTPUT, "SAL-VEN", True, False),
-        ("Ajuste Negativo", MovementType.OUTPUT, "SAL-ADJ", False, False),
-        ("Traspaso Interno", MovementType.TRANSFER, "TRF-INT", False, True),
+        ("Compra", MovementType.ENTRY, "ENT-PUR", True, False, "inventory.concept.purchase"),
+        ("Ajuste Positivo", MovementType.ENTRY, "ENT-ADJ", False, False, "inventory.concept.adj_pos"),
+        ("Venta", MovementType.OUTPUT, "SAL-VEN", True, False, "inventory.concept.sale"),
+        ("Ajuste Negativo", MovementType.OUTPUT, "SAL-ADJ", False, False, "inventory.concept.adj_neg"),
+        ("Traspaso Interno", MovementType.TRANSFER, "TRF-INT", False, True, "inventory.concept.transfer"),
     ]
 
-    for cname, ctype, ccode, req_ext, req_wh in concepts_to_seed:
+    for cname, ctype, ccode, req_ext, req_wh, t_key in concepts_to_seed:
         c_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.concept.{ENTERPRISE_ID}.{ccode}")
-        if not await _first(session, select(MovementConcept).where(MovementConcept.id == c_id)):
+        existing_c = await session.get(MovementConcept, c_id)
+        if not existing_c:
             await _safe_add(session, MovementConcept(
                 id=c_id, 
                 name=cname, 
@@ -267,12 +355,19 @@ async def seed_master_data(session):
                 type=ctype, 
                 requires_external_entity=req_ext,
                 requires_target_warehouse=req_wh,
+                translation_key=t_key,
                 company_id=ENTERPRISE_ID, 
                 tenant_id=ENTERPRISE_ID, 
                 group_id=GROUP_ID, 
                 version_id=1, 
                 is_active=True
-            ), f"Concept: {cname}")
+            ), f"Concept: {cname} (NEW)")
+        else:
+            # Update existing
+            existing_c.translation_key = t_key
+            existing_c.requires_external_entity = req_ext
+            existing_c.requires_target_warehouse = req_wh
+            log.info("  UPDATE Concept: %s", cname)
 
 
     # Warehouses
@@ -358,6 +453,80 @@ async def seed_inventory(session):
             log.info(f"  OK   Variante: {var['mpn']}")
 
 
+async def seed_partners(session):
+    log.info("[+] Seeding Business Partners...")
+    partners = [
+        Partner(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.1"),
+            code="SUP-IND-01",
+            name="Proveedor Industrial Nacional S.A. de C.V.",
+            type="SUPPLIER",
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            is_active=True
+        ),
+        Partner(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.2"),
+            code="SUP-GLO-02",
+            name="Global Logistics Corp",
+            type="SUPPLIER",
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            is_active=True
+        ),
+        Partner(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.3"),
+            code="CUS-NOR-01",
+            name="Cliente Mayorista Norte",
+            type="CUSTOMER",
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            is_active=True
+        )
+    ]
+    for p in partners:
+        await _safe_add(session, p, f"Partner: {p.code} - {p.name}")
+
+async def seed_tickets(session):
+    log.info("[+] Seeding Support Tickets...")
+    tickets = []
+    # 5 Tickets for IT
+    for i in range(1, 6):
+        tickets.append(Ticket(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"ticket.it.{i}"),
+            reference_code=f"IT-2026-{str(i).zfill(3)}",
+            title=f"Mantenimiento de Servidor {i}",
+            description=f"Revisión rutinaria de logs y actualizaciones de seguridad en el servidor de aplicación {i}.",
+            ticket_type=TicketType.MAINTENANCE,
+            priority=TicketPriority.MEDIUM,
+            status=TicketStatus.NEW,
+            area="Sistemas (IT)",
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            is_active=True,
+            version_id=1
+        ))
+        
+    # 1 Ticket assigned to Charly directly
+    tickets.append(Ticket(
+        id=uuid.uuid5(uuid.NAMESPACE_DNS, "ticket.sec.001"),
+        reference_code="SEC-2026-001",
+        title="Auditoría de Roles y Permisos (Urgente)",
+        description="Revisar que los accesos al entorno de producción de NexoSuite estén restringidos solo al personal autorizado.",
+        ticket_type=TicketType.SUPPORT,
+        priority=TicketPriority.CRITICAL,
+        status=TicketStatus.IN_PROGRESS,
+        area="Seguridad de la Información",
+        assigned_to_id=CHARLY_ID,
+        company_id=ENTERPRISE_ID,
+        tenant_id=ENTERPRISE_ID,
+        is_active=True,
+        version_id=1
+    ))
+    
+    for t in tickets:
+        await _safe_add(session, t, f"Ticket: {t.reference_code}")
+
 # --- Orquestador Principal ---
 async def run_unified_seed():
     log.info("=" * 55)
@@ -367,11 +536,18 @@ async def run_unified_seed():
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with AsyncSessionLocal() as session:
+        log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
+        await seed_enumerations(session)
+
         log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
         await seed_auth(session)
 
         log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
         await seed_master_data(session)
+        await seed_partners(session)
+
+        log.info("[3/5] Support: Tickets base...")
+        await seed_tickets(session)
 
         log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
         await seed_inventory(session)

@@ -89,21 +89,47 @@ import { ToastService } from '../../../../core/services/toast.service';
                   } @else {
                     <!-- Asignación Nueva -->
                     <div class="flex flex-col gap-4">
-                      <!-- Dropdown de Técnicos -->
-                      <div class="relative">
+                      <!-- Typeahead de Técnicos -->
+                      <div class="relative w-full">
                         <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-2">
                           Asignar Técnico Responsable
                         </label>
-                        <select [(ngModel)]="selectedTechnicianId" 
-                                class="w-full bg-surface-card border border-surface-border text-surface-text text-sm rounded-xl focus:ring-primary focus:border-primary block p-3 appearance-none shadow-sm">
-                          <option [value]="null">-- Seleccionar Técnico --</option>
-                          @for (tech of filteredTechnicians(); track tech.id) {
-                            <option [value]="tech.id">
-                              {{ tech.full_name }} ({{ workload()[tech.id] || 0 }} tickets activos)
-                            </option>
+                        <div class="relative">
+                          <mat-icon class="absolute left-3 top-[10px] text-surface-text-muted text-[20px]">search</mat-icon>
+                          <input type="text" 
+                                 [ngModel]="techSearchQuery()"
+                                 (ngModelChange)="onTechSearchChange($event)"
+                                 (focus)="showTechDropdown.set(true)"
+                                 (blur)="onTechBlur()"
+                                 placeholder="Buscar por nombre o correo..."
+                                 class="w-full bg-surface-card border border-surface-border text-surface-text text-sm rounded-xl focus:ring-primary focus:border-primary block p-3 pl-10 pr-10 shadow-sm transition-all" />
+                          
+                          @if (selectedTechnicianId()) {
+                            <button class="absolute right-2 top-[8px] text-surface-text-muted hover:text-surface-text bg-surface-card rounded-full p-1 transition-colors" (mousedown)="clearTechSelection()">
+                              <mat-icon class="text-[16px]">close</mat-icon>
+                            </button>
+                          } @else {
+                            <mat-icon class="absolute right-3 top-[10px] text-surface-text-muted text-[20px] pointer-events-none transition-transform" [class.rotate-180]="showTechDropdown()">expand_more</mat-icon>
                           }
-                        </select>
-                        <mat-icon class="absolute right-3 top-[34px] text-surface-text-muted pointer-events-none">expand_more</mat-icon>
+                        </div>
+
+                        @if (showTechDropdown() && typeaheadTechnicians().length > 0) {
+                          <div class="absolute z-[100] w-full mt-2 bg-surface-card border border-surface-border rounded-xl shadow-2xl max-h-56 overflow-y-auto custom-scrollbar animate-fade-in origin-top">
+                            @for (tech of typeaheadTechnicians(); track tech.id) {
+                              <div (mousedown)="selectTechnician(tech)" 
+                                   class="px-4 py-3 hover:bg-surface-text/[0.05] cursor-pointer border-b border-surface-border/50 last:border-0 flex justify-between items-center transition-colors">
+                                <div class="flex flex-col">
+                                  <span class="text-[11px] font-bold text-surface-text uppercase">{{ tech.full_name }}</span>
+                                  <span class="text-[9px] text-surface-text-muted">{{ tech.email }}</span>
+                                </div>
+                                <div class="text-[8px] font-black uppercase px-2 py-1 rounded-md"
+                                     [ngClass]="getWorkloadColorClass(workload()[tech.id] || 0)">
+                                  {{ workload()[tech.id] || 0 }} tickets
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        }
                       </div>
 
                       <!-- Visualización de Carga del Técnico Seleccionado -->
@@ -124,14 +150,44 @@ import { ToastService } from '../../../../core/services/toast.service';
                         </div>
                       }
 
-                      <!-- Comentarios -->
+                      <!-- Comentarios e Instrucciones -->
                       <div>
                         <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-2">
-                          Instrucciones (Opcional)
+                          Comentarios / Instrucciones
                         </label>
                         <textarea [(ngModel)]="triageComment" rows="3"
                                   class="block p-3 w-full text-sm text-surface-text bg-surface-card rounded-xl border border-surface-border focus:ring-primary focus:border-primary shadow-sm custom-scrollbar"
                                   placeholder="Ej: Revisar primero la línea 4..."></textarea>
+                      </div>
+
+                      <!-- Fecha Compromiso -->
+                      <div>
+                        <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-2">
+                          Fecha Compromiso (SLA)
+                        </label>
+                        <div class="relative">
+                          <input type="date" [(ngModel)]="commitmentDate"
+                                 class="w-full bg-surface-card border border-surface-border text-surface-text text-sm rounded-xl focus:ring-primary focus:border-primary block p-3 shadow-sm">
+                        </div>
+                      </div>
+
+                      <!-- Subir Adjunto -->
+                      <div>
+                        <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-2">
+                          Adjuntar Evidencia
+                        </label>
+                        <div class="flex items-center justify-center w-full">
+                          <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-surface-border border-dashed rounded-xl cursor-pointer bg-surface-card hover:bg-surface-text/[0.02] transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                              <mat-icon class="text-surface-text-muted mb-1 text-xl">cloud_upload</mat-icon>
+                              <p class="mb-1 text-[10px] font-black uppercase text-surface-text-muted text-center px-4">
+                                @if(attachmentName()) { <span class="text-primary truncate block">{{ attachmentName() }}</span> }
+                                @else { Haz clic para subir o arrastra el archivo }
+                              </p>
+                            </div>
+                            <input type="file" class="hidden" (change)="onFileSelected($event)" />
+                          </label>
+                        </div>
                       </div>
 
                       <!-- Botón de Confirmación -->
@@ -176,22 +232,36 @@ export class TicketTriageDrawerComponent {
   private adminService = inject(AdminService);
   private toastService = inject(ToastService);
 
+  private searchTimeout: any;
+
   technicians = signal<AdminUser[]>([]);
   workload = signal<Record<string, number>>({});
   
   selectedTechnicianId = signal<string | null>(null);
+  techSearchQuery = signal<string>('');
+  showTechDropdown = signal<boolean>(false);
   triageComment = signal<string>('');
+  commitmentDate = signal<string>('');
+  attachmentName = signal<string | null>(null);
   isSubmitting = signal<boolean>(false);
 
   // Derivados
   filteredTechnicians = computed(() => {
-    // Filtrar por area/company_id podría hacerse aquí si adminService trae todo.
-    // Asumimos que adminService ya trae los usuarios del tenant actual por el interceptor.
-    return this.technicians().filter(u => 
-      u.role_name.toLowerCase().includes('technician') || 
-      u.role_name.toLowerCase().includes('user') ||
-      u.role_name.toLowerCase().includes('oper')
-    );
+    return this.technicians().filter(u => {
+      const role = (u.role_name || '').toLowerCase();
+      return role.includes('technician') || 
+             role.includes('user') ||
+             role.includes('oper') ||
+             role.includes('admin') ||
+             role.includes('supervisor') ||
+             role.includes('manager') ||
+             role.includes('owner') ||
+             role.includes('it');
+    });
+  });
+
+  typeaheadTechnicians = computed(() => {
+    return this.filteredTechnicians();
   });
 
   selectedTechWorkload = computed(() => {
@@ -212,6 +282,8 @@ export class TicketTriageDrawerComponent {
         // Limpiar el estado interno al abrir otro ticket
         this.selectedTechnicianId.set(null);
         this.triageComment.set('');
+        this.commitmentDate.set('');
+        this.attachmentName.set(null);
       }
     });
   }
@@ -228,15 +300,71 @@ export class TicketTriageDrawerComponent {
     }
   }
 
+  onTechSearchChange(value: string) {
+    this.techSearchQuery.set(value);
+    if (!value) {
+      this.selectedTechnicianId.set(null);
+      this.adminService.getUsers().subscribe(res => {
+        if (res.data) this.technicians.set(res.data);
+      });
+    } else {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.adminService.getUsers(value).subscribe(res => {
+          if (res.data) this.technicians.set(res.data);
+        });
+      }, 300);
+    }
+    this.showTechDropdown.set(true);
+  }
+
+  onTechBlur() {
+    setTimeout(() => {
+      this.showTechDropdown.set(false);
+      if (!this.selectedTechnicianId()) {
+        this.techSearchQuery.set('');
+      } else {
+        const t = this.filteredTechnicians().find(x => x.id === this.selectedTechnicianId());
+        if (t) this.techSearchQuery.set(t.full_name);
+      }
+    }, 150);
+  }
+
+  selectTechnician(tech: AdminUser) {
+    this.selectedTechnicianId.set(tech.id);
+    this.techSearchQuery.set(tech.full_name);
+    this.showTechDropdown.set(false);
+  }
+
+  clearTechSelection() {
+    this.selectedTechnicianId.set(null);
+    this.techSearchQuery.set('');
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.attachmentName.set(file.name);
+    }
+  }
+
   async submitTriage(action: 'APPROVE' | 'REASSIGN') {
     if (!this.ticket) return;
     this.isSubmitting.set(true);
     try {
+      let finalComment = this.triageComment();
+      if (this.commitmentDate()) {
+        finalComment += `\n\n[SLA/Fecha Compromiso]: ${this.commitmentDate()}`;
+      }
+      if (this.attachmentName()) {
+        finalComment += `\n[Adjunto]: ${this.attachmentName()}`;
+      }
+
       await this.supportService.triageTicket(
         this.ticket.id, 
         action, 
         this.selectedTechnicianId() || undefined, 
-        this.triageComment() || undefined
+        finalComment || undefined
       );
       this.toastService.success('Triaje Completado', 'El ticket ha sido despachado exitosamente.');
       this.close.emit();

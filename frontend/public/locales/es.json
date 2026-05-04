@@ -27,8 +27,17 @@
     "catalog_partners": "Socios de Negocio",
     "wms": "WMS / Logística",
     "wms_receiving": "Recibo",
+    "wms_pending_putaway": "Cola Put-Away",
+    "wms_putaway": "Put-Away (Handheld)",
     "wms_picking": "Picking",
-    "wms_shipping": "Embarques"
+    "wms_cycle_count": "Conteo Cíclico",
+    "wms_shipping": "Embarques",
+    "inventory_in": "Registrar Entrada",
+    "inventory_out": "Registrar Salida",
+    "inventory_transfer": "Registrar Traspaso",
+    "inventory_audit": "Forensic Audit",
+    "investments": "Inversiones (CRM)",
+    "investments_kanban": "Kanban Dashboard"
   },
   "auth": {
     "login_title": "Acceso Industrial",
@@ -136,6 +145,22 @@
       "entry": "Entrada",
       "exit": "Salida",
       "transfer": "Traspaso"
+    },
+    "movement": {
+      "entry": "ENTRADA",
+      "exit": "SALIDA",
+      "transfer": "TRASPASO"
+    },
+    "documents": {
+      "select_concept": "SELECCIONE CONCEPTO...",
+      "select_warehouse": "SELECCIONE ALMACÉN..."
+    },
+    "concept": {
+      "purchase": "Compra",
+      "adj_pos": "Ajuste Positivo",
+      "sale": "Venta",
+      "adj_neg": "Ajuste Negativo",
+      "transfer": "Traspaso Interno"
     }
   },
   "catalog": {

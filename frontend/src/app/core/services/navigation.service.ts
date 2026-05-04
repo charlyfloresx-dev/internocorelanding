@@ -8,6 +8,7 @@ export interface SubMenuItem {
   label: string;
   translation_key?: string;
   route: string;
+  queryParams?: {[key: string]: any};
   permissions?: string[];
 }
 
@@ -40,18 +41,6 @@ export class NavigationService {
       route: '/dashboard'
     },
     {
-      id: 'production',
-      label: 'Producción',
-      translation_key: 'menu.production',
-      icon: 'precision_manufacturing',
-      permissions: ['mes:admin', 'production:manage'],
-      subItems: [
-        { id: 'prod-dash', label: 'Dashboard Producción', translation_key: 'menu.production_dashboard', route: '/production/dashboard' },
-        { id: 'prod-monitor', label: 'Monitor de Línea', translation_key: 'menu.production_monitor', route: '/monitor/resources' },
-        { id: 'prod-orders', label: 'Órdenes de Trabajo', translation_key: 'menu.production_lines', route: '/production/orders' }
-      ]
-    },
-    {
       id: 'inventory',
       label: 'Inventarios',
       translation_key: 'menu.inventory',
@@ -61,22 +50,22 @@ export class NavigationService {
         { id: 'inv-dash', label: 'Dashboard Global', translation_key: 'menu.inventory_dashboard', route: '/inventory/dashboard' },
         { id: 'inv-stock', label: 'Stock por Almacén', translation_key: 'menu.inventory_stock', route: '/inventory/stock' },
         { id: 'inv-docs', label: 'Movimientos de E/S', translation_key: 'menu.inventory_documents', route: '/inventory/documents' },
+        { id: 'inv-entrada', label: 'Registrar Entrada', translation_key: 'menu.inventory_in', route: '/inventory/documents/new', queryParams: { type: 'ENTRADA' } },
+        { id: 'inv-salida', label: 'Registrar Salida', translation_key: 'menu.inventory_out', route: '/inventory/documents/new', queryParams: { type: 'SALIDA' } },
+        { id: 'inv-traspaso', label: 'Registrar Traspaso', translation_key: 'menu.inventory_transfer', route: '/inventory/documents/new', queryParams: { type: 'TRASPASO' } },
         { id: 'inv-audit', label: 'Forensic Audit', translation_key: 'menu.inventory_audit', route: '/inventory/audit' }
       ]
     },
     {
-      id: 'catalog',
-      label: 'Catálogo',
-      translation_key: 'menu.catalog',
-      icon: 'category',
-      permissions: ['master:catalog:manage', 'catalog:admin'],
+      id: 'production',
+      label: 'Producción',
+      translation_key: 'menu.production',
+      icon: 'precision_manufacturing',
+      permissions: ['mes:admin', 'production:manage'],
       subItems: [
-        { id: 'cat-master', label: 'Catálogo Maestro', translation_key: 'menu.catalog_master', route: '/catalog' },
-        { id: 'cat-uom', label: 'Unidades de Medida', translation_key: 'menu.catalog_uom', route: '/catalog/uom' },
-        { id: 'cat-categories', label: 'Categorías y Marcas', translation_key: 'menu.catalog_categories', route: '/catalog/categories' },
-        { id: 'cat-warehouses', label: 'Almacenes', translation_key: 'menu.catalog_warehouses', route: '/catalog/warehouses' },
-        { id: 'cat-concepts', label: 'Conceptos', translation_key: 'menu.catalog_concepts', route: '/catalog/concepts' },
-        { id: 'cat-partners', label: 'Socios de Negocio', translation_key: 'menu.catalog_partners', route: '/catalog/partners' }
+        { id: 'prod-dash', label: 'Dashboard Producción', translation_key: 'menu.production_dashboard', route: '/production/dashboard' },
+        { id: 'prod-monitor', label: 'Monitor de Línea', translation_key: 'menu.production_monitor', route: '/monitor/resources' },
+        { id: 'prod-orders', label: 'Órdenes de Trabajo', translation_key: 'menu.production_lines', route: '/production/orders' }
       ]
     },
     {
@@ -95,15 +84,6 @@ export class NavigationService {
       ]
     },
     {
-      id: 'support',
-      label: 'Soporte y Mantenimiento',
-      translation_key: 'menu.support',
-      icon: 'confirmation_number',
-      subItems: [
-        { id: 'sup-tickets', label: 'Centro de Tickets', translation_key: 'menu.support_tickets', route: '/monitor/tickets' }
-      ]
-    },
-    {
       id: 'investments',
       label: 'Inversiones (CRM)',
       translation_key: 'menu.investments',
@@ -114,15 +94,18 @@ export class NavigationService {
       ]
     },
     {
-      id: 'system',
-      label: 'Sistema',
-      translation_key: 'menu.settings',
-      icon: 'settings',
-      permissions: ['admin', 'auth:user:manage', 'auth:roles:manage'],
+      id: 'catalog',
+      label: 'Catálogo',
+      translation_key: 'menu.catalog',
+      icon: 'category',
+      permissions: ['master:catalog:manage', 'catalog:admin'],
       subItems: [
-        { id: 'sys-users', label: 'Usuarios', translation_key: 'menu.settings_users', route: '/admin/users' },
-        { id: 'sys-staff', label: 'Personal de Planta', translation_key: 'menu.settings_staff', route: '/admin/staff' },
-        { id: 'sys-config', label: 'Configuración', translation_key: 'menu.settings_system', route: '/system/config' }
+        { id: 'cat-master', label: 'Catálogo Maestro', translation_key: 'menu.catalog_master', route: '/catalog' },
+        { id: 'cat-uom', label: 'Unidades de Medida', translation_key: 'menu.catalog_uom', route: '/catalog/uom' },
+        { id: 'cat-categories', label: 'Categorías y Marcas', translation_key: 'menu.catalog_categories', route: '/catalog/categories' },
+        { id: 'cat-warehouses', label: 'Almacenes', translation_key: 'menu.catalog_warehouses', route: '/catalog/warehouses' },
+        { id: 'cat-concepts', label: 'Conceptos', translation_key: 'menu.catalog_concepts', route: '/catalog/concepts' },
+        { id: 'cat-partners', label: 'Socios de Negocio', translation_key: 'menu.catalog_partners', route: '/catalog/partners' }
       ]
     }
   ];
@@ -140,31 +123,19 @@ export class NavigationService {
 
     if (!isAuthenticated) return [];
 
-    console.log('[NavigationService] 🛠 Calculating menu for:', { roles, permissions });
-
-    // Admin bypass - check for 'admin' in roles or permissions
-    const isAdmin = roles.some((r: string) => r.toLowerCase().includes('admin')) || 
-                    permissions.some((p: string) => p.toLowerCase().includes('admin') || p === '*' || p === 'auth:user:manage');
-
     // Filter items
     const filtered = this.blueprint.filter(item => {
       // Always show items without permissions (like Dashboard)
       if (!item.permissions || item.permissions.length === 0) return true;
       
       // Show everything for admins
-      if (isAdmin) {
-        console.log(`[NavigationService] ✅ Admin Bypass for: ${item.id}`);
-        return true;
-      }
+      if (this.isAdmin()) return true;
       
-      const hasPermission = item.permissions.some((p: string) => permissions.includes(p));
-      console.log(`[NavigationService] Checking item: ${item.id}`, { required: item.permissions, userHas: permissions, allowed: hasPermission });
-      return hasPermission;
+      return item.permissions.some((p: string) => this.authService.hasPermission(p));
     });
 
     // FAIL-SAFE: If results are empty but user is authenticated, at least show Dashboard
     if (filtered.length === 0 && isAuthenticated) {
-      console.warn('[NavigationService] ⚠️ No menu items allowed by RBAC. Forcing Dashboard (Fail-Safe).');
       return this.blueprint.filter(item => item.id === 'dashboard');
     }
 
@@ -181,6 +152,14 @@ export class NavigationService {
       this.activeSubMenuId.set(id);
     }
   }
+
+  // Helper to check if user is admin globally
+  isAdmin = computed(() => {
+    const permissions = this.authService.permissions();
+    const roles = this.authService.roles();
+    return roles.some((r: string) => r.toLowerCase().includes('admin')) || 
+           permissions.some((p: string) => p.toLowerCase().includes('admin') || p === '*' || p === 'auth:user:manage');
+  });
 
   closeSubMenu() {
     this.activeSubMenuId.set(null);

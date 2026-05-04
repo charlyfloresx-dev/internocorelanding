@@ -130,6 +130,13 @@ class Collaborator(MultiTenantBase):
     # Path inside the bucket: {company_id}/hr/collaborators/{uuid}.jpg
     photo_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # ── Identidad Unificada ────────────────────────────────────────────────────
+    
+    # Vincula al colaborador industrial con su identidad de usuario web
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
+
     # JSONB: {name, relationship, phone, alternative_phone}
     # Standardized schema enforced at the Pydantic layer (EmergencyContact schema)
     emergency_contact: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)

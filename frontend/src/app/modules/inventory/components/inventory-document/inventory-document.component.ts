@@ -13,6 +13,7 @@ import { PartnerModalComponent } from '../../../../shared/components/partner-mod
 import { ExcelNavigationDirective } from '../../../../shared/directives/excel-navigation.directive';
 import { CurrencyFormatPipe } from '../../../../shared/pipes/currency-format.pipe';
 import { CurrencyService } from '../../../../core/services/currency.service';
+import { TranslationService } from '../../../../core/services/translation.service';
 
 const WEIGHT_TOLERANCE = 0.0001;
 
@@ -103,23 +104,6 @@ interface ConfirmedDocument {
   template: `
     <div class="space-y-12 animate-fade-in pb-32 max-w-6xl mx-auto" [class.no-print]="confirmedDocument()">
       
-      <!-- Read-Only Banner -->
-      @if (isReadOnly()) {
-        <div class="bg-red-500/10 border border-red-500/30 p-4 rounded-xl flex items-center justify-between animate-pulse">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
-              <mat-icon>lock</mat-icon>
-            </div>
-            <div>
-              <h3 class="text-xs font-black text-red-500 uppercase tracking-[0.2em]">Modo Lectura: Pago Pendiente</h3>
-              <p class="text-[10px] text-red-400/80 font-bold uppercase tracking-widest">Su suscripción ha expirado. Las funciones de escritura están deshabilitadas.</p>
-            </div>
-          </div>
-          <button class="px-4 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-red-600 transition-colors">
-            Regularizar Cuenta
-          </button>
-        </div>
-      }
 
       <!-- STEP 1: CONTEXTO INICIAL (GIGANTE) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -129,36 +113,32 @@ interface ConfirmedDocument {
              [class.border-surface-border]="selectedWarehouse()">
           <span class="text-[10px] font-black text-primary uppercase tracking-[0.3em]">1. ¿Qué vas a registrar?</span>
           <div class="flex gap-4 w-full">
-            <button 
-              (click)="setType('ENTRADA')"
-              [class.bg-emerald-500]="type() === 'ENTRADA'"
-              [class.text-slate-950]="type() === 'ENTRADA'"
-              [class.bg-white/5]="type() !== 'ENTRADA'"
-              [class.text-surface-text-muted]="type() !== 'ENTRADA'"
-              class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-xl border border-white/10"
-            >
-              ENTRADA
-            </button>
-            <button 
-              (click)="setType('SALIDA')"
-              [class.bg-rose-500]="type() === 'SALIDA'"
-              [class.text-slate-950]="type() === 'SALIDA'"
-              [class.bg-white/5]="type() !== 'SALIDA'"
-              [class.text-surface-text-muted]="type() !== 'SALIDA'"
-              class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-xl border border-white/10"
-            >
-              SALIDA
-            </button>
-            <button 
-              (click)="setType('TRASPASO')"
-              [class.bg-amber-500]="type() === 'TRASPASO'"
-              [class.text-slate-950]="type() === 'TRASPASO'"
-              [class.bg-white/5]="type() !== 'TRASPASO'"
-              [class.text-surface-text-muted]="type() !== 'TRASPASO'"
-              class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-xl border border-white/10"
-            >
-              TRASPASO
-            </button>
+            @for (enumType of movementTypes(); track enumType.id) {
+              <button 
+                (click)="setTypeFromEnum(enumType)"
+                [class.bg-emerald-500]="type() === enumType.key && enumType.key === 'ENTRADA'"
+                [class.bg-rose-500]="type() === enumType.key && enumType.key === 'SALIDA'"
+                [class.bg-amber-500]="type() === enumType.key && enumType.key === 'TRASPASO'"
+                [class.text-slate-950]="type() === enumType.key"
+                [class.bg-white/5]="type() !== enumType.key"
+                [class.text-surface-text-muted]="type() !== enumType.key"
+                class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-xl border border-white/10"
+              >
+                {{ transService.translate(enumType.translation_key, enumType.label) }}
+              </button>
+            }
+            @if (movementTypes().length === 0) {
+              <!-- Fallback for legacy / no enum state -->
+              <button (click)="setType('ENTRADA')" [class.bg-emerald-500]="type() === 'ENTRADA'" [class.text-slate-950]="type() === 'ENTRADA'" [class.bg-white/5]="type() !== 'ENTRADA'" [class.text-surface-text-muted]="type() !== 'ENTRADA'" class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all shadow-xl border border-white/10">
+                {{ transService.translate('inventory.movement.entry', 'ENTRADA') }}
+              </button>
+              <button (click)="setType('SALIDA')" [class.bg-rose-500]="type() === 'SALIDA'" [class.text-slate-950]="type() === 'SALIDA'" [class.bg-white/5]="type() !== 'SALIDA'" [class.text-surface-text-muted]="type() !== 'SALIDA'" class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all shadow-xl border border-white/10">
+                {{ transService.translate('inventory.movement.exit', 'SALIDA') }}
+              </button>
+              <button (click)="setType('TRASPASO')" [class.bg-amber-500]="type() === 'TRASPASO'" [class.text-slate-950]="type() === 'TRASPASO'" [class.bg-white/5]="type() !== 'TRASPASO'" [class.text-surface-text-muted]="type() !== 'TRASPASO'" class="flex-1 py-6 rounded-2xl font-black text-lg uppercase tracking-tighter transition-all shadow-xl border border-white/10">
+                {{ transService.translate('inventory.movement.transfer', 'TRASPASO') }}
+              </button>
+            }
           </div>
 
           <select 
@@ -166,9 +146,9 @@ interface ConfirmedDocument {
             (ngModelChange)="selectedConceptId.set($event)"
             class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 px-6 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-lg"
           >
-            <option value="">Seleccione Concepto...</option>
+            <option value="">{{ transService.translate('inventory.documents.select_concept', 'SELECCIONE CONCEPTO...') }}</option>
             @for (concept of concepts(); track concept.id) {
-              <option [value]="concept.id">{{ concept.name }}</option>
+              <option [value]="concept.id">{{ transService.translate(concept.translation_key || undefined, concept.name) }}</option>
             }
           </select>
         </div>
@@ -186,7 +166,7 @@ interface ConfirmedDocument {
               (ngModelChange)="selectedWarehouseId.set($event); onWarehouseChange()"
               class="w-full bg-surface-bg border-2 border-surface-border rounded-xl py-5 pl-16 pr-8 text-[11px] font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all appearance-none cursor-pointer shadow-lg"
             >
-              <option value="">Seleccione Almacén...</option>
+              <option value="">{{ transService.translate('inventory.documents.select_warehouse', 'SELECCIONE ALMACÉN...') }}</option>
               @for (w of inventoryService.warehouses(); track w.id) {
                 <option [value]="w.id">{{ w.name }}</option>
               }
@@ -762,6 +742,7 @@ export class InventoryDocumentComponent implements OnInit {
   fb = inject(FormBuilder);
   router = inject(Router);
   route = inject(ActivatedRoute);
+  transService = inject(TranslationService);
   
   @ViewChild('mainSearch') mainSearch!: ItemSearchComponent;
   @ViewChildren('qtyInput') qtyInputs!: QueryList<ElementRef<HTMLInputElement>>;
@@ -789,6 +770,8 @@ export class InventoryDocumentComponent implements OnInit {
   notes = signal<string>('');
   isViewing = signal<boolean>(false);
   
+  movementTypes = this.masterData.enumerationsForType('INVENTORY_MOVEMENT_TYPE');
+  
   isAddingPartner = signal(false);
   @ViewChild('partnerModal') partnerModal!: PartnerModalComponent;
 
@@ -815,6 +798,15 @@ export class InventoryDocumentComponent implements OnInit {
     // Shared loading logic in InventoryService
     await this.inventoryService.loadCatalogs();
     this.loadPartners();
+
+    // Reactive query params for automatic type selection
+    this.route.queryParamMap.subscribe(params => {
+      const typeParam = params.get('type');
+      if (typeParam && ['ENTRADA', 'SALIDA', 'TRASPASO'].includes(typeParam)) {
+        console.log(`[InventoryDoc] Reactive pre-selection: ${typeParam}`);
+        this.setType(typeParam as any);
+      }
+    });
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
@@ -917,28 +909,27 @@ export class InventoryDocumentComponent implements OnInit {
 
   isReadOnly = computed(() => this.authService.isReadOnly());
   concepts = computed(() => {
-    const docType = this.type(); // ENTRADA | SALIDA
+    const docType = this.type(); // ENTRADA | SALIDA | TRASPASO
     const all = this.inventoryService.concepts();
 
     return all.filter(c => {
-
-
       if (c.is_active === false) return false;
-
-
+      
       const conceptType = (c.type || '').toUpperCase();
-
+      const opType = (c.operation_type || '').toUpperCase();
+      
+      // Standardize types to match common.enums.MovementType
       if (docType === 'ENTRADA') {
-        return ['IN', 'ENTRY', 'ENTRADA'].includes(conceptType);
+        return ['IN', 'ENTRY', 'ENTRADA'].includes(conceptType) || ['IN', 'ENTRY', 'ENTRADA'].includes(opType);
       } else if (docType === 'SALIDA') {
-        return ['OUT', 'OUTPUT', 'SALIDA'].includes(conceptType);
+        return ['OUT', 'OUTPUT', 'SALIDA'].includes(conceptType) || ['OUT', 'OUTPUT', 'SALIDA'].includes(opType);
       } else if (docType === 'TRASPASO') {
-        return ['TRANSFER', 'TRASPASO'].includes(conceptType);
+        return ['TRANSFER', 'TRASPASO'].includes(conceptType) || ['TRANSFER', 'TRASPASO'].includes(opType);
       }
       return false;
     });
-
   });
+
   activeConcept = computed(() => this.inventoryService.concepts().find(c => c.id === this.selectedConceptId()));
 
   isValid = computed(() => {
@@ -1038,6 +1029,13 @@ export class InventoryDocumentComponent implements OnInit {
   setType(type: 'ENTRADA' | 'SALIDA' | 'TRASPASO') {
     this.type.set(type);
     this.selectedConceptId.set(''); // Reset concept when type changes
+  }
+
+  setTypeFromEnum(enumItem: any) {
+    const key = enumItem.key;
+    if (key === 'ENTRADA' || key === 'SALIDA' || key === 'TRASPASO') {
+      this.setType(key);
+    }
   }
 
 

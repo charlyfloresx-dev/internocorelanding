@@ -17,10 +17,10 @@ import { Router } from '@angular/router';
       <!-- Header -->
       <header class="max-w-6xl mx-auto mb-16">
         <h1 class="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4 text-slate-900 dark:text-white leading-none">
-          Misión Control: <span class="text-primary">Membresía</span>
+          Escala tu Operación: <span class="text-primary">Suscripciones</span>
         </h1>
         <p class="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest text-xs md:text-sm max-w-2xl">
-          Potencia tu operación industrial con acceso total a los módulos de inventario, MES y analítica avanzada.
+          Selecciona el nivel de potencia que tu empresa necesita. Desde el núcleo operativo hasta la digitalización industrial total.
         </p>
       </header>
 
@@ -81,6 +81,9 @@ import { Router } from '@angular/router';
             <div class="mb-10 flex items-baseline gap-1">
               <span class="text-4xl font-black text-slate-900 dark:text-white">$</span>
               <span class="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{{ plan.price }}</span>
+              @if (plan.id === 'plan_enterprise') {
+                <span class="text-3xl font-black text-primary -ml-2 tracking-tighter">+</span>
+              }
               <span class="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest ml-2">/ Mes</span>
             </div>
 
@@ -129,48 +132,47 @@ export class SubscriptionComponent implements OnInit {
 
   plans = [
     {
-      id: 'plan_basic',
-      name: 'Base Industrial',
-      description: 'Ideal para operaciones pequeñas que requieren visibilidad básica de inventario.',
-      price: 299,
-      icon: 'precision_manufacturing',
+      id: 'plan_operative',
+      name: 'Plan Operativo',
+      description: 'Gestión esencial para micro-operaciones. Incluye el núcleo del sistema.',
+      price: 45,
+      icon: 'receipt_long',
       is_popular: false,
       features: [
-        'Hasta 5 usuarios concurrentes',
-        'Gestión de Almacén (WMS)',
-        'Catálogo de Productos',
-        'Auditoría Básica',
+        'Core (Inventario + Catálogo)',
+        'Centro de Tickets Individiales',
+        'Gestión de Almacén Básica',
+        'Hasta 3 usuarios concurrentes',
         'Soporte por Email'
       ]
     },
     {
-      id: 'plan_pro',
-      name: 'Nexo Pro',
-      description: 'Para plantas en crecimiento que necesitan control de producción y MES en tiempo real.',
-      price: 899,
-      icon: 'rocket_launch',
+      id: 'plan_industrial',
+      name: 'Plan Industrial',
+      description: 'Potencia total para plantas de manufactura. Control total de piso y logística.',
+      price: 350,
+      icon: 'precision_manufacturing',
       is_popular: true,
       features: [
+        'Todo lo del Plan Operativo',
+        'Módulo de Producción (MES)',
+        'Logística Avanzada (WMS)',
         'Usuarios Ilimitados',
-        'Todo lo de Base Industrial',
-        'Terminales MES (Escaneo)',
-        'Dashboard de Eficiencia (OEE)',
-        'WebSockets en Tiempo Real',
-        'Soporte 24/7 Priority'
+        'Ahorro del 15% incluido'
       ]
     },
     {
       id: 'plan_enterprise',
-      name: 'Enterprise Hub',
-      description: 'Arquitectura multi-tenant avanzada con integraciones custom y SLA garantizado.',
-      price: 2499,
+      name: 'Full Enterprise',
+      description: 'Ecosistema completo sin restricciones. Arquitectura escalable y prioritaria.',
+      price: 550,
       icon: 'diamond',
       is_popular: false,
       features: [
+        'Todos los Módulos Activos',
+        'Soporte Prioritario 24/7',
+        'Integración ERP Custom',
         'Infraestructura Dedicada',
-        'Integración ERP (SAP/Oracle)',
-        'Analítica con IA Predictiva',
-        'Módulos Custom ilimitados',
         'Account Manager Dedicado'
       ]
     }

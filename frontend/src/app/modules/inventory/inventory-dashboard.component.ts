@@ -36,14 +36,14 @@ interface CriticalItem {
   standalone: true,
   imports: [CommonModule, MatIconModule, TranslatePipe, StatusBadgeComponent, ItemSearchComponent, CurrencyFormatPipe, DensityAlertPanelComponent, OverflowBadgeComponent],
   template: `
-    <div class="space-y-8 animate-fade-in">
+    <div class="space-y-8 p-1">
       <!-- Header Section -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 class="text-4xl font-black text-surface-text tracking-tighter uppercase italic glow-text">
+          <h1 class="text-4xl font-black text-slate-800 dark:text-white tracking-tighter uppercase italic glow-text">
             {{ 'inventory.dashboard.title' | translate:'Mission Control' }}
           </h1>
-          <p class="text-surface-text-muted font-mono text-xs tracking-widest uppercase mt-2">
+          <p class="text-slate-500 font-mono text-xs tracking-widest uppercase mt-2">
             {{ 'inventory.dashboard.subtitle' | translate:'Estado de salud de almacenes binacionales' }}
           </p>
         </div>
@@ -70,8 +70,8 @@ interface CriticalItem {
           >
             <div class="flex items-start justify-between mb-4">
               <div class="flex flex-col">
-                <span class="text-[10px] font-black text-surface-text-muted uppercase tracking-[0.2em]">{{ widget.code }}</span>
-                <h3 class="text-lg font-bold text-surface-text truncate max-w-[150px]">{{ widget.warehouse }}</h3>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{{ widget.code }}</span>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white truncate max-w-[150px]">{{ widget.warehouse }}</h3>
               </div>
               <div 
                 class="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-500"
@@ -86,8 +86,8 @@ interface CriticalItem {
             </div>
 
             <div class="flex items-baseline gap-2 mb-4">
-              <span class="text-3xl font-black text-surface-text tracking-tighter">{{ widget.totalItems | number:'1.1-2' }}</span>
-              <span class="text-[10px] font-bold text-surface-text-muted uppercase tracking-widest">Items</span>
+              <span class="text-3xl font-black text-slate-800 dark:text-white tracking-tighter">{{ widget.totalItems | number:'1.1-2' }}</span>
+              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Items</span>
             </div>
 
             <div class="flex items-center justify-between">
@@ -95,7 +95,7 @@ interface CriticalItem {
                 <mat-icon class="text-xs w-3 h-3">{{ widget.trend >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
                 <span>{{ widget.trend >= 0 ? '+' : '' }}{{ widget.trend | number:'1.1-2' }}% vs ayer</span>
               </div>
-              <span class="text-[10px] font-mono text-surface-text-muted">{{ widget.valuation ? (widget.valuation.amount | currencyFormat) : (widget.value + ' USD') }}</span>
+              <span class="text-[10px] font-mono text-slate-500">{{ widget.valuation ? (widget.valuation.amount | currencyFormat) : (widget.value + ' USD') }}</span>
             </div>
           </div>
         }
@@ -104,171 +104,116 @@ interface CriticalItem {
       <!-- Main Content Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Left Column: Critical Alerts -->
+        <!-- Left Column: Alerts & Quick Access -->
         <div class="lg:col-span-1 space-y-6">
-          <div class="industrial-card p-6 h-full">
-            <div class="flex items-center justify-between mb-6">
-              <h2 class="text-xs font-black text-surface-text uppercase tracking-[0.2em] flex items-center gap-2">
-                <mat-icon class="text-red-500 text-sm">notification_important</mat-icon>
-                {{ 'inventory.dashboard.critical_alerts' | translate:'Alertas de Nivel Crítico' }}
-              </h2>
-              <span class="text-[10px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-bold border border-red-500/30 animate-pulse">
-                {{ criticalItems().length }} ITEMS
-              </span>
-            </div>
-
-            <div class="space-y-4">
-              @for (item of criticalItems(); track item.sku) {
-                <div class="p-4 bg-surface-bg/50 border border-surface-border rounded-xl hover:border-red-500/30 transition-all group">
-                  <div class="flex items-start justify-between mb-2">
-                    <div class="flex flex-col">
-                      <span class="text-[9px] font-mono text-red-500 font-bold tracking-widest">{{ item.sku }}</span>
-                      <span class="text-xs font-bold text-surface-text group-hover:text-red-400 transition-colors">{{ item.name }}</span>
-                    </div>
-                    <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">{{ item.warehouse }}</span>
-                  </div>
-                  
-                  <div class="flex items-center justify-between mt-3">
-                    <div class="flex flex-col">
-                      <span class="text-[8px] text-surface-text-muted uppercase font-bold">{{ 'inventory.dashboard.current' | translate:'Actual' }}</span>
-                      <span class="text-sm font-black text-red-500">{{ item.current }}</span>
-                    </div>
-                    <div class="flex flex-col text-right">
-                      <span class="text-[8px] text-surface-text-muted uppercase font-bold">{{ 'inventory.dashboard.minimum' | translate:'Mínimo' }}</span>
-                      <span class="text-sm font-black text-surface-text">{{ item.min }}</span>
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          </div>
-
-        <!-- Pending Transfers / IN_TRANSIT Badges -->
-        <div class="space-y-4">
-          <!-- QUICK ACCESS: Handheld Inbound (Industrial Focus) -->
-          <div (click)="router.navigate(['/inventory/inbound'])" 
-               class="industrial-card p-6 border-primary/30 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-all group">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex flex-col">
-                <h2 class="text-xs font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
-                  <mat-icon class="text-sm">qr_code_scanner</mat-icon>
-                  Inbound Handheld
+          
+          @if (criticalItems().length > 0) {
+            <div class="industrial-card p-6 border-red-500/10 bg-red-500/5 relative overflow-hidden">
+              <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/10 blur-[50px] pointer-events-none"></div>
+              
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em] flex items-center gap-2">
+                  <mat-icon class="text-red-500 text-sm animate-pulse">notification_important</mat-icon>
+                  {{ 'inventory.dashboard.critical_alerts' | translate:'Alertas Críticas' }}
                 </h2>
-                <p class="text-[9px] text-surface-text-muted mt-1 font-mono uppercase">Optimizado para Montacargas</p>
-              </div>
-              <mat-icon class="text-primary group-hover:translate-x-1 transition-transform">arrow_forward</mat-icon>
-            </div>
-            <div class="flex items-center gap-3 mt-4">
-               <span class="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded border border-primary/30 font-black">F2 FOCUS</span>
-               <span class="text-[10px] bg-surface-bg text-surface-text-muted px-2 py-1 rounded border border-surface-border font-black">OFFLINE READY</span>
-            </div>
-          </div>
-
-          <!-- QUICK ACCESS: Handheld Picking (Outbound) -->
-          <div (click)="router.navigate(['/inventory/picking'])" 
-               class="industrial-card p-6 border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10 cursor-pointer transition-all group">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex flex-col">
-                <h2 class="text-xs font-black text-orange-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <mat-icon class="text-sm">conveyor_belt</mat-icon>
-                  Picking Handheld
-                </h2>
-                <p class="text-[9px] text-surface-text-muted mt-1 font-mono uppercase">Control de Montacargas (Salidas)</p>
-              </div>
-              <mat-icon class="text-orange-400 group-hover:translate-x-1 transition-transform">arrow_forward</mat-icon>
-            </div>
-            <div class="flex items-center gap-3 mt-4">
-               <span class="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-1 rounded border border-orange-500/30 font-black">FIFO MODE</span>
-               <span class="text-[10px] bg-surface-bg text-surface-text-muted px-2 py-1 rounded border border-surface-border font-black">OFFLINE SYNC</span>
-            </div>
-          </div>
-
-          <!-- QUICK ACCESS: Handheld Put-Away (PRIORITY HIGH) -->
-          <div (click)="router.navigate(['/inventory/put-away'])" 
-               class="industrial-card p-6 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer transition-all group">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex flex-col">
-                <h2 class="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <mat-icon class="text-sm">forklift</mat-icon>
-                  Put-Away Handheld
-                </h2>
-                <p class="text-[9px] text-surface-text-muted mt-1 font-mono uppercase">Re-ubicación (DOCK -> RACK)</p>
-              </div>
-              <mat-icon class="text-emerald-400 group-hover:translate-x-1 transition-transform">arrow_forward</mat-icon>
-            </div>
-            <div class="flex items-center gap-3 mt-4">
-               <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 font-black">3 SCANS</span>
-               <span class="text-[10px] bg-surface-bg text-surface-text-muted px-2 py-1 rounded border border-surface-border font-black">ANEXO 24</span>
-            </div>
-          </div>
-
-          <!-- QUICK ACCESS: Cycle Count / Auditoría Spot (Phase 49) -->
-          <div (click)="router.navigate(['/inventory/cycle-count'])" 
-               class="industrial-card p-6 border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 cursor-pointer transition-all group">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex flex-col">
-                <h2 class="text-xs font-black text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <mat-icon class="text-sm">fact_check</mat-icon>
-                  Auditoría Spot
-                </h2>
-                <p class="text-[9px] text-surface-text-muted mt-1 font-mono uppercase">Conteo Ciego por Ubicación</p>
-              </div>
-              <mat-icon class="text-cyan-400 group-hover:translate-x-1 transition-transform">arrow_forward</mat-icon>
-            </div>
-            <div class="flex items-center gap-3 mt-4">
-               <span class="text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded border border-cyan-500/30 font-black">BLIND COUNT</span>
-               <span class="text-[10px] bg-surface-bg text-surface-text-muted px-2 py-1 rounded border border-surface-border font-black">SUPERVISOR</span>
-            </div>
-          </div>
-
-          @if (pendingTransfers().length > 0) {
-            <div class="industrial-card p-6 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xs font-black text-amber-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <mat-icon class="text-sm">local_shipping</mat-icon>
-                  En Tránsito (Espejo)
-                </h2>
-                <span class="text-[10px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full font-bold border border-amber-500/30 animate-pulse">
-                  {{ pendingTransfers().length }} PENDING
+                <span class="text-[10px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-black border border-red-500/30">
+                  {{ criticalItems().length }} ITEMS
                 </span>
               </div>
+
               <div class="space-y-3">
-                @for (transfer of pendingTransfers(); track transfer.id) {
-                  <div 
-                    (click)="goToReceive(transfer.id)"
-                    class="p-4 bg-surface-bg/50 border border-amber-500/20 rounded-xl hover:border-amber-400 hover:bg-amber-500/10 cursor-pointer transition-all group">
-                    <div class="flex items-start justify-between mb-2">
+                @for (item of criticalItems(); track item.sku) {
+                  <div class="p-4 bg-slate-900/40 border border-white/5 rounded-xl hover:border-red-500/30 transition-all group relative overflow-hidden">
+                    <div class="flex items-start justify-between mb-3">
                       <div class="flex flex-col">
-                        <span class="text-[9px] font-mono text-amber-500 font-bold tracking-widest">{{ transfer.folio }}</span>
-                        <span class="text-xs font-bold text-surface-text">{{ 'Desde: ' + (transfer.company_id | slice:0:8) + '...' }}</span>
+                        <span class="text-[9px] font-mono text-red-500 font-black tracking-widest">{{ item.sku }}</span>
+                        <span class="text-xs font-bold text-slate-800 dark:text-white group-hover:text-red-400 transition-colors">{{ item.name }}</span>
                       </div>
+                      <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{{ item.warehouse }}</span>
                     </div>
-                    <div class="flex items-center justify-between mt-2">
-                      <div class="text-[10px] text-surface-text-muted font-bold flex items-center gap-1">
-                        <mat-icon class="text-[10px] w-3 h-3 text-cyan-500">inventory_2</mat-icon>
-                        {{ transfer.quantity }} QTY
+                    
+                    <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                      <div class="flex flex-col">
+                        <span class="text-[8px] text-slate-500 uppercase font-black">Actual</span>
+                        <span class="text-sm font-black text-red-500">{{ item.current }}</span>
                       </div>
-                      <span class="text-[9px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded font-black uppercase">
-                        Recibir DRAFT
-                      </span>
+                      <div class="flex flex-col text-right">
+                        <span class="text-[8px] text-slate-500 uppercase font-black">Mínimo</span>
+                        <span class="text-sm font-black text-slate-400">{{ item.min }}</span>
+                      </div>
                     </div>
                   </div>
                 }
               </div>
             </div>
           }
+
+          <!-- Quick Access Cards -->
+          <div class="space-y-4">
+            <div (click)="router.navigate(['/inventory/inbound'])" 
+                 class="industrial-card p-6 border-primary/20 bg-primary/5 hover:bg-primary/10 cursor-pointer transition-all group relative overflow-hidden">
+              <div class="absolute -bottom-10 -right-10 w-24 h-24 bg-primary/10 blur-[40px] pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex flex-col">
+                  <h2 class="text-xs font-black text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                    <mat-icon class="text-sm">qr_code_scanner</mat-icon>
+                    Inbound Handheld
+                  </h2>
+                  <p class="text-[9px] text-slate-500 mt-1 font-mono uppercase italic">Optimizado para Montacargas</p>
+                </div>
+                <mat-icon class="text-primary group-hover:translate-x-2 transition-transform">arrow_forward</mat-icon>
+              </div>
+              <div class="flex items-center gap-3 mt-4">
+                 <span class="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 font-black">F2 FOCUS</span>
+                 <span class="text-[10px] bg-white/5 text-slate-500 px-2 py-0.5 rounded border border-white/10 font-black">OFFLINE</span>
+              </div>
+            </div>
+
+            <div (click)="router.navigate(['/inventory/picking'])" 
+                 class="industrial-card p-6 border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 cursor-pointer transition-all group relative overflow-hidden">
+              <div class="absolute -bottom-10 -right-10 w-24 h-24 bg-orange-500/10 blur-[40px] pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex flex-col">
+                  <h2 class="text-xs font-black text-orange-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <mat-icon class="text-sm">conveyor_belt</mat-icon>
+                    Picking Handheld
+                  </h2>
+                  <p class="text-[9px] text-slate-500 mt-1 font-mono uppercase italic">Control de Salidas (FIFO)</p>
+                </div>
+                <mat-icon class="text-orange-400 group-hover:translate-x-2 transition-transform">arrow_forward</mat-icon>
+              </div>
+              <div class="flex items-center gap-3 mt-4">
+                 <span class="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded border border-orange-500/30 font-black">ANEXO 24</span>
+                 <span class="text-[10px] bg-white/5 text-slate-500 px-2 py-0.5 rounded border border-white/10 font-black">ADUANA</span>
+              </div>
+            </div>
+
+            <div (click)="router.navigate(['/inventory/put-away'])" 
+                 class="industrial-card p-6 border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 cursor-pointer transition-all group relative overflow-hidden">
+              <div class="absolute -bottom-10 -right-10 w-24 h-24 bg-emerald-500/10 blur-[40px] pointer-events-none"></div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex flex-col">
+                  <h2 class="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <mat-icon class="text-sm">forklift</mat-icon>
+                    Put-Away Handheld
+                  </h2>
+                  <p class="text-[9px] text-slate-500 mt-1 font-mono uppercase italic">Re-ubicación Inteligente</p>
+                </div>
+                <mat-icon class="text-emerald-400 group-hover:translate-x-2 transition-transform">arrow_forward</mat-icon>
+              </div>
+          </div>
         </div>
 
-        <!-- Right Column: Operations Graph & Ledger -->
+        <!-- Right Column: Graphs & Ledger -->
         <div class="lg:col-span-2 space-y-8">
           
           <!-- God Mode: Density Violation Alerts -->
           <app-density-alert-panel></app-density-alert-panel>
 
-          <!-- Telemetry Graph Placeholder (Simplified) -->
+          <!-- Telemetry Graph -->
           <div class="industrial-card p-6 min-h-[300px]">
              <div class="flex items-center justify-between mb-8">
-              <h2 class="text-xs font-black text-surface-text uppercase tracking-[0.2em] flex items-center gap-2">
+              <h2 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em] flex items-center gap-2">
                 <mat-icon class="text-primary text-sm">analytics</mat-icon>
                 {{ 'inventory.dashboard.telemetry' | translate:'Telemetría de Movimientos 24H' }}
               </h2>
@@ -289,7 +234,7 @@ interface CriticalItem {
                       [title]="'Out: ' + point.out"
                     ></div>
                   </div>
-                  <span class="text-[8px] text-surface-text-muted font-mono">{{ point.hour }}</span>
+                  <span class="text-[8px] text-slate-500 font-mono">{{ point.hour }}</span>
                 </div>
               }
             </div>
@@ -297,8 +242,8 @@ interface CriticalItem {
 
           <!-- Recent Movements Ledger -->
           <div class="industrial-card overflow-hidden">
-            <div class="p-6 border-b border-surface-border flex items-center justify-between">
-              <h2 class="text-xs font-black text-surface-text uppercase tracking-[0.2em]">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+              <h2 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[0.2em]">
                 {{ 'inventory.dashboard.ledger' | translate:'Libro Mayor Reciente' }}
               </h2>
               <div class="flex items-center gap-4">
@@ -306,33 +251,33 @@ interface CriticalItem {
                   type="text" 
                   [placeholder]="'common.search' | translate:'Filtrar...'" 
                   (input)="onFilterChange($event)"
-                  class="bg-surface-bg border border-surface-border text-[10px] px-3 py-1 rounded-lg focus:outline-none focus:border-primary/50 transition-all w-48 font-mono"
+                  class="bg-white/5 border border-white/10 text-[10px] px-3 py-1 rounded-lg focus:outline-none focus:border-primary/50 transition-all w-48 font-mono"
                 >
               </div>
             </div>
 
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
-                <thead class="bg-surface-bg/50 text-surface-text-muted font-black border-b border-surface-border uppercase tracking-widest text-[9px]">
+                <thead class="bg-white/5 text-slate-500 font-black border-b border-white/10 uppercase tracking-widest text-[9px]">
                   <tr>
-                    <th (click)="sort('folio')" class="px-6 py-4 cursor-pointer hover:text-primary transition-colors">Folio</th>
-                    <th (click)="sort('type')" class="px-6 py-4 cursor-pointer hover:text-primary transition-colors">Tipo</th>
+                    <th (click)='sort("folio")' class="px-6 py-4 cursor-pointer hover:text-primary transition-colors">Folio</th>
+                    <th (click)='sort("type")' class="px-6 py-4 cursor-pointer hover:text-primary transition-colors">Tipo</th>
                     <th class="px-6 py-4">Almacén</th>
-                    <th (click)="sort('date')" class="px-6 py-4 cursor-pointer hover:text-primary transition-colors text-right">Fecha</th>
+                    <th (click)='sort("date")' class="px-6 py-4 cursor-pointer hover:text-primary transition-colors text-right">Fecha</th>
                     <th class="px-6 py-4 text-right">Valuación</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-surface-border">
+                <tbody class="divide-y divide-white/5">
                   @for (m of paginatedLedger(); track m.folio) {
                     <tr class="hover:bg-white/[0.02] transition-colors group">
                       <td class="px-6 py-4 font-mono font-bold">
                         <span class="text-primary">{{ m.folio }}</span>
-                        <div class="text-[8px] text-surface-text-muted">{{ m.subFolio }}</div>
+                        <div class="text-[8px] text-slate-500">{{ m.subFolio }}</div>
                       </td>
                       <td class="px-6 py-4">
                         <app-status-badge [status]="m.status" [label]="m.concept_name || m.type"></app-status-badge>
                       </td>
-                      <td class="px-6 py-4 text-surface-text-muted italic flex items-center gap-2">
+                      <td class="px-6 py-4 text-slate-500 italic flex items-center gap-2">
                         {{ m.warehouse }}
                         @if (m.validation_status) {
                           <app-overflow-badge [status]="m.validation_status"></app-overflow-badge>
@@ -342,54 +287,14 @@ interface CriticalItem {
                       <td class="px-6 py-4 text-right font-black">{{ m.valuation.amount | currencyFormat }}</td>
                     </tr>
                   }
-                  @if (paginatedLedger().length === 0) {
-                    <tr>
-                      <td colspan="5" class="px-6 py-8 text-center text-surface-text-muted">
-                        <p class="text-xs font-bold uppercase tracking-widest">No se encontraron movimientos</p>
-                      </td>
-                    </tr>
-                  }
                 </tbody>
               </table>
-            </div>
-
-            <div class="p-4 bg-surface-bg/30 border-t border-surface-border flex items-center justify-between">
-              <span class="text-[9px] font-bold text-surface-text-muted uppercase tracking-widest">
-                Mostrando {{ (currentPage() - 1) * itemsPerPage() + 1 }} - {{ math.min(currentPage() * itemsPerPage(), filteredLedger().length) }} de {{ filteredLedger().length }} registros
-              </span>
-              <div class="flex items-center gap-2">
-                <button 
-                  (click)="goToPage(currentPage() - 1)"
-                  [disabled]="currentPage() === 1"
-                  class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
-                  <mat-icon>chevron_left</mat-icon>
-                </button>
-                <div class="flex items-center gap-1">
-                  @for (page of pagesArray(); track page) {
-                    <span 
-                      (click)="goToPage(page)"
-                      [class.bg-primary]="currentPage() === page"
-                      [class.text-slate-950]="currentPage() === page"
-                      [class.hover:bg-white.5]="currentPage() !== page"
-                      [class.text-surface-text-muted]="currentPage() !== page"
-                      class="w-6 h-6 flex items-center justify-center text-[10px] font-black rounded cursor-pointer transition-colors"
-                    >
-                      {{ page }}
-                    </span>
-                  }
-                </div>
-                <button 
-                  (click)="goToPage(currentPage() + 1)"
-                  [disabled]="currentPage() === totalPages() || totalPages() === 0"
-                  class="p-1 text-surface-text-muted hover:text-primary disabled:opacity-30 disabled:hover:text-surface-text-muted transition-colors">
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
   `,
   styles: [`
     .glow-text {

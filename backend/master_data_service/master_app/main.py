@@ -76,5 +76,8 @@ app.include_router(gis_router, prefix="/api/v1/gis", tags=["GIS Property Validat
 from master_app.api.v1.endpoints import enums as enums_router
 app.include_router(enums_router.router, prefix="/api/v1/enums", tags=["System Enums"])
 
+from master_app.api.v1.endpoints import enumerations
+app.include_router(enumerations.router, prefix="/api/v1/enumerations", tags=["System Enumerations"])
+
 from master_app.api.v1.endpoints import locations
 app.include_router(locations.router, prefix="/api/v1/locations", tags=["Warehouse Structure (SSOT)"])

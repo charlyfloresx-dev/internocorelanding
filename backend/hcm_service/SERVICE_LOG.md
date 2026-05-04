@@ -6,6 +6,13 @@
 
 ---
 
+### [2026-05-04] - Phase 86: Unified Identity & Security Audit Foundations
+- **Unified Identity**: Se añadió el campo `user_id` al modelo `Collaborator` para vincular formalmente la identidad administrativa (`Users` en `auth_service`) con la identidad física en piso (`Collaborators` en `hcm_service`).
+- **Audit Integration**: Este es el primer paso arquitectónico para poder rastrear con precisión de auditoría quién está autorizando operaciones en terminales industriales (PIN/RFID), permitiendo unificar perfiles en el UI (e.g. asignación de tickets).
+- **Status**: ⏳ Phase 86 PAUSED - Model updated, pending logic propagation.
+
+---
+
 ### [2026-04-30] - Phase 73: Estabilización de Autenticación Industrial
 - **HCM Migration**: Migración definitiva de la gestión de colaboradores al microservicio independiente `hcm_service`.
 - **RFID/PIN Restoration**: Restauración del flujo de login industrial mediante RFID (SHA-256) y PIN (Bcrypt).

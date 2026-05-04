@@ -1,5 +1,9 @@
 # Auth Service - Service Log
 
+## [2026-05-04] Phase 86: Security Audit Foundations
+- **Audit Engine**: Preparativos para la inyección de la tabla `SecurityAuditLog` desde el endpoint de `collaborator_login_command.py`. El objetivo es documentar en el "Immutable Ledger" todos los ingresos físicos por PIN/RFID junto con un snapshot de los roles generados al vuelo.
+- **Pending**: Implementar la inserción de auditoría en los handlers de login.
+
 ## [2026-04-30] Phase 74: Subscription Claims & Zero Trust Validation
 - **Subscription Enrichment**: Se integró el `SubscriptionClient` en el `SelectCompanyCommandHandler` y el `AuthService` core para inyectar claims de estado de suscripción (`status`, `readonly`).
 - **Zero Trust Synchronization**: Actualización de los endpoints `/me` y `/refresh` para re-validar la suscripción en cada rotación de token, garantizando que el bloqueo sea inmediato ante cambios de estado en el backend de suscripciones.

@@ -79,6 +79,15 @@ export interface Partner extends BaseRead {
   last_transaction_id?: string;
 }
 
+export interface Enumeration extends BaseRead {
+  type: string;
+  key: string;
+  label: string;
+  translation_key?: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface ProductVersion {
   id: string;
   version_number: number;
@@ -159,6 +168,7 @@ export class MasterDataService {
   public uoms = signal<UOM[]>([]);
   public categories = signal<Category[]>([]);
   public brands = signal<Brand[]>([]);
+  public enumerations = signal<Enumeration[]>([]);
   public loading = signal<boolean>(false);
 
   /**
@@ -245,12 +255,13 @@ export class MasterDataService {
     
     this.loading.set(true);
     try {
-      const [wh, con, uom, cat, br] = await Promise.all([
+      const [wh, con, uom, cat, br, enumRes] = await Promise.all([
         lastValueFrom(this.getWarehouses()),
         lastValueFrom(this.getConcepts()),
         lastValueFrom(this.getUoms()),
         lastValueFrom(this.getCategories()),
-        lastValueFrom(this.getBrands())
+        lastValueFrom(this.getBrands()),
+        lastValueFrom(this.getEnumerations())
       ]);
 
       this.warehouses.set(wh.data || []);
@@ -258,6 +269,7 @@ export class MasterDataService {
       this.uoms.set(uom.data || []);
       this.categories.set(cat.data || []);
       this.brands.set(br.data || []);
+      this.enumerations.set(enumRes.data || []);
       
       console.log(`[MasterDataService] ✅ Catalogs synced: ${wh.data?.length || 0} warehouses, ${con.data?.length || 0} concepts.`);
     } catch (err) {
@@ -273,6 +285,7 @@ export class MasterDataService {
     this.uoms.set([]);
     this.categories.set([]);
     this.brands.set([]);
+    this.enumerations.set([]);
     console.log('[MasterDataService] 🔒 Catalog state cleared.');
   }
 
@@ -314,6 +327,21 @@ export class MasterDataService {
    */
   conceptsForType(type: Concept['type']) {
     return computed(() => this.resolveConceptsByType(type));
+  }
+
+  /**
+   * Returns enumerations of a specific type.
+   */
+  getEnumerationsByType(type: string): Enumeration[] {
+    return this.enumerations().filter(e => e.type === type && e.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  /**
+   * Reactive computed for specific enumeration types.
+   */
+  enumerationsForType(type: string) {
+    return computed(() => this.getEnumerationsByType(type));
   }
 
 
@@ -558,6 +586,13 @@ export class MasterDataService {
   deleteConcept(id: string): Observable<ApiResponse<boolean>> {
     return this.http.delete<ApiResponse<boolean>>(`${this.apiUrl}/concepts/${id}`).pipe(
       tap(() => this.health.reportSuccess('masterData')),
+      catchError(this.handleError)
+    );
+  }
+
+  // --- ENUMERATIONS ---
+  getEnumerations(): Observable<ApiResponse<Enumeration[]>> {
+    return this.http.get<ApiResponse<Enumeration[]>>(`${this.apiUrl}/enumerations/`).pipe(
       catchError(this.handleError)
     );
   }

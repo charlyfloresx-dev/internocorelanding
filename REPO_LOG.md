@@ -2,7 +2,24 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
-### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service)
+### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service & CMMS)
+
+### [2026-05-04] Phase 86: Unified Identity & Security Audit Foundations
+- **Unified Identity**: Added `user_id` to the `Collaborator` model in the `hcm_service` to bridge administrative identities (`Users`) with physical/industrial identities (`Collaborators`), enabling end-to-end traceability for operational triage.
+- **Audit Compliance Base**: Created the `SecurityAuditLog` model in `common/models/security_audit_log.py` as the "Single Source of Truth" for all physical and digital access events (PIN, RFID, Web), including snapshots of dynamic roles and scopes.
+- **Pending Tasks**: 
+  1. Generate Alembic migration for `security_audit_logs`.
+  2. Inject `SecurityAuditLog` tracking in `collaborator_login_command.py` (`auth_service`).
+  3. Create a unified identity search endpoint (`/api/v1/core/identity/search`) for ticket assignment UI binding.
+- **Status**: ⏳ Phase 86 PAUSED — Models created, pending DB migration and endpoint logic integration.
+
+### [2026-05-04] Phase 85: Industrial CMMS Architecture & Enumerations
+- **Domain Specialization**: Implemented `WorkOrderBase` as an Abstract Base Class in `common/models` to unify the concept of work orders across CMMS, MES, and WMS.
+- **CMMS Microservice**: Bootstrapped `cmms_service` following Clean Architecture. Created `MaintenanceWorkOrder`, `Asset`, `MaintenancePlan`, and `Tool` entities.
+- **Cross-Service Integrity**: Adopted Weak References (`inventory_item_id`) for tools and consumables to integrate seamlessly with the `inventory_service` without violating bounded contexts.
+- **Storage Strategy**: Enabled hybrid storage (`S3Provider` / `LocalFSProvider`) with strict multi-tenant quotas for maintenance evidence.
+- **Catalogs & i18n**: Developed a centralized `Enumeration` catalog in `master_data_service` replacing hardcoded enums, supporting dynamic updates and translations.
+- **Status**: ✅ Phase 85 COMPLETED — CMMS Core Backbone & Catalogs Stabilized.
 
 ### [2026-05-03] Phase 84: Forensic Audit Ledger Hardening & Industrial SSOT Consolidation
 - **Forensic Audit Engine**: Implemented `AuditService` with database persistence, capturing `SEED_CREATE`, `CREATE_MOVEMENT`, and `DENSITY_OVERFLOW` actions with full snapshotting (Old vs New values).

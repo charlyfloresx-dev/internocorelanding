@@ -120,7 +120,7 @@ async def run_seed():
                 (ENTERPRISE_ID,   "Interno Enterprise",       "ACTIVE"),
                 (LOGISTICS_MX_ID, "Interno Logistic MX",      "ACTIVE"),
                 (LOGISTICS_US_ID, "Interno Logistic US",      "ACTIVE"),
-                (DEMO_ID,         "Empresa Demo (Pendiente)",  "ACTIVE"),
+                (DEMO_ID,         "Demo Operativo S.A.",      "ACTIVE"),
             ]
             for cid, cname, cstatus in companies_data:
                 co = await db.get(Company, cid)
@@ -166,7 +166,7 @@ async def run_seed():
                 UserCompanyRole(user_id=CHARLY_ID, company_id=ENTERPRISE_ID,   tenant_id=ENTERPRISE_ID,   role_id=role_ent_admin.id,    scopes=ADMIN_SCOPES,         is_new=False, version_id=1),
                 UserCompanyRole(user_id=CHARLY_ID, company_id=LOGISTICS_MX_ID, tenant_id=LOGISTICS_MX_ID, role_id=role_log_mx_admin.id, scopes=MANAGER_SCOPES,       is_new=False, version_id=1),
                 UserCompanyRole(user_id=CHARLY_ID, company_id=LOGISTICS_US_ID, tenant_id=LOGISTICS_US_ID, role_id=role_log_us_admin.id, scopes=MANAGER_SCOPES,       is_new=False, version_id=1),
-                UserCompanyRole(user_id=CHARLY_ID, company_id=DEMO_ID,         tenant_id=DEMO_ID,         role_id=role_demo_admin.id,   scopes=["audit:logs:view"],  is_new=True,  version_id=1),
+                UserCompanyRole(user_id=CHARLY_ID, company_id=DEMO_ID,         tenant_id=DEMO_ID,         role_id=role_demo_admin.id,   scopes=["master:catalog:manage", "inv:movements:manage", "tickets:manage", "tickets:view"],  is_new=True,  version_id=1),
                 UserCompanyRole(user_id=OPERATOR_ID,      company_id=LOGISTICS_MX_ID, tenant_id=LOGISTICS_MX_ID, role_id=role_log_mx_op.id,    scopes=OPERATOR_SCOPES, is_new=False, version_id=1),
                 UserCompanyRole(user_id=SUPERVISOR_ID,    company_id=LOGISTICS_US_ID, tenant_id=LOGISTICS_US_ID, role_id=role_log_us_admin.id, scopes=MANAGER_SCOPES,  is_new=False, version_id=1),
                 UserCompanyRole(user_id=CHARLY_GOOGLE_ID, company_id=ENTERPRISE_ID,   tenant_id=ENTERPRISE_ID,   role_id=role_ent_admin.id,    scopes=ADMIN_SCOPES,    is_new=False, version_id=1),

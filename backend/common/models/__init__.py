@@ -10,6 +10,14 @@ from common.models.file_metadata import FileMetadata
 from common.models.catalogs import BaseProduct, BaseWarehouse, BaseMovementConcept
 from common.models.location import InventoryLocation
 from common.models.location import ZoneType, StorageType
+from common.models.work_order_base import (
+    WorkOrderBase,
+    WorkOrderType,
+    WorkOrderBaseStatus,
+    WorkOrderBasePriority,
+)
+from common.models.enumeration import Enumeration
+from common.models.security_audit_log import SecurityAuditLog
 
 __all__ = [
     "Base", 
@@ -28,5 +36,13 @@ __all__ = [
     "BaseMovementConcept",
     "InventoryLocation",
     "ZoneType",
-    "StorageType"
+    "StorageType",
+    # DDD Shared Kernel — Work Orders
+    "WorkOrderBase",
+    "WorkOrderType",
+    "WorkOrderBaseStatus",
+    "WorkOrderBasePriority",
+    # Catalogs / Lookups
+    "Enumeration",
+    "SecurityAuditLog",
 ]

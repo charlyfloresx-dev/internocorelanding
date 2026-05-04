@@ -27,8 +27,17 @@
     "catalog_partners": "Business Partners",
     "wms": "WMS / Logistics",
     "wms_receiving": "Receiving",
+    "wms_pending_putaway": "Put-Away Queue",
+    "wms_putaway": "Put-Away (Handheld)",
     "wms_picking": "Picking",
-    "wms_shipping": "Shipping"
+    "wms_cycle_count": "Cycle Count",
+    "wms_shipping": "Shipping",
+    "inventory_in": "Record Entry",
+    "inventory_out": "Record Exit",
+    "inventory_transfer": "Record Transfer",
+    "inventory_audit": "Forensic Audit",
+    "investments": "Investments (CRM)",
+    "investments_kanban": "Kanban Dashboard"
   },
   "auth": {
     "login_title": "Industrial Access",
@@ -134,6 +143,25 @@
       "entry": "Entry",
       "exit": "Exit",
       "transfer": "Transfer"
+    },
+    "movement": {
+      "entry": "ENTRY",
+      "exit": "EXIT",
+      "transfer": "TRANSFER",
+      "entrada": "ENTRY",
+      "salida": "EXIT",
+      "traspaso": "TRANSFER"
+    },
+    "concept": {
+      "compra": "Purchase",
+      "venta": "Sale",
+      "devolucion": "Return",
+      "ajuste": "Adjustment",
+      "traspaso_interno": "Internal Transfer"
+    },
+    "documents": {
+      "select_concept": "SELECT CONCEPT...",
+      "select_warehouse": "SELECT WAREHOUSE..."
     }
   },
   "catalog": {

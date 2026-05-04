@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { SupportService as TicketService } from '../../../core/services/support.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Ticket, TicketStatus, TicketPriority } from '../../../core/models/support.types';
@@ -226,7 +227,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
                     <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
                       <mat-icon class="text-[8px]">person</mat-icon> {{ 'support.dashboard.responsible' | translate:'RESPONSABLE' }}
                     </p>
-                    <p class="text-[11px] font-black text-amber-500">{{ ticket.assigned_to_id || ('support.dashboard.pending' | translate:'PENDIENTE') }}</p>
+                    <p class="text-[11px] font-black text-amber-500">{{ getUserName(ticket.assigned_to_id) }}</p>
                   </div>
                 </div>
               </div>
@@ -294,6 +295,7 @@ export class TicketsDashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private adminService = inject(AdminService);
   private toastService = inject(ToastService);
+  private route = inject(ActivatedRoute);
 
   TicketStatus = TicketStatus;
   tickets = signal<Ticket[]>([]);
@@ -301,13 +303,19 @@ export class TicketsDashboardComponent implements OnInit {
   selectedTicket = signal<Ticket | null>(null);
   
   // Supervision data
+  allUsers = signal<AdminUser[]>([]);
   technicians = signal<AdminUser[]>([]);
   workload = signal<Record<string, number>>({});
   isLoadingTriage = signal<boolean>(false);
   
   isSupervisor = computed(() => {
     const roles = this.authService.roles();
-    return roles.some(r => r.toLowerCase() === 'supervisor' || r.toLowerCase() === 'admin');
+    return roles.some((r: string) => 
+      r.toLowerCase() === 'supervisor' || 
+      r.toLowerCase().includes('admin') ||
+      r.toLowerCase() === 'owner' ||
+      r.toLowerCase().includes('manager')
+    );
   });
 
   constructor() {
@@ -317,7 +325,8 @@ export class TicketsDashboardComponent implements OnInit {
       const userId = session?.user_id;
       
       if (this.viewFilter() === 'MINE' && userId) {
-        ts = ts.filter(t => t.assigned_to_id === userId);
+        // Incluir creados por o asignados a
+        ts = ts.filter((t: Ticket) => t.assigned_to_id === userId || t.created_by === userId);
       }
       this.tickets.set(ts);
     });
@@ -333,15 +342,24 @@ export class TicketsDashboardComponent implements OnInit {
 
   ngOnInit() {
     this.ticketService.loadTickets();
+
+    // Leer filtro desde URL (ej: /monitor/tickets?filter=mine)
+    this.route.queryParamMap.subscribe(params => {
+      const f = params.get('filter');
+      if (f === 'mine') {
+        this.viewFilter.set('MINE');
+      }
+    });
     
+    this.loadSupervisionData(); // Always load users for name mapping
     if (this.isSupervisor()) {
-      this.loadSupervisionData();
+      // additional supervisor logic if needed
     }
 
     // Escuchar recargas desde el drawer
     this.drawerService.refresh$.subscribe(() => {
       this.ticketService.loadTickets();
-      if (this.isSupervisor()) this.loadSupervisionData();
+      this.loadSupervisionData();
     });
   }
 
@@ -349,10 +367,12 @@ export class TicketsDashboardComponent implements OnInit {
     try {
       this.adminService.getUsers().subscribe(res => {
         if (res.data) {
+          this.allUsers.set(res.data);
           this.technicians.set(res.data.filter(u => 
             u.role_name.toLowerCase().includes('technician') || 
             u.role_name.toLowerCase().includes('user') ||
-            u.role_name.toLowerCase().includes('oper')
+            u.role_name.toLowerCase().includes('oper') ||
+            u.role_name.toLowerCase().includes('admin')
           ));
         }
       });
@@ -392,6 +412,15 @@ export class TicketsDashboardComponent implements OnInit {
 
   getTechWorkload(techId: string): number {
     return this.workload()[techId] || 0;
+  }
+
+  getUserName(id: string | null | undefined): string {
+    if (!id) return 'PENDIENTE';
+    const user = this.allUsers().find(u => u.id === id);
+    if (user) {
+      return user.full_name || user.email;
+    }
+    return id.split('-')[0].toUpperCase(); // fallback to short uuid part
   }
 
   openNewTicket() {
