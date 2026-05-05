@@ -50,10 +50,19 @@ def _log_audit(connection, action, target, old_val, new_val):
     old_json = json.dumps(old_val) if old_val else None
     new_json = json.dumps(new_val) if new_val else None
 
+    company_id = getattr(target, "company_id", None)
+    tenant_id = getattr(target, "tenant_id", company_id)
+
     # Insert log directly into audit_logs table
     stmt = text("""
-        INSERT INTO audit_logs (id, table_name, record_id, action, old_value, new_value, user_id, timestamp)
-        VALUES (gen_random_uuid(), :table_name, :record_id, :action, :old_value, :new_value, :user_id, NOW())
+        INSERT INTO audit_logs (
+            id, table_name, record_id, action, old_value, new_value, user_id, 
+            timestamp, is_active, version_id, company_id, tenant_id
+        )
+        VALUES (
+            gen_random_uuid(), :table_name, :record_id, :action, :old_value, :new_value, :user_id, 
+            NOW(), true, 1, :company_id, :tenant_id
+        )
     """)
     
     connection.execute(
@@ -64,6 +73,8 @@ def _log_audit(connection, action, target, old_val, new_val):
             "action": action,
             "old_value": old_json,
             "new_value": new_json,
-            "user_id": user_id if user_id else None
+            "user_id": user_id if user_id else None,
+            "company_id": company_id,
+            "tenant_id": tenant_id
         }
     )

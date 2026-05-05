@@ -96,6 +96,8 @@ async def lifespan(app: FastAPI):
         import mes_app.models.downtime
         import mes_app.models.labor
         import mes_app.models.shift
+        import mes_app.models.production_run
+        import mes_app.models.ledger
         
         # Subscription Models
         import subscription_app.models.subscription
@@ -190,7 +192,9 @@ async def debug_customs_monolith():
 from auth_app.api.v1.endpoints.auth import router as auth_router
 from auth_app.api.v1.endpoints.companies import router as companies_router
 from auth_app.api.v1.endpoints.users import router as users_router
+from auth_app.api.v1.endpoints.collaborator_auth import router as collaborator_auth_router
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(collaborator_auth_router, prefix="/api/v1/auth", tags=["Industrial Auth"])
 app.include_router(companies_router, prefix="/api/v1/companies", tags=["Auth: Companies"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["Auth: Users"])
 
@@ -260,10 +264,16 @@ app.include_router(resource.router, prefix="/api/v1/mes/resources", tags=["MES: 
 app.include_router(shift.router, prefix="/api/v1/mes/shifts", tags=["MES: Shifts"])
 
 # 7. Subscriptions & Billing
-from subscription_app.api.v1.endpoints import billing, wallet, admin as sub_admin
+from subscription_app.api.v1.endpoints import billing, wallet, admin as sub_admin, internal as sub_internal
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing: Stripe Checkout"])
 app.include_router(wallet.router, prefix="/api/v1/wallet", tags=["Billing: Wallet"])
 app.include_router(sub_admin.router, prefix="/api/v1/admin/subscription", tags=["Billing: Admin"])
+app.include_router(sub_internal.router, prefix="/internal", tags=["Billing: Internal Entitlements"])
+
+# 8. HCM (Human Capital Management)
+from hcm_app.api.v1.endpoints import collaborators, internal as hcm_internal
+app.include_router(collaborators.router, prefix="/api/v1/collaborators", tags=["HCM: Collaborators"])
+app.include_router(hcm_internal.router, prefix="/api/v1/internal/collaborators", tags=["HCM: Internal"])
 
 @app.get("/")
 async def root():

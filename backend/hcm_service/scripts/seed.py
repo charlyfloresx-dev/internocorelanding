@@ -34,10 +34,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("seed_hr")
 
 from sqlalchemy import select
-from app.core.database import AsyncSessionLocal
-from app.core.security import hash_rfid, hash_pin
-from app.models.collaborator import Collaborator
-from app.models.tenant_settings import HrTenantConfig
+from hcm_app.core.database import AsyncSessionLocal
+from hcm_app.core.security import hash_rfid, hash_pin
+from hcm_app.models.collaborator import Collaborator
+from hcm_app.models.tenant_settings import HrTenantConfig
 
 # ─── Known Company/Tenant IDs (must match auth_service seed) ─────────────────
 ENTERPRISE_ID  = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
@@ -49,6 +49,7 @@ GROUP_ID       = uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")
 CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
 LUIS_ID   = uuid.UUID("11111111-0002-4001-a001-000000000002")
 ANA_ID    = uuid.UUID("11111111-0003-4001-a001-000000000003")
+CHARLY_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
 
 
 async def run_seed():
@@ -60,7 +61,7 @@ async def run_seed():
         try:
             # CREATE TABLES IF NOT EXIST
             from common.infrastructure.models.base import Base
-            from app.core.database import engine
+            from hcm_app.core.database import engine
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
 
@@ -120,6 +121,7 @@ async def run_seed():
                     company_id=ENTERPRISE_ID,
                     tenant_id=ENTERPRISE_ID,
                     group_id=GROUP_ID,
+                    user_id=CHARLY_ID,
                     version_id=1,
                 ))
                 await db.flush()
@@ -150,6 +152,7 @@ async def run_seed():
                     company_id=LOGISTICS_MX_ID,
                     tenant_id=LOGISTICS_MX_ID,
                     group_id=GROUP_ID,
+                    user_id=CHARLY_ID,
                     version_id=1,
                 ))
                 log.info("  [OK] Carlos (Logistic MX) creado.")
@@ -174,6 +177,7 @@ async def run_seed():
                     company_id=LOGISTICS_US_ID,
                     tenant_id=LOGISTICS_US_ID,
                     group_id=GROUP_ID,
+                    user_id=CHARLY_ID,
                     version_id=1,
                 ))
                 log.info("  [OK] Carlos (Logistic US) creado.")

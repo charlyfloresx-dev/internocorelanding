@@ -21,10 +21,10 @@
     "inter_service_deps": {
         "common": [
             "master_data_service",
-            "mes_service",
-            "subscription_service",
             "wms_service",
-            "auth_service"
+            "subscription_service",
+            "auth_service",
+            "mes_service"
         ],
         "inventory_service": [
             "notification_service"

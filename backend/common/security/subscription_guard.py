@@ -2,6 +2,7 @@ from fastapi import Request, HTTPException, status, Depends
 from typing import Optional, Any
 import uuid
 from common.security.auth_payload import TokenPayload
+from common.config import settings
 
 class SubscriptionGuard:
     """
@@ -21,7 +22,8 @@ class SubscriptionGuard:
         
         if not token_data:
             # GOD MODE: Synthesize admin token if master key is present
-            if request.headers.get("X-Admin-Master-Key") == "GOD_MODE_ACTIVE":
+            master_key = getattr(settings, "int_admin_master_key", "GOD_MODE_ACTIVE")
+            if request.headers.get("X-Admin-Master-Key") == master_key:
                 company_id = request.headers.get("X-Company-ID")
                 token_data = TokenPayload(
                     sub=uuid.UUID("00000000-0000-0000-0000-000000000000"),
@@ -32,42 +34,44 @@ class SubscriptionGuard:
                     modules=["auth_core", "inventory_core", "master_data_core", "hr_core"],
                     status="ACTIVE",
                     readonly=False,
+                    accessible_warehouses=[]
                 )
                 request.state.user_token = token_data
             else:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail={
-                        "error": "Sesión no válida o token ausente.",
+                        "status": "error",
+                        "message": "Sesión no válida o token ausente.",
                         "code": "ERR_UNAUTHORIZED",
-                        "transaction_id": trace_id
+                        "meta": {"trace_id": trace_id}
                     }
                 )
 
         # 2. Validación de Módulo (Entitlements)
-        # Si no es un módulo núcleo (auth), validamos que esté en el claim 'modules'
         if self.module_code != "auth_core":
             user_modules = [m.lower() for m in token_data.modules]
             if self.module_code.lower() not in user_modules:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail={
-                        "error": f"Módulo [{self.module_code}] no está incluido en su plan actual.",
+                        "status": "error",
+                        "message": f"Módulo [{self.module_code}] no está incluido en su plan actual.",
                         "code": "ERR_SUBSCRIPTION_REQUIRED",
-                        "transaction_id": trace_id
+                        "meta": {"trace_id": trace_id}
                     }
                 )
 
         # 3. Validación de Modo Lectura (Gobernanza - Kill Switch Fase 1)
-        # Si readonly es true, bloqueamos métodos de escritura (POST, PUT, PATCH, DELETE)
         if token_data.readonly:
             if request.method not in ["GET", "HEAD", "OPTIONS"]:
                 raise HTTPException(
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,
                     detail={
-                        "error": "Suscripción vencida. Modo lectura activo para protección de datos.",
-                        "code": "ERR_SUBSCRIPTION_REQUIRED",
-                        "transaction_id": trace_id
+                        "status": "error",
+                        "message": "Suscripción en mora. El sistema ha activado el Modo Lectura. Por favor regularice su pago para habilitar ediciones.",
+                        "code": "ERR_READONLY_MODE",
+                        "meta": {"trace_id": trace_id}
                     }
                 )
         

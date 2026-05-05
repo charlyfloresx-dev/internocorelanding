@@ -4,14 +4,17 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service & CMMS)
 
-### [2026-05-04] Phase 86: Unified Identity & Security Audit Foundations
-- **Unified Identity**: Added `user_id` to the `Collaborator` model in the `hcm_service` to bridge administrative identities (`Users`) with physical/industrial identities (`Collaborators`), enabling end-to-end traceability for operational triage.
-- **Audit Compliance Base**: Created the `SecurityAuditLog` model in `common/models/security_audit_log.py` as the "Single Source of Truth" for all physical and digital access events (PIN, RFID, Web), including snapshots of dynamic roles and scopes.
-- **Pending Tasks**: 
-  1. Generate Alembic migration for `security_audit_logs`.
-  2. Inject `SecurityAuditLog` tracking in `collaborator_login_command.py` (`auth_service`).
-  3. Create a unified identity search endpoint (`/api/v1/core/identity/search`) for ticket assignment UI binding.
-- **Status**: ⏳ Phase 86 PAUSED — Models created, pending DB migration and endpoint logic integration.
+### [2026-05-05] Phase 86: Hardening Identity & Audit (Muro de Hierro Validation)
+- **Forensic Audit Injection**: Successfully injected `SecurityAuditLog` tracking into the industrial login workflow. Every physical authentication event (RFID/PIN) now captures `transaction_id`, client IP, and role snapshots for permanent forensic record.
+- **SubscriptionGuard Refinement**: Hardened the transversal `SubscriptionGuard` with support for `GOD_MODE_ADMIN` overrides via the `X-Admin-Master-Key`. Standardized error responses with `trace_id` metadata for high observability.
+- **Identity Unification**: Linked industrial collaborators (`Carlos Ramírez`) with administrative users (`Charly Flores`) in the HCM seed, establishing the SSOT for cross-domain identity correlation.
+- **Global Settings Hardening**: Centralized the `int_admin_master_key` in the global `InternoSettings` to ensure consistent "God Mode" enforcement across the monolith.
+- **Muro de Hierro Validation (100% Pass Rate)**: Successfully executed the `validate_muro_hierro.py` suite. Verified Identity Linkage (RFID mapped to core identities), Auth Guard (rejection of invalid credentials), Subscription Guard (402 enforcement for PAST_DUE state), and God Mode Bypass (override capabilities).
+- **Forensic Audit Integrity**: Fixed the `AuditLog` listener in the Master Data service by adding missing mandatory constraints (`is_active`, `version_id`) and multitenancy fields (`company_id`, `tenant_id`) to raw SQL inserts, resolving database `IntegrityError` anomalies during master data operations.
+- **Internal Microservice Routing Stabilization**: Resolved intra-service deadlocks by configuring the Uvicorn runtime to handle high-concurrency requests and explicitly registered internal `HCM` and `Subscription` endpoints within the unified monolith router.
+- **Subscription Entitlements Propagation**: Corrected the `get_company_entitlements` internal endpoint to consistently broadcast `status` and `readonly` flags to the Auth service, ensuring precise reactive lockdowns across the platform.
+- **Forensic Manifest Construction**: Drafted the `Forensic_Manifest.md`, crystallizing deterministic infrastructure UUIDs for core hierarchies, master data products, and subscriptions, guaranteeing Foreign Key integrity across staging resets and cloud deployments.
+- **Status**: ✅ Phase 86 COMPLETED — Security Audit Ledger Active, Identity Unified & Architectural Validation Finalized.
 
 ### [2026-05-04] Phase 85: Industrial CMMS Architecture & Enumerations
 - **Domain Specialization**: Implemented `WorkOrderBase` as an Abstract Base Class in `common/models` to unify the concept of work orders across CMMS, MES, and WMS.

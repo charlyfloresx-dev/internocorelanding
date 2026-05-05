@@ -13,8 +13,8 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 sys.path.append(os.path.abspath(os.path.join(base_path, "..")))
 
-from app.core.config import settings
-from app.models import Base  # noqa: F401 — loads all models into metadata
+from hcm_app.core.config import settings
+from hcm_app.models import Base  # noqa: F401 — loads all models into metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

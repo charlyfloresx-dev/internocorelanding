@@ -9,10 +9,20 @@ class GetEntitlementsQuery:
         self.repo = repo
 
     async def execute(self, company_id: uuid.UUID):
+        sub = await self.repo.get_subscription_by_company(company_id)
+        if not sub:
+            return {
+                "modules": [],
+                "status": "EXPIRED",
+                "readonly": True
+            }
+            
         entitlements = await self.repo.get_entitlements_by_company(company_id)
         modules = [e.module_code for e in entitlements if e.is_enabled]
         return {
             "modules": modules,
+            "status": sub.status,
+            "readonly": sub.readonly,
             "can_invite": True
         }
 

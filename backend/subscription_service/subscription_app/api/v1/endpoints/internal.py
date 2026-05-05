@@ -40,5 +40,7 @@ async def get_company_entitlements(
     modules_data = await query.execute(company_id)
     return {
         "company_id": str(company_id),
-        "modules": modules_data.get("modules", [])
+        "modules": modules_data.get("modules", []),
+        "status": modules_data.get("status", "ACTIVE"),
+        "readonly": modules_data.get("readonly", False)
     }

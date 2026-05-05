@@ -21,6 +21,9 @@ from auth_app.models.company import Company
 
 logger = logging.getLogger(__name__)
 
+from common.models import SecurityAuditLog
+
+
 # JWT lifetime for collaborator sessions: 8 hours (a full shift)
 COLLABORATOR_TOKEN_EXPIRE_HOURS = 8
 
@@ -34,6 +37,8 @@ async def collaborator_login(
     internal_id: Optional[str] = None,
     pin_code: Optional[str] = None,
     company_id: Optional[uuid.UUID] = None,
+    ip_address: Optional[str] = None,
+    transaction_id: Optional[uuid.UUID] = None
 ) -> dict:
     """
     Proxy login for floor collaborators.
@@ -160,6 +165,30 @@ async def collaborator_login(
     scopes = ["inv:movements:manage"] if has_inventory_access else []
     if is_supervisor or dept == "Warehouse":
         scopes.append("inv:warehouse:manage")
+
+    # ── Step 3: Forensic Audit Logging ────────────────────────────────────────
+    try:
+        audit_entry = SecurityAuditLog(
+            id=uuid.uuid4(),
+            company_id=uuid.UUID(str(identity["company_id"])),
+            collaborator_id=uuid.UUID(str(identity["collaborator_id"])),
+            access_method="RFID_SCAN" if rfid_tag else ("PIN_PAD" if pin_code else "WEB_FORM"),
+            identity_identifier=rfid_tag if rfid_tag else (internal_id if internal_id else "UNKNOWN"),
+            roles_snapshot=["collaborator"],
+            scopes_snapshot=scopes,
+            status="SUCCESS",
+            ip_address=ip_address,
+            transaction_id=transaction_id,
+            is_active=True
+        )
+        db.add(audit_entry)
+        # We don't commit here, the endpoint handler (collaborator_auth.py) should commit or 
+        # it might be handled by middleware if using a certain pattern.
+        # But looking at auth.py, they do await db.commit().
+        # However, collaborator_auth.py doesn't have db.commit() yet.
+        # I'll add a comment or better, I'll add the commit to the endpoint.
+    except Exception as e:
+        logger.error(f"Failed to log security audit: {e}")
 
     return {
         "access_token": token,

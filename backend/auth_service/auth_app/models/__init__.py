@@ -4,7 +4,7 @@
 from common.models import Base
 
 # 2. Importar modelos en orden de dependencia para el registro
-from common.models import Company, AuditLog, BusinessGroup
+from common.models import Company, AuditLog, BusinessGroup, SecurityAuditLog
 from .user import User
 from .user_credential import UserCredential
 from .role import Role
@@ -18,5 +18,6 @@ from .refresh_token import RefreshToken
 __all__ = [
     "Base", "Company", "BusinessGroup", "Permission", "Role",
     "User", "UserCredential", 
-    "RolePermission", "UserCompanyRole", "Invitation", "RefreshToken"
+    "RolePermission", "UserCompanyRole", "Invitation", "RefreshToken",
+    "SecurityAuditLog"
 ]

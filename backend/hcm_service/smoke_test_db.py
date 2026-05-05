@@ -1,8 +1,8 @@
 import asyncio
 import uuid
 from datetime import date, timedelta
-from app.core.database import AsyncSessionLocal
-from app.models.collaborator import Collaborator
+from hcm_app.core.database import AsyncSessionLocal
+from hcm_app.models.collaborator import Collaborator
 
 async def smoke_test_insert():
     print("🚀 Running Smoke Test DB Insertion...")

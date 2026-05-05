@@ -165,6 +165,10 @@ class InternoSettings(BaseSettings):
         default="INTERNO_HR_RFID_DEFAULT_SALT_CHANGE_ME",
         validation_alias=AliasChoices("CORE_HR_RFID_SALT", "RFID_STATIC_SALT")
     )
+    int_admin_master_key: str = Field(
+        default="GOD_MODE_ACTIVE",
+        validation_alias=AliasChoices("CORE_ADMIN_MASTER_KEY", "ADMIN_MASTER_KEY")
+    )
 
     # ── CURRENCY / BANXICO ──────────────────────────────────────────────────
     int_banxico_token: Optional[str] = Field(
