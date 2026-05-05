@@ -4,6 +4,22 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
  
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service & CMMS)
 
+### [2026-05-05] Phase 88: Landing Page Industrialization & i18n Implementation
+- **Landing Page Industrialization**: Developed a premium, production-ready landing portal using Vanilla CSS with high-fidelity glassmorphic aesthetics. Integrated industrial branding for Carlos Flores Montoya as the Master Architect.
+- **i18n Dynamic Engine**: Engineered a lightweight JavaScript i18n client (`app.js`) that dynamically swaps content based on `data-i18n` attributes. Supports nested JSON keys and real-time language switching (ES/EN) without page reloads.
+- **Sales-Focused Narrative**: Refined the entire system narrative to eliminate technical jargon. Replaced complex terms (SSOT, RBAC, O(1)) with benefit-driven language focused on **Inventarios, Catálogos, Socios y Productos**.
+- **Tiered Plan Transparency**: Developed a dedicated technical comparison page (`plans.html`) with precise feature differentiation. Corrected plan boundaries: the **Plan Operativo** explicitly excludes Work Orders (MES) and Maintenance (CMMS) to drive industrial tier upgrades.
+- **Production-Ready Pricing**: Standardized all pricing to explicit **USD** notation with clear feature-by-feature comparisons.
+- **Status**: ✅ Phase 88 COMPLETED — Landing Portal Production-Ready & Multi-language.
+
+### [2026-05-05] Phase 87: Rescue and Observability (Muro de Hierro - Stage 2)
+- **Reactive Subscription Webhooks**: Deployed `/api/v1/webhooks/stripe` listener within the monolith. This endpoint seamlessly processes `payment_failed` and `payment_succeeded` events to toggle multitenant `PAST_DUE` states and activate the "Muro de Hierro" in real-time.
+- **Subscription Recovery Service**: Implemented `SubscriptionRecoveryService` integrated into the monolith startup sequence. If the local database is wiped, the system automatically pulls active subscriptions from Stripe API to reconstruct environmental continuity deterministically.
+- **Forensic Industrial Dashboard**: Built the `ForensicDashboardComponent` in the Angular frontend (`/admin/forensic`). Engineered real-time visualization of the `audit_logs` table with a custom 5-minute polling interval to maintain network efficiency while providing a "red-alert" kill-switch visualization for blocked 402 access attempts.
+- **Audit Logging Augmentation**: Hardened the `SubscriptionGuard` to intercept 402 rejections and proactively inject `ACCESS_DENIED_402` events into the forensic ledger prior to raising HTTP Exceptions, closing the traceability loop on unauthorized mutations.
+- **Documentation Hub Unification**: Engineered an automated workflow (`inject_docs_html.py`) to systematically gather all `.md` engineering logs across microservices and inject them into a massive, searchable "Documentation Hub" directly within the core `DOCS_INTERNOCORE.html` artifact.
+- **Status**: ✅ Phase 87 COMPLETED — Forensic Traceability and Stripe Synchonization fully operational.
+
 ### [2026-05-05] Phase 86: Hardening Identity & Audit (Muro de Hierro Validation)
 - **Forensic Audit Injection**: Successfully injected `SecurityAuditLog` tracking into the industrial login workflow. Every physical authentication event (RFID/PIN) now captures `transaction_id`, client IP, and role snapshots for permanent forensic record.
 - **SubscriptionGuard Refinement**: Hardened the transversal `SubscriptionGuard` with support for `GOD_MODE_ADMIN` overrides via the `X-Admin-Master-Key`. Standardized error responses with `trace_id` metadata for high observability.

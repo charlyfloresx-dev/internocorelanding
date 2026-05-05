@@ -47,7 +47,7 @@ from common.infrastructure.database import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info("🚀 Iniciando InternoCore Monolith (Unified Engine v3.5.0)...")
+    logging.info("Iniciando InternoCore Monolith (Unified Engine v3.5.0)...")
     print("!!!! MONOLITH STARTING - UNIQUE NAMESPACE MODE !!!!")
     
     # 2. Registro explícito de modelos para asegurar que Base.metadata los conozca
@@ -104,7 +104,7 @@ async def lifespan(app: FastAPI):
         import subscription_app.models.wallet
 
     except Exception as e:
-        logging.warning(f"⚠️ Algunos modelos no pudieron ser pre-cargados: {e}")
+        logging.warning(f"Algunos modelos no pudieron ser pre-cargados: {e}")
 
     # 3. Setup Auditoría (Master Data & Inventory)
     try:
@@ -122,15 +122,24 @@ async def lifespan(app: FastAPI):
         from inventory_app.core.events import setup_audit_listeners as setup_inv_audit
         setup_inv_audit()
         
-        logging.info("✅ Listeners de auditoría registrados.")
+        logging.info("Listeners de auditoría registrados.")
     except Exception as e:
-        logging.warning(f"⚠️ No se pudieron registrar todos los listeners de auditoría: {e}")
+        logging.warning(f"No se pudieron registrar todos los listeners de auditoría: {e}")
 
     # 4. Sincronización de Base de Datos
     async with engine.begin() as conn:
-        logging.info("🔍 Sincronizando esquema de base de datos unificado (MetaData)...")
+        logging.info("Sincronizando esquema de base de datos unificado (MetaData)...")
         await conn.run_sync(Base.metadata.create_all)
-        logging.info("✅ Esquema sincronizado exitosamente.")
+        logging.info("Esquema sincronizado exitosamente.")
+        
+    # 5. Operación de Rescate (Phase 87: Stripe Sync)
+    try:
+        from common.infrastructure.database import AsyncSessionLocal
+        from subscription_app.services.recovery_service import SubscriptionRecoveryService
+        async with AsyncSessionLocal() as session:
+            await SubscriptionRecoveryService.sync_from_stripe_if_empty(session)
+    except Exception as e:
+        logging.error(f"Error durante la recuperación de Stripe Sync: {e}")
         
     yield
     logging.info("🛑 Apagando InternoCore Monolith...")
@@ -264,11 +273,12 @@ app.include_router(resource.router, prefix="/api/v1/mes/resources", tags=["MES: 
 app.include_router(shift.router, prefix="/api/v1/mes/shifts", tags=["MES: Shifts"])
 
 # 7. Subscriptions & Billing
-from subscription_app.api.v1.endpoints import billing, wallet, admin as sub_admin, internal as sub_internal
+from subscription_app.api.v1.endpoints import billing, wallet, admin as sub_admin, internal as sub_internal, webhooks
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing: Stripe Checkout"])
 app.include_router(wallet.router, prefix="/api/v1/wallet", tags=["Billing: Wallet"])
 app.include_router(sub_admin.router, prefix="/api/v1/admin/subscription", tags=["Billing: Admin"])
 app.include_router(sub_internal.router, prefix="/internal", tags=["Billing: Internal Entitlements"])
+app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Billing: Stripe Webhooks"])
 
 # 8. HCM (Human Capital Management)
 from hcm_app.api.v1.endpoints import collaborators, internal as hcm_internal

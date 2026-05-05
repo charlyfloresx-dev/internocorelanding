@@ -1,15 +1,15 @@
-# Tareas Consolidadas - 2026-05-05
+# Consolidated Tasks: 2026-05-05
 
-## Phase 86: Muro de Hierro & Identidad (Backlog Superado)
-- [x] Corrección del deadlock de concurrencia de Uvicorn en el contenedor monolito, permitiendo peticiones HTTP cross-service.
-- [x] Implementación de Endpoints Internos explícitos para resolver la autorización de roles (HCM) y validación de suscripciones (`SubscriptionGuard`).
-- [x] Modificación de `get_company_entitlements` para retornar el `status` y la bandera `readonly`, permitiendo al `Auth Service` generar JWT reactivos.
-- [x] Corrección del "Critical Middleware Error" (campo `capacity` residual en esquemas de `Warehouse`).
-- [x] Restauración de integridad en registros de auditoría al inyectar UUIDs faltantes (`company_id`, `tenant_id`) en SQL plano.
-- [x] Suite de estrés validada con **100% de éxito**, probando bloqueos de suscripción (402) y escapes del administrador (God Mode).
-- [x] Creación del **Forensic Manifest** como SSOT de UUIDs determinísticos para facilitar migraciones a la nube.
+## Completed Tasks
+- [x] **Landing Page Industrialization**: Final design and responsive layout completed in `landing/index.html`.
+- [x] **i18n Implementation**: Dynamic translation system working with `en.json` and `es.json`.
+- [x] **Terminology Simplification**: Removed technical jargon and replaced with sales-friendly terms (Inventarios, Catálogos, Socios, Productos).
+- [x] **Plan Details Hardening**: Created `plans.html` with accurate technical comparison table.
+- [x] **Plan Operativo Correction**: Explicitly excluded Work Orders and CMMS from the base tier.
+- [x] **Stripe Sensory Test**: Validated `payment_failed` webhook response in the monolith.
 
-## Phase 87: Operación de Rescate y Observabilidad (Pendientes)
-- [ ] **Subscription Recovery Service (Stripe Sync)**: Servicio de rescate en el arranque que consulta la metadata de clientes en Stripe (CompanyID) y restaura la tabla local `subscriptions` si está vacía.
-- [ ] **Webhooks de Stripe (Event Listener)**: Implementación del endpoint para escuchar `invoice.payment_failed` y modificar dinámicamente la DB local a estado `PAST_DUE`.
-- [ ] **Dashboard de Auditoría Industrial (Frontend)**: Interfaz de observabilidad cruzando en tiempo real las entidades físicas (RFID) vs virtuales (Web), detectando logs de "Acceso Denegado por Suscripción" generados por la Capa de Seguridad (Muro de Hierro).
+## Pending Backlog
+- [ ] **Identity Search API**: Finalize `/api/v1/core/identity/search` for ticket assignment.
+- [ ] **Audit Ledger Migration**: Move `SecurityAuditLog` to SQLAlchemy models.
+- [ ] **Tech Stack Section**: Add a visual tech stack section to the landing page.
+- [ ] **Demo Video**: Create or link a professional demo video of the system.

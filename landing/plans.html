@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de Planes | InternoCore Industrial</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body class="plans-page">
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <svg viewBox="0 0 100 100" class="logo-icon">
+                    <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="currentColor" stroke-width="8"/>
+                    <path d="M40 40 L60 40 L60 60 L40 60 Z" fill="currentColor"/>
+                </svg>
+                <span>Interno<span>Core</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" data-i18n="footer.home">Inicio</a>
+                <a href="index.html#features" data-i18n="features.title">Módulos</a>
+                <a href="index.html#pricing" data-i18n="pricing.title">Precios</a>
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="es">ES</button>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
+                <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Ir al Sistema</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="plans-header">
+        <div class="container">
+            <div class="badge" data-i18n="plans_page.badge">Comparativa Técnica</div>
+            <h1 data-i18n="plans_page.title">Arquitectura de Planes <span class="gradient-text">InternoCore</span></h1>
+            <p data-i18n="plans_page.desc">Desde la optimización de pymes hasta la soberanía tecnológica de grandes holdings. Todos los precios expresados en <strong>USD</strong>.</p>
+        </div>
+    </header>
+
+    <section class="plan-comparison">
+        <div class="container">
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="plans_table.feature">Característica</th>
+                            <th data-i18n="pricing.plan_op_title">Plan Operativo</th>
+                            <th data-i18n="pricing.plan_ind_title">Plan Industrial</th>
+                            <th data-i18n="pricing.plan_ent_title">Full Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_core">Núcleo & Identidad</td></tr>
+                        <tr>
+                            <td data-i18n="plans_table.isolation">Aislamiento de Datos</td>
+                            <td data-i18n="plans_table.iso_shared">Nivel 1 (Compartido)</td>
+                            <td data-i18n="plans_table.iso_high">Nivel 2 (Prioritario)</td>
+                            <td data-i18n="plans_table.iso_ded">Instancia Dedicada</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.auth">Acceso Seguro</td>
+                            <td>Usuario / Password</td>
+                            <td>+ Gafete RFID/PIN</td>
+                            <td>SSO / Corporativo</td>
+                        </tr>
+                        
+                        <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_inv">Inventarios & Almacén</td></tr>
+                        <tr>
+                            <td data-i18n="plans_table.inv_control">Control de Inventarios</td>
+                            <td data-i18n="plans_table.inv_basic">Básico (Entradas/Salidas)</td>
+                            <td data-i18n="plans_table.inv_adv">Avanzado (Costos/Lotes)</td>
+                            <td data-i18n="plans_table.inv_forensic">Historial Inmutable</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.loc_mgmt">Gestión de Pasillos</td>
+                            <td data-i18n="plans_table.loc_simple">Almacén Simple</td>
+                            <td data-i18n="plans_table.loc_rack">Rack / Bin Inteligente</td>
+                            <td data-i18n="plans_table.loc_3d">Mapa Visual 3D</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.customs">Reportes Aduaneros</td>
+                            <td><i class="fas fa-times"></i></td>
+                            <td data-i18n="plans_table.full">Completo</td>
+                            <td data-i18n="plans_table.auto">Automatización Total</td>
+                        </tr>
+
+                        <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_mfg">Producción & Activos</td></tr>
+                        <tr>
+                            <td data-i18n="plans_table.work_orders">Órdenes de Trabajo</td>
+                            <td><i class="fas fa-times"></i></td>
+                            <td data-i18n="plans_table.wo_mes">MES / Eficiencia OEE</td>
+                            <td data-i18n="plans_table.wo_global">Control Global</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.cmms">Mantenimiento (CMMS)</td>
+                            <td><i class="fas fa-times"></i></td>
+                            <td data-i18n="plans_table.maint_basic">Preventivo Básico</td>
+                            <td data-i18n="plans_table.maint_ai">Predictivo Inteligente</td>
+                        </tr>
+
+                        <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_support">Soporte & Respuesta</td></tr>
+                        <tr>
+                            <td data-i18n="plans_table.resp_time">Tiempo de Respuesta</td>
+                            <td>24-48h</td>
+                            <td>< 4h (Prioritario)</td>
+                            <td>< 1h (VIP)</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.backups">Respaldo de Datos</td>
+                            <td data-i18n="plans_table.bk_daily">Diarios</td>
+                            <td data-i18n="plans_table.bk_freq">Cada 6 horas</td>
+                            <td data-i18n="plans_table.bk_realtime">Tiempo Real</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.evidence">Evidencias en Tickets</td>
+                            <td data-i18n="plans_table.ev_none">Solo Texto (No multimedia)</td>
+                            <td data-i18n="plans_table.ev_multi">Fotos y Videos</td>
+                            <td data-i18n="plans_table.ev_full">Multimedia + Archivos</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <h2>¿Listo para digitalizar tu planta?</h2>
+            <p>Únete a la nueva era de la manufactura inteligente construida por ingenieros de campo.</p>
+            <div class="cta-btns">
+                <a href="http://localhost:4200/onboarding" class="btn-primary">Comenzar Ahora</a>
+                <a href="index.html#architect" class="btn-secondary">Hablar con Ingeniería</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p data-i18n="footer.copy">&copy; 2026 InternoCore Project. Diseñado por Carlos Flores Montoya.</p>
+                <div class="footer-links">
+                    <a href="index.html" data-i18n="footer.home">Inicio</a>
+                    <a href="../docs/DOCS_INTERNOCORE.html" data-i18n="footer.docs">Centro de Ayuda</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>

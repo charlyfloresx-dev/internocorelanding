@@ -65,6 +65,34 @@ class SubscriptionGuard:
         # 3. Validación de Modo Lectura (Gobernanza - Kill Switch Fase 1)
         if token_data.readonly:
             if request.method not in ["GET", "HEAD", "OPTIONS"]:
+                # Log the forensic event before raising the exception
+                try:
+                    from common.infrastructure.database import AsyncSessionLocal
+                    from common.services.audit_service import AuditService
+                    import asyncio
+                    
+                    async def log_block():
+                        async with AsyncSessionLocal() as session:
+                            audit_service = AuditService(session)
+                            await audit_service.log_action(
+                                user_id=str(token_data.sub),
+                                company_id=str(token_data.company_id),
+                                tenant_id=str(token_data.company_id),
+                                table_name="system_access",
+                                action="ACCESS_DENIED_402",
+                                old_values={"status": token_data.status},
+                                new_values={"reason": "Subscription PAST_DUE", "method": request.method, "path": request.url.path},
+                                ip_address=request.client.host if request.client else "unknown",
+                                user_agent=request.headers.get("user-agent", "unknown")
+                            )
+                            await session.commit()
+                            
+                    # Fire and forget
+                    asyncio.create_task(log_block())
+                except Exception as e:
+                    import logging
+                    logging.error(f"Failed to log ACCESS_DENIED_402 event: {e}")
+
                 raise HTTPException(
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,
                     detail={

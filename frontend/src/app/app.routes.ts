@@ -151,6 +151,10 @@ export const routes: Routes = [
           {
             path: 'staff',
             loadComponent: () => import('./modules/admin/staff-management.component').then(m => m.StaffManagementComponent)
+          },
+          {
+            path: 'forensic',
+            loadComponent: () => import('./modules/admin/forensic-dashboard.component').then(m => m.ForensicDashboardComponent)
           }
         ]
       },

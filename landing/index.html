@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternoCore | Industrial Nervous System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="#" class="logo">
+                <svg viewBox="0 0 100 100" class="logo-icon" style="width: 40px; height: 40px;">
+                    <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="currentColor" stroke-width="8"/>
+                    <path d="M40 40 L60 40 L60 60 L40 60 Z" fill="currentColor"/>
+                </svg>
+                <span>Interno<span>Core</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" data-i18n="features.title">Módulos</a>
+                <a href="#architect" data-i18n="architect.name">Arquitecto</a>
+                <a href="#pricing" data-i18n="pricing.title">Precios</a>
+                <div class="lang-switcher">
+                    <button class="lang-btn" data-lang="es" onclick="switchLanguage('es')">ES</button>
+                    <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">EN</button>
+                </div>
+                <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Explorar Demo</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="badge" data-i18n="hero.badge">Engineered by Charly Flores</div>
+                <h1><span data-i18n="hero.title">De la Planta al Código: </span><span class="gradient-text" data-i18n="hero.title_gradient">Backbone Industrial</span></h1>
+                <p class="lead" data-i18n="hero.lead">
+                    Construido por ingenieros que han gestionado millones en materiales. InternoCore no es solo software; es la consolidación de 3+ años resolviendo el caos operativo en industrias de alto volumen y aeroespacial.
+                </p>
+                <div class="hero-btns">
+                    <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Explorar Demo</a>
+                    <a href="#architect" class="btn-secondary" data-i18n="hero.btn_architect">Conocer al Arquitecto</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <strong>-$4.76M</strong>
+                        <span data-i18n="hero.stat_reduction">Reducción de Merma</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>100%</strong>
+                        <span data-i18n="hero.stat_traceability">Trazabilidad Serial</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>O(1)</strong>
+                        <span data-i18n="hero.stat_visibility">Visibilidad SSOT</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="glass-card">
+                    <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1200" alt="Carlos Flores Industrial Design">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="architect" class="architect-section">
+        <div class="container">
+            <div class="architect-grid">
+                <div class="architect-info">
+                    <div class="badge" data-i18n="architect.badge">Master Architect</div>
+                    <h2 data-i18n="architect.name">Carlos Flores Montoya</h2>
+                    <p class="bio" data-i18n="architect.bio">
+                        Especialista en Sistemas de Información Industrial con un historial probado en **SMK** y **Zodiac Aerospace**. Mi misión es erradicar la incoherencia de datos que drena la rentabilidad de las plantas.
+                    </p>
+                    <div class="milestones">
+                        <div class="milestone">
+                            <h4 data-i18n="architect.milestone_success_title">Caso de Éxito: -$4.8M en Materiales</h4>
+                            <p data-i18n="architect.milestone_success_desc">Desarrollé un sistema MES de trazabilidad serial que redujo la pérdida de material de $4.8 millones a solo $40k en dos meses mediante el control estricto de WIP y rutas de calidad.</p>
+                        </div>
+                        <div class="milestone">
+                            <h4 data-i18n="architect.milestone_philosophy_title">Filosofía de Desarrollo</h4>
+                            <p data-i18n="architect.milestone_philosophy_desc">Arquitecturas eficientes (.NET Core / Python) que corren al nivel del Kernel para garantizar latencia cero en escaneos masivos de RFID/PIN.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="architect-skills">
+                    <h3 data-i18n="architect.skills_title">Experiencia de Campo</h3>
+                    <ul class="skill-list">
+                        <li><i class="fas fa-microchip"></i> <span data-i18n="architect.skill_mes">Sistemas MES (Conteo, Tiempo Muerto, Labor)</span></li>
+                        <li><i class="fas fa-boxes-packing"></i> <span data-i18n="architect.skill_wms">WMS & Pull Systems (Supermercados, FIFO)</span></li>
+                        <li><i class="fas fa-chart-line"></i> <span data-i18n="architect.skill_metrics">Métricas OEE, TakTimes y FirstPastYield</span></li>
+                        <li><i class="fas fa-network-wired"></i> <span data-i18n="architect.skill_integration">Integración PLC, ANDON & Raspberry PI</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 data-i18n="features.title">Potencia Operativa</h2>
+                <p data-i18n="features.subtitle">Módulos diseñados bajo fuego real para orquestar cada átomo de tu empresa.</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-microchip"></i></div>
+                    <h3 data-i18n="features.mes_title">MES Engine</h3>
+                    <p data-i18n="features.mes_desc">Control de piso en tiempo real, gestión de órdenes de trabajo (ABC) y monitoreo de eficiencia OEE heredado de sistemas aeroespaciales.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-boxes-stacked"></i></div>
+                    <h3 data-i18n="features.wms_title">WMS Logistics</h3>
+                    <p data-i18n="features.wms_desc">Gestión de almacenes con precisión milimétrica, control de densidad (Density Guard) y Pull System automatizado.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-tools"></i></div>
+                    <h3 data-i18n="features.cmms_title">CMMS Assets</h3>
+                    <p data-i18n="features.cmms_desc">Mantenimiento preventivo, gestión de herramientas (ToolCrips) y ciclo de vida de activos con trazabilidad forense.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-id-card-clip"></i></div>
+                    <h3 data-i18n="features.hcm_title">HCM Identity</h3>
+                    <p data-i18n="features.hcm_desc">Vínculo SSOT entre identidades administrativas y colaboradores de planta con autenticación física PIN/RFID sincronizada con sistemas TRESS.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-shield-halved"></i></div>
+                    <h3 data-i18n="features.auth_title">Auth & Security</h3>
+                    <p data-i18n="features.auth_desc">Gestión de accesos Zero-Trust, RBAC avanzado y rotación de tokens (RTR) con validaciones de entrenamiento operativo.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-database"></i></div>
+                    <h3 data-i18n="features.master_title">Master Data</h3>
+                    <p data-i18n="features.master_desc">Fuente única de verdad (SSOT) para catálogos globales, eliminando la duplicidad de información entre múltiples plantas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-credit-card"></i></div>
+                    <h3 data-i18n="features.sub_title">Subscription</h3>
+                    <p data-i18n="features.sub_desc">Motor de billing SaaS sincronizado con Stripe, protegiendo la rentabilidad del sistema con bloqueos reactivos de seguridad L7.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon"><i class="fas fa-bell"></i></div>
+                    <h3 data-i18n="features.notif_title">Notifications</h3>
+                    <p data-i18n="features.notif_desc">Sistemas ANDON modernos vía WhatsApp Business, SMS y pantallas industriales para escalación de tiempos muertos.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="security" class="security">
+        <div class="container">
+            <div class="security-split">
+                <div class="security-text">
+                    <div class="badge" data-i18n="security.badge">Cero Brechas</div>
+                    <h2 data-i18n="security.title">Muro de Hierro: Trazabilidad Forense</h2>
+                    <p data-i18n="security.desc">Cada acción en InternoCore deja una huella inmutable. Aplicamos validaciones de "Hoja de Ruta" (Routing) para evitar que una pieza se procese si el paso anterior no fue validado.</p>
+                    <ul class="security-list">
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_audit">Auditoría de Transacciones en O(1)</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_routing">Bloqueo de Rutas Invalidas (Routing Control)</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_auth">Autenticación Binacional RFID/PIN</span></li>
+                    </ul>
+                </div>
+                <div class="security-visual">
+                    <div class="audit-stream">
+                        <div class="audit-line"><span>2026-05-05 12:45</span> <span>ROUTING_VALID</span> <span>STEP_WELDING</span></div>
+                        <div class="audit-line alert"><span>2026-05-05 12:47</span> <span>AUTH_REJECTED</span> <span>BAD_TRAINING</span></div>
+                        <div class="audit-line"><span>2026-05-05 12:50</span> <span>INVENTORY_MUTATED</span> <span>SKU_450</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2 data-i18n="pricing.title">Escala tu Operación</h2>
+                <p data-i18n="pricing.subtitle">Planes diseñados por ingenieros industriales para ingenieros industriales.</p>
+            </div>
+            <div class="pricing-grid">
+                <div class="price-card">
+                    <h3 data-i18n="pricing.plan_op_title">Plan Operativo</h3>
+                    <div class="price">$45<span> USD/mes</span></div>
+                    <p class="plan-desc" data-i18n="pricing.plan_op_desc">Infraestructura esencial para Pymes y Startups que requieren orden industrial desde el día uno.</p>
+                    <ul data-i18n="pricing.plan_op_list">
+                        <li><i class="fas fa-check"></i> <strong>SSOT Master Data</strong>: Catálogos limpios.</li>
+                        <li><i class="fas fa-check"></i> <strong>Tickets de Soporte</strong>: Control de incidencias.</li>
+                        <li><i class="fas fa-check"></i> <strong>Inventario Base</strong>: Entradas y salidas.</li>
+                        <li><i class="fas fa-check"></i> <strong>Hasta 3 Usuarios</strong>: Ideal para startups industriales.</li>
+                    </ul>
+                    <a href="plans.html" class="btn-outline" data-i18n="pricing.btn_details">Ver Detalles</a>
+                </div>
+                <div class="price-card featured">
+                    <div class="hot-badge" data-i18n="pricing.plan_ind_rec">Recomendado</div>
+                    <h3 data-i18n="pricing.plan_ind_title">Plan Industrial</h3>
+                    <div class="price">$350<span> USD/mes</span></div>
+                    <ul data-i18n="pricing.plan_ind_list">
+                        <li><i class="fas fa-check"></i> <strong>Todo el Plan Operativo</strong>.</li>
+                        <li><i class="fas fa-check"></i> <strong>MES Producción</strong>: OEE, TakTimes y Scrap.</li>
+                        <li><i class="fas fa-check"></i> <strong>WMS Avanzado</strong>: Pull System y Density Guard.</li>
+                        <li><i class="fas fa-check"></i> <strong>Cumplimiento Aduanero</strong>: FIFO Automatizado.</li>
+                        <li><i class="fas fa-check"></i> <strong>Usuarios Ilimitados</strong>: Sin barreras al crecimiento.</li>
+                    </ul>
+                    <a href="http://localhost:4200/billing" class="btn-primary" data-i18n="pricing.btn_select">Seleccionar</a>
+                </div>
+                <div class="price-card">
+                    <h3 data-i18n="pricing.plan_ent_title">Full Enterprise</h3>
+                    <div class="price">$550+<span> USD/mes</span></div>
+                    <ul data-i18n="pricing.plan_ent_list">
+                        <li><i class="fas fa-check"></i> <strong>Ecosistema Completo</strong>: CMMS, HCM y GIS.</li>
+                        <li><i class="fas fa-check"></i> <strong>Infraestructura Dedicada</strong>: Backups redundantes.</li>
+                        <li><i class="fas fa-check"></i> <strong>Soporte VIP</strong>: Consultoría directa de procesos.</li>
+                        <li><i class="fas fa-check"></i> <strong>Integraciones B2B</strong>: SAP/Oracle y Custom.</li>
+                    </ul>
+                    <a href="http://localhost:4200/billing" class="btn-outline" data-i18n="pricing.btn_contact">Contactar</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p data-i18n="footer.copy">&copy; 2026 InternoCore Project. Diseñado por Carlos Flores Montoya.</p>
+                <div class="footer-links">
+                    <a href="#" data-i18n="footer.privacy">Privacidad</a>
+                    <a href="#" data-i18n="footer.terms">Términos</a>
+                    <a href="../docs/DOCS_INTERNOCORE.html" data-i18n="footer.docs">Documentación Hub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
