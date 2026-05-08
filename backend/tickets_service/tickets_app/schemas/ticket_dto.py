@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from uuid import UUID
 from datetime import datetime
 from typing import List, Optional, Any
@@ -20,7 +20,25 @@ class TicketCreate(TicketBase):
     station_id: Optional[UUID] = None          # Requerido para MAINTENANCE
     reported_by_id: Optional[UUID] = None      # Para notificaciones de cierre
     source_service: Optional[str] = None       # "MANUAL", "INVENTORY", "MES"
-    assigned_to_id: Optional[UUID] = None
+    
+    # --- Triple Identidad Industrial ---
+    assigned_to_id: Optional[UUID] = None      # Identidad Digital (Usuario)
+    collaborator_id: Optional[UUID] = None    # Identidad Física (Colaborador)
+    external_contact_id: Optional[UUID] = None # Identidad Externa (Proveedor)
+    is_external: bool = False                  # Flag de asignación a terceros
+
+    @model_validator(mode="after")
+    def validate_assignment_logic(self) -> "TicketCreate":
+        if self.is_external:
+            if not self.external_contact_id:
+                raise ValueError("Se requiere 'external_contact_id' para asignaciones externas.")
+            # Si es externo, la identidad digital interna debe ser nula por política de Zero-Consumption
+            self.assigned_to_id = None
+        else:
+            # Si no es externo, al menos uno de los internos debería ser posible, 
+            # pero no bloqueamos la creación sin asignación (estado NEW)
+            pass
+        return self
 
 class TicketTriageAction(str, Enum):
     APPROVE = "APPROVE"
@@ -37,6 +55,9 @@ class TicketUpdate(BaseModel):
     priority: Optional[TicketPriority] = None
     status: Optional[TicketStatus] = None
     assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
+    is_external: Optional[bool] = None
     # --- Fase 5: Campos actualizables ---
     real_time_spent: Optional[int] = None      # Minutos reales invertidos
     cost_estimate: Optional[Decimal] = None    # Costo actualizado
@@ -91,6 +112,8 @@ class TicketRead(TicketBase):
     reference_code: str
     status: TicketStatus
     assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
     module_origin: Optional[str] = None
     area: Optional[str] = None
     estimated_time: Optional[int] = None

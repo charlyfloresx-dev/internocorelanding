@@ -423,3 +423,63 @@ async def delete_ticket(
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket eliminado (soft-delete)")
 
+
+@router.get("/public/access", response_model=ApiResponse)
+async def get_public_ticket_access(
+    token: str = Query(..., description="Industrial External Token"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    [Phase 89] Public access for external providers via token.
+    Does NOT require authentication header.
+    """
+    repo = SQLAlchemyTicketRepository(db)
+    
+    # Simple token validation (it's stored in the 'external_token' column)
+    ticket = await repo.get_by_external_token(token)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Industrial access denied: Invalid or expired token")
+        
+    return ApiResponse(
+        status="success",
+        data=TicketRead.model_validate(ticket),
+        message="Industrial access granted"
+    )
+
+@router.post("/public/comments", response_model=ApiResponse)
+async def add_public_comment(
+    cmd: TicketCommentBase,
+    token: str = Query(..., description="Industrial External Token"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    [Phase 89] Allow external providers to add comments using their token.
+    """
+    repo = SQLAlchemyTicketRepository(db)
+    ticket = await repo.get_by_external_token(token)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Industrial access denied")
+        
+    service = TicketService(repo)
+    # Usamos el ID de sistema para acciones de proveedores externos por ahora
+    # En una fase futura, podríamos vincularlo al ExternalContact.id
+    system_user_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+    
+    comment_cmd = TicketCommentCreate(
+        ticket_id=ticket.id,
+        company_id=ticket.company_id,
+        content=cmd.content
+    )
+    comment = await service.add_comment(comment_cmd, system_user_id)
+    
+    # Broadcast en tiempo real para que el dashboard interno vea el comentario
+    await manager.broadcast_to_company(
+        str(ticket.company_id),
+        {
+            "type": "TICKET_COMMENT_ADDED",
+            "payload": TicketCommentRead.model_validate(comment).model_dump()
+        }
+    )
+    
+    return ApiResponse(data=TicketCommentRead.model_validate(comment), message="Comentario agregado por proveedor externo")
+

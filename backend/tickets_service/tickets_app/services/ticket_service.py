@@ -4,6 +4,9 @@ from typing import List, Optional, Tuple
 from tickets_app.domain.ports.ticket_repository import ITicketRepository
 from tickets_app.schemas.ticket_dto import TicketCreate, TicketUpdate, TicketCommentCreate
 from tickets_app.core.constants import TicketStatus, TicketPriority
+from tickets_app.core.config import settings
+from tickets_app.models.ticket import Ticket
+from datetime import datetime
 
 
 class TicketService:
@@ -30,7 +33,17 @@ class TicketService:
             "company_id": cmd.company_id,
             "tenant_id": cmd.company_id,
             "created_by": user_id,
+            "assigned_to_id": cmd.assigned_to_id,
+            "collaborator_id": cmd.collaborator_id,
+            "external_contact_id": cmd.external_contact_id,
+            "external_assigned_at": datetime.utcnow() if cmd.external_contact_id else None,
         }
+        
+        # Inyectar campos de Fase 5 si existen
+        if hasattr(cmd, "module_origin") and cmd.module_origin: data["module_origin"] = cmd.module_origin
+        if hasattr(cmd, "area") and cmd.area: data["area"] = cmd.area
+        if hasattr(cmd, "station_id") and cmd.station_id: data["station_id"] = cmd.station_id
+
         ticket = await self.repo.create(data)
         
         # --- Fase 6: Notification Dispatcher (Ticket Created) ---
@@ -50,13 +63,50 @@ class TicketService:
             payload=event.model_dump_json()
         )
 
+        # --- Fase 3: External Provider Notification ---
+        if ticket.external_contact_id:
+            from tickets_app.schemas.integration_events import ExternalAssignmentEvent
+            import hashlib
+            
+            # Generar link_token único para el proveedor (SHA256(ticket_id + company_id + secret))
+            secret = settings.CORE_EXTERNAL_TOKEN_SECRET
+            token_seed = f"{ticket.id}_{ticket.company_id}_{secret}"
+            link_token = hashlib.sha256(token_seed.encode()).hexdigest()
+            
+            ext_event = ExternalAssignmentEvent(
+                ticket_id=ticket.id,
+                company_id=ticket.company_id,
+                reference_code=ticket.reference_code,
+                title=ticket.title,
+                external_contact_id=ticket.external_contact_id,
+                external_contact_name="External Technician", # Se hidratará en el worker si es necesario
+                link_token=link_token
+            )
+            
+            # ACTUALIZAR TICKET CON EL TOKEN PARA ACCESO PÚBLICO (Fase 89)
+            await self.repo.update(ticket.id, ticket.company_id, {"external_token": link_token})
+            
+            await self.repo.add_outbox_event(
+                company_id=ticket.company_id,
+                event_type=ext_event.event_type,
+                payload=ext_event.model_dump_json()
+            )
+
         # --- Soporte AI (Fase 8 Preview) ---
         from tickets_app.core.constants import TicketType
         if ticket.ticket_type == TicketType.SUPPORT:
              await self._process_support_ai(ticket)
 
+        # --- Fase 3: Gestión de Colaboradores Físicos ---
+        if ticket.collaborator_id and not ticket.assigned_to_id:
+             await self.repo.add_comment(
+                 ticket_id=ticket.id,
+                 company_id=ticket.company_id,
+                 content="[INDUSTRIAL_SIGNAL] Ticket asignado a colaborador físico sin identidad digital. Gestión vía Quiosco o Supervisor requerida.",
+                 author_id=uuid.UUID("00000000-0000-0000-0000-000000000000")
+             )
+
         # RE-FETCH FINAL: El commit en add_outbox_event o add_comment expira el objeto.
-        # Necesitamos re-obtenerlo con selectinload para la serialización del controlador.
         return await self.repo.get_by_id(ticket.id, ticket.company_id)
 
     async def _process_support_ai(self, ticket: "Ticket"):
@@ -302,9 +352,12 @@ class TicketService:
             updates["status"] = TicketStatus.ASSIGNED
             new_status = TicketStatus.ASSIGNED.value
         elif cmd.action.value == "REASSIGN":
-            if not cmd.new_assigned_to_id:
-                raise ValueError("new_assigned_to_id required for REASSIGN action")
+            if not (cmd.new_assigned_to_id or getattr(cmd, "new_collaborator_id", None) or getattr(cmd, "new_external_contact_id", None)):
+                raise ValueError("Se requiere al menos un destinatario para REASSIGN")
+            
             updates["assigned_to_id"] = cmd.new_assigned_to_id
+            updates["collaborator_id"] = getattr(cmd, "new_collaborator_id", None)
+            updates["external_contact_id"] = getattr(cmd, "new_external_contact_id", None)
             updates["status"] = TicketStatus.ASSIGNED
             new_status = TicketStatus.ASSIGNED.value
             

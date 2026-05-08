@@ -17,7 +17,9 @@ class AuditService:
         details: Optional[str] = None,
         company_id: Optional[uuid.UUID] = None,
         old_value: Optional[dict] = None,
-        new_value: Optional[dict] = None
+        new_value: Optional[dict] = None,
+        collaborator_id: Optional[uuid.UUID] = None,
+        external_contact_id: Optional[uuid.UUID] = None
     ):
         """Registra una acción en el ledger de auditoría."""
         log = AuditLog(
@@ -30,6 +32,8 @@ class AuditService:
             tenant_id=company_id,
             old_value=old_value,
             new_value=new_value,
+            collaborator_id=collaborator_id,
+            external_contact_id=external_contact_id,
             timestamp=datetime.now()
         )
         db.add(log)

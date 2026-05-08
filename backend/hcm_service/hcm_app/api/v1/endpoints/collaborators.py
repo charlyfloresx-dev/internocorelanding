@@ -4,6 +4,9 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
+
+logger = logging.getLogger(__name__)
 
 from hcm_app.core.database import get_db
 from hcm_app.core.config import settings
@@ -112,6 +115,31 @@ async def bulk_upload(
             detail=str(e)
         )
 
+
+@router.get("/search", response_model=ApiResponse[List[CollaboratorRead]])
+async def search_collaborators(
+    q: str = Query(..., min_length=2),
+    db: AsyncSession = Depends(get_db),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
+):
+    """
+    Searches collaborators by name or internal_id.
+    """
+    stmt = select(Collaborator).where(
+        Collaborator.company_id == token.company_id,
+        Collaborator.is_active == True
+    )
+    if q:
+        stmt = stmt.where(Collaborator.full_name.ilike(f"%{q}%"))
+    
+    result = await db.execute(stmt)
+    collaborators = result.scalars().all()
+    
+    return ApiResponse(
+        status="success",
+        data=[CollaboratorRead.model_validate(c) for c in collaborators],
+        message="Collaborators found"
+    )
 
 # ── Phase 50: Handheld Validation Endpoints ────────────────────────────────────
 

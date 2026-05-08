@@ -12,10 +12,26 @@ class ConfigurationError(Exception):
 
 class StripeSettings(BaseSettings):
     """Configuración específica para la integración con Stripe."""
-    int_stripe_public_key: Optional[str] = Field(None, description="Stripe Publishable Key")
-    int_stripe_secret_key: Optional[str] = Field(None, description="Stripe Secret Key")
-    int_stripe_webhook_secret: Optional[str] = Field(None, description="Stripe Webhook Secret")
-    int_stripe_product_id: Optional[str] = Field(None, description="Stripe Product ID")
+    int_stripe_public_key: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_STRIPE_PUBLIC_KEY", "STRIPE_PUBLIC_KEY"),
+        description="Stripe Publishable Key"
+    )
+    int_stripe_secret_key: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_STRIPE_SECRET_KEY", "STRIPE_SECRET_KEY"),
+        description="Stripe Secret Key"
+    )
+    int_stripe_webhook_secret: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET"),
+        description="Stripe Webhook Secret"
+    )
+    int_stripe_product_id: Optional[str] = Field(
+        None, 
+        validation_alias=AliasChoices("CORE_STRIPE_PRODUCT_ID", "STRIPE_PRODUCT_ID"),
+        description="Stripe Product ID"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

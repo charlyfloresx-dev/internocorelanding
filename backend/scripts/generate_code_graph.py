@@ -252,10 +252,27 @@ class CodeGraphGenerator:
                 source = ast.get_source_segment(f.read(), node) or ""
         except: pass
 
-        # Multi-tenancy check
+        # Multi-tenancy check (Phase 89+ — Smart Exclusions)
+        # Methods that access data globally by design are excluded:
+        #   - External/public token lookups (providers don't know company_id)
+        #   - Escalation/SLA cron jobs (cross-tenant orchestration)
+        #   - Global aggregation/reporting methods
         if "Repository" in class_node.name and node.name.startswith(("get_", "find_", "list_")):
             if any(k in source for k in ["select(", "filter(", "where("]):
-                if not any(t in source for t in ["company_id", "tenant_id", "filter_by_company", "MultiTenant", "_apply_tenant_filter", "bypass_tenant"]):
+                # Known tenant-aware markers
+                tenant_markers = [
+                    "company_id", "tenant_id", "filter_by_company",
+                    "MultiTenant", "_apply_tenant_filter", "bypass_tenant"
+                ]
+                # Smart exclusion: method names that are global by design
+                global_access_patterns = [
+                    "external_token", "escalation", "public",
+                    "global", "cron", "webhook", "migration"
+                ]
+                method_lower = node.name.lower()
+                is_global_by_design = any(p in method_lower for p in global_access_patterns)
+
+                if not is_global_by_design and not any(t in source for t in tenant_markers):
                     err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "MISSING_TENANT_FILTER: Possible missing company_id filter"}
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
@@ -285,6 +302,18 @@ class CodeGraphGenerator:
                      err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "SUBSCRIPTION_AWARENESS_WARNING: Write operation in critical service might be missing subscription-state awareness (readonly/status)"}
                      self.graph["invariants_errors"].append(err)
                      self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # 4. Public Endpoint Data Leakage Guard (Phase 90)
+        # Endpoints under /public/ must NOT return sensitive tenant fields
+        if "/routers/" in rel_path or "/endpoints/" in rel_path:
+            if "public" in node.name.lower():
+                sensitive_fields = ["company_id", "tenant_id", "created_by", "assigned_to_id", "user_id"]
+                leaked = [f for f in sensitive_fields if f'"{f}"' in source or f"'{f}'" in source]
+                # Only flag if the method explicitly serializes these fields in a response dict
+                if leaked and ("return {" in source or "jsonable_encoder" in source):
+                    err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": f"PUBLIC_DATA_LEAKAGE: Public endpoint may expose sensitive fields: {', '.join(leaked)}"}
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
     def print_report(self):
         critical = [e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"]

@@ -38,6 +38,10 @@ export const routes: Routes = [
         loadComponent: () => import('./modules/monitor/tickets/tickets-dashboard.component').then(m => m.TicketsDashboardComponent)
       },
       {
+        path: 'monitor/flows',
+        loadComponent: () => import('./modules/monitor/flows/industrial-flows.component').then(m => m.IndustrialFlowsComponent)
+      },
+      {
         path: 'inventory',
         children: [
           {

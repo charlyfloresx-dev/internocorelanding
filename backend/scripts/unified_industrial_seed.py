@@ -42,6 +42,8 @@ from master_app.models.partner import Partner
 from inventory_app.models.warehouse import Warehouse as InvWarehouse
 from tickets_app.models.ticket import Ticket
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
+from hcm_app.models.collaborator import Collaborator
+from common.models.external_contact import ExternalContact
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("industrial-seed")
@@ -523,9 +525,68 @@ async def seed_tickets(session):
         is_active=True,
         version_id=1
     ))
+
+    # [Phase 89] Ticket for External Provider (Alicia Torres)
+    # Token: industrial_demo_token_alicia_2026
+    tickets.append(Ticket(
+        id=uuid.UUID("33333333-0003-4003-b003-000000000003"),
+        reference_code="EXT-2026-001",
+        title="Instalación de Sensor de Proximidad RACK-01",
+        description="Se requiere instalación y calibración del sensor de proximidad en el rack de auditoría.",
+        ticket_type=TicketType.MAINTENANCE,
+        priority=TicketPriority.HIGH,
+        status=TicketStatus.ASSIGNED,
+        area="Mantenimiento Externo",
+        external_contact_id=uuid.UUID("22222222-0002-4002-b002-000000000002"),
+        external_token="industrial_demo_token_alicia_2026",
+        company_id=ENTERPRISE_ID,
+        tenant_id=ENTERPRISE_ID,
+        is_active=True,
+        version_id=1
+    ))
     
     for t in tickets:
         await _safe_add(session, t, f"Ticket: {t.reference_code}")
+
+async def seed_industrial_identities(session):
+    log.info("[+] Seeding Triple Identity contacts (Collaborators & External)...")
+    
+    # 1. Collaborator (Plant)
+    collab = Collaborator(
+        id=uuid.UUID("11111111-0001-4001-b001-000000000001"),
+        first_name="Carlos",
+        last_name="Ramírez",
+        internal_id="EMP-001",
+        company_id=ENTERPRISE_ID,
+        tenant_id=ENTERPRISE_ID,
+        is_active=True,
+        version_id=1
+    )
+    await _safe_add(session, collab, "Collaborator: Carlos Ramírez")
+
+    # 2. External Contact (Provider)
+    contact_data = {
+        "full_name": "Ing. Alicia Torres",
+        "email": "charly.flores.x@gmail.com",
+        "phone": "+52 55 1234 5678",
+        "company_id": ENTERPRISE_ID,
+        "tenant_id": ENTERPRISE_ID,
+        "is_active": True,
+        "version_id": 1
+    }
+    
+    # Try to find existing
+    stmt = select(ExternalContact).where(ExternalContact.id == uuid.UUID("22222222-0002-4002-b002-000000000002"))
+    existing = (await session.execute(stmt)).scalar_one_or_none()
+    
+    if existing:
+        for k, v in contact_data.items():
+            setattr(existing, k, v)
+        print(f"  UPDATE External Contact: {existing.full_name}")
+    else:
+        contact = ExternalContact(id=uuid.UUID("22222222-0002-4002-b002-000000000002"), **contact_data)
+        session.add(contact)
+        print(f"  CREATE External Contact: {contact.full_name}")
 
 # --- Orquestador Principal ---
 async def run_unified_seed():
@@ -548,6 +609,7 @@ async def run_unified_seed():
 
         log.info("[3/5] Support: Tickets base...")
         await seed_tickets(session)
+        await seed_industrial_identities(session)
 
         log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
         await seed_inventory(session)

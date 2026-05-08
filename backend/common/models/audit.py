@@ -28,8 +28,11 @@ class AuditLog(MultiTenantBase):
     tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     group_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
 
-    # User & Request Context
-    user_id: Mapped[Optional[str]] = mapped_column(String(100), index=True)
+    # User & Identity Context (Triple Identidad)
+    user_id: Mapped[Optional[str]] = mapped_column(String(100), index=True) # Identidad Digital
+    collaborator_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True) # Identidad Física
+    external_contact_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True) # Identidad Externa
+    
     client_ip: Mapped[Optional[str]] = mapped_column(String(50))
     user_agent: Mapped[Optional[str]] = mapped_column(String(255))
 

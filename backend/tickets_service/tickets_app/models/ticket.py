@@ -26,10 +26,24 @@ class Ticket(MultiTenantBase):
     
     assigned_to_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
-    )
+    ) # ID del Usuario del sistema (Identidad Digital)
+
+    collaborator_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
+    ) # ID del Colaborador industrial (Identidad Física)
+
+    external_contact_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
+    ) # ID del Contacto Externo (Proveedor)
+
+    external_assigned_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    ) # Fecha de asignación externa para SLA de 72h
     
     # Anti-Fatigue Debouncing
     deduplication_hash: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    
+    external_token: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True) # Token para acceso externo
     
     # MES/ERP Execution metrics
     module_origin: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # e.g., PRODUCTION, INVENTORY

@@ -10,6 +10,7 @@ from tickets_app.domain.ports.ticket_repository import ITicketRepository
 from tickets_app.domain.ports.inventory_client import IInventoryClient
 from tickets_app.services.ticket_service import TicketService
 from tickets_app.schemas.ticket_dto import TicketCreate
+from tickets_app.models.ticket import Ticket
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,9 @@ class CreateTicketCommand(BaseModel):
     parent_ticket_id: Optional[UUID] = None
     source_service: Optional[str] = None
     escalation_level: int = 0
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
+    is_external: bool = False
 
 
 class ConsumeResourceDto(BaseModel):
@@ -76,7 +80,16 @@ class TicketCommandHandler:
             description=cmd.description,
             ticket_type=cmd.ticket_type,
             priority=cmd.priority,
-            company_id=cmd.company_id
+            company_id=cmd.company_id,
+            assigned_to_id=cmd.assigned_to_id,
+            collaborator_id=cmd.collaborator_id,
+            external_contact_id=cmd.external_contact_id,
+            is_external=cmd.is_external,
+            module_origin=cmd.module_origin,
+            area=cmd.area,
+            station_id=cmd.station_id,
+            reported_by_id=cmd.reported_by_id,
+            source_service=cmd.source_service
         )
 
         ticket = await self._service.create_ticket(ticket_create_dto, cmd.created_by_id)
@@ -104,13 +117,16 @@ class TicketCommandHandler:
             ticket = await self.repo.update(ticket.id, cmd.company_id, updates)
 
         # Forensic audit trail
+        action_name = "EXTERNAL_PROVIDER_ACTION" if cmd.is_external else "CREATE_TICKET"
         await AuditService.track(
             user_id=cmd.created_by_id,
-            action="CREATE_TICKET",
+            action=action_name,
             resource=f"ticket:{ticket.id}",
             metadata={
                 "company_id": str(cmd.company_id),
-                "details": f"Ticket created: {ticket.title}"
+                "details": f"Ticket created: {ticket.title}",
+                "collaborator_id": str(cmd.collaborator_id) if cmd.collaborator_id else None,
+                "external_contact_id": str(cmd.external_contact_id) if cmd.external_contact_id else None
             }
         )
         logger.info(f"AUDIT | User {cmd.created_by_id} | CREATE | Ticket {ticket.id} | {ticket.title}")

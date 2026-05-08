@@ -14,11 +14,13 @@ base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(base_path)
 sys.path.append(os.path.abspath(os.path.join(base_path, "..")))
 
-# 2. Importar Configuración y Modelos
-# Intentamos importar common.models.base_models.Base si todos heredan de ahí
-from common.infrastructure.models.base import MultiTenantBase as Base
+# 2. Importar Configuración y Modelos (Unified Monolith)
+from common.infrastructure.models.base import Base
 from tickets_app.core.config import settings
+
+# Importar todos los modelos para que Alembic los vea
 from tickets_app.models import *
+from common.models import *
 
 # 3. Configuración de Alembic
 config = context.config

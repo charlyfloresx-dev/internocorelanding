@@ -146,10 +146,12 @@ export class SupportService {
     }
   }
 
-  async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', newAssignedToId?: string, comment?: string) {
+  async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', newAssignedToId?: string, comment?: string, collaboratorId?: string, externalContactId?: string) {
     try {
       const payload: any = { action };
       if (newAssignedToId) payload.new_assigned_to_id = newAssignedToId;
+      if (collaboratorId) payload.collaborator_id = collaboratorId;
+      if (externalContactId) payload.external_contact_id = externalContactId;
       if (comment) payload.comment = comment;
 
       const response = await firstValueFrom(
@@ -159,6 +161,26 @@ export class SupportService {
     } catch (err) {
       console.error('Error in triage action:', err);
       throw err;
+    }
+  }
+
+  async searchIdentities(q: string): Promise<any[]> {
+    try {
+      const [users, collaborators, contacts] = await Promise.all([
+        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/users/?q=${q}`)),
+        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/hcm/collaborators/search?q=${q}`)),
+        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/partners/contacts/search?q=${q}`))
+      ]);
+
+      const results = [];
+      if (users.data) results.push(...users.data.map(u => ({ ...u, type: 'INTERNAL', label: u.full_name, sub: u.email })));
+      if (collaborators.data) results.push(...collaborators.data.map(c => ({ ...c, type: 'PLANTA', label: c.full_name, sub: c.internal_id })));
+      if (contacts.data) results.push(...contacts.data.map(e => ({ ...e, type: 'EXTERNO', label: e.full_name, sub: e.email })));
+
+      return results;
+    } catch (err) {
+      console.error('Error searching identities:', err);
+      return [];
     }
   }
 

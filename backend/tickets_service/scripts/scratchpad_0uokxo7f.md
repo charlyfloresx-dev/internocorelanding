@@ -1,0 +1,21 @@
+# Ticket Flow Task Checklist
+
+- [x] Login as charly@interno.com
+- [x] Navigate to Monitor -> Tickets
+- [ ] **Flow 1: Internal**
+    - [ ] Create ticket 'MT-INTERNAL-UI: Revisión Servidor Core'
+    - [ ] Open triaje
+    - [ ] Assign to 'Charly' (INTERNAL)
+    - [ ] Confirm dispatch
+- [ ] **Flow 2: Planta**
+    - [ ] Create ticket 'MT-PLANTA-UI: Falla en Sensor de Temperatura'
+    - [ ] Open triaje
+    - [ ] Assign to 'Carlos Ramírez' (PLANTA)
+    - [ ] Confirm dispatch
+- [ ] **Flow 3: External**
+    - [ ] Create ticket 'MT-EXT-UI: Mantenimiento de Subestación'
+    - [ ] Open triaje
+    - [ ] Assign to 'Alicia Torres' (EXTERNO)
+    - [ ] Confirm dispatch
+- [ ] Take final screenshot of Kanban
+- [ ] Generate report

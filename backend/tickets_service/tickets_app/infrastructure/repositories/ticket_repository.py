@@ -63,6 +63,9 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             module_origin=data.get("module_origin"),
             area=data.get("area"),
             assigned_to_id=data.get("assigned_to_id"),
+            collaborator_id=data.get("collaborator_id"),
+            external_contact_id=data.get("external_contact_id"),
+            station_id=data.get("station_id"),
         )
 
         self._session.add(ticket)
@@ -289,3 +292,18 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         # result.all() devuelve una lista de tuplas (user_id, count)
         rows = result.all()
         return {str(row[0]): row[1] for row in rows if row[0]}
+
+    async def get_by_external_token(self, token: str) -> Optional[Ticket]:
+        """Busca ticket por token externo. bypass_tenant: los proveedores
+        externos acceden con token opaco sin conocimiento del company_id."""
+        stmt = select(Ticket).options(
+            selectinload(Ticket.comments),
+            selectinload(Ticket.history),
+            selectinload(Ticket.resources),
+            selectinload(Ticket.stop_logs)
+        ).where(
+            Ticket.external_token == token,
+            Ticket.is_active == True
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()

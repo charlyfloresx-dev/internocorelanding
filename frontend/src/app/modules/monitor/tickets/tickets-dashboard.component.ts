@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, effect, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { SupportService as TicketService } from '../../../core/services/support.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Ticket, TicketStatus, TicketPriority } from '../../../core/models/support.types';
@@ -17,7 +17,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
 @Component({
   selector: 'app-tickets-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule, TicketTriageDrawerComponent],
+  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule, TicketTriageDrawerComponent, RouterModule],
   template: `
     <div class="p-6 animate-fade-in flex flex-col min-h-full w-full">
       
@@ -69,6 +69,10 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
              <mat-icon class="text-emerald-500 text-sm">trending_up</mat-icon>
           </div>
           <div class="hidden sm:block h-8 w-px bg-surface-border/60"></div>
+          <button [routerLink]="['/monitor/flows']" class="bg-surface-text/5 hover:bg-surface-text/10 text-surface-text rounded-xl px-4 py-2 flex items-center gap-2 transition-all border border-surface-border">
+            <mat-icon class="text-[18px]">account_tree</mat-icon>
+            <span class="text-[10px] font-black uppercase tracking-wider">Simulador</span>
+          </button>
           <button (click)="openNewTicket()" class="bg-primary hover:bg-primary-dark text-white rounded-xl px-4 py-2 flex items-center gap-2 transition-all shadow-lg shadow-primary/20 hover:scale-105 active:scale-95">
             <mat-icon class="text-[18px]">add</mat-icon>
             <span class="text-[10px] font-black uppercase tracking-wider">{{ 'support.dashboard.new_ticket' | translate:'NUEVO TICKET' }}</span>
@@ -94,7 +98,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsNew(); track ticket.id) {
               <div draggable="true" 
-                   (click)="selectedTicket.set(ticket)"
+                   (click)="openTriage(ticket)"
                    (dragstart)="onDragStart($event, ticket)" 
                    [class.border-l-primary]="ticket.status !== TicketStatus.PENDING_APPROVAL"
                    [class.border-l-amber-500]="ticket.status === TicketStatus.PENDING_APPROVAL"
@@ -199,7 +203,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
           
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsInProgress(); track ticket.id) {
-              <div draggable="true" (click)="selectedTicket.set(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-amber-500 rounded-xl p-4 shadow-sm hover:border-amber-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group w-full">
+              <div draggable="true" (click)="openTriage(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-amber-500 rounded-xl p-4 shadow-sm hover:border-amber-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group w-full">
                 <div class="flex justify-between items-start mb-4">
                   <div>
                     <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
@@ -249,7 +253,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
           
           <div class="flex-1 bg-surface-text/[0.02] dark:bg-white/[0.02] border border-surface-border/50 rounded-2xl p-4 flex flex-col gap-5 transition-all duration-300 min-h-[400px]">
             @for (ticket of ticketsResolved(); track ticket.id) {
-              <div draggable="true" (click)="selectedTicket.set(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-emerald-500 rounded-xl p-4 shadow-sm hover:border-emerald-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group opacity-75 hover:opacity-100 w-full">
+              <div draggable="true" (click)="openTriage(ticket)" (dragstart)="onDragStart($event, ticket)" class="bg-surface-card border border-surface-border border-l-[4px] border-l-emerald-500 rounded-xl p-4 shadow-sm hover:border-emerald-500/50 transition-all cursor-pointer active:cursor-grabbing relative overflow-hidden group opacity-75 hover:opacity-100 w-full">
                 <div class="flex justify-between items-start mb-4">
                   <div>
                     <p class="text-[8px] font-black text-surface-text-muted uppercase tracking-[0.2em] mb-1">{{ 'support.dashboard.ticket_folio' | translate:'FOLIO TICKET' }}</p>
@@ -301,17 +305,17 @@ export class TicketsDashboardComponent implements OnInit {
   tickets = signal<Ticket[]>([]);
   viewFilter = signal<'ALL' | 'MINE'>('ALL');
   selectedTicket = signal<Ticket | null>(null);
-  
+
   // Supervision data
   allUsers = signal<AdminUser[]>([]);
   technicians = signal<AdminUser[]>([]);
   workload = signal<Record<string, number>>({});
   isLoadingTriage = signal<boolean>(false);
-  
+
   isSupervisor = computed(() => {
     const roles = this.authService.roles();
-    return roles.some((r: string) => 
-      r.toLowerCase() === 'supervisor' || 
+    return roles.some((r: string) =>
+      r.toLowerCase() === 'supervisor' ||
       r.toLowerCase().includes('admin') ||
       r.toLowerCase() === 'owner' ||
       r.toLowerCase().includes('manager')
@@ -323,7 +327,7 @@ export class TicketsDashboardComponent implements OnInit {
       let ts = this.ticketService.tickets();
       const session = this.authService.session();
       const userId = session?.user_id;
-      
+
       if (this.viewFilter() === 'MINE' && userId) {
         // Incluir creados por o asignados a
         ts = ts.filter((t: Ticket) => t.assigned_to_id === userId || t.created_by === userId);
@@ -350,7 +354,7 @@ export class TicketsDashboardComponent implements OnInit {
         this.viewFilter.set('MINE');
       }
     });
-    
+
     this.loadSupervisionData(); // Always load users for name mapping
     if (this.isSupervisor()) {
       // additional supervisor logic if needed
@@ -368,8 +372,8 @@ export class TicketsDashboardComponent implements OnInit {
       this.adminService.getUsers().subscribe(res => {
         if (res.data) {
           this.allUsers.set(res.data);
-          this.technicians.set(res.data.filter(u => 
-            u.role_name.toLowerCase().includes('technician') || 
+          this.technicians.set(res.data.filter(u =>
+            u.role_name.toLowerCase().includes('technician') ||
             u.role_name.toLowerCase().includes('user') ||
             u.role_name.toLowerCase().includes('oper') ||
             u.role_name.toLowerCase().includes('admin')
@@ -423,16 +427,22 @@ export class TicketsDashboardComponent implements OnInit {
     return id.split('-')[0].toUpperCase(); // fallback to short uuid part
   }
 
+  openTriage(ticket: Ticket) {
+    this.drawerService.open(TicketsFormComponent, {
+      title: 'GESTIÓN DE TICKET',
+      subtitle: ticket.reference_code,
+      icon: 'engineering',
+      width: 'w-[450px]'
+    }, ticket);
+  }
+
   openNewTicket() {
     this.drawerService.open(TicketsFormComponent, {
-      title: 'TECHNICAL SUPPORT',
-      subtitle: 'AI HELP CENTER',
+      title: 'NUEVO TICKET',
+      subtitle: 'CENTRO DE SOPORTE',
       icon: 'smart_toy',
-      width: 'w-[400px]'
-    }, {
-      context: 'support',
-      isEdit: false
-    });
+      width: 'w-[450px]'
+    }, null);
   }
 
   onDragStart(event: DragEvent, ticket: Ticket) {
@@ -459,7 +469,7 @@ export class TicketsDashboardComponent implements OnInit {
 
     if (this.draggedTicket.status !== newStatus) {
       const ticketId = this.draggedTicket.id;
-      const updatedTickets = this.tickets().map(t => 
+      const updatedTickets = this.tickets().map(t =>
         t.id === ticketId ? { ...t, status: newStatus } : t
       );
       this.tickets.set(updatedTickets);
@@ -468,7 +478,7 @@ export class TicketsDashboardComponent implements OnInit {
         this.ticketService.loadTickets();
       });
     }
-    
+
     this.draggedTicket = null;
   }
 

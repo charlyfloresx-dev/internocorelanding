@@ -50,8 +50,11 @@ async def _notify_admin_new_document(
             type_clean = str(doc_type).lower()
             type_desc = "Entrada" if "in" in type_clean else "Salida" if "out" in type_clean else "Movimiento"
             
+            # Asegurar que company_id sea UUID
+            final_company_id = company_id if isinstance(company_id, uuid.UUID) else uuid.UUID(str(company_id))
+            
             await svc.notify_role(
-                company_id=uuid.UUID(company_id),
+                company_id=final_company_id,
                 role_name="admin",
                 title=f"📦 {type_desc} — {folio}",
                 message=(
@@ -156,12 +159,16 @@ async def create_document(
     # Enrichment: If external_entity is a UUID, try to get the Partner Name
     if doc.external_entity:
         try:
-            # Check if it's a valid UUID
-            potential_uuid = uuid.UUID(doc.external_entity)
+            # Check if it's a valid UUID (can be string or UUID object)
+            if isinstance(doc.external_entity, uuid.UUID):
+                potential_uuid = doc.external_entity
+            else:
+                potential_uuid = uuid.UUID(str(doc.external_entity))
+                
             partner_data = await service.md_client.get_partner(potential_uuid, token.company_id)
             if partner_data:
                 destination_name = partner_data.get("name") or partner_data.get("code") or destination_name
-        except (ValueError, Exception) as e:
+        except (ValueError, Exception):
             # Not a UUID or failed search, keep original
             pass
 
@@ -175,7 +182,7 @@ async def create_document(
         "total_items": len(results),
         "total_weight": float(total_weight),
         "total_amount": float(total_amount),
-        "total_currency": results[0].price.currency if results else "MXN",
+        "total_currency": (results[0].price.currency if (results and results[0].price) else "MXN"),
         "concept_id": doc.concept_id,
         "external_reference": str(doc.correlation_id)
     }

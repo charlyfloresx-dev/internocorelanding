@@ -3,8 +3,12 @@ import logging
 import signal
 
 # Absolute imports based on PYTHONPATH in Docker
-from scripts.outbox_worker import OutboxWorker
-from scripts.escalation_watcher import EscalationWatcher
+try:
+    from scripts.outbox_worker import OutboxWorker
+    from scripts.escalation_watcher import EscalationWatcher
+except ImportError:
+    from outbox_worker import OutboxWorker
+    from escalation_watcher import EscalationWatcher
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("unified_worker")

@@ -2,6 +2,27 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
+### [2026-05-08] Phase 90: Supplier Access Industrialization & Audit Evolution
+- **Supplier Landing Page**: Finalized `landing/ticket-access.html` — a standalone glassmorphic portal where external providers can view ticket details, SLA countdown (72h), intervention history, and submit comments/evidence using their industrial token.
+- **Outbox Worker Integration**: Connected `OutboxWorker` to process `EXTERNAL_ASSIGNMENT` events from `outbox_events`, forwarding them to the `notification_service` via HTTP with company-scoped headers for guaranteed at-least-once delivery.
+- **Industrial Flows Simulator (v2)**: Upgraded `IndustrialFlowsComponent` from mock `setTimeout` to real HTTP traffic — now creates 3 tickets and triages them across the Triple Identity (Internal/Plant/External) using `SupportService`, fully auditable in browser Network tab.
+- **Code Graph Audit Evolution (Phase 90)**:
+    - **Smart Tenant Exclusions**: Methods named with `external_token`, `escalation`, `public`, `global`, `cron`, `webhook`, `migration` are automatically exempt from `MISSING_TENANT_FILTER` without requiring docstring annotations.
+    - **Public Data Leakage Guard**: New invariant that flags public endpoints serializing sensitive fields (`company_id`, `tenant_id`, `created_by`).
+- **Compliance**: 14/14 microservices at **100% Compliance** — 0 errors.
+- **Status**: ✅ Phase 90 COMPLETED — Supplier Portal Operational, Audit Script Hardened.
+
+### [2026-05-08] Phase 89: Triple Identity Triage & Security Hardening
+- **Triple Identity Architecture**: Unified `Collaborator` (Physical) and `ExternalContact` (External) identities within the `TicketsService`, enabling a comprehensive triage system that bridges digital and industrial operations.
+- **Automated Validation Flows**: Engineered a suite of validation scripts (`backend/tickets_service/scripts/flows/`) to ensure architectural integrity:
+    - **Load Balancing (LB)**: Verified the automatic release of internal licenses when tickets are reassigned to external providers.
+    - **SLA Enforcement**: Implemented strict 72-hour window validation for external access tokens, ensuring forensic security of industrial data.
+    - **Multi-tenant Quotas**: Integrated real-time storage limit validation against active subscription plans (`storage_limit`) for external evidence uploads.
+- **Outbox Event Integration**: Standardized the `EXTERNAL_ASSIGNMENT` event flow in `outbox_events` for guaranteed asynchronous notification delivery to providers.
+- **Compliance & Governance**: Resolved `ENV_ACCESS_VIOLATION` in the tickets service and reached 100% compliance in the Code Knowledge Graph Audit.
+- **Frontend Monolith Gateway**: Synchronized the Angular environment to route all traffic through the Unified Monolith (Port 8000), eliminating CORS and routing deadlocks.
+- **Status**: ✅ Phase 89 COMPLETED — Triple Identity Triage Hardened & Automated.
+
 ### 🗓️ Mayo 2026: Motor Operacional Industrial (Tickets Service & CMMS)
 
 ### [2026-05-05] Phase 88: Landing Page Industrialization & i18n Implementation

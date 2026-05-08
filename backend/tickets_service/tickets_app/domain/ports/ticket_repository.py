@@ -84,3 +84,8 @@ class ITicketRepository(ABC):
     async def get_technician_workload(self, company_id: UUID) -> dict:
         """Retorna un mapa de {user_id: count} con la carga de tickets activos."""
         ...
+
+    @abstractmethod
+    async def get_by_external_token(self, token: str) -> Optional["Ticket"]: # noqa: F821
+        """Obtiene un ticket por su token de acceso externo."""
+        ...

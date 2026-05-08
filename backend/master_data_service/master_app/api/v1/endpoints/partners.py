@@ -6,11 +6,40 @@ import uuid
 
 from master_app.dependencies import get_db, get_current_user
 from master_app.models.partner import Partner
+from common.models.external_contact import ExternalContact
 from master_app.schemas.partner import PartnerCreate, PartnerUpdate, PartnerResponse
-from common.domain.entities.user_context import UserContext
+from master_app.schemas.external_contact import ExternalContactResponse
 from common.responses import ApiResponse
+from common.domain.entities.user_context import UserContext
 
 router = APIRouter()
+
+@router.get("/contacts/search", response_model=ApiResponse[List[ExternalContactResponse]])
+async def search_external_contacts(
+    q: str = Query(..., min_length=2),
+    session: AsyncSession = Depends(get_db),
+    current_user: UserContext = Depends(get_current_user)
+):
+    """
+    Busca contactos externos de proveedores por nombre o correo.
+    """
+    stmt = select(ExternalContact).where(
+        ExternalContact.company_id == current_user.company_id
+    )
+    if q:
+        stmt = stmt.where(
+            (ExternalContact.full_name.ilike(f"%{q}%")) | 
+            (ExternalContact.email.ilike(f"%{q}%"))
+        )
+    
+    result = await session.execute(stmt)
+    contacts = result.scalars().all()
+    
+    return ApiResponse(
+        status="success", 
+        data=[ExternalContactResponse.model_validate(c) for c in contacts], 
+        message="External contacts found"
+    )
 
 @router.get("", response_model=ApiResponse[List[PartnerResponse]])
 async def get_partners(

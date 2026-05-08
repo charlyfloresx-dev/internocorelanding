@@ -113,24 +113,56 @@ import { ToastService } from '../../../../core/services/toast.service';
                           }
                         </div>
 
-                        @if (showTechDropdown() && typeaheadTechnicians().length > 0) {
-                          <div class="absolute z-[100] w-full mt-2 bg-surface-card border border-surface-border rounded-xl shadow-2xl max-h-56 overflow-y-auto custom-scrollbar animate-fade-in origin-top">
-                            @for (tech of typeaheadTechnicians(); track tech.id) {
-                              <div (mousedown)="selectTechnician(tech)" 
+                        @if (showTechDropdown() && typeaheadIdentities().length > 0) {
+                          <div class="absolute z-[100] w-full mt-2 bg-surface-card border border-surface-border rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar animate-fade-in origin-top">
+                            @for (identity of typeaheadIdentities(); track (identity.id + identity.type)) {
+                              <!-- Header de Categoría (opcional si se desea separar visualmente) -->
+                              <div (mousedown)="selectIdentity(identity)" 
                                    class="px-4 py-3 hover:bg-surface-text/[0.05] cursor-pointer border-b border-surface-border/50 last:border-0 flex justify-between items-center transition-colors">
-                                <div class="flex flex-col">
-                                  <span class="text-[11px] font-bold text-surface-text uppercase">{{ tech.full_name }}</span>
-                                  <span class="text-[9px] text-surface-text-muted">{{ tech.email }}</span>
+                                <div class="flex items-center gap-3">
+                                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" 
+                                       [ngClass]="{
+                                         'bg-sky-500/10 text-sky-500': identity.type === 'INTERNAL',
+                                         'bg-amber-500/10 text-amber-500': identity.type === 'PLANTA',
+                                         'bg-purple-500/10 text-purple-500': identity.type === 'EXTERNO'
+                                       }">
+                                    <mat-icon class="text-[18px]">
+                                      {{ identity.type === 'INTERNAL' ? 'person' : (identity.type === 'PLANTA' ? 'engineering' : 'business_center') }}
+                                    </mat-icon>
+                                  </div>
+                                  <div class="flex flex-col">
+                                    <span class="text-[11px] font-bold text-surface-text uppercase tracking-tight">{{ identity.label }}</span>
+                                    <span class="text-[9px] text-surface-text-muted flex items-center gap-1">
+                                      <span class="font-black uppercase text-[8px] opacity-70">{{ identity.type }}</span> • {{ identity.sub }}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div class="text-[8px] font-black uppercase px-2 py-1 rounded-md"
-                                     [ngClass]="getWorkloadColorClass(workload()[tech.id] || 0)">
-                                  {{ workload()[tech.id] || 0 }} tickets
-                                </div>
+                                
+                                @if (identity.type === 'INTERNAL') {
+                                  <div class="text-[8px] font-black uppercase px-2 py-1 rounded-md"
+                                       [ngClass]="getWorkloadColorClass(workload()[identity.id] || 0)">
+                                    {{ workload()[identity.id] || 0 }} tickets
+                                  </div>
+                                }
                               </div>
                             }
                           </div>
                         }
                       </div>
+
+                      <!-- Banner Informativo para Externos -->
+                      @if (selectedIdentity()?.type === 'EXTERNO') {
+                        <div class="p-3 rounded-xl border border-purple-500/20 bg-purple-500/5 flex items-start gap-3 animate-fade-in">
+                          <mat-icon class="text-purple-500 text-sm mt-0.5">info</mat-icon>
+                          <div class="flex-1">
+                            <p class="text-[10px] font-black uppercase text-purple-500 tracking-widest mb-1">SLA Externo: 72 Horas</p>
+                            <p class="text-[10px] text-surface-text-muted leading-tight">
+                              Se enviará un enlace de acceso seguro a <b>{{ selectedIdentity()?.sub }}</b>. 
+                              El proveedor podrá interactuar sin consumir licencias.
+                            </p>
+                          </div>
+                        </div>
+                      }
 
                       <!-- Visualización de Carga del Técnico Seleccionado -->
                       @if (selectedTechnicianId()) {
@@ -236,14 +268,21 @@ export class TicketTriageDrawerComponent {
 
   technicians = signal<AdminUser[]>([]);
   workload = signal<Record<string, number>>({});
+  isSubmitting = signal<boolean>(false);
   
-  selectedTechnicianId = signal<string | null>(null);
+  // Unified Identity Search state
   techSearchQuery = signal<string>('');
   showTechDropdown = signal<boolean>(false);
+  typeaheadIdentities = signal<any[]>([]);
+  selectedIdentity = signal<any | null>(null);
+
+  selectedTechnicianId = signal<string | null>(null);
+  selectedCollaboratorId = signal<string | null>(null);
+  selectedExternalContactId = signal<string | null>(null);
+
   triageComment = signal<string>('');
   commitmentDate = signal<string>('');
   attachmentName = signal<string | null>(null);
-  isSubmitting = signal<boolean>(false);
 
   // Derivados
   filteredTechnicians = computed(() => {
@@ -300,19 +339,19 @@ export class TicketTriageDrawerComponent {
     }
   }
 
-  onTechSearchChange(value: string) {
+  async onTechSearchChange(value: string) {
     this.techSearchQuery.set(value);
     if (!value) {
+      this.selectedIdentity.set(null);
       this.selectedTechnicianId.set(null);
-      this.adminService.getUsers().subscribe(res => {
-        if (res.data) this.technicians.set(res.data);
-      });
+      this.selectedCollaboratorId.set(null);
+      this.selectedExternalContactId.set(null);
+      this.typeaheadIdentities.set([]);
     } else {
       if (this.searchTimeout) clearTimeout(this.searchTimeout);
-      this.searchTimeout = setTimeout(() => {
-        this.adminService.getUsers(value).subscribe(res => {
-          if (res.data) this.technicians.set(res.data);
-        });
+      this.searchTimeout = setTimeout(async () => {
+        const results = await this.supportService.searchIdentities(value);
+        this.typeaheadIdentities.set(results);
       }, 300);
     }
     this.showTechDropdown.set(true);
@@ -321,23 +360,38 @@ export class TicketTriageDrawerComponent {
   onTechBlur() {
     setTimeout(() => {
       this.showTechDropdown.set(false);
-      if (!this.selectedTechnicianId()) {
+      if (!this.selectedIdentity()) {
         this.techSearchQuery.set('');
       } else {
-        const t = this.filteredTechnicians().find(x => x.id === this.selectedTechnicianId());
-        if (t) this.techSearchQuery.set(t.full_name);
+        this.techSearchQuery.set(this.selectedIdentity().label);
       }
     }, 150);
   }
 
-  selectTechnician(tech: AdminUser) {
-    this.selectedTechnicianId.set(tech.id);
-    this.techSearchQuery.set(tech.full_name);
+  selectIdentity(identity: any) {
+    this.selectedIdentity.set(identity);
+    this.techSearchQuery.set(identity.label);
     this.showTechDropdown.set(false);
+
+    // Reset specific IDs
+    this.selectedTechnicianId.set(null);
+    this.selectedCollaboratorId.set(null);
+    this.selectedExternalContactId.set(null);
+
+    if (identity.type === 'INTERNAL') {
+      this.selectedTechnicianId.set(identity.id);
+    } else if (identity.type === 'PLANTA') {
+      this.selectedCollaboratorId.set(identity.id);
+    } else if (identity.type === 'EXTERNO') {
+      this.selectedExternalContactId.set(identity.id);
+    }
   }
 
   clearTechSelection() {
+    this.selectedIdentity.set(null);
     this.selectedTechnicianId.set(null);
+    this.selectedCollaboratorId.set(null);
+    this.selectedExternalContactId.set(null);
     this.techSearchQuery.set('');
   }
 
@@ -364,7 +418,9 @@ export class TicketTriageDrawerComponent {
         this.ticket.id, 
         action, 
         this.selectedTechnicianId() || undefined, 
-        finalComment || undefined
+        finalComment || undefined,
+        this.selectedCollaboratorId() || undefined,
+        this.selectedExternalContactId() || undefined
       );
       this.toastService.success('Triaje Completado', 'El ticket ha sido despachado exitosamente.');
       this.close.emit();

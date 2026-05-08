@@ -83,3 +83,24 @@ class TicketAutoClosedEvent(BaseModel):
 
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+
+class ExternalAssignmentEvent(BaseModel):
+    """
+    Evento para notificar a un contacto externo (Proveedor).
+    Consumido por notification_service para enviar correo/WhatsApp con link firmado.
+    """
+    event_id: UUID = Field(default_factory=uuid.uuid4)
+    event_type: str = "ExternalAssignmentEvent"
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0"
+
+    ticket_id: UUID
+    company_id: UUID
+    reference_code: str
+    title: str
+    external_contact_id: UUID
+    external_contact_name: str
+    link_token: str              # Hash SHA256 para acceso seguro (Fase 3)
+    
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
