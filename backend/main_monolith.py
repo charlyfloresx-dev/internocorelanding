@@ -213,7 +213,9 @@ from master_app.api.v1.endpoints import (
     concepts, warehouses, partners, gis_validator, locations, 
     currency, enums as enums_router, enumerations
 )
-app.include_router(products.router, prefix="/api/v1/products", tags=["Master: Products"])
+# Alias para compatibilidad con microservicios (App Móvil)
+app.include_router(products.router, prefix="/api/v1/master-data/products", tags=["Master: Products"])
+app.include_router(products.router, prefix="/api/v1/products", tags=["Master: Products"], include_in_schema=False)
 app.include_router(prices.router, prefix="/api/v1/prices", tags=["Master: Product Prices"])
 app.include_router(uom_router.router, prefix="/api/v1/uoms", tags=["Master: UOMs"])
 app.include_router(categories.router, prefix="/api/v1/categories", tags=["Master: Categories"])
@@ -247,10 +249,8 @@ app.include_router(boms_router, prefix="/api/v1/inventory/boms", tags=["Inventor
 app.include_router(inventory_dashboard_router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
 app.include_router(inventory_search_router, prefix="/api/v1/search", tags=["Inventory: Search"])
 app.include_router(inventory_ops_router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
-app.include_router(variants_router, prefix="/api/v1/inventory/variants", tags=["Inventory: Variants"])
-app.include_router(ict_router, prefix="/api/v1/inventory/transfers/inter-company", tags=["Inventory: ICT"])
-app.include_router(customs_router, prefix="/api/v1/reporting/customs", tags=["Inventory: Customs Reporting"])
-app.include_router(demo_reset_router, prefix="/api/v1", tags=["Inventory: Admin / Demo"])
+from inventory_app.api.v1.endpoints.pos import router as pos_router
+app.include_router(pos_router, prefix="/api/v1/pos", tags=["Inventory: POS Checkout"])
 app.include_router(wms_locations_router, prefix="/api/v1/inventory", tags=["WMS: Location Management (Density Guard)"])  # [Phase 83] P0 Fix
 
 # 4. Notifications

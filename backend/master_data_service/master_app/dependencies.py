@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from common.config import settings
 
-from master_app.db.session import get_db
+from common.infrastructure.database import get_db
 from master_app.infrastructure.repositories.sqlalchemy_master_data_repository import SQLAlchemyMasterDataRepository
 from master_app.services.product_service import ProductService
 from master_app.services.product_brand_service import ProductBrandService

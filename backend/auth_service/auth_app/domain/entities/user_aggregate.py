@@ -23,6 +23,7 @@ class UserCompanyRoleEntity(BaseModel):
     company_name: Optional[str] = None
     group_id: Optional[UUID] = None
     logo: Optional[str] = None
+    default_tax_rate: float = 0.16
 
 class UserEntity(BaseModel):
     id: UUID

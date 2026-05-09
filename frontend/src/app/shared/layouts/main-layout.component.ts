@@ -16,6 +16,7 @@ import {SupportDrawerComponent} from '../../shared/components/support-drawer.com
 import {SideDrawerComponent} from '../../shared/components/side-drawer.component';
 import {SideDrawerService} from '../../core/services/side-drawer.service';
 import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tickets-form.component';
+import {PosLinkDrawerComponent} from '../../shared/components/pos-link-drawer.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -171,6 +172,13 @@ import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tic
                   class="bg-primary/10 hover:bg-primary/20 text-primary rounded-xl px-4 py-2 flex items-center gap-2 transition-all border border-primary/20 group-hover:scale-105 active:scale-95">
                   <mat-icon class="text-[18px]">confirmation_number</mat-icon>
                   <span class="text-[10px] font-black uppercase tracking-wider">Mis Tickets</span>
+                </button>
+
+                <button 
+                  (click)="openPosLinkDrawer()" 
+                  class="w-full mt-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl px-4 py-2 flex items-center gap-2 transition-all border border-transparent hover:scale-[1.02] active:scale-95 shadow-lg">
+                  <mat-icon class="text-[18px]">phonelink_setup</mat-icon>
+                  <span class="text-[10px] font-black uppercase tracking-wider">Vincular POS</span>
                 </button>
               </div>
 
@@ -690,5 +698,15 @@ export class MainLayoutComponent {
       context: 'support',
       isEdit: false
     });
+  }
+
+  openPosLinkDrawer() {
+    this.navService.closeSubMenu();
+    this.drawerService.open(PosLinkDrawerComponent, {
+      title: 'VINCULACIÓN POS',
+      subtitle: 'PROVISIÓN DE TERMINALES MÓVILES',
+      icon: 'phonelink_setup',
+      width: 'w-[400px]'
+    }, {});
   }
 }

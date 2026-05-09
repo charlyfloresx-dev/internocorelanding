@@ -1,0 +1,37 @@
+{
+  "pos": {
+    "title": "Punto de Venta Móvil",
+    "scan_hint": "Apunte al código de barras",
+    "scanned_items": "ARTÍCULOS ESCANEADOS",
+    "review_order": "REVISAR ORDEN",
+    "process_payment": "PROCESAR PAGO",
+    "sale_summary": "Resumen de Venta",
+    "subtotal": "Subtotal",
+    "tax": "IVA (16%)",
+    "total": "TOTAL",
+    "checkout_success": "Venta procesada con éxito",
+    "checkout_error": "Error al procesar checkout",
+    "empty_cart": "Carrito vacío",
+    "terminal": "Terminal",
+    "warehouse": "Almacén"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "select_company": "Seleccionar Empresa",
+    "logout": "Cerrar Sesión"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "loading": "Cargando...",
+    "error": "Error"
+  },
+  "profile": {
+    "title": "Perfil de Usuario",
+    "email": "Correo",
+    "roles": "Roles",
+    "settings": "Configuración"
+  }
+}

@@ -22,6 +22,16 @@ Phase 89 & 90 completadas. Blindaje de Triple Identidad, industrialización del 
 - [x] **Compliance**: 14/14 microservicios al 100% — 0 errores.
 - [x] **REPO_LOG**: Phase 90 registrada.
 
+## Completed Tasks (Session 3 — Night) - Phase 91
+- [x] **Industrial Mobile POS Integration**: Implementación del flujo de vinculación QR (Zero-Trust).
+- [x] **Flutter Dynamic Networking**: Refactorización de la inyección de dependencias para soportar URLs de servidor dinámicas.
+- [x] **Frontend POS Integration**: Drawer "Vincular POS" y generación de QR de aprovisionamiento en Angular.
+- [x] **Backend POS Checkout**: Habilitación de endpoints atómicos de venta en `inventory_service`.
+- [x] **Mobile Setup Mode**: Activador por *Long Press* en logo para re-aprovisionamiento de terminales.
+- [x] **Documentation**: Creación de `docs/mobile/MOBILE_POS_PROVISIONING.md`.
+- [x] **Compliance**: Auditoría del Code Graph al 100% (CLEAN).
+
+
 ## Architectural Decisions
 - **bypass_tenant for External Tokens**: Acceso global por diseño — proveedores no conocen `company_id`.
 - **Smart Audit Exclusions**: Patrones `external_token`, `escalation`, `public`, `global`, `cron`, `webhook`, `migration` excluidos automáticamente del tenant check.

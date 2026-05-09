@@ -53,6 +53,94 @@ class ProductService:
             
         return product
 
+    async def lookup_product_by_code(self, code: str, company_id: UUID, partner_id: Optional[UUID] = None) -> Any:
+        """Lookup product by SKU or Barcode for POS Scanning, with dynamic price resolution."""
+        product = await self.repo.get_product_by_sku(code, company_id)
+        if not product:
+            return None
+            
+        # Inject pre-signed URL
+        if hasattr(product, 'photo_path') and product.photo_path:
+            from common import get_storage_provider
+            storage = get_storage_provider()
+            product.product_url = storage.get_url(product.photo_path)
+        else:
+            product.product_url = None
+            
+        # Resolve Price (Phase 2 POS - Onion Layers Hierarchy)
+        from master_app.api.v1.endpoints.prices import resolve_price
+        # We simulate a dependency-less call to the resolver logic
+        # Actually, it's better to have a internal_resolve_price function, 
+        # but for now we'll fetch the global price (List 1) or Agreement.
+        
+        from master_app.models.product_price import ProductPrice
+        from master_app.models.price_agreement import PriceAgreement
+        from master_app.models.partner import Partner
+        from sqlalchemy import select, and_
+        
+        resolved_price = None
+        
+        # 1. B2B Agreement
+        if partner_id:
+            ag_stmt = select(PriceAgreement).where(
+                and_(
+                    PriceAgreement.product_id == product.id,
+                    PriceAgreement.partner_id == partner_id,
+                    PriceAgreement.company_id == company_id,
+                    PriceAgreement.valid_until.is_(None)
+                )
+            )
+            ag_res = await self.repo.session.execute(ag_stmt)
+            agreement = ag_res.scalar_one_or_none()
+            if agreement:
+                resolved_price = agreement.amount
+
+        # 2. Assigned List / Global
+        if resolved_price is None:
+            target_list = 1
+            if partner_id:
+                p_stmt = select(Partner.price_list_index).where(Partner.id == partner_id)
+                p_res = await self.repo.session.execute(p_stmt)
+                target_list = p_res.scalar() or 1
+                
+            pr_stmt = select(ProductPrice).where(
+                and_(
+                    ProductPrice.product_id == product.id,
+                    ProductPrice.company_id == company_id,
+                    ProductPrice.price_list_index == target_list,
+                    ProductPrice.warehouse_id.is_(None),
+                    ProductPrice.is_active == True
+                )
+            )
+            pr_res = await self.repo.session.execute(pr_stmt)
+            price_obj = pr_res.scalar_one_or_none()
+            if price_obj:
+                resolved_price = price_obj.price.amount
+            elif target_list != 1:
+                # Fallback to List 1
+                fb_stmt = select(ProductPrice).where(
+                    and_(
+                        ProductPrice.product_id == product.id,
+                        ProductPrice.company_id == company_id,
+                        ProductPrice.price_list_index == 1,
+                        ProductPrice.warehouse_id.is_(None),
+                        ProductPrice.is_active == True
+                    )
+                )
+                fb_res = await self.repo.session.execute(fb_stmt)
+                fb_price = fb_res.scalar_one_or_none()
+                if fb_price:
+                    resolved_price = fb_price.price.amount
+
+        if resolved_price:
+            # Set price on the transient product object
+            product.price = {"amount": float(resolved_price), "currency": "MXN"}
+        else:
+            product.price = {"amount": 0.0, "currency": "MXN"}
+
+        return product
+
+
     async def create_product(self, product_in: ProductCreate, photo: Optional[UploadFile] = None) -> Any:
         """Creates a product and its initial version atomically, with optional photo."""
         user_ctx = request_context.get()

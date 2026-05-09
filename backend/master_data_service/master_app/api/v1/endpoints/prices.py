@@ -232,6 +232,7 @@ async def upsert_product_price(
 )
 async def resolve_price(
     product_id: uuid.UUID,
+    partner_id: Optional[uuid.UUID] = Query(None),
     warehouse_id: Optional[uuid.UUID] = Query(None),
     price_list_index: int = Query(default=1, ge=0, le=10),
     currency: str = Query(default="MXN"),
@@ -241,8 +242,9 @@ async def resolve_price(
 ):
     """
     Resolves the suggested price for a transaction following the hierarchy:
-      1. Specific warehouse (warehouse_id matches)
-      2. Global company (warehouse_id IS NULL)
+      1. B2B Price Agreement (if partner_id is provided)
+      2. Specific warehouse (warehouse_id matches)
+      3. Global company (warehouse_id IS NULL)
     
     The returned price is SUGGESTED. If Product.allow_price_override == True,
     the user can modify it freely in the transaction.
@@ -257,16 +259,47 @@ async def resolve_price(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    # Level 0: B2B Price Agreement
+    if partner_id:
+        ag_stmt = select(PriceAgreement).where(
+            and_(
+                PriceAgreement.product_id == product_id,
+                PriceAgreement.partner_id == partner_id,
+                PriceAgreement.company_id == current_user.company_id,
+                PriceAgreement.currency == currency.upper(),
+                PriceAgreement.valid_until.is_(None)
+            )
+        )
+        ag_result = await db.execute(ag_stmt)
+        agreement = ag_result.scalar_one_or_none()
+        if agreement:
+            return ApiResponse(status="success", data=PriceResolutionResult(
+                product_id=product_id, resolved_amount=agreement.amount,
+                currency=agreement.currency, unit_type=unit_type,
+                price_list_index=0, 
+                warehouse_id=None,
+                resolution_level="B2B_AGREEMENT",
+                allow_override=product.allow_price_override,
+            ))
+
+    # Resolve target price list index
+    target_list_index = price_list_index
+    if partner_id:
+        partner_res = await db.execute(select(Partner.price_list_index).where(Partner.id == partner_id))
+        assigned_list = partner_res.scalar()
+        if assigned_list is not None:
+            target_list_index = assigned_list
+
     base_filter = and_(
         ProductPrice.product_id == product_id,
         ProductPrice.company_id == current_user.company_id,
-        ProductPrice.price_list_index == price_list_index,
+        ProductPrice.price_list_index == target_list_index,
         ProductPrice.unit_type == unit_type,
         ProductPrice._currency == currency.upper(),
         ProductPrice.is_active == True,
     )
 
-    # Level 1: specific warehouse price
+    # Level 1: specific warehouse price (for the target list)
     if warehouse_id:
         spec_result = await db.execute(
             select(ProductPrice).where(and_(base_filter, ProductPrice.warehouse_id == warehouse_id))
@@ -282,7 +315,7 @@ async def resolve_price(
                 allow_override=product.allow_price_override,
             ))
 
-    # Level 2: global company price
+    # Level 2: global company price (for the target list)
     global_result = await db.execute(
         select(ProductPrice).where(and_(base_filter, ProductPrice.warehouse_id.is_(None)))
     )
@@ -296,12 +329,35 @@ async def resolve_price(
             allow_override=product.allow_price_override,
         ))
 
+    # Level 3: Fallback to List 1 (General Public) if list_index was not 1
+    if target_list_index != 1:
+        fallback_result = await db.execute(
+            select(ProductPrice).where(and_(
+                ProductPrice.product_id == product_id,
+                ProductPrice.company_id == current_user.company_id,
+                ProductPrice.price_list_index == 1,
+                ProductPrice.is_active == True,
+                ProductPrice._currency == currency.upper(),
+                ProductPrice.warehouse_id.is_(None)
+            ))
+        )
+        fallback_price = fallback_result.scalar_one_or_none()
+        if fallback_price:
+            return ApiResponse(status="success", data=PriceResolutionResult(
+                product_id=product_id, resolved_amount=fallback_price._amount,
+                currency=fallback_price._currency, unit_type=unit_type,
+                price_list_index=1, warehouse_id=None,
+                resolution_level="FALLBACK_LIST_1",
+                allow_override=product.allow_price_override,
+                warning="Price not found for assigned list. Using List 1 (General)."
+            ))
+
     # No configured price — user can always enter override
     warning = None if product.allow_price_override else "No configured price found and allow_price_override=False"
     return ApiResponse(status="success", data=PriceResolutionResult(
         product_id=product_id, resolved_amount=Decimal("0"),
         currency=currency.upper(), unit_type=unit_type,
-        price_list_index=price_list_index, warehouse_id=warehouse_id,
+        price_list_index=target_list_index, warehouse_id=warehouse_id,
         resolution_level="NOT_FOUND",
         allow_override=product.allow_price_override,
         warning=warning or "No master price configured. Manual price required.",

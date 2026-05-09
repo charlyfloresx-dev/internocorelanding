@@ -1,0 +1,37 @@
+{
+  "pos": {
+    "title": "Mobile POS",
+    "scan_hint": "Point at the barcode",
+    "scanned_items": "SCANNED ITEMS",
+    "review_order": "REVIEW ORDER",
+    "process_payment": "PROCESS PAYMENT",
+    "sale_summary": "Sale Summary",
+    "subtotal": "Subtotal",
+    "tax": "Tax (16%)",
+    "total": "TOTAL",
+    "checkout_success": "Sale processed successfully",
+    "checkout_error": "Error processing checkout",
+    "empty_cart": "Empty cart",
+    "terminal": "Terminal",
+    "warehouse": "Warehouse"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "select_company": "Select Company",
+    "logout": "Logout"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "Error"
+  },
+  "profile": {
+    "title": "User Profile",
+    "email": "Email",
+    "roles": "Roles",
+    "settings": "Settings"
+  }
+}

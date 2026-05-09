@@ -21,6 +21,7 @@ class CompanySelection(BaseModel):
     logo: Optional[str] = None
     role_names: List[str]
     is_new: bool = False # Esencial para el flujo de bienvenida de la demo [cite: 2026-01-27]
+    default_tax_rate: float = 0.16
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -43,6 +44,12 @@ class CompanyAccessDto(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
+class UserInfo(BaseModel):
+    id: UUID
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    is_active: bool = True
+
 class AccessTokenResponse(BaseModel):
     """Respuesta final con el JWT de acceso por empresa."""
     access_token: str
@@ -55,13 +62,18 @@ class AccessTokenResponse(BaseModel):
     roles: List[str] = []
     permissions: List[str] = []
     scopes: List[str] = []
-    # Campos de usuario para hidratar la sesión sin un request extra
+    
+    # Nested user object for frontend compatibility [Phase 92]
+    user: Optional[UserInfo] = None
+    
+    # Flat fields for legacy support
     user_full_name: Optional[str] = None
     user_email: Optional[str] = None
     
     # Claims de suscripción (Fase 19)
     status: str = "ACTIVE"
     readonly: bool = False
+    default_tax_rate: float = 0.16
 
     model_config = ConfigDict(from_attributes=True)
 

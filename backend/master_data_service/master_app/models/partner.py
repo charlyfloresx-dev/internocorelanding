@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from sqlalchemy import String, Boolean, Enum
+from sqlalchemy import String, Boolean, Enum, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from common.models import MultiTenantBase
 from common.enums import PartnerType
@@ -20,6 +20,7 @@ class Partner(MultiTenantBase):
         nullable=False
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    price_list_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     address: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

@@ -50,6 +50,20 @@ async def get_product(
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return ApiResponse(status="success", data=product)
 
+@router.get("/lookup/{code}", response_model=ApiResponse[ProductRead])
+async def lookup_product(
+    code: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+):
+    """ Buscar producto por SKU o código de barras para POS. """
+    service = ProductService(db)
+    product = await service.lookup_product_by_code(code, current_user.company_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return ApiResponse(status="success", data=product)
+
+
 # --- GESTIÓN DE VERSIONES ---
 
 @router.post("/{product_id}/versions", response_model=ApiResponse[ProductReadWithVersions])

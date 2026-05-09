@@ -20,8 +20,9 @@ class Company(AuditBase):
     parent_group_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("business_groups.id"), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
     
-    # ── CURRENCY CONFIGURATION ──────────────────────────────────────────────
+    # ── CURRENCY & TAX CONFIGURATION ──────────────────────────────────────────
     base_currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
+    default_tax_rate: Mapped[float] = mapped_column(default=0.16)
 
     # Relation to BusinessGroup
     business_group: Mapped[Optional["BusinessGroup"]] = relationship(

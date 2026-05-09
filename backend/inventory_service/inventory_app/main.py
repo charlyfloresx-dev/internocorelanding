@@ -62,11 +62,13 @@ from inventory_app.api.v1.endpoints import (
     customs,
     variants,
     audit,
-    locations   # [Phase 83] WMS Location Management & Density Guard
+    locations,   # [Phase 83] WMS Location Management & Density Guard
+    pos
 )
 
 # Registro de Routers
 # Prefix matches the environment.ts configurations for consistency
+app.include_router(pos.router, prefix="/api/v1/pos", tags=["Mobile POS Operations"])
 app.include_router(audit.router, prefix="/api/v1/audit", tags=["Forensic Audit Ledger"])
 app.include_router(customs.router, prefix="/api/v1/customs", tags=["Customs Compliance (Anexo 24)"])
 app.include_router(transactions.router, prefix="/api/v1/inventory", tags=["Inventory Transactions (Kardex)"])

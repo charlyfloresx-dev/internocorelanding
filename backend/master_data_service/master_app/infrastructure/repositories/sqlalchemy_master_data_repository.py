@@ -115,6 +115,76 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_product_by_sku(self, sku: str, company_id: uuid.UUID) -> Optional[Any]:
+        """
+        Unifies lookup by SKU (Main Product) or MFG/Internal SKU (Variant).
+        Always joins with ProductPrice to ensure 'last_price' is available.
+        """
+        from sqlalchemy import text, table, column
+        variants = table("inventory_item_variants",
+            column("id"),
+            column("product_id"),
+            column("internal_sku"),
+            column("mfg_part_number"),
+            column("brand"),
+            column("unit_price")
+        )
+
+        # Base statement with Price Join and Variant info
+        stmt = (
+            select(Product)
+            .outerjoin(variants, variants.c.product_id == Product.id)
+            .outerjoin(ProductPrice, and_(
+                ProductPrice.product_id == Product.id,
+                ProductPrice.valid_until == None,
+                ProductPrice.is_active == True
+            ))
+            .where(Product.company_id == company_id)
+            .add_columns(
+                ProductPrice._amount,
+                ProductPrice._currency,
+                variants.c.mfg_part_number,
+                variants.c.brand,
+                variants.c.internal_sku,
+                variants.c.unit_price # Cargar precio de la variante
+            )
+        )
+
+        # Filter by SKU (Main) or Variant Identifiers
+        stmt = stmt.where(or_(
+            Product.sku == sku,
+            variants.c.internal_sku == sku,
+            variants.c.mfg_part_number == sku
+        ))
+
+        # We take the first match (if multiple, prioritize main product if it matched)
+        result = await self.db.execute(stmt)
+        row = result.first()
+
+        if not row:
+            return None
+
+        product = row[0]
+        
+        # Prioridad de precio: 1. Variante, 2. Precio Maestro, 3. 0.0
+        variant_price = float(row[6]) if row[6] is not None else None
+        master_price = float(row[1]) if row[1] is not None else None
+        
+        product.last_price = variant_price if variant_price is not None else (master_price or 0.0)
+        product.currency = row[2] or "MXN"
+        
+        mpn = row[3]
+        v_brand = row[4]
+        v_sku = row[5]
+
+        # Enrich name if it's a variant match
+        if sku == mpn or sku == v_sku:
+            variant_label = f"({v_brand} {mpn})" if v_brand and mpn else f"({mpn or v_sku})"
+            if variant_label not in product.name:
+                product.name = f"{product.name} {variant_label}"
+
+        return product
+
     async def create_product(self, product_data: dict, version_data: dict) -> Any:
         try:
             async with self.db.begin():

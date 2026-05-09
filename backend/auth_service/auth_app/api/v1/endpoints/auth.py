@@ -263,7 +263,14 @@ async def refresh_token_endpoint(
             roles=roles,
             scopes=permissions,
             permissions=permissions,
-            user_full_name=getattr(user, "full_name", None) or user.email,
+            user_full_name=getattr(user, "full_name", None) or getattr(user, "email", "User"),
+            user_email=getattr(user, "email", None),
+            user={
+                "id": user_id,
+                "email": getattr(user, "email", None),
+                "full_name": getattr(user, "full_name", None) or getattr(user, "email", "User"),
+                "is_active": user.is_active
+            },
             status=sub_status,
             readonly=sub_readonly
         ),
@@ -333,7 +340,13 @@ async def get_current_user_info(
                 permissions=context.scopes,
                 scopes=context.scopes,
                 user_full_name=context.full_name or "Industrial Operator",
-                user_email=None
+                user_email=None,
+                user={
+                    "id": context.user_id,
+                    "email": None,
+                    "full_name": context.full_name or "Industrial Operator",
+                    "is_active": True
+                }
             ),
             message="Collaborator session validated successfully."
         )
@@ -357,6 +370,12 @@ async def get_current_user_info(
             scopes=context.scopes,
             user_full_name=getattr(user, "full_name", None) or "User",
             user_email=getattr(user, "email", "N/A"),
+            user={
+                "id": user.id,
+                "email": getattr(user, "email", "N/A"),
+                "full_name": getattr(user, "full_name", None) or "User",
+                "is_active": user.is_active
+            },
             status=context.status,
             readonly=context.readonly
         ),

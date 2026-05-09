@@ -83,6 +83,7 @@ class AuthService:
                     "group_name": None,
                     "logo": ucr.logo,
                     "is_new": ucr.is_new,
+                    "default_tax_rate": ucr.default_tax_rate,
                     "role_names": ucr.role_names,
                     "priority": get_priority(ucr.role_names)
                 }

@@ -24,7 +24,7 @@ class InventoryTransactionCreate(BaseModel):
     transaction_type: TransactionType
     concept_id: Optional[Union[uuid.UUID, str]] = None
     quantity_change: float = Field(..., description="Amount to add (positive) or remove (negative, handled by logic usually positive magnitude with OUT type)")
-    weight: float = Field(..., description="Total weight of this item in movement")
+    weight: float = Field(0.0, description="Total weight of this item in movement")
     target_warehouse_id: Optional[Union[uuid.UUID, str]] = None
     unit_cost: Optional[float] = Field(0.0, description="Cost of the unit for CPP calculation (only for IN)")
     currency: str = Field("MXN", max_length=3)

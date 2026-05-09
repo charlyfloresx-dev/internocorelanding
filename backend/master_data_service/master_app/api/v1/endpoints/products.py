@@ -90,6 +90,24 @@ async def create_product_version(
     """ Crear una nueva versión técnica para un producto existente. """
     product = await service.approve_version(product_id, version_in.version_number, current_user.company_id)
     return ApiResponse(status="success", data=product, message="New version created successfully")
+
+@router.get("/lookup/{code}", response_model=ApiResponse[ProductRead])
+async def lookup_product(
+    code: str,
+    partner_id: Optional[uuid.UUID] = Query(None),
+    service: ProductService = Depends(get_product_service),
+    current_user: UserContext = Depends(get_current_user)
+):
+    """
+    Lookups a product by its SKU or barcode for POS scanning.
+    Includes dynamic price resolution if partner_id is provided.
+    """
+    product = await service.lookup_product_by_code(code, current_user.company_id, partner_id)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Producto no encontrado: {code}")
+    return ApiResponse(status="success", data=product)
+
+
 # --- INTERNAL ENDPOINTS (Inter-service) ---
 
 @router.get("/internal/{product_id}", response_model=ApiResponse[ProductRead])

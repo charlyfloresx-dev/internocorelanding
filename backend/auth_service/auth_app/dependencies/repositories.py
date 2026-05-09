@@ -4,7 +4,7 @@ from auth_app.domain.repositories.permission_repository import IPermissionReposi
 from auth_app.infrastructure.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
 from auth_app.infrastructure.repositories.sqlalchemy_user_company_role_repository import SQLAlchemyUserCompanyRoleRepository
 from auth_app.infrastructure.repositories.sqlalchemy_permission_repository import SQLAlchemyPermissionRepository
-from auth_app.dependencies.database import get_db
+from common.infrastructure.database import get_db
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from auth_app.services.auth_service import AuthService

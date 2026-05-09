@@ -2,6 +2,30 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
+### [2026-05-09] Phase 93: Hierarchical Pricing ("Onion Layers") & B2B Mobile POS
+- **Hierarchical Price Resolution ("Onion Layers")**: Implemented a 4-layer resolution engine (Agreement > Warehouse > Assigned List > Public List) in the backend `lookup` and `pos_checkout`. This ensures strict commercial compliance and prevents price manipulation in the field.
+- **B2B Mobile POS Integration**: Developed a real-time `Partner` search and selection module in the Flutter app. Operators can now link transactions to specific customers, automatically triggering personalized B2B pricing agreements during the scanning process.
+- **Mobile Code Graph Auditor**: Engineered and deployed `generate_mobile_graph.py`, a specialized architectural auditor for Flutter. It enforces Clean Architecture, detects hardcoded URLs, validates theme compliance, and ensures multi-tenancy header integrity in the mobile ecosystem.
+- **Brand Identity Update**: Renamed the mobile ecosystem to **INTERNO POS**. Updated Android labels, internal titles, and UI headers to reflect the new industrial positioning.
+- **Backend Enforceability**: Hardened the `inventory_service` to perform server-side price validation against the master data resolution engine, ensuring that even if a client-side override is attempted, the transaction is rejected unless authorized.
+- **Status**: ✅ Phase 93 COMPLETED — B2B Pricing Hierarchy Operational.
+- **PENDING (Next)**: 
+    1. **Logistics Entry Flow**: Implement scanning and validation from receiving documents (Entradas).
+    2. **"Price-less" Validation**: Enable pure counting flows for inventory audits where price metadata is not required.
+    3. **Stock Deductions**: Finalize atomic stock deductions for completed mobile transactions (already validated in Phase 91, but requires full loop check with B2B).
+    4. **Proactive Notifications**: Implement a "Pending Receipts" counter/indicator on the Scanner dashboard.
+    5. **Warehouse Management**: Add a warehouse selector to the Login/Setup flow.
+
+### [2026-05-08] Phase 92: Industrial POS Architecture & Global State Persistence
+
+### [2026-05-08] Phase 91: Industrial Mobile POS Integration & Zero-Trust Provisioning
+- **Zero-Trust Provisioning (QR Handshake)**: Engineered a high-performance terminal configuration protocol. Mobile devices now scan a dynamic QR from the web portal to inherit `baseUrl`, `accessToken`, `companyId`, and `warehouseId`, eliminating setup friction for operators.
+- **Mobile POS Checkout Flow**: Implemented atomic inventory commits in the `inventory_service` via `POST /api/v1/pos/checkout`. Supports real-time SKU resolution and multi-tenant stock validation.
+- **Dynamic Configuration UI**: Developed a hidden "Setup Mode" (Long-press logo) in the Flutter app to allow terminal re-provisioning without re-installation.
+- **Frontend POS Link Drawer**: Added a glassmorphic "Vincular POS" panel in the user menu of the Angular portal for instant terminal pairing.
+- **Compliance & Audit**: Verified 100% compliance in the Code Graph Audit for the new POS endpoints.
+- **Status**: ✅ Phase 91 COMPLETED — Mobile POS Ecosystem Operational & Provisioned.
+
 ### [2026-05-08] Phase 90: Supplier Access Industrialization & Audit Evolution
 - **Supplier Landing Page**: Finalized `landing/ticket-access.html` — a standalone glassmorphic portal where external providers can view ticket details, SLA countdown (72h), intervention history, and submit comments/evidence using their industrial token.
 - **Outbox Worker Integration**: Connected `OutboxWorker` to process `EXTERNAL_ASSIGNMENT` events from `outbox_events`, forwarding them to the `notification_service` via HTTP with company-scoped headers for guaranteed at-least-once delivery.

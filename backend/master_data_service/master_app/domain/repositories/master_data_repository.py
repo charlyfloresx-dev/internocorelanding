@@ -19,6 +19,10 @@ class IMasterDataRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_product_by_sku(self, sku: str, company_id: uuid.UUID) -> Optional[Any]:
+        ...
+
+    @abstractmethod
     async def create_product(self, product_data: dict, version_data: dict) -> Any:
         ...
 

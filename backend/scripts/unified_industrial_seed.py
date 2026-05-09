@@ -16,13 +16,35 @@ Fuentes integradas:
 import asyncio
 import uuid
 import logging
+import os
+import sys
+
+# 1. Configurar PYTHONPATH para incluir TODAS las carpetas de servicios
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Si se corre desde backend/scripts, el root es un nivel arriba
+ROOT_DIR = os.path.dirname(BASE_DIR)
+services = [
+    "auth_service", 
+    "master_data_service", 
+    "inventory_service", 
+    "notification_service",
+    "tickets_service",
+    "mes_service",
+    "subscription_service",
+    "hcm_service"
+]
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+for s in services:
+    path = os.path.join(ROOT_DIR, s)
+    if path not in sys.path:
+        sys.path.append(path)
 from decimal import Decimal
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, text, and_
 from sqlalchemy.exc import IntegrityError
 
+from common.infrastructure.database import AsyncSessionLocal, engine
 from common.config import settings
 from common.models import Company, BusinessGroup
 from common.services.audit_service import AuditService
@@ -231,17 +253,18 @@ async def seed_auth(session):
             id=GROUP_ID, name="Interno Global Operations", version_id=1, is_active=True
         ), "BusinessGroup")
 
-    for co_id, co_name in [
-        (ENTERPRISE_ID, "Interno Enterprise"),
-        (LOGISTICS_MX_ID, "Interno Logistics MX"),
-        (LOGISTICS_US_ID, "Interno Logistics US"),
-        (DEMO_ID, "Demo Operativo S.A.")
+    for co_id, co_name, co_tax in [
+        (ENTERPRISE_ID, "Interno Enterprise", 0.16),
+        (LOGISTICS_MX_ID, "Interno Logistics MX", 0.16),
+        (LOGISTICS_US_ID, "Interno Logistics US", 0.0),
+        (DEMO_ID, "Demo Operativo S.A.", 0.16)
     ]:
         if not await session.get(Company, co_id):
             await _safe_add(session, Company(
                 id=co_id, name=co_name,
-                status="ACTIVE", parent_group_id=GROUP_ID, version_id=1, is_active=True
-            ), f"Empresa: {co_name}")
+                status="ACTIVE", parent_group_id=GROUP_ID, version_id=1, is_active=True,
+                default_tax_rate=co_tax
+            ), f"Empresa: {co_name} (IVA: {co_tax*100}%)")
 
     role_admin = await _first(session, select(Role).where(Role.name == "admin"))
     if not role_admin:
@@ -403,6 +426,53 @@ async def seed_master_data(session):
             ) ON CONFLICT DO NOTHING;
         """), {"id": uuid.uuid4(), "prod_id": prod['id'], "amount": Decimal(str(prod['base_mxn'])), "co_id": ENTERPRISE_ID})
 
+        # Public Sale Price MXN (List 1) - used by Public in General
+        await session.execute(text("""
+            INSERT INTO product_prices (
+                id, product_id, price_list_index, amount, currency, 
+                unit_type, is_active, is_manual, version_id, company_id, tenant_id
+            ) VALUES (
+                :id, :prod_id, 1, :amount, 'MXN', 
+                'SALE', TRUE, FALSE, 1, :co_id, :co_id
+            ) ON CONFLICT DO NOTHING;
+        """), {"id": uuid.uuid4(), "prod_id": prod['id'], "amount": Decimal(str(prod['base_mxn'] * 1.2)), "co_id": ENTERPRISE_ID})
+
+        # B2B Agreement: Cliente Especial Alpha (10% discount on base)
+        alpha_id = uuid.uuid5(uuid.NAMESPACE_DNS, "partner.2")
+        await session.execute(text("""
+            INSERT INTO price_agreements (
+                id, product_id, partner_id, amount, currency, 
+                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id
+            ) VALUES (
+                :id, :prod_id, :partner_id, :amount, 'MXN', 
+                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id
+            ) ON CONFLICT DO NOTHING;
+        """), {
+            "id": uuid.uuid4(), 
+            "prod_id": prod['id'], 
+            "partner_id": alpha_id, 
+            "amount": Decimal(str(prod['base_mxn'] * 0.9)), 
+            "co_id": ENTERPRISE_ID
+        })
+
+        # B2B Agreement: Cliente Especial Beta (20% discount on base)
+        beta_id = uuid.uuid5(uuid.NAMESPACE_DNS, "partner.3")
+        await session.execute(text("""
+            INSERT INTO price_agreements (
+                id, product_id, partner_id, amount, currency, 
+                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id
+            ) VALUES (
+                :id, :prod_id, :partner_id, :amount, 'MXN', 
+                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id
+            ) ON CONFLICT DO NOTHING;
+        """), {
+            "id": uuid.uuid4(), 
+            "prod_id": prod['id'], 
+            "partner_id": beta_id, 
+            "amount": Decimal(str(prod['base_mxn'] * 0.8)), 
+            "co_id": ENTERPRISE_ID
+        })
+
         # Transfer Price USD (Logistics MX -> Logistics US)
         await session.execute(text("""
             INSERT INTO product_prices (
@@ -459,9 +529,18 @@ async def seed_partners(session):
     log.info("[+] Seeding Business Partners...")
     partners = [
         Partner(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.general"),
+            code="GEN-001",
+            name="Público en General",
+            type="CUSTOMER",
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            is_active=True
+        ),
+        Partner(
             id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.1"),
             code="SUP-IND-01",
-            name="Proveedor Industrial Nacional S.A. de C.V.",
+            name="Aceros de México S.A.",
             type="SUPPLIER",
             company_id=ENTERPRISE_ID,
             tenant_id=ENTERPRISE_ID,
@@ -469,17 +548,17 @@ async def seed_partners(session):
         ),
         Partner(
             id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.2"),
-            code="SUP-GLO-02",
-            name="Global Logistics Corp",
-            type="SUPPLIER",
+            code="CUS-DEMO-01",
+            name="Cliente Especial Alpha",
+            type="CUSTOMER",
             company_id=ENTERPRISE_ID,
             tenant_id=ENTERPRISE_ID,
             is_active=True
         ),
         Partner(
             id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.3"),
-            code="CUS-NOR-01",
-            name="Cliente Mayorista Norte",
+            code="CUS-DEMO-02",
+            name="Cliente Especial Beta",
             type="CUSTOMER",
             company_id=ENTERPRISE_ID,
             tenant_id=ENTERPRISE_ID,
@@ -593,8 +672,6 @@ async def run_unified_seed():
     log.info("=" * 55)
     log.info("   InternoCore - Unified Industrial Seed v4")
     log.info("=" * 55)
-    engine = create_async_engine(settings.DATABASE_URL)
-    AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with AsyncSessionLocal() as session:
         log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
@@ -604,8 +681,9 @@ async def run_unified_seed():
         await seed_auth(session)
 
         log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
-        await seed_master_data(session)
         await seed_partners(session)
+        await session.flush() # Ensure partners are in DB for raw SQL agreements
+        await seed_master_data(session)
 
         log.info("[3/5] Support: Tickets base...")
         await seed_tickets(session)

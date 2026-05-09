@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel, ValidationError, ConfigDict
 
-from .database import get_db
+from common.infrastructure.database import get_db
 from auth_app.core.config import settings
 from auth_app.models.user import User
 from common.exceptions import UnauthorizedException, NotFoundException

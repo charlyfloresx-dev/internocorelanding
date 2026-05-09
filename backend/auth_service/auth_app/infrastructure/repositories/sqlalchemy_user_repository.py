@@ -79,6 +79,7 @@ class SQLAlchemyUserRepository(IUserRepository):
                     company_name=ucr.company.name,
                     group_id=ucr.company.parent_group_id,
                     logo=ucr.company.logo,
+                    default_tax_rate=getattr(ucr.company, 'default_tax_rate', 0.16),
                     is_new=ucr.is_new,
                     role_names=[ucr.role.name] if ucr.role else [],
                     scopes=ucr.scopes or []

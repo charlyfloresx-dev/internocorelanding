@@ -37,7 +37,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("seed")
 
 from sqlalchemy import select, delete
-from auth_app.core.database import AsyncSessionLocal
+from common.infrastructure.database import AsyncSessionLocal
 from auth_app.models import BusinessGroup, Company, User, Role, UserCompanyRole
 from auth_app.models.user_credential import UserCredential
 from auth_app.core.security import hash_password

@@ -14,6 +14,39 @@ from common.domain.entities.user_context import UserContext
 
 router = APIRouter()
 
+@router.get("/search", response_model=ApiResponse[List[PartnerResponse]])
+async def search_partners(
+    q: str = Query(..., min_length=2),
+    type: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_db),
+    current_user: UserContext = Depends(get_current_user)
+):
+    """
+    Busca socios comerciales por nombre o código.
+    """
+    stmt = select(Partner).where(
+        Partner.company_id == current_user.company_id,
+        Partner.is_active == True
+    )
+    
+    if q:
+        stmt = stmt.where(
+            (Partner.name.ilike(f"%{q}%")) | 
+            (Partner.code.ilike(f"%{q}%"))
+        )
+    
+    if type:
+        stmt = stmt.where(Partner.type == type)
+    
+    result = await session.execute(stmt)
+    partners = result.scalars().all()
+    
+    return ApiResponse(
+        status="success", 
+        data=partners, 
+        message=f"Found {len(partners)} partners"
+    )
+
 @router.get("/contacts/search", response_model=ApiResponse[List[ExternalContactResponse]])
 async def search_external_contacts(
     q: str = Query(..., min_length=2),

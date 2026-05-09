@@ -1,0 +1,61 @@
+{
+    "nodes": [],
+    "edges": [],
+    "invariants_errors": [
+        {
+            "file": "lib/features/auth/presentation/login_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.white detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/auth/presentation/setup_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.white detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/auth/presentation/setup_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "MISSING_LOCALIZATION: Raw string 'Error: ${e.toString()}' in Text widget. Use .tr()."
+        },
+        {
+            "file": "lib/features/navigation/presentation/main_nav_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.white detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/scanner/presentation/checkout_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.red detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/scanner/presentation/scanner_screen.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.black detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/scanner/presentation/widgets/partner_search_modal.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.white detected. Use InternoColors instead."
+        },
+        {
+            "file": "lib/features/scanner/presentation/widgets/scan_overlay.dart",
+            "severity": "WARNING",
+            "layer": "presentation",
+            "error": "THEME_VIOLATION: Use of Material Colors.black detected. Use InternoColors instead."
+        }
+    ],
+    "compliance_report": {
+        "presentation": 20,
+        "domain": 100,
+        "data": 100,
+        "core": 100,
+        "other": 100
+    }
+}

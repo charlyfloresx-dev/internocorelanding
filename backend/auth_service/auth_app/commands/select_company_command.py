@@ -242,6 +242,8 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             last = getattr(user_obj, "last_name_pat", "") or ""
             full_name = f"{first} {last}".strip()
 
+        resolved_scopes = resolve_scopes(ucr.role_names, ucr.scopes)
+
         return {
             "access_token": access_token,
             "refresh_token": raw_refresh,
@@ -251,12 +253,19 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "company_name": ucr.company_name or "Interno Core",
             "group_id": str(ucr.group_id) if ucr.group_id else None,
             "roles": ucr.role_names,
-            "scopes": ucr.scopes,
+            "scopes": resolved_scopes,
             "permissions": permissions,
             "user_email": user_email,
             "user_full_name": full_name or user_email,
+            "user": {
+                "id": str(command.user_id),
+                "email": user_email,
+                "full_name": full_name or user_email,
+                "is_active": True
+            },
             "status": sub_status,
             "readonly": readonly,
+            "default_tax_rate": getattr(ucr.company, "default_tax_rate", 0.16) if ucr and ucr.company else 0.16,
         }
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 
@@ -293,11 +302,11 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             entity_id=command.company_id,
             details=f"Identity: {full_name} ({internal_id})",
         )
-
+ 
         # Resolve company name for the header
         company_obj = await self.db.get(Company, command.company_id)
         company_name = company_obj.name if company_obj else "Interno Core"
-
+ 
         return {
             "access_token": access_token,
             "refresh_token": None, 
@@ -310,6 +319,13 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "scopes": scopes,
             "permissions": permissions,
             "user_full_name": full_name,
+            "user": {
+                "id": str(real_collaborator_id),
+                "email": None,
+                "full_name": full_name,
+                "is_active": True
+            },
             "status": sub_status,
             "readonly": readonly,
+            "default_tax_rate": getattr(company_obj, "default_tax_rate", 0.16) if company_obj else 0.16,
         }
