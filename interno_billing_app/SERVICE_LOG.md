@@ -1,8 +1,15 @@
 # Service Log — Interno POS Mobile App
 
-## 🕒 Última Actividad (2026-05-08)
+## 🕒 Última Actividad (2026-05-09)
 
-**Fase 92: Global State Persistence & Industrial UI Feedback**
+**Fase 93: Hierarchical Pricing ("Onion Layers") & B2B Rebranding**
+- **B2B Integration**: Implemented real-time `Partner` selection and search modal, allowing operators to link transactions to specific commercial agreements.
+- **Hierarchical Pricing**: Updated `ProductRepository` and `ScannerBloc` to support `partner_id` in product lookups, enabling the server-side "Onion Layers" resolution.
+- **App Rebranding**: Official rename to **INTERNO POS**. Updated Android label, Flutter title, and UI headers.
+- **Governance**: Integrated `generate_mobile_graph.py` to audit architectural debt and theme compliance.
+- **Status**: ✅ COMPLETED - B2B Pricing Hierarchy Operational & Brand Updated.
+
+## 🕒 Última Actividad (2026-05-08)
 - **Architecture Refactor (LazySingleton)**: Migrated `ScannerBloc` to a global singleton in `injection.dart` and wrapped `MaterialApp` in `main.dart`. This ensures the shopping cart persists across all navigation events, solving the `ProviderNotFoundException` during checkout.
 - **Reactive Industrial Feedback**: Integrated `BlocListener` with glassmorphic SnackBar (Toastr) system for high-fidelity success/error notifications during scanning.
 - **Navigation Safety**: Removed manual Bloc passing in favor of the global provider, simplifying the transition between `ScannerScreen` and `CheckoutScreen`.
