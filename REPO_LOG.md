@@ -2,6 +2,23 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
+### [2026-05-10] Phase 95: Industrial Mobile POS Identity Hardening (Zero-Trust QR)
+- **Zero-Trust QR Delegation (Selection Token)**: Engineered a new "delegated handshake" protocol. The web portal now issues short-lived `selection` tokens via `/auth/delegate-selection`, which are encoded in the QR. This ensures the mobile device is responsible for generating its own final session JWT, maintaining strict Zero-Trust principles.
+- **Entitlement Propagation Hardening**: 
+    - Updated `unified_industrial_seed.py` to populate `Subscription` and `Entitlement` records for all primary industrial tenants.
+    - Verified the presence of the `inventory_core` module in the global entitlement matrix, resolving `403 Forbidden` errors during POS checkout.
+- **SubscriptionGuard Refactor (Scope Bypass)**: Enhanced the transversal `SubscriptionGuard` to allow `*` (super-admin) scope bypass. This prioritizes granular permission scopes over module-level lockdowns for administrative and provisioning scenarios.
+- **Mobile Industrial UX (Glove-Ready)**:
+    - Increased the `Quantity` input touch-target and font size in the `ScannerScreen` to accommodate operators wearing industrial gloves.
+    - Physically removed the `MobileScanner` widget from the tree during modal/sheet transitions to clear `BLASTBufferQueue` hardware locks on Mali GPU (Moto g04s).
+- **Status**: ✅ Phase 95 COMPLETED — Industrial Identity Hardened & Zero-Trust QR Operational.
+- **PENDING (Next)**: 
+    1. **Transactional Bulk Test**: Verify atomic stock deductions for carts with 50+ mixed SKUs.
+    2. **Warehouse Mapping**: Implement dynamic warehouse discovery in the mobile selection flow.
+    3. **Offline Buffer**: Design a local SQLite buffer for offline scanning in low-connectivity zones.
+
+### [2026-05-10] Phase 94: Industrial Mobile POS Cockpit Stabilization (Moto g04s)
+
 ### [2026-05-09] Phase 93: Hierarchical Pricing ("Onion Layers") & B2B Mobile POS
 - **Hierarchical Price Resolution ("Onion Layers")**: Implemented a 4-layer resolution engine (Agreement > Warehouse > Assigned List > Public List) in the backend `lookup` and `pos_checkout`. This ensures strict commercial compliance and prevents price manipulation in the field.
 - **B2B Mobile POS Integration**: Developed a real-time `Partner` search and selection module in the Flutter app. Operators can now link transactions to specific customers, automatically triggering personalized B2B pricing agreements during the scanning process.

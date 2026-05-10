@@ -21,7 +21,7 @@ services:
   interno-monolith:
     build:
       context: ../backend
-      dockerfile: Monolith.Dockerfile
+      dockerfile: docker/Monolith.Dockerfile
     container_name: interno-monolith
     ports:
       - "8000:8000"
@@ -46,7 +46,7 @@ services:
   tickets-unified-worker:
     build:
       context: ../backend
-      dockerfile: Monolith.Dockerfile
+      dockerfile: docker/Monolith.Dockerfile
     container_name: tickets-unified-worker
     image: interno-monolith:latest
     restart: always

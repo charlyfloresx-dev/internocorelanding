@@ -55,25 +55,32 @@ export class PosLinkDrawerComponent implements OnInit {
   qrUrl: string = '';
   companyName: string = '';
 
-  ngOnInit() {
-    this.generateQr();
+  async ngOnInit() {
+    await this.generateQr();
   }
 
-  generateQr() {
-    const session = this.authService.session() as any;
-    const companyId = this.authService.activeCompanyId();
-    this.companyName = session?.company_name || 'InternoCore';
+  async generateQr() {
+    try {
+      const handshake = await this.authService.getDelegateToken();
+      const companyId = this.authService.activeCompanyId();
+      const session = this.authService.session() as any;
+      this.companyName = session?.company_name || 'InternoCore';
 
-    // Build the configuration object
-    const config = {
-      baseUrl: 'http://10.0.2.2:8000/api/v1', // Should be dynamic in production
-      accessToken: this.authService.session()?.access_token,
-      companyId: companyId,
-      warehouseId: 'WH-MAIN-001', // Example
-      terminalName: `WEB-LINKED-${new Date().getTime().toString().slice(-4)}`
-    };
+      // Build the configuration object
+      const host = window.location.hostname === 'localhost' ? '192.168.1.146' : window.location.hostname;
+      
+      const config = {
+        baseUrl: `http://${host}:8000/api/v1`, 
+        selectionToken: handshake.selection_token, // FIRST TOKEN
+        companyId: companyId,
+        warehouseId: 'WH-MAIN-001', // Example
+        terminalName: `MOBILE-POS-${new Date().getTime().toString().slice(-4)}`
+      };
 
-    const data = encodeURIComponent(JSON.stringify(config));
-    this.qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}&bgcolor=ffffff&color=000000&qzone=2&margin=0`;
+      const data = encodeURIComponent(JSON.stringify(config));
+      this.qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}&bgcolor=ffffff&color=000000&qzone=2&margin=0`;
+    } catch (err) {
+      console.error('Failed to generate delegation QR:', err);
+    }
   }
 }

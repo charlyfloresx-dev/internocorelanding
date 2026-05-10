@@ -40,6 +40,12 @@ class ProductRead(BaseModel):
     # Financial Metadata (Phase 33.5)
     last_price: Optional[float] = None
     currency: Optional[str] = None
+    
+    # Enriched Fields for Barcode / POS Lookup
+    brand_name: Optional[str] = None
+    category_name: Optional[str] = None
+    uom_name: Optional[str] = None
+    current_stock: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -66,6 +66,8 @@ from tickets_app.models.ticket import Ticket
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
 from hcm_app.models.collaborator import Collaborator
 from common.models.external_contact import ExternalContact
+from subscription_app.models.subscription import Plan, Subscription, Entitlement
+from subscription_app.core.enums import ModuleCode, SubscriptionStatus
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("industrial-seed")
@@ -442,10 +444,10 @@ async def seed_master_data(session):
         await session.execute(text("""
             INSERT INTO price_agreements (
                 id, product_id, partner_id, amount, currency, 
-                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id
+                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id, is_active
             ) VALUES (
                 :id, :prod_id, :partner_id, :amount, 'MXN', 
-                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id
+                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id, TRUE
             ) ON CONFLICT DO NOTHING;
         """), {
             "id": uuid.uuid4(), 
@@ -460,10 +462,10 @@ async def seed_master_data(session):
         await session.execute(text("""
             INSERT INTO price_agreements (
                 id, product_id, partner_id, amount, currency, 
-                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id
+                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id, is_active
             ) VALUES (
                 :id, :prod_id, :partner_id, :amount, 'MXN', 
-                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id
+                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id, TRUE
             ) ON CONFLICT DO NOTHING;
         """), {
             "id": uuid.uuid4(), 
@@ -667,6 +669,47 @@ async def seed_industrial_identities(session):
         session.add(contact)
         print(f"  CREATE External Contact: {contact.full_name}")
 
+async def seed_subscriptions(session):
+    log.info("[1.5/5] Subscriptions: Plans, Subscriptions and Entitlements...")
+    
+    # 1. Seed Plans
+    enterprise_plan = Plan(
+        id=uuid.UUID("11111111-1111-4111-b111-000000000001"),
+        name="Industrial Enterprise",
+        description="Full access to all InternoCore modules",
+        price=999.0,
+        currency="USD",
+        modules=["auth_core", "inventory_core", "master_data_core", "hr_core", "wms_core", "mes_core"]
+    )
+    await _safe_add(session, enterprise_plan, "Plan: Industrial Enterprise")
+
+    # 2. Seed Subscriptions & Entitlements for key companies
+    companies_to_seed = [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID, DEMO_ID]
+    
+    for cid in companies_to_seed:
+        sub = Subscription(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"sub-{cid}"),
+            company_id=cid,
+            tenant_id=cid,
+            plan_id=enterprise_plan.id,
+            status=SubscriptionStatus.ACTIVE,
+            start_date=datetime.now(timezone.utc),
+            status_updated_at=datetime.now(timezone.utc)
+        )
+        await _safe_add(session, sub, f"Subscription for {cid}")
+
+        # Seed Entitlements (Truth Table)
+        for mod in enterprise_plan.modules:
+            ent = Entitlement(
+                id=uuid.uuid5(uuid.NAMESPACE_DNS, f"ent-{cid}-{mod}"),
+                company_id=cid,
+                tenant_id=cid,
+                module_code=mod,
+                is_enabled=True,
+                source_subscription_id=sub.id
+            )
+            await _safe_add(session, ent, f"Entitlement: {mod} for {cid}")
+
 # --- Orquestador Principal ---
 async def run_unified_seed():
     log.info("=" * 55)
@@ -679,6 +722,9 @@ async def run_unified_seed():
 
         log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
         await seed_auth(session)
+
+        log.info("[1.5/5] Subscriptions: Plans and Entitlements...")
+        await seed_subscriptions(session)
 
         log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
         await seed_partners(session)

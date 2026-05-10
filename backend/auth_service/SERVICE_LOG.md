@@ -1,8 +1,11 @@
 # Auth Service - Service Log
 
+## [2026-05-10] Phase 95: Industrial Mobile POS Identity Hardening (Zero-Trust QR)
+- **Selection Token Delegation**: Implemented `/api/v1/auth/delegate-selection` endpoint. This allows a fully authenticated web session to generate a short-lived `selection` token (type: `selection`) for mobile pairing.
+- **Zero-Trust Taxonomy**: Enforced strict token `typ` validation. Selection tokens are only valid for the `/select-company` handshake, ensuring the mobile device must complete the full T2 authentication cycle to obtain a final session JWT.
+- **Audit Integration**: Every delegation event is now logged as `AUTH_DELEGATE_MOBILE` in the forensic audit ledger.
+
 ## [2026-05-04] Phase 86: Security Audit Foundations
-- **Audit Engine**: Preparativos para la inyección de la tabla `SecurityAuditLog` desde el endpoint de `collaborator_login_command.py`. El objetivo es documentar en el "Immutable Ledger" todos los ingresos físicos por PIN/RFID junto con un snapshot de los roles generados al vuelo.
-- **Pending**: Implementar la inserción de auditoría en los handlers de login.
 
 ## [2026-04-30] Phase 74: Subscription Claims & Zero Trust Validation
 - **Subscription Enrichment**: Se integró el `SubscriptionClient` en el `SelectCompanyCommandHandler` y el `AuthService` core para inyectar claims de estado de suscripción (`status`, `readonly`).

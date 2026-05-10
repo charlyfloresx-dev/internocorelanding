@@ -157,10 +157,11 @@ export class ItemSearchComponent implements OnInit {
           sku: p.sku,
           name: p.name,
           variant: p.description,
+          brand: (p as any).brand_name,
           available: (p as any).current_stock || 0,
           unitWeight: (p as any).weight || 0,
           unitVolume: 0,
-          unit: 'PZ',
+          unit: (p as any).uom_name || 'PZ',
           uomId: p.base_uom_id,
           lastPrice: p.last_price,
           currency: p.currency || '---'
@@ -206,10 +207,11 @@ export class ItemSearchComponent implements OnInit {
           sku: p.sku,
           name: p.name,
           variant: p.description,
+          brand: (p as any).brand_name,
           available: (p as any).current_stock || 0,
           unitWeight: (p as any).weight || 0,
           unitVolume: 0,
-          unit: 'PZ',
+          unit: (p as any).uom_name || 'PZ',
           uomId: p.base_uom_id,
           lastPrice: p.last_price || 0
         } as InventoryItem));

@@ -1,13 +1,12 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-10)
+**Entitlement Hardening & Scope-based Guard (Phase 95)**
+- **Entitlement Seeding**: Synchronized `unified_industrial_seed.py` to ensure `inventory_core` is present in the `Entitlement` matrix for all primary tenants. This resolves the `403 Forbidden` errors during high-volume POS checkouts.
+- **Scope Bypass Architecture**: Refactored the transversal `SubscriptionGuard` to prioritize the `*` (super-admin) scope. Users with administrative entitlements can now bypass module-level lockdowns, ensuring environment continuity during recovery or provisioning.
+- **Transactional Audit**: Verified that the POS checkout loop correctly resolves and logs the inventory movement even under strict subscription enforcement.
+
 ## 🕒 Última Actividad (2026-04-30)
-**Global Middleware Lockdown & Financial SSOT (Fase 74)**
-- **Controlled Degradation**: El `InternoCoreGlobalMiddleware` ahora consume los claims `status` y `readonly` del JWT para imponer bloqueos de escritura.
-- **Definición Financiera (La Tríada)**: El sistema ahora rige la existencia de productos bajo: Landed Cost, CPP/WAC y Transfer Price.
-- **Inmutabilidad de Traslados**: Aprobación del patrón de transferencias Inter-Company: el precio de venta de la Empresa A se convierte en el costo de compra de la Empresa B al despacho.
-- **Error 402 Integration**: Implementación de la respuesta `402 Payment Required` para transacciones en modo `RESTRICTED`.
-- **Zero-Trust Enforcement**: Bloqueo de IDOR mediante captura de `company_id` desde JWT en `BaseRepository`.
-- **Status**: ✅ COMPLETED - Inventory Protected by Subscription Guard & Financial SSOT.
 
 ## 🕒 Última Actividad (2026-03-15)
 **Sealed Price (Precio Sellado) & Inter-Company Governance**

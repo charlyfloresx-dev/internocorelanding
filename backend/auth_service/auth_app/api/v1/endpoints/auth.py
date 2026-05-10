@@ -144,6 +144,45 @@ async def select_company(
     )
 
 
+# ── SELECTION DELEGATION (MOBILE) ─────────────────────────────────────────────
+
+@router.get("/delegate-selection", response_model=ApiResponse[CompanyAccessDto])
+async def delegate_selection(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    security_ctx: SecurityContext = Depends(get_current_tenant_context),
+):
+    """
+    Returns a short-lived selection token for the current user.
+    Used by the Web Frontend to generate QRs for mobile delegation.
+    """
+    user_id = security_ctx.user_id
+    selection_token = security.create_selection_token(user_id)
+    companies = await auth_service.get_user_companies(user_id)
+
+    await AuditLogger.log_action(
+        db=db,
+        action="AUTH_DELEGATE_MOBILE",
+        table_name="users",
+        record_id=str(user_id),
+        user_id=str(user_id),
+        request=request,
+    )
+    await db.commit()
+
+    return ApiResponse(
+        status="success",
+        data=CompanyAccessDto(
+            selection_token=selection_token,
+            user_id=user_id,
+            companies=companies,
+            is_new=False,
+        ),
+        message="Delegation token generated. Please scan with mobile device.",
+    )
+
+
 # ── REFRESH ───────────────────────────────────────────────────────────────────
 
 @router.post(

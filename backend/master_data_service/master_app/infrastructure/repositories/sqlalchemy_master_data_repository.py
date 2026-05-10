@@ -139,6 +139,9 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
                 ProductPrice.valid_until == None,
                 ProductPrice.is_active == True
             ))
+            .outerjoin(ProductBrand, Product.brand_id == ProductBrand.id)
+            .outerjoin(ProductCategory, Product.category_id == ProductCategory.id)
+            .outerjoin(UOM, Product.base_uom_id == UOM.id)
             .where(Product.company_id == company_id)
             .add_columns(
                 ProductPrice._amount,
@@ -146,7 +149,10 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
                 variants.c.mfg_part_number,
                 variants.c.brand,
                 variants.c.internal_sku,
-                variants.c.unit_price # Cargar precio de la variante
+                variants.c.unit_price, # Cargar precio de la variante
+                ProductBrand.name.label("brand_name"),
+                ProductCategory.name.label("category_name"),
+                UOM.name.label("uom_name")
             )
         )
 
@@ -176,6 +182,11 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
         mpn = row[3]
         v_brand = row[4]
         v_sku = row[5]
+        
+        # Enriched fields
+        product.brand_name = row[7] if row[7] else v_brand # fallback to variant brand
+        product.category_name = row[8]
+        product.uom_name = row[9]
 
         # Enrich name if it's a variant match
         if sku == mpn or sku == v_sku:

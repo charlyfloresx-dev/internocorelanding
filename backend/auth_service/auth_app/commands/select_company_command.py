@@ -265,7 +265,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             },
             "status": sub_status,
             "readonly": readonly,
-            "default_tax_rate": getattr(ucr.company, "default_tax_rate", 0.16) if ucr and ucr.company else 0.16,
+            "default_tax_rate": getattr(ucr, "default_tax_rate", 0.16) if ucr else 0.16,
         }
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 

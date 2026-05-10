@@ -50,6 +50,10 @@ class SubscriptionGuard:
 
         # 2. Validación de Módulo (Entitlements)
         if self.module_code != "auth_core":
+            # [Industrial Bypass] Admin roles (*) bypass module entitlement checks
+            if "*" in token_data.scopes:
+                return token_data
+
             user_modules = [m.lower() for m in token_data.modules]
             if self.module_code.lower() not in user_modules:
                 raise HTTPException(

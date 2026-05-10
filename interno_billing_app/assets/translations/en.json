@@ -13,7 +13,10 @@
     "checkout_error": "Error processing checkout",
     "empty_cart": "Empty cart",
     "terminal": "Terminal",
-    "warehouse": "Warehouse"
+    "warehouse": "Warehouse",
+    "customer": "Business Partner",
+    "general_public": "General Public",
+    "search_partner": "Search Partner..."
   },
   "auth": {
     "login": "Login",

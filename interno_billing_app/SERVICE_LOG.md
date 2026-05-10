@@ -1,5 +1,15 @@
 # Service Log — Interno POS Mobile App
 
+## 🕒 Última Actividad (2026-05-10)
+
+**Fase 94: Industrial Mobile POS Cockpit Stabilization (Moto g04s)**
+- **Industrial Minimalist Aesthetic**: Refactored the entire UI to eliminate translucency and glassmorphism. Switched to solid high-contrast colors (#000000, #111111) and a strict 8px/12px minimalist radius grid for maximum industrial visibility.
+- **Hardware-Level Throttling**: Forced 480x640 SD resolution and 1.5s frame throttling in the `MobileScannerController` to stabilize the Mali GPU on the Moto g04s.
+- **BLASTBufferQueue Resolution**: Implemented a 500ms safety buffer on camera initialization, effectively eliminating buffer acquisition errors during modal transitions.
+- **Real-time Battery Telemetry**: Integrated `battery_plus` with a reactive industrial alert banner for critical power states.
+- **Sanitized Error Governance**: Implemented `_handleAuthError` to translate raw Dio exceptions into clean industrial messages (e.g., "CREDENCIALES INVÁLIDAS").
+- **Status**: ✅ COMPLETED - Industrial Cockpit Stabilized & Hardware Tuned.
+
 ## 🕒 Última Actividad (2026-05-09)
 
 **Fase 93: Hierarchical Pricing ("Onion Layers") & B2B Rebranding**

@@ -242,6 +242,17 @@ export class AuthService {
   }
 
   /**
+   * Fetches a delegation selection token for mobile pairing.
+   */
+  public async getDelegateToken(): Promise<AuthHandshake> {
+    const resp = await lastValueFrom(
+      this.http.get<ApiResponse<AuthHandshake>>(`${this.apiUrl}/auth/delegate-selection`)
+    );
+    if (!resp.data) throw new Error('Failed to fetch delegation token');
+    return resp.data;
+  }
+
+  /**
    * Kiosk / Collaborator Login (RFID or PIN)
    * Calls the auth_service collaborator proxy endpoint, which validates against hr_service.
    * Stores the collaborator JWT directly — no company selection step needed (company is embedded in token).

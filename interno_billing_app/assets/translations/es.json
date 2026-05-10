@@ -13,7 +13,10 @@
     "checkout_error": "Error al procesar checkout",
     "empty_cart": "Carrito vacío",
     "terminal": "Terminal",
-    "warehouse": "Almacén"
+    "warehouse": "Almacén",
+    "customer": "Socio Comercial",
+    "general_public": "Público en General",
+    "search_partner": "Buscar Socio..."
   },
   "auth": {
     "login": "Iniciar Sesión",
