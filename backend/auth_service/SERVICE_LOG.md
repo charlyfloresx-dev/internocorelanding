@@ -1,5 +1,10 @@
 # Auth Service - Service Log
 
+## [2026-05-11] Phase 97: Mobile Handshake & Token Lifecycle Synchronization
+- **Handheld Sync (T1/T2)**: Verified and stabilized the mobile handshake via `/auth/delegate-selection`.
+- **Token Lifespan Enforcement**: Standardized `ACCESS_TOKEN_EXPIRE_MINUTES` to 720 (12 hours) and updated internal documentation in `security.py`.
+- **Interceptor Neutrality**: Documented the requirement for "Context-Less" auth routes to prevent 401 circular rejections during token inheritance.
+
 ## [2026-05-10] Phase 95: Industrial Mobile POS Identity Hardening (Zero-Trust QR)
 - **Selection Token Delegation**: Implemented `/api/v1/auth/delegate-selection` endpoint. This allows a fully authenticated web session to generate a short-lived `selection` token (type: `selection`) for mobile pairing.
 - **Zero-Trust Taxonomy**: Enforced strict token `typ` validation. Selection tokens are only valid for the `/select-company` handshake, ensuring the mobile device must complete the full T2 authentication cycle to obtain a final session JWT.

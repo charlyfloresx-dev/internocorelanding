@@ -61,7 +61,8 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
   const isHandshake = url.includes('/login') || url.includes('/handshake');
   const isSelection = url.includes('/select-company');
   const isMeValidation = url.includes('/auth/me'); // Core validation point
-  const isAuthRoute = (isHandshake || isSelection || url.includes('/auth/')) && !isMeValidation;
+  const isDelegate = url.includes('/auth/delegate-selection');
+  const isAuthRoute = (isHandshake || isSelection || url.includes('/auth/')) && !isMeValidation && !isDelegate;
 
   // 3. Inject Authorization
   if (isHandshake) {

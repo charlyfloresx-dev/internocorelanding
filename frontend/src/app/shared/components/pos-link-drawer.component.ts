@@ -67,14 +67,14 @@ export class PosLinkDrawerComponent implements OnInit {
       this.companyName = session?.company_name || 'InternoCore';
 
       // Build the configuration object
-      const host = window.location.hostname === 'localhost' ? '192.168.1.146' : window.location.hostname;
+      const host = window.location.hostname === 'localhost' ? '10.0.2.2' : window.location.hostname;
       
       const config = {
-        baseUrl: `http://${host}:8000/api/v1`, 
-        selectionToken: handshake.selection_token, // FIRST TOKEN
-        companyId: companyId,
-        warehouseId: 'WH-MAIN-001', // Example
-        terminalName: `MOBILE-POS-${new Date().getTime().toString().slice(-4)}`
+        base_url: `http://${host}:8000/api/v1`, 
+        selection_token: handshake.selection_token,
+        company_id: companyId,
+        warehouse_id: 'WH-MAIN-001', // TODO: Allow dynamic selection
+        terminal_name: `MOBILE-POS-${new Date().getTime().toString().slice(-4)}`
       };
 
       const data = encodeURIComponent(JSON.stringify(config));

@@ -4,7 +4,7 @@ JWT creation, verification, and password hashing utilities.
 
 Token Taxonomy (enforced via `typ` claim):
   - "selection"  → Short-lived, single-use, company-selection phase.
-  - "access"     → Final JWT, 15 min, carries roles/scopes/company_id.
+  - "access"     → Final JWT, 12 hours, carries roles/scopes/company_id.
   - "refresh"    → Long-lived (30 days), persisted in DB, rotated on use.
 """
 import hashlib
@@ -79,7 +79,7 @@ def create_final_access_token(
     """
     Phase-2 token: final JWT scoped to a specific company.
     Carries `typ: "access"`.
-    Lifespan: ACCESS_TOKEN_EXPIRE_MINUTES (default 15 min).
+    Lifespan: ACCESS_TOKEN_EXPIRE_MINUTES (default 12 hours).
     """
     if modules is None:
         modules = ["auth_core", "inventory_core"]

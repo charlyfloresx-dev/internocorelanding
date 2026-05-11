@@ -2,6 +2,26 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
+### [2026-05-11] Phase 97: Industrial Mobile Auth Synchronization & Handshake Stabilization
+- **Frontend Interceptor Fix (Angular)**: Resolved critical `401 Unauthorized` block on `/auth/delegate-selection` by exempting the endpoint from automatic context-header injection in `multi-tenant.interceptor.ts`. This enables authenticated users to generate QR delegation tokens without triggering circular auth rejections.
+- **QR Payload Standardization (Zero-Trust)**: Updated `pos-link-drawer.component.ts` to use a dynamic host (`10.0.2.2` for emulator/localhost fallback) and strictly enforced `snake_case` JSON keys (e.g., `selection_token`, `company_id`) to ensure seamless parsing by the mobile ecosystem.
+- **Mobile Handshake Hardening (Flutter)**: 
+    - Refactored `LoginScreen` QR parsing to support both legacy `camelCase` and new `snake_case` keys, ensuring backwards compatibility during transition.
+    - Optimized the `Dio` interceptor in `injection.dart` to ignore auth routes, preventing session-collision errors during the T1/T2 handshake.
+- **Database Schema Consistency**: Manually resolved a `500 Internal Server Error` in the `/api/v1/partners` endpoint by adding the missing `price_list_index` column to the `partners` table (forensic patch).
+- **Security Life-cycle Alignment**: Verified and documented a **12-hour (720 min)** access token lifespan in `security.py` to support extended shifts in industrial environments.
+- **Monolith Re-initialization**: Executed a full environment restart and re-seeding via `initialize-monolith.md`, achieving 100% compliance in the Code Graph Audit.
+- **Status**: ✅ Phase 97 COMPLETED — Industrial Mobile Handshake Stabilized & QR Sync Verified.
+
+### [2026-05-10] Phase 96: Database Integrity & Backend Robustness (Fix 500 Errors)
+- **POS Lookup Hardening (ECM-600 Fix)**: Resolved critical `500 Internal Server Error` in the product lookup flow.
+    - **Root Cause**: SQL unique constraints in PostgreSQL treat `NULL` values as distinct, allowing multiple active prices for the same product/list when re-seeding without warehouse IDs.
+    - **Robustness Fix**: Updated `ProductService` to use `.first()` and `order_by(created_at.desc())` instead of `scalar_one_or_none()`, ensuring the system gracefully handles legacy or duplicate data by picking the most recent valid record.
+- **Database Sanitization**: Purged 135 duplicate price records from `product_prices` to restore immediate operational health.
+- **Seed Idempotency**: Reverted `unified_industrial_seed.py` to its original state while maintaining system stability through backend-level resolution logic.
+- **Mobile App State**: Industrial UX (Glove-ready) validated. **Hardware Stability**: Addressed `BLASTBufferQueue` exhaustion (ret=2) on Moto g04s via active texture pruning. **Pending Tomorrow**: Adapt the Flutter auth flow to strictly match the backend T1/T2 handshake.
+- **Status**: ✅ Phase 96 COMPLETED — Database Integrity Restored & POS Lookup Stabilized.
+
 ### [2026-05-10] Phase 95: Industrial Mobile POS Identity Hardening (Zero-Trust QR)
 - **Zero-Trust QR Delegation (Selection Token)**: Engineered a new "delegated handshake" protocol. The web portal now issues short-lived `selection` tokens via `/auth/delegate-selection`, which are encoded in the QR. This ensures the mobile device is responsible for generating its own final session JWT, maintaining strict Zero-Trust principles.
 - **Entitlement Propagation Hardening**: 

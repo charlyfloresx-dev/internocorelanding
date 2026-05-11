@@ -2,6 +2,14 @@
 
 ## 🕒 Última Actividad (2026-05-10)
 
+**Fase 95-96: Identity Hardening & Handheld Robustness** ✅
+- **Glove-Ready Industrial UX**: Implementación de inputs de alta densidad para `Quantity` en `ScannerScreen`. Se incrementaron los tamaños de fuente (24pt) y el padding de hit-test para operarios con equipo de protección industrial.
+- **Hardware Stability (Active Pruning)**: Desarrollo de un gestor de ciclo de vida para el widget del escáner. La app ahora destruye explícitamente el controlador de `MobileScanner` y limpia el cache de texturas al navegar, resolviendo bloqueos de `BLASTBufferQueue` en dispositivos Moto g04s.
+- **Zero-Trust QR (Delegated Selection)**: El módulo de aprovisionamiento se actualizó para manejar `selection_tokens`. La app ahora soporta el flujo de "Handshake -> QR -> Selección Final".
+- **Estado Actual**: ⚠️ **ADAPTACIÓN PENDIENTE** — La app requiere una refactorización mañana para alinearse estrictamente con el handshake T1/T2 (Auth -> Select Company) del backend, asegurando la integridad multi-tenant completa.
+- **Status**: ✅ COMPLETED - Industrial UX & Hardware Stability.
+
+
 **Fase 94: Industrial Mobile POS Cockpit Stabilization (Moto g04s)**
 - **Industrial Minimalist Aesthetic**: Refactored the entire UI to eliminate translucency and glassmorphism. Switched to solid high-contrast colors (#000000, #111111) and a strict 8px/12px minimalist radius grid for maximum industrial visibility.
 - **Hardware-Level Throttling**: Forced 480x640 SD resolution and 1.5s frame throttling in the `MobileScannerController` to stabilize the Mali GPU on the Moto g04s.

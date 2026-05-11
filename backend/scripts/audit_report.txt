@@ -1,25 +1,51 @@
 ================ REPORT ================
 
+SERVICIO: asset_manager_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
 SERVICIO: auth_service
 DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
 ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: cmms_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: hcm_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: inventory_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: kiosk_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
 ESTADO DE GOBERNANZA: FAILED - Faltan MultiTenantBase en:
-  - c:/API/interno/backend/auth_service/app/models/base.py
-  - c:/API/interno/backend/auth_service/app/models/company_stub.py
-  - c:/API/interno/backend/auth_service/app/models/invitation.py
-  - c:/API/interno/backend/auth_service/app/models/permission.py
-  - c:/API/interno/backend/auth_service/app/models/role.py
-  - c:/API/interno/backend/auth_service/app/models/role_permission.py
-  - c:/API/interno/backend/auth_service/app/models/user.py
-  - c:/API/interno/backend/auth_service/app/models/user_company_role.py
+  - c:/API/interno/backend/kiosk_service/app/models/cash_ledger.py
+  - c:/API/interno/backend/kiosk_service/app/models/event.py
+  - c:/API/interno/backend/kiosk_service/app/models/event_photo.py
+  - c:/API/interno/backend/kiosk_service/app/models/payment_order.py
+  - c:/API/interno/backend/kiosk_service/app/models/photo_approval.py
 
 SERVICIO: master_data_service
-DISCREPANCIA: REPO_LOG no detalla claramente migraciones para master_data_service en Fase 7, o el código tiene 3 y no está alineado.
-ZOMBIE CODE: 
-  - product duplicado en: c:/API/interno/backend/master_data_service/app/models/product.py, c:/API/interno/backend/wms_service/app/models/product.py
+DISCREPANCIA: REPO_LOG no detalla claramente migraciones para master_data_service en Fase 7, o el código tiene 14 y no está alineado.
+ZOMBIE CODE: Ninguno
 ESTADO DE GOBERNANZA: PASSED
 
 SERVICIO: mes_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
+SERVICIO: notification_service
 DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
 ZOMBIE CODE: Ninguno
 ESTADO DE GOBERNANZA: PASSED
@@ -34,18 +60,29 @@ DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
 ZOMBIE CODE: Ninguno
 ESTADO DE GOBERNANZA: PASSED
 
+SERVICIO: viatra_service
+DISCREPANCIA: N/A - Fase 7 focus is mainly master_data/wms
+ZOMBIE CODE: Ninguno
+ESTADO DE GOBERNANZA: PASSED
+
 SERVICIO: wms_service
-DISCREPANCIA: REPO_LOG no detalla claramente migraciones para wms_service en Fase 7, o el código tiene 1 y no está alineado.
-ZOMBIE CODE: 
-  - product duplicado en: c:/API/interno/backend/master_data_service/app/models/product.py, c:/API/interno/backend/wms_service/app/models/product.py
+DISCREPANCIA: REPO_LOG no detalla claramente migraciones para wms_service en Fase 7, o el código tiene 6 y no está alineado.
+ZOMBIE CODE: Ninguno
 ESTADO DE GOBERNANZA: PASSED
 
 ================ RESUMEN ROOT POLLUTION ================
-backend/seed_db.py
-auth_service/responses.py
-auth_service/seed_auth.py
-master_data_service/init_db.py
-wms_service/schemas.py
+backend/main_monolith.py
+backend/scratch_get_ids.py
+hcm_service/smoke_test_api.py
+hcm_service/smoke_test_db.py
+inventory_service/create_dummy_ict.py
+inventory_service/fix_ict_ids.py
+inventory_service/inspect_row.py
+inventory_service/test_db_access.py
+inventory_service/verify_ict.py
+master_data_service/scratch_run_gis.py
+notification_service/init_db.py
+subscription_service/scratch_update_stripe_id.py
 
 ================ INVARIANTS ERRORS DE CODE GRAPH ================
 No reportados en invariants_errors list

@@ -91,7 +91,7 @@ class ProductService:
                 )
             )
             ag_res = await self.repo.db.execute(ag_stmt)
-            agreement = ag_res.scalar_one_or_none()
+            agreement = ag_res.scalars().first()
             if agreement:
                 resolved_price = agreement.amount
 
@@ -101,7 +101,7 @@ class ProductService:
             if partner_id:
                 p_stmt = select(Partner.price_list_index).where(Partner.id == partner_id)
                 p_res = await self.repo.db.execute(p_stmt)
-                target_list = p_res.scalar() or 1
+                target_list = p_res.scalars().first() or 1
                 
             pr_stmt = select(ProductPrice).where(
                 and_(
@@ -111,9 +111,9 @@ class ProductService:
                     ProductPrice.warehouse_id.is_(None),
                     ProductPrice.is_active == True
                 )
-            )
+            ).order_by(ProductPrice.created_at.desc())
             pr_res = await self.repo.db.execute(pr_stmt)
-            price_obj = pr_res.scalar_one_or_none()
+            price_obj = pr_res.scalars().first()
             if price_obj:
                 resolved_price = price_obj.price.amount
             elif target_list != 1:
@@ -126,9 +126,9 @@ class ProductService:
                         ProductPrice.warehouse_id.is_(None),
                         ProductPrice.is_active == True
                     )
-                )
+                ).order_by(ProductPrice.created_at.desc())
                 fb_res = await self.repo.db.execute(fb_stmt)
-                fb_price = fb_res.scalar_one_or_none()
+                fb_price = fb_res.scalars().first()
                 if fb_price:
                     resolved_price = fb_price.price.amount
 
