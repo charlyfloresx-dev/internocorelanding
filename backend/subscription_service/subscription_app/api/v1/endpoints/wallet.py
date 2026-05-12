@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from subscription_app.infrastructure.database import get_db_session
+from common.infrastructure.database import get_db
 from subscription_app.models.wallet import GuestWallet, WalletTransaction
 
 router = APIRouter()

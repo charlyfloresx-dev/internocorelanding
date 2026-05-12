@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from mes_app.infrastructure.database import get_db
+from common.infrastructure.database import get_db
 from common.context import request_context
 import uuid
 

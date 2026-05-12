@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select, update, and_
-from mes_app.infrastructure.database import async_session_local
+from common.infrastructure.database import AsyncSessionLocal as async_session_local
 from mes_app.models.downtime import Downtime
 
 logging.basicConfig(level=logging.INFO)

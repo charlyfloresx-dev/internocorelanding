@@ -2,7 +2,7 @@ import asyncio
 import logging
 from subscription_app.infrastructure.storage_audit import StorageAuditService
 from subscription_app.services.grace_period_service import GracePeriodService
-from subscription_app.infrastructure.database import AsyncSessionLocal
+from common.infrastructure.database import AsyncSessionLocal
 
 logger = logging.getLogger("subscription.scheduler")
 

@@ -1,5 +1,17 @@
 # InternoCore: Master Implementation History - 2026-05-12
 
+## Phase 5: Muro de Hierro (RLS & Database Governance) — COMPLETADA
+
+### Visión General
+PostgreSQL Row Level Security (RLS) habilitado de manera global mediante bloque dinámico PL/pgSQL para asegurar el aislamiento de tenants a nivel de infraestructura, incluso evadiendo el ORM.
+
+### Componentes y Cambios Clave
+- **Infraestructura RLS (`8a4ca1c2c8e8_add_dynamic_rls.py`)**: Migración global que itera sobre todo el esquema `public`, detecta la columna `company_id` y activa automáticamente `ROW LEVEL SECURITY` y `FORCE ROW LEVEL SECURITY`.
+- **Tenant Context Interceptor (`database.py`)**: Implementación de `set_tenant_on_checkout` (pool checkout hook) y `_add_global_tenant_filter` (`do_orm_execute`). Ahora, cada vez que SQLAlchemy toma una conexión del pool, inyecta el ID del tenant al nivel de variables de sesión locales de Postgres (`SET LOCAL app.current_tenant`).
+- **Decommissioning de Microservicios Locales**: Se eliminaron los archivos locales `database.py` de `wms_service`, `mes_service` y `subscription_service`, estandarizando todos los microservicios a consumir estrictamente de `common.infrastructure.database` para garantizar la ejecución de la política Muro de Hierro.
+- **Auditor Estricto de Código (`generate_code_graph.py`)**: Añadido `MURO_DE_HIERRO_VIOLATION` como validación `CRITICAL` que falla si alguna conexión a BD no está protegida por la infraestructura compartida.
+
+---
 ## Phase 99: Muro de Hierro (Rate Limiting) — COMPLETADA
 
 ### Visión General

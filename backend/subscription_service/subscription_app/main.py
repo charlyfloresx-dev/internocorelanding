@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from subscription_app.api.v1.endpoints import internal, admin, billing, wallet
-from subscription_app.infrastructure.database import get_db_session as get_db
+from common.infrastructure.database import get_db as get_db
 
 from fastapi.middleware.cors import CORSMiddleware
 from common.config import settings

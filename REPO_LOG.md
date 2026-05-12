@@ -8,6 +8,15 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-12] Phase 5: RLS Muro de Hierro & Database Governance
+- **Postgres RLS Foundation**: Engineered and deployed dynamic PL/pgSQL Alembic migrations enforcing `ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` on all tables possessing a `company_id`.
+- **Tenant Context Interceptor**: Activated global `do_orm_execute` and `checkout` connection listeners in the Unified Monolith (`common.infrastructure.database`). These inject the `app.current_tenant` context directly into Postgres session variables (`SET LOCAL app.current_tenant`), executing a `RESET` on connection return to prevent leakage across pooled sessions.
+- **Microservice DB Decommissioning**: Deleted obsolete local `database.py` files in `mes_service`, `subscription_service`, and `wms_service`, refactoring all layers to strictly consume the global `common.infrastructure.database` to ensure 100% Muro de Hierro compliance.
+- **Code Graph Strict Guard**: Integrated strict `MURO_DE_HIERRO_VIOLATION` validations into the Code Knowledge Graph Generator to ensure no service bypasses the global tenant interceptors. Verified 100% Compliance.
+- **Status**: ✅ Phase 5 COMPLETED — PostgreSQL Row Level Security Active & Monolithic DB Engine Unified.
+
+---
+
 ### [2026-05-12] Phase 100: Big Bang — Industrial Stress Test (1M Kardex Records)
 - **Administrative Bypass Engine**: Implemented `X-Internal-Secret` header bypass in `common/security/limiter.py`. When the secret matches `CORE_INTERNAL_API_KEY`, the `multi_layer_key_func` returns `None`, exempting the request from rate limiting. Same bypass available via `X-Admin-Master-Key` (God Mode).
 - **High-Performance Bulk Load Endpoint**: Created `POST /api/v1/inventory/bulk-load` in `inventory_service`. Uses SQLAlchemy `insert()` with `executemany` for atomic batch insertion. Maps string transaction types to `TransactionType` Enum to prevent DB type mismatches.
