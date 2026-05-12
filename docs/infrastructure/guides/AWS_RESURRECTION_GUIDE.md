@@ -33,6 +33,13 @@ No uses la VPC por defecto. Recrea la topología aislada:
    ```
 3. **CloudFront OAC:** Configurar la distribución usando `cloudfront-config-oac.json`. Asegurarse de que el bucket S3 solo acepte tráfico desde el `Origin Access Control`.
 
+## 🔐 Fase 5: El Búnker de Secretos Fríos (Offline)
+Para que la resurrección sea total, existen activos que **no deben** vivir exclusivamente en la automatización de la nube por razones de seguridad catastrófica:
+
+1. **Master Keys (KMS):** El ID de la llave CMK y su política de acceso deben estar respaldados en el `vault/` físico del proyecto. Sin esta llave, los backups de RDS y los snapshots del Ledger Forense serán ilegibles.
+2. **Certificados SSL (ACM/External):** Si se usan certificados de terceros (ej. DigiCert), los archivos `.crt` y `.key` deben estar en el búnker de secretos físicos.
+3. **Credenciales de Root/MFA:** El acceso al usuario Root de la nueva cuenta debe estar protegido por hardware MFA (Yubikey) fuera del alcance de la red.
+
 ## ✅ Verificación de Vida
 1. Realizar el **Handshake T1** contra el nuevo endpoint de App Runner.
 2. Verificar en CloudWatch que no hay errores de conexión a la base de datos.
@@ -40,3 +47,4 @@ No uses la VPC por defecto. Recrea la topología aislada:
 
 ---
 **Estado de Disponibilidad:** 🧊 Criogénico / ⚡ Listo para Activación Inmediata.
+**Golden Baseline:** Establecida el 2026-05-12.
