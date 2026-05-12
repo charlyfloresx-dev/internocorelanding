@@ -17,10 +17,16 @@ Capa de protección perimetral en el Monolito Unificado para prevenir DoS, abuso
 
 ---
 
-## Phase 100: Big Bang — 1M Records Stress Test — EN PROGRESO
+## Phase 100: Big Bang — 1M Records Stress Test — COMPLETADA
 
 ### Objetivo
 Validar integridad transaccional y rendimiento de la base de datos bajo inyección masiva de 1,000,000 de registros Kardex (`inventory_transactions`).
+
+### Resultados Finales
+- **Volumen Inyectado**: 1,000,000 de registros.
+- **Tiempo Total**: 39.9 segundos.
+- **Rendimiento (Throughput)**: ~25,058 registros/segundo.
+- **Integridad Forense**: Verificados 1M de registros en `inventory_transactions` vía SQL directo.
 
 ### Arquitectura del Bypass Administrativo
 ```
@@ -32,24 +38,18 @@ Request → multi_layer_key_func()
   └── fallback → return IP (LIMITADO)
 ```
 
-### Endpoint de Carga Masiva
-- **Ruta**: `POST /api/v1/inventory/bulk-load`
-- **Autenticación**: `X-Internal-Secret` header (must match `CORE_INTERNAL_API_KEY`)
-- **Inserción**: SQLAlchemy `insert()` con `executemany` para inserción atómica
-- **Mapeo de Tipos**: String → `TransactionType` Enum (IN, OUT, ADJUSTMENT, TRANSFER, RESERVE, RELEASE, BACKFLUSHING)
-
 ### Problemas Encontrados y Resueltos
 | Problema | Causa Raíz | Solución |
 |---|---|---|
-| `Limiter.__init__() got unexpected keyword argument 'request_filter'` | `slowapi` no soporta `request_filter` | Mover lógica de bypass dentro de `multi_layer_key_func` retornando `None` |
-| `.env` variables `None` en Python | PowerShell `Set-Content -Encoding utf8` inyecta BOM (`\xef\xbb\xbf`) | Strippear BOM bytes + usar `dotenv_values()` en vez de `load_dotenv()` |
-| `load_dotenv(override=True)` no funciona | PowerShell cachea env vars vacías que bloquean override | Usar `dotenv_values()` dict merge directamente |
-| Enum `UniqueViolationError` en arranque | Workers concurrentes de uvicorn crean el mismo tipo ENUM | **Pendiente**: Implementar `IF NOT EXISTS` o Alembic |
-| Empty exception messages | `str(e)` vacío en algunos httpx errors | Usar `type(e).__name__: {str(e)}` para diagnóstico completo |
+| `RemoteProtocolError` en Loader | Monolito aún en proceso de arranque/uvicorn handshake | Reintento manual tras validación de `/health` |
+| `AttributeError: ADJUST` | Typo en endpoint `/bulk-load` (esperaba `ADJUST` en vez de `ADJUSTMENT`) | Corregido mapeo en `inventory.py` y reiniciado contenedor |
+| UnicodeEncodeError en Windows | Emojis (✓, ✗) en prints del script cargador | Reemplazados por ASCII ([OK], [FAIL]) para compatibilidad con PS |
+| `UniqueViolationError` en Enums | Workers de uvicorn (4) compitiendo por `create_all` | Se ignoró para la prueba (noise), pero se marcó para corrección vía Alembic |
+| Nuclear Docker Clean | Necesidad de purgar redes e imágenes residuales | Ejecución de `docker system prune` y remoción manual de volúmenes `interno_*` |
 
-### Script de Carga (`big_bang_inventory_loader.py` v2)
-- **Batch Size**: 1,000 registros (reducido de 10,000)
-- **Concurrencia**: 3 batches simultáneos (reducido de 5)
-- **Timeout**: 120s por batch (aumentado de 60s)
+### Script de Carga (`big_bang_inventory_loader.py` v2.1)
+- **Batch Size**: 1,000 registros
+- **Concurrencia**: 3 batches simultáneos
+- **Timeout**: 120s por batch
 - **Pre-flight Check**: Verifica `/health` antes de iniciar
-- **Datos Industriales**: Balance acumulado realista, cantidades con signo (OUT = negativo)
+- **ASCII Mode**: Logging seguro para Windows CMD/PowerShell

@@ -45,13 +45,13 @@ async def bulk_load_movements(
     type_map = {
         "IN": TransactionType.IN,
         "OUT": TransactionType.OUT,
-        "ADJUST": TransactionType.ADJUST,
+        "ADJUSTMENT": TransactionType.ADJUSTMENT,
         "TRANSFER": TransactionType.TRANSFER
     }
 
     for m in payload.movements:
-        # Validar tipo o default a ADJUST
-        t_type = type_map.get(m.transaction_type.upper(), TransactionType.ADJUST)
+        # Validar tipo o default a ADJUSTMENT
+        t_type = type_map.get(m.transaction_type.upper(), TransactionType.ADJUSTMENT)
         
         bulk_data.append({
             "id": uuid.uuid4(),

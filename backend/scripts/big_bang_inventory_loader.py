@@ -92,10 +92,10 @@ async def preflight_check(client: httpx.AsyncClient):
     try:
         r = await client.get("http://localhost:8000/health", timeout=10)
         if r.status_code == 200:
-            print("[✓] Monolito HEALTHY")
+            print("[OK] Monolito HEALTHY")
             return True
     except Exception as e:
-        print(f"[✗] Monolito NO responde: {type(e).__name__}")
+        print(f"[FAIL] Monolito NO responde: {type(e).__name__}")
     return False
 
 async def main():

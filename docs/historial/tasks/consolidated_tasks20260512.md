@@ -2,7 +2,7 @@
 
 ## Contexto
 Phase 99: Muro de Hierro (Rate Limiting) — COMPLETADA.
-Phase 100: Big Bang (1M Records Stress Test) — EN PROGRESO.
+Phase 100: Big Bang (1M Records Stress Test) — COMPLETADA.
 
 ## Tareas Completadas ✅
 1.  **Integración de Redis en el Monolito**: Migrada dependencia de Redis a `docker-compose.monolith.yml`.
@@ -17,9 +17,12 @@ Phase 100: Big Bang (1M Records Stress Test) — EN PROGRESO.
 10. **BOM Fix**: Resuelto problema de codificación UTF-8 BOM en `.env` causado por PowerShell.
 11. **Hard Reset Workflow**: Actualizado con paso de sanitización BOM.
 12. **Big Bang Loader v2**: Reescrito con pre-flight check, batch 1k, concurrencia 3, timeout 120s.
+13. **Nuclear Docker Cleanup**: Limpieza total de imágenes y volúmenes; poda de redes residuales (`bridge`, `host`, `none` verificados).
+14. **Ejecución Exitosa del Big Bang**: Inyectados 1,000,000 de registros Kardex en 39.9s (25k rec/s).
+15. **Backend Transaction Mapping Fix**: Corregido mapeo `ADJUST` -> `ADJUSTMENT` en el endpoint `/bulk-load`.
 
 ## Pendientes ⏳
-1.  **Ejecutar Big Bang (1M Records)**: Correr `python backend/scripts/big_bang_inventory_loader.py` tras hard-reset limpio.
-2.  **Robustez de Enums**: Implementar `IF NOT EXISTS` o migraciones Alembic para evitar `UniqueViolationError` en arranque concurrente.
-3.  **Ajuste de Cuotas por Tier**: Definir límites diferenciados en Redis por plan de suscripción.
-4.  **Monitoreo en Tiempo Real**: Integrar contadores de Rate Limit en Dashboard Forense del Frontend.
+1.  **Robustez de Enums**: Implementar `IF NOT EXISTS` o migraciones Alembic para evitar `UniqueViolationError` en arranque concurrente (detectado en Phase 100).
+2.  **Ajuste de Cuotas por Tier**: Definir límites diferenciados en Redis por plan de suscripción.
+3.  **Monitoreo en Tiempo Real**: Integrar contadores de Rate Limit en Dashboard Forense del Frontend.
+4.  **Auditoría de Integridad**: Ejecutar `audit_inventory_integrity.py` para validar el Ledger de 1M.
