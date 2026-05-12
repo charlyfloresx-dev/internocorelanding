@@ -1,5 +1,11 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-12)
+**AWS S3 Neutralization & Recipe Serialization (Phase 98)**
+- **Cloud Storage Decommissioning**: Verified the deletion of residual logging buckets in S3 and confirmed $0.00 cost status for the service.
+- **Storage Strategy Transition**: Formally established the `LocalStorageProvider` as the primary engine for the Unified Monolith mode.
+- **ADN Extraction**: Exported service-specific network topology and IAM roles to the centralized `backup_configs/` repository.
+
 ## 🕒 Última Actividad (2026-05-10)
 **Entitlement Hardening & Scope-based Guard (Phase 95)**
 - **Entitlement Seeding**: Synchronized `unified_industrial_seed.py` to ensure `inventory_core` is present in the `Entitlement` matrix for all primary tenants. This resolves the `403 Forbidden` errors during high-volume POS checkouts.
