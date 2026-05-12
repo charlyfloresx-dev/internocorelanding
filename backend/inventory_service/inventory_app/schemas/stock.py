@@ -61,3 +61,17 @@ class CycleCountItem(BaseModel):
 class CycleCountPayload(BaseModel):
     location: str
     items: list[CycleCountItem]
+
+class BulkMovementItem(BaseModel):
+    product_id: uuid.UUID
+    warehouse_id: uuid.UUID
+    transaction_type: str # IN, OUT, ADJUST, TRANSFER
+    quantity_change: Decimal
+    previous_balance: Decimal
+    new_balance: Decimal
+    reference_id: Optional[uuid.UUID] = None
+    comments: Optional[str] = None
+
+class BulkMovementLoad(BaseModel):
+    movements: list[BulkMovementItem]
+

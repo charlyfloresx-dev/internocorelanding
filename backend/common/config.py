@@ -152,21 +152,24 @@ class InternoSettings(BaseSettings):
             return [i.strip() for i in v.split(",") if i.strip()]
         return v
     int_cors_allowed_headers: List[str] = [
-        "X-Company-ID", "x-company-id",
-        "X-User-ID", "x-user-id",
-        "X-Trace-Id", "X-Transaction-ID", "x-transaction-id",
-        "X-Client-Request-ID", "x-client-request-id",
-        "X-Selection-Token", "x-selection-token",
+        "X-Company-ID",
+        "X-User-ID",
+        "X-Trace-Id",
+        "X-Transaction-ID",
+        "X-Correlation-ID",
+        "X-Client-Request-ID",
+        "X-Selection-Token",
         "X-Admin-Master-Key",
-        "X-Silent-Error", "x-silent-error",
-        "X-Warehouse-ID", "x-warehouse-id",
+        "X-Internal-Secret",
+        "X-Silent-Error",
+        "X-Warehouse-ID",
         "Authorization", 
         "Content-Type", 
         "Accept", 
-        "Origin",
-        "X-Correlation-ID", "x-correlation-id",
-        "X-Correlation-Id"
+        "Origin"
     ]
+
+
     int_cors_exposed_headers: List[str] = ["X-Transaction-ID", "X-Trace-Id", "X-Selection-Token", "Content-Disposition", "content-disposition"]
     int_frontend_url: str = Field(
         default="http://dev-frontend.interno.local:4200",

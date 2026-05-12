@@ -13,14 +13,78 @@ from inventory_app.db.session import get_db as get_session
 
 from inventory_app.services.inventory import InventoryTransactionService as InventoryService
 from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from inventory_app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd, CycleCountPayload
+from inventory_app.schemas.stock import StockRead, MovementCreate, StockReserveCmd, TransferDispatchCmd, TransferReceiveCmd, CycleCountPayload, BulkMovementLoad
 from common.responses import ApiResponse
 from inventory_app.services.transfer_service import TransferService
 from common.infrastructure.websocket import manager
+from common.config import settings
+from sqlalchemy import insert
+from inventory_app.models.inventory import InventoryTransaction, TransactionType
 
 router = APIRouter()
 
+@router.post("/bulk-load", response_model=ApiResponse)
+async def bulk_load_movements(
+    payload: BulkMovementLoad,
+    session: AsyncSession = Depends(get_session),
+    x_company_id: uuid.UUID = Header(...),
+    x_internal_secret: Optional[str] = Header(None)
+):
+    """
+    [Phase 100] High-Performance Bulk Load: Inyecta registros masivos omitiendo lógica de negocio costosa.
+    Requiere el secreto interno para bypass de Rate Limit y validaciones de dominio.
+    """
+    if not x_internal_secret or x_internal_secret != settings.INTERNAL_API_KEY:
+        raise HTTPException(status_code=403, detail="Bypass Secret Invalid or Missing")
+    
+    # 1. Preparación de datos para executemany
+    bulk_data = []
+    now = datetime.utcnow()
+    
+    # Mapeo de strings a Enum para evitar error de tipado en DB
+    type_map = {
+        "IN": TransactionType.IN,
+        "OUT": TransactionType.OUT,
+        "ADJUST": TransactionType.ADJUST,
+        "TRANSFER": TransactionType.TRANSFER
+    }
+
+    for m in payload.movements:
+        # Validar tipo o default a ADJUST
+        t_type = type_map.get(m.transaction_type.upper(), TransactionType.ADJUST)
+        
+        bulk_data.append({
+            "id": uuid.uuid4(),
+            "company_id": x_company_id,
+            "tenant_id": x_company_id,
+            "group_id": None, 
+            "product_id": m.product_id,
+            "warehouse_id": m.warehouse_id,
+            "transaction_type": t_type,
+            "quantity_change": m.quantity_change,
+            "previous_balance": m.previous_balance,
+            "new_balance": m.new_balance,
+            "reference_id": m.reference_id,
+            "comments": m.comments,
+            "created_at": now,
+            "is_active": True,
+            "version_id": 1
+        })
+    
+    try:
+        # 2. Inserción Masiva Atómica
+        await session.execute(insert(InventoryTransaction), bulk_data)
+        await session.commit()
+        return ApiResponse(message=f"Successfully injected {len(bulk_data)} records", data={"count": len(bulk_data)})
+    except Exception as e:
+        await session.rollback()
+        import logging
+        logging.error(f"BULK LOAD CRITICAL ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error during bulk load: {str(e)}")
+
+
 @router.get("/stock/{warehouse_id}/{product_id}", response_model=ApiResponse[StockRead])
+
 async def get_stock(
     warehouse_id: uuid.UUID,
     product_id: uuid.UUID,

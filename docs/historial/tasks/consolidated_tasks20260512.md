@@ -12,6 +12,8 @@ Fase 99: Muro de Hierro (Rate Limiting). Estabilización de la resiliencia perim
 6.  **Control de Log-Spam**: Verificado que los errores 429 no saturan los logs del servidor, manteniendo la observabilidad limpia para otros procesos.
 
 ## Pendientes ⏳
-1.  **Stress Test de Inventario (1M Records)**: Ejecutar la inyección masiva de registros Kardex para validar el Ledger Forense bajo carga extrema (Phase 100).
-2.  **Ajuste de Cuotas por Tier**: Definir límites diferenciados en Redis basados en el plan de suscripción (Plan Operativo vs Plan Industrial).
-3.  **Monitoreo en Tiempo Real**: Integrar contadores de Rate Limit en el Dashboard Forense del Frontend.
+1.  **Stress Test de Inventario (1M Records)**: Ejecutar la inyección masiva de registros Kardex para validar el Ledger Forense bajo carga extrema (Phase 100 - REINTENTO EN PROGRESO).
+2.  **Robustez de Enums**: Implementar creación de Enums con `IF NOT EXISTS` o migraciones Alembic para evitar `UniqueViolationError` en el arranque (Deuda Técnica).
+3.  **Ajuste de Cuotas por Tier**: Definir límites diferenciados en Redis basados en el plan de suscripción (Plan Operativo vs Plan Industrial).
+4.  **Monitoreo en Tiempo Real**: Integrar contadores de Rate Limit en el Dashboard Forense del Frontend.
+
