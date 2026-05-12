@@ -216,6 +216,17 @@ class CodeGraphGenerator:
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
+        # 5. RLS / Muro de Hierro Guard (Phase 5)
+        if filename == "database.py" and "infrastructure" in rel_path:
+            if "do_orm_execute" not in content or "with_loader_criteria" not in content:
+                err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "MURO_DE_HIERRO_VIOLATION: missing do_orm_execute for tenant isolation in database.py"}
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+            if "set_tenant_on_checkout" not in content or "checkout" not in content:
+                err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "MURO_DE_HIERRO_VIOLATION: missing connection checkout listener for Postgres RLS in database.py"}
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
         # 4. Cross-Service Dependency Tracking
         if ms in self.MICROSERVICES:
             for imp_module in imports.values():

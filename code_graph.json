@@ -1,7 +1,44 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [],
+    "invariants_errors": [
+        {
+            "file": "backend/mes_service/mes_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "mes_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing do_orm_execute for tenant isolation in database.py"
+        },
+        {
+            "file": "backend/mes_service/mes_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "mes_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing connection checkout listener for Postgres RLS in database.py"
+        },
+        {
+            "file": "backend/subscription_service/subscription_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "subscription_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing do_orm_execute for tenant isolation in database.py"
+        },
+        {
+            "file": "backend/subscription_service/subscription_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "subscription_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing connection checkout listener for Postgres RLS in database.py"
+        },
+        {
+            "file": "backend/wms_service/wms_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "wms_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing do_orm_execute for tenant isolation in database.py"
+        },
+        {
+            "file": "backend/wms_service/wms_app/infrastructure/database.py",
+            "severity": "CRITICAL",
+            "ms": "wms_service",
+            "error": "MURO_DE_HIERRO_VIOLATION: missing connection checkout listener for Postgres RLS in database.py"
+        }
+    ],
     "compliance_report": {
         "asset_manager_service": 100,
         "auth_service": 100,
@@ -11,20 +48,20 @@
         "inventory_service": 100,
         "kiosk_service": 100,
         "master_data_service": 100,
-        "mes_service": 100,
+        "mes_service": 80,
         "notification_service": 100,
-        "subscription_service": 100,
+        "subscription_service": 80,
         "tickets_service": 100,
         "viatra_service": 100,
-        "wms_service": 100
+        "wms_service": 80
     },
     "inter_service_deps": {
         "common": [
-            "auth_service",
-            "master_data_service",
             "wms_service",
+            "mes_service",
             "subscription_service",
-            "mes_service"
+            "master_data_service",
+            "auth_service"
         ],
         "inventory_service": [
             "notification_service"

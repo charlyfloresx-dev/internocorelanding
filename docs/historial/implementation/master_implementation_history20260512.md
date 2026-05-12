@@ -22,6 +22,18 @@ Capa de protección perimetral en el Monolito Unificado para prevenir DoS, abuso
 ### Objetivo
 Validar integridad transaccional y rendimiento de la base de datos bajo inyección masiva de 1,000,000 de registros Kardex (`inventory_transactions`).
 
+### Security Validation (Fase 2 - Muro de Hierro)
+- **Estado**: COMPLETADA (Validación Dinámica Pasada)
+- **Componente**: `backend/common/infrastructure/database.py` (SQLAlchemy 2.0 ORM Interceptors)
+- **Pruebas Realizadas y Clasificación**:
+  - **Ataque de Escritura (IDOR - Insecure Direct Object Reference)**:
+    - **Metodología**: Se simuló un payload POST malicioso intentando inyectar un UUID falso (`fake_company_id`) en la creación de una entidad `ExternalContact` mientras la sesión activa correspondía a una empresa distinta.
+    - **Resultado**: El interceptor `before_flush` reescribió y persistió el ID con el contexto del token activo de forma transparente. Pasado.
+  - **Ataque de Lectura (Cross-Tenant Leakage)**:
+    - **Metodología**: Se ejecutó una consulta huérfana `select(ExternalContact)` sin aplicar ninguna cláusula `WHERE` explícita en el repositorio.
+    - **Resultado**: El interceptor `do_orm_execute` inyectó el `with_loader_criteria` (`track_closure_variables=False`) en vuelo para obligar al motor a añadir la restricción de tenant. Pasado.
+- **Ubicación de Test**: Se ha archivado la prueba de estrés de seguridad en `backend/tests/security/test_muro_de_hierro_smoke.py` para formar parte de la suite de CI/CD. Finales
+
 ### Resultados Finales
 - **Volumen Inyectado**: 1,000,000 de registros.
 - **Tiempo Total**: 39.9 segundos.

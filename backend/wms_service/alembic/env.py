@@ -35,7 +35,7 @@ print("="*50 + "\n")
 # ------------------------------------------------------------------------
 try:
     from common.infrastructure.models.base import Base
-    import app.models 
+    import app.models
 except ImportError as e:
     print(f"❌ Error de Importación en auditoría: {e}")
     raise
@@ -51,11 +51,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
-    """Transforma la URL para usar el driver psycopg2 (síncrono) o asyncpg dependendiendo de Alembic"""
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        url = "postgresql+asyncpg://user:password@localhost:5433/wms_db"
-    return str(url)
+    """Transforma la URL usando el sistema de configuración global (lee el .env raíz automáticamente)"""
+    from common.config import settings
+    # settings.DATABASE_URL ya viene cargado y validado por Pydantic desde el .env global
+    return str(settings.DATABASE_URL)
 
 def include_object(object, name, type_, reflected, compare_to):
     if type_ == "table":
