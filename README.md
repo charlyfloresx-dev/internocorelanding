@@ -1,19 +1,23 @@
 # 🚀 INTERNO CORE - Master Documentation (SSOT)
 
-> **FASE ACTUAL:** `Fase 56 - AWS Microservices Rollout (Inventory & Master Data)`
-> **Last Updated:** 2026-04-18
-> **Status:** ✅ STABLE / Infrastructure Convergence & Media Assets (S3/SSM/RH) Operational
+> **FASE ACTUAL:** `Fase 98 - Cloud Decommissioning & Unified Monolith Stabilization`
+> **Last Updated:** 2026-05-12
+> **Status:** ✅ PROD-READY (Local-First) / Infrastructure Extracted & Unified Monolith Operational
 
 **Hitos Recientes:**
-- ✅ **[2026-04-18] AWS Cloud Stability:** Autenticación fluida y segura (HTTPS/CloudFront -> HTTP/ALB Fargate). Zero-downtime origin routing configurado y problemas de CORS por ciclo de vida de Python resueltos bajo despliegue CI/CD.
-- ✅ **[2026-04-17] AWS Infrastructure Foundation:** Microservicio de Auth consolidado en ECS Fargate con RDS, KMS, ACM, Cloudfront y ALB. Inyección de valores nativos lograda a nivel contenedor.
-- ✅ **[2026-04-16] Inventory Service:** Carga multi-tenant de fotos S3 incorporada en la estructura del Warehouse B2B.
+- ✅ **[2026-05-12] Phase 98 - Cloud Decommissioning:** Desmantelamiento total de AWS para alcanzar un estado de $0.00. Extracción del ADN técnico (VPC, IAM, OAC) y creación de la Guía de Resurrección para despliegues agnósticos en nuevas cuentas.
+- ✅ **[2026-05-11] Phase 97 - Mobile Handshake:** Estabilización del handshake T1/T2 para la aplicación móvil (Flutter) mediante delegación de tokens Zero-Trust (QR).
+- ✅ **[2026-05-10] Phase 96 - DB Integrity:** Limpieza forense de registros duplicados en `product_prices` y endurecimiento de la lógica de resolución de precios.
 
 ---
 
 ## 🏛️ 1. Arquitectura & Stack Tecnológico
 
-InternoCore se rige por los principios de **Clean Architecture** y **CQRS**, asegurando un desacoplamiento total entre dominios y una escalabilidad horizontal en entornos híbridos (On-Premise / AWS).
+InternoCore opera bajo una **Arquitectura Híbrida Evolutiva**:
+- **Monolito Unificado (Modo Actual):** Para eficiencia de costos y simplicidad operativa local, los servicios corren bajo un orquestador unificado compartiendo red interna.
+- **Microservicios Independientes (Cloud-Ready):** El código mantiene un desacoplamiento estricto (Bases de datos independientes y lógica aislada). Mediante los scripts de redespacho (`scripts/deploy_*`), cualquier módulo puede ser extraído y desplegado como un servicio independiente en AWS (ECS/App Runner) en minutos.
+
+Principios: **Clean Architecture** y **CQRS**, asegurando un desacoplamiento total entre dominios y una escalabilidad horizontal en entornos híbridos (Local / Cloud).
 
 - **Frontend:** Angular 19 (Signals, Reactive UI, Standalone Components).
 - **Backend:** FastAPI (Python 3.12+) con SQLAlchemy Asíncrono (`asyncpg`).
@@ -74,8 +78,9 @@ El sistema no es permisivo para garantizar la integridad financiera:
 
 | Microservicio | Puerto | Responsabilidad Core |
 | :--- | :--- | :--- |
+| **Unified Monolith** | `8000` | Gateway Maestro, Agregación de Rutas y Orquestación. |
 | **Auth Service** | `8001` | Identidad Central, Handshake T1/T2, Emisión y Rotación de JWT. |
-| **Subscription** | `8000/8002` | Módulos activos, Entitlements y Licenciamiento. |
+| **Subscription** | `8002` | Módulos activos, Entitlements y Licenciamiento. |
 | **Master Data** | `8003` | SSOT de Productos, UOM, Categorías y Marcas. |
 | **HR Service** | `8004` | Motor de HCM, Identidad Física (RFID/PIN) y Escalaciones. |
 | **Tickets** | `8005` | Gestión de Incidencias y Alertas Automáticas. |
@@ -105,13 +110,13 @@ Se ha definido un protocolo estricto para el alta y configuración de empresas e
 
 ---
 
-## 🛡️ 7. Gobernanza y Desarrollo
-
+## 🛡️ 7. Gobernanza y Estructura
+- **Ecosistema `src/`:** Carpeta central para aplicaciones satélite (Móvil, Kioscos, Trainers). Cada proyecto en `src/` debe ser una entidad independiente que consume las APIs del núcleo.
+- **Seguridad Vault:** La carpeta `docs/infraestructura/vault/` es el único lugar permitido para credenciales sensibles. Está estrictamente excluida de Git.
 - **Zero Root Pollution:** Prohibida la creación de archivos (.py, .env, .txt) en la raíz. Solo se permiten archivos maestros de documentación.
 - **AuditBase:** Todas las entidades deben heredar de `AuditBase` (`created_at`, `updated_at`, `created_by`, `updated_by`, `transaction_id`).
-- **Auditoría Automática:** El sistema registra automáticamente todos los cambios (CREATE, UPDATE, DELETE) en un `AuditLog` centralizado, garantizando trazabilidad forense por defecto.
+- **Auditoría Automática:** El sistema registra automáticamente todos los cambios en un `AuditLog` centralizado.
 - **Protección de Memoria:** **PROHIBIDO** eliminar archivos `.md` con prefijos `LOG` o `SPECS`. Son la memoria operativa del sistema.
-- **Especificaciones Maestras:** Consulta las [Especificaciones de Auditoría Consolidadas](file:///C:/Users/flore/.gemini/antigravity/brain/2c4d224a-9e9e-4bec-8850-fdc7b435580d/audit_specifications_consolidated.md) para criterios de cumplimiento.
 
 ---
 
