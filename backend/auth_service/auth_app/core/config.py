@@ -16,6 +16,10 @@ class AuthSettings(InternoSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30  # 30 days
     SELECTION_TOKEN_EXPIRE_MINUTES: int = 5
     
+    # Industrial Connectivity [Phase 94]
+    # Manual override for public/LAN IP detection
+    INT_API_EXTERNAL_URL: Optional[str] = Field(default=None, validation_alias=AliasChoices("INT_API_EXTERNAL_URL", "CORE_EXTERNAL_URL"))
+    
     # Service URLs
     SUBSCRIPTION_SERVICE_URL: str = Field(
         default="http://subscription-service:8000",

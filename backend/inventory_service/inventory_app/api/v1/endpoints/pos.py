@@ -34,21 +34,8 @@ async def pos_checkout(
     from sqlalchemy import select, and_
 
     # ── Document Creation (Header) ───────────────────────────────────────────
-    from inventory_app.models.inventory import InventoryDocument, DocumentType
+    # We will create the document after processing items to aggregate totals.
     doc_id = uuid.uuid4()
-    
-    doc = InventoryDocument(
-        id=doc_id,
-        company_id=token.company_id,
-        tenant_id=token.company_id,
-        document_type=DocumentType.POS_SALE,
-        document_number=f"POS-{uuid.uuid4().hex[:8].upper()}",
-        reference=f"POS Terminal {sale.warehouse_id}",
-        comments=sale.comments or "POS Checkout",
-        created_by=token.sub,
-        version_id=1
-    )
-    service.repository.session.add(doc)
 
     for item in sale.items:
         # 1. Get Product metadata

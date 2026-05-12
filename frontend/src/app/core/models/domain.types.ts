@@ -105,6 +105,7 @@ export interface AuthHandshake {
   user_id: string;
   companies: CompanyAccessDto[];
   is_new: boolean;
+  qr_b64?: string;
 }
 
 export interface AuthSession {
@@ -179,10 +180,10 @@ export interface DashboardDTO {
 export interface InventoryItem extends AuditBase {
   sku: string;
   description: string;
-  uom: string; 
+  uom: string;
   stock_level: number;
   reorder_point: number;
-  location_code: string; 
+  location_code: string;
 }
 
 export interface UOMRead extends AuditBase {
@@ -205,19 +206,19 @@ export interface ProductRead extends AuditBase {
   sku: string;
   name: string;
   description?: string;
-  
+
   // Phase 33.5: Fiscal & Commercial Fields
   sat_product_code?: string;
   hts_code?: string;
   is_taxable: boolean;
   allow_price_override: boolean;
-  
+
   uom_id: string;
   category_id: string;
   brand_id: string;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
   type: 'GOOD' | 'SERVICE';
-  
+
   // Expanded relations
   uom?: UOMRead;
   category?: CategoryRead;

@@ -37,9 +37,12 @@ services:
       - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service:/app/subscription_service:/app/hcm_service
       - HCM_SERVICE_URL=http://localhost:8000
       - SUBSCRIPTION_SERVICE_URL=http://localhost:8000
+      - INT_API_EXTERNAL_URL=http://192.168.1.146:8000
     depends_on:
       postgres-db:
         condition: service_healthy
+    env_file:
+      - ../.env
     networks:
       - interno-network
 

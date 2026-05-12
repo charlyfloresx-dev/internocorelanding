@@ -2,7 +2,15 @@
 
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
  
-### [2026-05-11] Phase 97: Industrial Mobile Auth Synchronization & Handshake Stabilization
+### [2026-05-12] Phase 98: Cloud Decommissioning & Infrastructure Serialization (ADN Extraction)
+- **AWS Account Forensic Audit**: Conducted a final forensic sweep of the AWS environment (`us-east-1`, `us-east-2`). Identified and neutralized residual "ghost" resources including an active secret in Secrets Manager and an empty S3 logging bucket, achieving a verified $0.00 cost state.
+- **Infrastructure Serialization (The Recipe)**: Extracted and serialized the technical "ADN" (VPC topologies, IAM Muro de Hierro policies, and CloudFront OAC configurations) into `docs/infraestructura/backup_configs/`.
+- **New Account Deployment Engine**: Developed `deploy_to_new_aws_account.ps1`, a parameterized orchestration script that enables 1-click redeployment into any fresh AWS account without hardcoded ID dependencies.
+- **Master Resurrection Guide**: Authored `AWS_RESURRECTION_GUIDE.md` and a comprehensive `README.md` for the infrastructure directory, establishing a clear path for cloud-restoration in future scale-up phases.
+- **Security Vault & Hygiene**: Established a local `vault/` directory (protected by `.gitignore`) to house sensitive credentials (Access Keys, Twilio codes) locally while ensuring Zero-Trust compliance for the source code.
+- **Compliance & Documentation**: Verified 100% compliance in the Code Graph Audit and updated the `Forensic_Audit_Report.md`.
+- **Status**: ✅ Phase 98 COMPLETED — AWS Account Decommissioned & Infrastructure Recipe Preserved.
+
 - **Frontend Interceptor Fix (Angular)**: Resolved critical `401 Unauthorized` block on `/auth/delegate-selection` by exempting the endpoint from automatic context-header injection in `multi-tenant.interceptor.ts`. This enables authenticated users to generate QR delegation tokens without triggering circular auth rejections.
 - **QR Payload Standardization (Zero-Trust)**: Updated `pos-link-drawer.component.ts` to use a dynamic host (`10.0.2.2` for emulator/localhost fallback) and strictly enforced `snake_case` JSON keys (e.g., `selection_token`, `company_id`) to ensure seamless parsing by the mobile ecosystem.
 - **Mobile Handshake Hardening (Flutter)**: 

@@ -165,6 +165,11 @@ class InternoSettings(BaseSettings):
         default="http://dev-frontend.interno.local:4200",
         validation_alias=AliasChoices("CORE_FRONTEND_URL", "FRONTEND_URL")
     )
+    int_api_external_url: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("CORE_API_EXTERNAL_URL", "API_EXTERNAL_URL"),
+        description="Base URL for the API as seen from external devices (QR payload)"
+    )
  
     # Providers
     int_resend_api_key: Optional[str] = Field(

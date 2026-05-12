@@ -146,6 +146,9 @@ async def select_company(
 
 # ── SELECTION DELEGATION (MOBILE) ─────────────────────────────────────────────
 
+from auth_app.core.qr_utils import generate_qr_b64
+import json
+
 @router.get("/delegate-selection", response_model=ApiResponse[CompanyAccessDto])
 async def delegate_selection(
     request: Request,
@@ -154,16 +157,40 @@ async def delegate_selection(
     security_ctx: SecurityContext = Depends(get_current_tenant_context),
 ):
     """
-    Returns a short-lived selection token for the current user.
-    Used by the Web Frontend to generate QRs for mobile delegation.
+    Returns a short-lived selection token and a local QR for mobile delegation.
     """
     user_id = security_ctx.user_id
     selection_token = security.create_selection_token(user_id)
     companies = await auth_service.get_user_companies(user_id)
 
+    # Industrial QR Payload [Phase 94]
+    from auth_app.core.qr_utils import generate_qr_b64, get_lan_ip
+    from auth_app.core.config import settings
+    
+    # 1. Use manual IP if provided in .env (Priority for mobile sync)
+    if getattr(settings, "INT_API_EXTERNAL_URL", None):
+        base_url = settings.INT_API_EXTERNAL_URL.rstrip('/')
+    else:
+        # Fallback to LAN IP
+        lan_ip = get_lan_ip()
+        port = request.url.port or 8000
+        base_url = f"http://{lan_ip}:{port}"
+
+    qr_data = {
+        "baseUrl": base_url,
+        "apiPrefix": "/api/v1",
+        "selectionToken": selection_token,
+        "companyId": str(security_ctx.company_id) if security_ctx.company_id else None,
+        "companyName": security_ctx.company_name if hasattr(security_ctx, "company_name") else "Interno Enterprise"
+    }
+    
+    import logging
+    logging.info(f"[QR_GEN] Using Base URL: {base_url}")
+    qr_b64 = generate_qr_b64(json.dumps(qr_data))
+
     await AuditLogger.log_action(
         db=db,
-        action="AUTH_DELEGATE_MOBILE",
+        action="AUTH_DELEGATE_MOBILE_QR",
         table_name="users",
         record_id=str(user_id),
         user_id=str(user_id),
@@ -178,8 +205,10 @@ async def delegate_selection(
             user_id=user_id,
             companies=companies,
             is_new=False,
+            qr_b64=qr_b64,
+            base_url=base_url + "/api/v1" # Backwards compatibility for UI display
         ),
-        message="Delegation token generated. Please scan with mobile device.",
+        message="Delegation QR generated locally. Please scan with mobile device.",
     )
 
 

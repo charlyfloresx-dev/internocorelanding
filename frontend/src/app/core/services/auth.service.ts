@@ -21,7 +21,7 @@ export class AuthService {
   public handshake = signal<AuthHandshake | null>(null);
   public isLoading = signal<boolean>(false);
   public authStep = signal<'login' | 'handshake' | 'verified'>('login');
-  
+
   // 🔄 Token Rotation State (for Interceptor buffering)
   public isRefreshing = signal<boolean>(false);
   public refreshTokenSubject = new BehaviorSubject<string | null>(null);
@@ -32,7 +32,7 @@ export class AuthService {
   // === Computed ===
   public availableCompanies = computed(() => this._companies());
   public availableAccesses = this.availableCompanies; // Alias for tenant-selection
-  
+
   public isAuthenticated = computed(() => !!this.session());
   public currentUser = computed(() => this.session()?.user ?? null);
   public roles = computed(() => this.session()?.roles ?? []);
@@ -40,7 +40,7 @@ export class AuthService {
   public activeCompanyId = computed(() => this.session()?.company_id || null);
 
   public subscriptionStatus = computed(() => this.session()?.status || SubscriptionStatus.ACTIVE);
-  
+
   public isUnpaid = computed(() => this.subscriptionStatus() === SubscriptionStatus.UNPAID);
 
   public isSuperAdmin = computed(() => {
@@ -53,10 +53,10 @@ export class AuthService {
     const isRestricted = this.subscriptionStatus() === SubscriptionStatus.RESTRICTED;
     const isExplicitReadOnly = !!this.session()?.readonly;
 
-    return isRestricted || 
-           isExplicitReadOnly ||
-           this.roles().some(r => r.toLowerCase().includes('viewer')) || 
-           this.permissions().some(p => p.toLowerCase().includes('read'));
+    return isRestricted ||
+      isExplicitReadOnly ||
+      this.roles().some(r => r.toLowerCase().includes('viewer')) ||
+      this.permissions().some(p => p.toLowerCase().includes('read'));
   });
 
   public hasPermission(permission: string): boolean {
@@ -78,10 +78,10 @@ export class AuthService {
    */
   public setSession(data: AuthSession) {
     console.group('Auth: Set Session');
-    
+
     // Safety Mapping: Convert scopes (backend) to permissions (frontend)
     if ((data as any).scopes && (!data.permissions || data.permissions.length === 0)) {
-       data.permissions = (data as any).scopes;
+      data.permissions = (data as any).scopes;
     }
 
     this.session.set(data);
@@ -113,10 +113,10 @@ export class AuthService {
       const resp = await lastValueFrom(
         this.http.post<ApiResponse<AuthHandshake>>(`${this.apiUrl}/auth/login`, credentials)
       );
-      
+
       const handshakeData = resp.data;
       if (!handshakeData) throw new Error('Handshake failed: empty response');
-      
+
       this.handshake.set(handshakeData);
       this.authStep.set('handshake');
 
@@ -125,7 +125,7 @@ export class AuthService {
         this._companies.set(handshakeData.companies);
         localStorage.setItem('_ic_companies', JSON.stringify(handshakeData.companies));
       }
-      
+
       if (this.isBrowser) {
         sessionStorage.setItem('_ic_selection_token', handshakeData.selection_token);
         localStorage.setItem('_ic_handshake', JSON.stringify(handshakeData));
@@ -151,7 +151,7 @@ export class AuthService {
   public async selectCompany(companyId: string, redirectTo: string = '/dashboard'): Promise<void> {
     console.group('Auth selectCompany (T2)');
     const t1 = this.handshake()?.selection_token || (this.isBrowser ? sessionStorage.getItem('_ic_selection_token') : null);
-    
+
     if (!t1) {
       this.logout();
       throw new Error('Selection token missing');
@@ -160,20 +160,20 @@ export class AuthService {
     this.isLoading.set(true);
     try {
       const resp = await lastValueFrom(
-        this.http.post<ApiResponse<AuthSession>>(`${this.apiUrl}/auth/select-company`, 
+        this.http.post<ApiResponse<AuthSession>>(`${this.apiUrl}/auth/select-company`,
           { company_id: companyId },
           { headers: { 'Authorization': `Bearer ${t1}` } }
         )
       );
-      
+
       const sessionData = resp.data;
       if (!sessionData) throw new Error('Selection failed: empty response');
-      
+
       // Adapt multi-service naming conventions
       if (!sessionData.roles && (sessionData as any).role_names) {
         sessionData.roles = (sessionData as any).role_names;
       }
-      
+
       // ✅ Entitlements & Normalization
       const rawScopes = (sessionData as any).scopes || [];
       if (rawScopes.length > 0) {
@@ -187,7 +187,7 @@ export class AuthService {
       if (matched) {
         (sessionData as any).company_name = matched.company_name;
       }
-      
+
       this.setSession(sessionData);
       if (redirectTo) {
         this.router.navigate([redirectTo]);
@@ -228,7 +228,7 @@ export class AuthService {
       if (stored) {
         try {
           refreshToken = JSON.parse(stored).refresh_token;
-        } catch {}
+        } catch { }
       }
     }
 
@@ -281,12 +281,12 @@ export class AuthService {
         this.handshake.set(data);
         this._companies.set(data.companies);
         this.authStep.set('handshake');
-        
+
         if (this.isBrowser) {
           sessionStorage.setItem('_ic_selection_token', data.selection_token);
           localStorage.setItem('_ic_companies', JSON.stringify(data.companies));
         }
-        
+
         this.router.navigate(['/select-company']);
         return;
       }
@@ -328,14 +328,14 @@ export class AuthService {
         const parsedData = JSON.parse(savedSession);
         this.session.set(parsedData);
         this.authStep.set('verified');
-      } catch {}
+      } catch { }
     }
 
     const savedCompanies = localStorage.getItem('_ic_companies');
     if (savedCompanies) {
       try {
         this._companies.set(JSON.parse(savedCompanies));
-      } catch {}
+      } catch { }
     }
   }
 

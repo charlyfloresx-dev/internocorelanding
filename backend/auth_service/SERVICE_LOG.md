@@ -1,5 +1,10 @@
 # Auth Service - Service Log
 
+## [2026-05-12] Phase 98: AWS Cloud Decommissioning (Post-Audit)
+- **Cloud Secret Neutralization**: Successfully deleted the `interno-core/auth-service/prod` secret from `us-east-2` following the forensic audit.
+- **Recipe Extraction**: Exported all IAM and VPC dependencies for the service to `docs/infraestructura/backup_configs/`.
+- **Local-First Transition**: Re-verified that the service correctly falls back to `.env` local settings without attempting AWS Secrets Manager calls when `CORE_ENV_MODE` is not `aws`.
+
 ## [2026-05-11] Phase 97: Mobile Handshake & Token Lifecycle Synchronization
 - **Handheld Sync (T1/T2)**: Verified and stabilized the mobile handshake via `/auth/delegate-selection`.
 - **Token Lifespan Enforcement**: Standardized `ACCESS_TOKEN_EXPIRE_MINUTES` to 720 (12 hours) and updated internal documentation in `security.py`.

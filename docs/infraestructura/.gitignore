@@ -1,0 +1,17 @@
+# Credenciales y Secretos (Seguridad Crítica)
+vault/
+*_accessKeys.csv
+*.pem
+*.pub
+*.txt
+secrets/
+.env*
+
+# Reportes temporales y costos
+costs.csv
+billing-report/
+*.log
+
+# Backups locales no deseados
+*.bak
+*.tmp

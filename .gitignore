@@ -131,3 +131,8 @@ pgdata/
 *.mkv
 *.exe
 *.msi
+
+# --- Secretos de Infraestructura (Seguridad Crítica) ---
+docs/infraestructura/*accessKeys.csv
+docs/infraestructura/twilio_2FA_recovery_code.txt
+costs.csv

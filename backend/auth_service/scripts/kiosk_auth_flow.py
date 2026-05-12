@@ -3,7 +3,7 @@ import requests
 import json
 import jwt
 
-BASE_URL = "http://localhost:8001/api/v1/auth"
+BASE_URL = "http://localhost:8000/api/v1/auth"
 
 def test_rfid_flow(rfid_tag: str):
     """Simula el escaneo de una tarjeta RFID en el Kiosco."""
@@ -84,3 +84,6 @@ if __name__ == "__main__":
     
     # 2. Prueba de ID + PIN (Ej. Carlos Ramirez - Industrial Admin)
     test_pin_flow("003709A", "1234")
+    
+    # 3. Prueba de ID + PIN (New Sync ID)
+    test_pin_flow("EMP-001", "1234")

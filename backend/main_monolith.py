@@ -198,22 +198,30 @@ async def debug_customs_monolith():
     return {"status": "ok", "message": "Hardcoded monolith customs path is reachable"}
 
 # 1. Auth
-from auth_app.api.v1.endpoints.auth import router as auth_router
-from auth_app.api.v1.endpoints.companies import router as companies_router
-from auth_app.api.v1.endpoints.users import router as users_router
-from auth_app.api.v1.endpoints.collaborator_auth import router as collaborator_auth_router
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(collaborator_auth_router, prefix="/api/v1/auth", tags=["Industrial Auth"])
-app.include_router(companies_router, prefix="/api/v1/companies", tags=["Auth: Companies"])
-app.include_router(users_router, prefix="/api/v1/users", tags=["Auth: Users"])
+from auth_app.api.v1.endpoints import (
+    auth as auth_endpoints, 
+    companies as companies_endpoints, 
+    users as users_endpoints, 
+    collaborator_auth as collaborator_endpoints,
+    social_login as social_endpoints,
+    biometric as biometric_endpoints
+)
+app.include_router(auth_endpoints.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(collaborator_endpoints.router, prefix="/api/v1/auth", tags=["Industrial Auth"])
+# Alias for frontend compatibility (collaborator/login instead of collaborator-login)
+app.include_router(collaborator_endpoints.router, prefix="/api/v1/auth/collaborator", tags=["Industrial Auth"], include_in_schema=False)
+app.include_router(social_endpoints.router, prefix="/api/v1/auth", tags=["Auth: Social"])
+app.include_router(biometric_endpoints.router, prefix="/api/v1/biometric", tags=["Auth: Biometric"])
+app.include_router(companies_endpoints.router, prefix="/api/v1/companies", tags=["Auth: Companies"])
+app.include_router(users_endpoints.router, prefix="/api/v1/users", tags=["Auth: Users"])
 
 # 2. Master Data
 from master_app.api.v1.endpoints import (
     products, prices, uom_router, categories, brands, 
     concepts, warehouses, partners, gis_validator, locations, 
     currency, enums as enums_router, enumerations
+    # sync as master_sync  # [Phase 94] Disabled due to missing schema dependency
 )
-# Alias para compatibilidad con microservicios (App Móvil)
 app.include_router(products.router, prefix="/api/v1/master-data/products", tags=["Master: Products"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["Master: Products"], include_in_schema=False)
 app.include_router(prices.router, prefix="/api/v1/prices", tags=["Master: Product Prices"])
@@ -228,30 +236,40 @@ app.include_router(locations.router, prefix="/api/v1/locations", tags=["Master: 
 app.include_router(currency.router, prefix="/api/v1/currencies", tags=["Master: Currency"])
 app.include_router(enums_router.router, prefix="/api/v1/enums", tags=["Master: System Enums"])
 app.include_router(enumerations.router, prefix="/api/v1/enumerations", tags=["Master: System Enumerations"])
+# app.include_router(master_sync.router, prefix="/api/v1/master-data", tags=["Master: Sync"]) # [Phase 94] Disabled
 
 # 3. Inventory
-from inventory_app.api.v1.endpoints.transactions import router as transactions_router
-from inventory_app.api.v1.endpoints.reconciliation import router as reconciliation_router
-from inventory_app.api.v1.endpoints.boms import router as boms_router
-from inventory_app.api.v1.endpoints.dashboard import router as inventory_dashboard_router
-from inventory_app.api.v1.endpoints.inventory_search import router as inventory_search_router
-from inventory_app.api.v1.endpoints.inventory import router as inventory_ops_router
-from inventory_app.api.v1.endpoints.customs import router as customs_router
-from inventory_app.api.v1.endpoints.variants import router as variants_router
-from inventory_app.api.v1.endpoints.inter_company_transfers import router as ict_router
-from inventory_app.api.v1.endpoints.demo_reset import router as demo_reset_router
-from inventory_app.api.v1.endpoints.locations import router as wms_locations_router  # [Phase 83] P0 Fix
-from inventory_app.api.v1.endpoints.audit import router as audit_router
-app.include_router(audit_router, prefix="/api/v1/audit", tags=["Global: Forensic Audit"])
-app.include_router(transactions_router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
-app.include_router(reconciliation_router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
-app.include_router(boms_router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
-app.include_router(inventory_dashboard_router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
-app.include_router(inventory_search_router, prefix="/api/v1/search", tags=["Inventory: Search"])
-app.include_router(inventory_ops_router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
-from inventory_app.api.v1.endpoints.pos import router as pos_router
-app.include_router(pos_router, prefix="/api/v1/pos", tags=["Inventory: POS Checkout"])
-app.include_router(wms_locations_router, prefix="/api/v1/inventory", tags=["WMS: Location Management (Density Guard)"])  # [Phase 83] P0 Fix
+from inventory_app.api.v1.endpoints import (
+    transactions as transactions_endpoints,
+    reconciliation as reconciliation_endpoints,
+    boms as boms_endpoints,
+    dashboard as inventory_dashboard,
+    inventory_search,
+    inventory as inventory_ops,
+    customs as customs_endpoints,
+    variants as variants_endpoints,
+    inter_company_transfers as ict_endpoints,
+    demo_reset as demo_endpoints,
+    locations as wms_locations,
+    audit as audit_endpoints,
+    pos as pos_endpoints,
+    onboarding as inv_onboarding
+)
+app.include_router(audit_endpoints.router, prefix="/api/v1/audit", tags=["Global: Forensic Audit"])
+app.include_router(transactions_endpoints.router, prefix="/api/v1/inventory", tags=["Inventory: Transactions"])
+app.include_router(reconciliation_endpoints.router, prefix="/api/v1/inventory", tags=["Inventory: Reconciliation"])
+app.include_router(boms_endpoints.router, prefix="/api/v1/inventory/boms", tags=["Inventory: BOMs"])
+app.include_router(inventory_dashboard.router, prefix="/api/v1/dashboard", tags=["Inventory: Dashboard"])
+app.include_router(inventory_search.router, prefix="/api/v1/search", tags=["Inventory: Search"])
+app.include_router(inventory_ops.router, prefix="/api/v1/inventory", tags=["Inventory: Operations"])
+app.include_router(pos_endpoints.router, prefix="/api/v1/pos", tags=["Inventory: POS Checkout"])
+app.include_router(customs_endpoints.router, prefix="/api/v1/customs", tags=["Inventory: Customs (Anexo 24)"])
+app.include_router(customs_endpoints.router, prefix="/api/v1/reporting/customs", tags=["Reporting: Customs Balances"], include_in_schema=False)
+app.include_router(variants_endpoints.router, prefix="/api/v1/inventory", tags=["Inventory: Variants"])
+app.include_router(ict_endpoints.router, prefix="/api/v1/inventory/transfers", tags=["Inventory: Inter-Company Transfers"])
+app.include_router(demo_endpoints.router, prefix="/api/v1/admin", tags=["Admin: Demo Reset"])
+app.include_router(wms_locations.router, prefix="/api/v1/inventory", tags=["WMS: Location Management (Density Guard)"])
+app.include_router(inv_onboarding.router, prefix="/api/v1/inventory", tags=["Inventory: Onboarding"])
 
 # 4. Notifications
 from notification_app.api.v1.endpoints import notifications as notification_endpoints

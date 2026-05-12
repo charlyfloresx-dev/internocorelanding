@@ -30,3 +30,7 @@ psycopg2-binary==2.9.9
 pytest==8.0.0
 redis==5.0.1
 resend==0.8.0
+
+# Generación de QR (Sincronizado con Kiosk Service)
+qrcode[pil]>=7.4.2
+Pillow==10.2.0

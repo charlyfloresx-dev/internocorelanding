@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../core/services/auth.service';
@@ -25,8 +25,15 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
         
         <!-- QR Container -->
-        <div class="relative bg-white p-4 rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
-          <img [src]="qrUrl" alt="POS Link QR" class="w-64 h-64">
+        <div class="relative bg-white p-4 rounded-3xl shadow-2xl border border-slate-100 overflow-hidden min-w-[256px] min-h-[256px] flex items-center justify-center">
+          <ng-container *ngIf="qrUrl(); else loading">
+            <img [src]="qrUrl()" alt="POS Link QR" class="w-64 h-64 transition-opacity duration-500" [class.opacity-0]="!qrUrl()">
+          </ng-container>
+          <ng-template #loading>
+            <div class="w-64 h-64 bg-slate-100 animate-pulse rounded-2xl flex items-center justify-center">
+               <mat-icon class="text-slate-300 scale-[2]">qr_code_2</mat-icon>
+            </div>
+          </ng-template>
         </div>
       </div>
 
@@ -35,7 +42,7 @@ import { AuthService } from '../../core/services/auth.service';
           <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Datos de Configuración</p>
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300">Tenant</span>
-            <span class="text-[10px] font-black text-primary">{{ companyName }}</span>
+            <span class="text-[10px] font-black text-primary">{{ companyName() }}</span>
           </div>
           <div class="flex items-center justify-between mt-1">
             <span class="text-[10px] font-bold text-slate-700 dark:text-slate-300">Servidor</span>
@@ -52,35 +59,32 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class PosLinkDrawerComponent implements OnInit {
   authService = inject(AuthService);
-  qrUrl: string = '';
-  companyName: string = '';
+
+  // Use signals for reactive updates
+  qrUrl = signal<string>('');
+  companyName = signal<string>('');
 
   async ngOnInit() {
-    await this.generateQr();
+    await this.loadDelegateQr();
   }
 
-  async generateQr() {
+  async loadDelegateQr() {
     try {
       const handshake = await this.authService.getDelegateToken();
-      const companyId = this.authService.activeCompanyId();
       const session = this.authService.session() as any;
-      this.companyName = session?.company_name || 'InternoCore';
 
-      // Build the configuration object
-      const host = window.location.hostname === 'localhost' ? '10.0.2.2' : window.location.hostname;
-      
-      const config = {
-        base_url: `http://${host}:8000/api/v1`, 
-        selection_token: handshake.selection_token,
-        company_id: companyId,
-        warehouse_id: 'WH-MAIN-001', // TODO: Allow dynamic selection
-        terminal_name: `MOBILE-POS-${new Date().getTime().toString().slice(-4)}`
-      };
+      this.companyName.set(session?.company_name || 'InternoCore');
 
-      const data = encodeURIComponent(JSON.stringify(config));
-      this.qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${data}&bgcolor=ffffff&color=000000&qzone=2&margin=0`;
+      // CASE: Backend generated local QR [Phase 94]
+      if (handshake.qr_b64) {
+        this.qrUrl.set(handshake.qr_b64);
+        console.log('[PosLinkDrawer] ✅ Local QR loaded from backend');
+      } else {
+        console.warn('[PosLinkDrawer] ⚠️ Backend did not return qr_b64. Falling back to frontend generator.');
+        // Minimalist fallback logic could go here if needed
+      }
     } catch (err) {
-      console.error('Failed to generate delegation QR:', err);
+      console.error('[PosLinkDrawer] ❌ Failed to load delegation QR:', err);
     }
   }
 }

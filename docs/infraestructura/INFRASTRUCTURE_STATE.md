@@ -1,37 +1,30 @@
-# 🌐 InternoCore: Estado de la Infraestructura Cloud (POST-NUKE)
+# 🌐 InternoCore: Estado de la Infraestructura Cloud (CUENTA CERRADA)
 
-## 📊 Estatus Actual: **LOCAL ONLY ($0.00 AWS Cost)**
-A partir del **2026-04-21**, toda la infraestructura en la nube ha sido desmantelada para evitar costos de desarrollo. El Source of Truth (SSOT) del código y la base de datos reside ahora exclusivamente en el entorno local.
+## 📊 Estatus Actual: **❄️ CRIO-ESTADO (Account Closed / $0.00)**
+A partir del **2026-05-12**, la cuenta de AWS `584094645491` ha sido cerrada definitivamente tras una auditoría forense exitosa. El sistema reside ahora exclusivamente en el **Monolito Unificado Local**.
 
-### 🛑 Lo que se eliminó (Nuke to Zero):
-- **App Runner:** Todos los servicios borrados (Auth, Master Data).
-- **Red:** VPC Endpoints (PrivateLink) eliminados para evitar cargos por hora.
-- **Base de Datos:** Instancia RDS `interno-core-db` borrada (sin snapshots).
-- **Storage:** Buckets S3 de frontend borrados.
+### 🛑 Acción de Cierre (Audit results):
+- **Secrets Manager:** Secreto de producción en `us-east-2` eliminado.
+- **S3:** Bucket residual `nexosuite-logs-and-backups-3709` borrado.
+- **IAM:** Access Key `AKIAYP7WA7TZ4J3VBER4` desactivada.
+- **ADN:** Configuración exportada a `backup_configs/`.
 - **Registro:** Repositorios ECR purgados.
 
 ---
 
-## 🏗️ Guía de Recuperación (Redeploy)
-Cuando se decida volver a producción/staging en AWS, no se debe hacer manualmente. Se han creado scripts de orquestación para asegurar que la arquitectura de red (VPC-Bridge) sea correcta:
+## 🏗️ Guía de Resurrección (Despliegue en Nueva Cuenta)
+Cuando se decida volver a la nube, consulte la **[Guía de Resurrección](AWS_RESURRECTION_GUIDE.md)**. Se han actualizado los scripts para soportar cuentas nuevas sin IDs hardcodeados.
 
-### 1. Preparación Local
-Asegúrate de que tus imágenes de Docker estén listas:
+### 🚀 Pasos de Emergencia
+1. **Fase 0:** Crear nueva cuenta AWS y configurar CLI.
+2. **Despliegue:** Ejecutar el script universal parametrizado:
 ```powershell
-# Ejemplo para push manual (si el script no lo hace)
-aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin [ACCOUNT_ID].dkr.ecr.us-east-2.amazonaws.com
-docker push [ACCOUNT_ID].dkr.ecr.us-east-2.amazonaws.com/interno-core/auth-service:latest
+.\backend\scripts\deploy_to_new_aws_account.ps1 -AccountId "NUEVO_ID"
 ```
 
-### 2. Ejecución del Orchestrator
-Ejecuta el script de re-ensamblaje que crea la red privada, los VPC Endpoints y los servicios de App Runner:
-```powershell
-.\backend\scripts\redeploy_internocore_aws.ps1
-```
-
-### 3. Scripts de Mantenimiento
-- **Redespliegue:** `backend/scripts/redeploy_internocore_aws.ps1`
-- **Limpieza Total:** `backend/scripts/aws_full_nuke.ps1`
+### 📂 Archivos de Referencia
+- **Guía Maestra:** `docs/infraestructura/AWS_RESURRECTION_GUIDE.md`
+- **ADN Técnico:** `docs/infraestructura/backup_configs/` (VPC, IAM, CloudFront JSONs)
 
 ---
 

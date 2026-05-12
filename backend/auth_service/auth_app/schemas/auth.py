@@ -41,6 +41,10 @@ class CompanyAccessDto(BaseModel):
     companies: List[CompanySelection]
     # Indicates if the user is new in the global system [cite: 2026-01-27]
     is_new: bool
+    # Base64 encoded QR image for mobile delegation [Phase 94]
+    qr_b64: Optional[str] = None
+    # Manual IP override for mobile sync [Phase 94]
+    base_url: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
