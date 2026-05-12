@@ -114,7 +114,7 @@ class InternoSettings(BaseSettings):
     REDIS_URL: Optional[str] = Field(
         default="redis://redis:6379/0",
         validation_alias=AliasChoices("CORE_REDIS_URL", "REDIS_URL"),
-        description="URL de conexión a Redis (ej. redis://localhost:6379/0)"
+        description="URL de conexión a Redis (ej. redis://redis:6379/0)"
     )
     
     # Mail Config (Notificaciones)
