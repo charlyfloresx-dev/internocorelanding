@@ -8,6 +8,15 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-12] Phase 2: Identity & Access Audit (Heartbeat & Scope Hardening)
+- **Granular Scope Enforcement**: Engineered the `require_scope` dependency factory in `common.security.dependencies.py`. Injected `Dependencies(require_scope(["x:read"]))` into high-risk endpoints (WMS locations, MES work orders) to enforce exact RBAC permissions, closing validation gaps.
+- **Session Heartbeat (Real-time Revocation)**: Implemented an asynchronous Redis blocklist check within `get_current_active_user`. This "Heartbeat" validates the `blacklist:{user_id}` key, instantly revoking compromised JWTs. Backed by a 5-minute In-Memory Local Cache to absorb heavy frontend traffic without DB/Redis saturation.
+- **Cryptographic Hardening**: Upgraded the core password hashing algorithm (`bcrypt`) to `work_factor=12` across the identity layer.
+- **Seed Synchronization**: Unified `auth_service/scripts/seed_standalone.py`, `seed.py`, and `unified_industrial_seed.py` to correctly map `Planta MX` and `Planta US` to the central `Interno Global Operations` Business Group, enforcing environmental SSOT.
+- **Status**: ✅ Phase 2 COMPLETED — Industrial Identity Hardened & Access Control Standardized.
+
+---
+
 ### [2026-05-12] Phase 5: RLS Muro de Hierro & Database Governance
 - **Postgres RLS Foundation**: Engineered and deployed dynamic PL/pgSQL Alembic migrations enforcing `ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` on all tables possessing a `company_id`.
 - **Tenant Context Interceptor**: Activated global `do_orm_execute` and `checkout` connection listeners in the Unified Monolith (`common.infrastructure.database`). These inject the `app.current_tenant` context directly into Postgres session variables (`SET LOCAL app.current_tenant`), executing a `RESET` on connection return to prevent leakage across pooled sessions.

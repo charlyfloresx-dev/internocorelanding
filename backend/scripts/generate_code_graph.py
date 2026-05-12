@@ -240,6 +240,9 @@ class CodeGraphGenerator:
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
                 self._analyze_class(file_path, node, imports, ms)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self._analyze_function(file_path, None, node, ms)
+                
             if ("_app/domain/services/" in rel_path or "_app/services/" in rel_path) and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 self.domain_services_count[ms] = self.domain_services_count.get(ms, 0) + 1
 
@@ -253,9 +256,9 @@ class CodeGraphGenerator:
 
         for item in node.body:
             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self._analyze_method(file_path, node, item, ms)
+                self._analyze_function(file_path, node, item, ms)
 
-    def _analyze_method(self, file_path: str, class_node: ast.ClassDef, node: ast.AST, ms: str):
+    def _analyze_function(self, file_path: str, class_node: ast.ClassDef | None, node: ast.AST, ms: str):
         rel_path = os.path.relpath(file_path, self.root_dir).replace("\\", "/")
         source = ""
         try:
@@ -263,12 +266,25 @@ class CodeGraphGenerator:
                 source = ast.get_source_segment(f.read(), node) or ""
         except: pass
 
+        class_name = class_node.name if class_node else "ModuleLevel"
+
+        # Phase 2: Scope Enforcement Guard (Endpoints)
+        if "/api/" in rel_path or "/endpoints/" in rel_path or "/routers/" in rel_path:
+            if "Depends(get_current_active_user)" in source or "Depends(get_current_user)" in source:
+                # Exclude purely read-only or public functions that don't need explicit scopes,
+                # but flag if it's an operational endpoint missing require_scope
+                if not any(k in source for k in ["require_scope", "SecurityScopes", "Depends(get_login_token)"]):
+                    # Flag as WARNING to manually review if it should have a scope
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"}
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
         # Multi-tenancy check (Phase 89+ — Smart Exclusions)
         # Methods that access data globally by design are excluded:
         #   - External/public token lookups (providers don't know company_id)
         #   - Escalation/SLA cron jobs (cross-tenant orchestration)
         #   - Global aggregation/reporting methods
-        if "Repository" in class_node.name and node.name.startswith(("get_", "find_", "list_")):
+        if class_node and "Repository" in class_node.name and node.name.startswith(("get_", "find_", "list_")):
             if any(k in source for k in ["select(", "filter(", "where("]):
                 # Known tenant-aware markers
                 tenant_markers = [
@@ -284,7 +300,7 @@ class CodeGraphGenerator:
                 is_global_by_design = any(p in method_lower for p in global_access_patterns)
 
                 if not is_global_by_design and not any(t in source for t in tenant_markers):
-                    err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "MISSING_TENANT_FILTER: Possible missing company_id filter"}
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "MISSING_TENANT_FILTER: Possible missing company_id filter"}
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
@@ -296,7 +312,7 @@ class CodeGraphGenerator:
             if "record_movement" in source:
                 # Must call capacity check beforehand
                 if not any(k in source for k in ["_check_location_capacity", "DensityGuard", 'validation_status="PENDING"', 'validation_status = "PENDING"']):
-                    err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "CRITICAL", "ms": ms, "error": "MISSING_DENSITY_GUARD: Warehouse entry detected without location capacity validation."}
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "CRITICAL", "ms": ms, "error": "MISSING_DENSITY_GUARD: Warehouse entry detected without location capacity validation."}
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
@@ -310,7 +326,7 @@ class CodeGraphGenerator:
                 # if they are performing domain-level enforcement or if the middleware is bypassed
                 if "status" not in source.lower() and "readonly" not in source.lower() and "security_context" not in source.lower():
                      # Only warning because global middleware handles most cases, but domain-level awareness is preferred for granular feedback
-                     err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "SUBSCRIPTION_AWARENESS_WARNING: Write operation in critical service might be missing subscription-state awareness (readonly/status)"}
+                     err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "WARNING", "ms": ms, "error": "SUBSCRIPTION_AWARENESS_WARNING: Write operation in critical service might be missing subscription-state awareness (readonly/status)"}
                      self.graph["invariants_errors"].append(err)
                      self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
@@ -322,7 +338,7 @@ class CodeGraphGenerator:
                 leaked = [f for f in sensitive_fields if f'"{f}"' in source or f"'{f}'" in source]
                 # Only flag if the method explicitly serializes these fields in a response dict
                 if leaked and ("return {" in source or "jsonable_encoder" in source):
-                    err = {"file": rel_path, "class": class_node.name, "method": node.name, "severity": "WARNING", "ms": ms, "error": f"PUBLIC_DATA_LEAKAGE: Public endpoint may expose sensitive fields: {', '.join(leaked)}"}
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "WARNING", "ms": ms, "error": f"PUBLIC_DATA_LEAKAGE: Public endpoint may expose sensitive fields: {', '.join(leaked)}"}
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
