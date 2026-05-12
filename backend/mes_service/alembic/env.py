@@ -43,11 +43,9 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
-    """Transforma la URL para usar el driver psycopg2 (síncrono) o asyncpg dependendiendo de Alembic"""
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        url = "postgresql+asyncpg://user:password@localhost:5432/mes_db"
-    return str(url)
+    """Transforma la URL usando el sistema de configuración global (lee el .env raíz automáticamente)"""
+    from common.config import settings
+    return str(settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     url = get_url()

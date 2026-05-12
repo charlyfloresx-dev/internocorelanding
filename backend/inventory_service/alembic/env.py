@@ -38,7 +38,9 @@ target_metadata = Base.metadata
 
 # ─── DB Configuration ─────────────────────────────────────────────────────────
 def get_url():
-    return os.getenv("CORE_DATABASE_URL") or os.getenv("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    """Transforma la URL usando el sistema de configuración global (lee el .env raíz automáticamente)"""
+    from common.config import settings
+    return str(settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""

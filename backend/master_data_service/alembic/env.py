@@ -21,10 +21,9 @@ import master_app.models  # noqa: F401
 target_metadata = MultiTenantBase.metadata
 
 def get_url():
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        url = "postgresql+asyncpg://user:password@localhost:5433/master_data_db"
-    return str(url)
+    """Transforma la URL usando el sistema de configuración global (lee el .env raíz automáticamente)"""
+    from common.config import settings
+    return str(settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     url = get_url()
