@@ -93,6 +93,9 @@ yarn-error.log
 Thumbs.db
 
 # --- Interno Core Specific & DB ---
+logs/
+tmp/
+brain/
 *.log
 frontend.zip
 mock_*.json
