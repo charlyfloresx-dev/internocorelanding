@@ -9,10 +9,11 @@ from common.security.auth_payload import TokenPayload
 from common.responses import ApiResponse
 from wms_app.models.location import Location
 from wms_app.schemas.location import LocationCreate, LocationResponse
+from common.security.dependencies import require_scope
 
 router = APIRouter()
 
-@router.post("/", response_model=None, summary="Create Location")
+@router.post("/", response_model=None, summary="Create Location", dependencies=[Depends(require_scope(["wms:write"]))])
 async def create_location(
     location_in: LocationCreate,
     db: AsyncSession = Depends(get_db),
@@ -49,7 +50,7 @@ async def create_location(
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=None, summary="List Locations")
+@router.get("/", response_model=None, summary="List Locations", dependencies=[Depends(require_scope(["wms:read"]))])
 async def list_locations(
     warehouse_id: Optional[uuid.UUID] = Query(None, description="Optional warehouse ID filter"),
     db: AsyncSession = Depends(get_db),

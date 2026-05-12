@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Config
 DB_URL = "postgresql+asyncpg://user:password@localhost:5433/dbname"
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -48,7 +48,9 @@ async def run_standalone_seed():
         companies = [
             {"id": "9cd9986b-89da-48b7-8733-26a2a1225b01", "name": "InternoCorp Enterprise", "gid": group_id},
             {"id": "ad6cc8a6-34f9-42df-8f29-28254e0ad242", "name": "Interno Logistics (Tijuana Plant)", "gid": group_id},
-            {"id": "203e03c9-5d65-43ff-9e83-864ef605426c", "name": "Nueva Planta Demo", "gid": group_id}
+            {"id": "203e03c9-5d65-43ff-9e83-864ef605426c", "name": "Nueva Planta Demo", "gid": group_id},
+            {"id": "11111111-5d65-43ff-9e83-864ef6054111", "name": "Planta MX", "gid": group_id},
+            {"id": "22222222-5d65-43ff-9e83-864ef6054222", "name": "Planta US", "gid": group_id}
         ]
         for c in companies:
             try:
@@ -117,6 +119,32 @@ async def run_standalone_seed():
                 await conn.execute(text("""
                     INSERT INTO user_company_roles (user_id, company_id, role_id, is_new, version_id, created_at, updated_at, scopes)
                     VALUES (:uid, 'ad6cc8a6-34f9-42df-8f29-28254e0ad242', :rid, False, 1, NOW(), NOW(), '[]'::jsonb)
+                """), {"uid": u_charly_id, "rid": rid})
+                await conn.commit()
+            except sqlalchemy.exc.IntegrityError:
+                await conn.rollback()
+
+        # Charly -> Planta MX
+        res = await conn.execute(text("SELECT id FROM roles WHERE name='admin' AND company_id='11111111-5d65-43ff-9e83-864ef6054111'"))
+        rid = res.scalar()
+        if rid:
+            try:
+                await conn.execute(text("""
+                    INSERT INTO user_company_roles (user_id, company_id, role_id, is_new, version_id, created_at, updated_at, scopes)
+                    VALUES (:uid, '11111111-5d65-43ff-9e83-864ef6054111', :rid, False, 1, NOW(), NOW(), '[]'::jsonb)
+                """), {"uid": u_charly_id, "rid": rid})
+                await conn.commit()
+            except sqlalchemy.exc.IntegrityError:
+                await conn.rollback()
+
+        # Charly -> Planta US
+        res = await conn.execute(text("SELECT id FROM roles WHERE name='admin' AND company_id='22222222-5d65-43ff-9e83-864ef6054222'"))
+        rid = res.scalar()
+        if rid:
+            try:
+                await conn.execute(text("""
+                    INSERT INTO user_company_roles (user_id, company_id, role_id, is_new, version_id, created_at, updated_at, scopes)
+                    VALUES (:uid, '22222222-5d65-43ff-9e83-864ef6054222', :rid, False, 1, NOW(), NOW(), '[]'::jsonb)
                 """), {"uid": u_charly_id, "rid": rid})
                 await conn.commit()
             except sqlalchemy.exc.IntegrityError:

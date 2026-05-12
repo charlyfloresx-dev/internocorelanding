@@ -10,6 +10,7 @@ from sqlalchemy import select, and_
 from typing import List, Optional
 from common.exceptions import NotFoundException
 from common.responses import ApiResponse
+from common.security.dependencies import require_scope
 
 router = APIRouter()
 
@@ -41,7 +42,7 @@ class WorkOrderCreate(BaseModel):
     )
 
 # Endpoints
-@router.get("/", response_model=List[WorkOrderRead])
+@router.get("/", response_model=List[WorkOrderRead], dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_work_orders(
     company_id: uuid.UUID = Depends(get_current_company),
     db: AsyncSession = Depends(get_db)
@@ -51,7 +52,7 @@ async def get_work_orders(
     result = await db.execute(query)
     return result.scalars().all()
 
-@router.get("/{order_number}", response_model=WorkOrderRead)
+@router.get("/{order_number}", response_model=WorkOrderRead, dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_work_order(order_number: str, db: AsyncSession = Depends(get_db)):
     """Detalle de una orden específica."""
     wo = await db.get(WorkOrder, order_number)
@@ -59,7 +60,7 @@ async def get_work_order(order_number: str, db: AsyncSession = Depends(get_db)):
         raise NotFoundException("WorkOrder not found")
     return wo
 
-@router.post("/", response_model=WorkOrderRead)
+@router.post("/", response_model=WorkOrderRead, dependencies=[Depends(require_scope(["mes:write"]))])
 async def create_work_order(
     request: WorkOrderCreate, 
     company_id: uuid.UUID = Depends(get_current_company),

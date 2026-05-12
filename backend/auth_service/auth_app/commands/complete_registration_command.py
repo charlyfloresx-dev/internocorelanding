@@ -9,7 +9,7 @@ from auth_app.models import User, Invitation, UserCompanyRole
 from common.exceptions import NotFoundException, UnauthorizedException, ConflictException
 from common.services.audit_service import AuditService
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 class CompleteRegistrationCommand(ICommand):
     def __init__(self, code: str, password: str, full_name: str):
