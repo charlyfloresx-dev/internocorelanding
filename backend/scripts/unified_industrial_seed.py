@@ -257,8 +257,8 @@ async def seed_auth(session):
 
     for co_id, co_name, co_tax in [
         (ENTERPRISE_ID, "Interno Enterprise", 0.16),
-        (LOGISTICS_MX_ID, "Interno Logistics MX", 0.16),
-        (LOGISTICS_US_ID, "Interno Logistics US", 0.0),
+        (LOGISTICS_MX_ID, "Planta MX", 0.16),
+        (LOGISTICS_US_ID, "Planta US", 0.0),
         (DEMO_ID, "Demo Operativo S.A.", 0.16)
     ]:
         if not await session.get(Company, co_id):
@@ -493,8 +493,8 @@ async def seed_inventory(session):
     # Sincronizar Warehouses al schema de inventario
     for wh_id, name, code, cy, cntry in [
         (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.ENT-MAIN"), "Almacen Central", "WH-001", ENTERPRISE_ID, "MX"),
-        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-MX-TJ"), "Logistics MX TJ", "LOG-MX-TJ", LOGISTICS_MX_ID, "MX"),
-        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-US-SD"), "Logistics US SD", "LOG-US-SD", LOGISTICS_US_ID, "US"),
+        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-MX-TJ"), "Planta MX", "LOG-MX-TJ", LOGISTICS_MX_ID, "MX"),
+        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-US-SD"), "Planta US", "LOG-US-SD", LOGISTICS_US_ID, "US"),
     ]:
         await session.execute(text("""
             INSERT INTO inventory_warehouses (

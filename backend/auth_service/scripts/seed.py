@@ -3,11 +3,11 @@ Auth Service - Seed Script v6 (M:1:M Identity)
 ==================================================
 Estructura:
   - 1 BusinessGroup: Interno Global Operations
-  - 4 Empresas: Enterprise, Logistics MX, Logistics US, Demo
+  - 4 Empresas: Enterprise, Planta MX, Planta US, Demo
   - Usuarios (User global) + Credenciales (UserCredential):
       * charly@interno.com      / charly123  -> Admin en todas las empresas
-      * operador@interno.com    / ops123     -> Operator en Logistics MX
-      * supervisor_us@interno.com / super123 -> Manager en Logistics US
+      * operador@interno.com    / ops123     -> Operator en Planta MX
+      * supervisor_us@interno.com / super123 -> Manager en Planta US
       * charly.flores.x@gmail.com (Google OAuth) -> Admin en todas
 
 NOTA: User es identidad global. Email y password viven en UserCredential.
@@ -118,8 +118,8 @@ async def run_seed():
             log.info("[2/6] Empresas...")
             companies_data = [
                 (ENTERPRISE_ID,   "Interno Enterprise",       "ACTIVE"),
-                (LOGISTICS_MX_ID, "Interno Logistic MX",      "ACTIVE"),
-                (LOGISTICS_US_ID, "Interno Logistic US",      "ACTIVE"),
+                (LOGISTICS_MX_ID, "Planta MX",                "ACTIVE"),
+                (LOGISTICS_US_ID, "Planta US",                "ACTIVE"),
                 (DEMO_ID,         "Demo Operativo S.A.",      "ACTIVE"),
             ]
             for cid, cname, cstatus in companies_data:
