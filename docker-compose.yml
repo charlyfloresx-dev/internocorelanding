@@ -20,6 +20,22 @@ services:
       timeout: 5s
       retries: 5
 
+  # --- CACHE & RATE LIMITING (Redis) ---
+  redis:
+    image: redis:7-alpine
+    container_name: interno-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - interno-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # --- AUTH SERVICE (Identidad y Empresas) ---
   auth-service:
     build:
@@ -40,6 +56,7 @@ services:
       - PYTHONPATH=/app
       - HCM_SERVICE_URL=http://hcm-service:8000
       - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
+      - CORE_REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -65,6 +82,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/hcm_db
       - PYTHONPATH=/app
       - CORE_HR_RFID_SALT=INTERNO_HR_RFID_SALT_DEV_CHANGE_IN_PROD
+      - CORE_REDIS_URL=redis://redis:6379/0
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -86,6 +104,7 @@ services:
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/master_data_db
       - PYTHONPATH=/app
@@ -110,6 +129,7 @@ services:
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/subscription_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app
@@ -136,6 +156,7 @@ services:
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/inventory_db
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
@@ -161,6 +182,7 @@ services:
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/wms_db
       - PYTHONPATH=/app
@@ -186,6 +208,7 @@ services:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/tickets_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app:/app/tickets_service
@@ -263,6 +286,7 @@ services:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/mes_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - POSTGRES_SERVER=postgres-db
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
@@ -290,6 +314,7 @@ services:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/currency_db
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/currency_db
+      - CORE_REDIS_URL=redis://redis:6379/0
       - CORE_BANXICO_TOKEN=c0a7ca4f35248b6c0f015c867415f6fbfe87dd05a6385f37c38f1a9253443c00
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app
@@ -315,6 +340,7 @@ services:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_REDIS_URL=redis://redis:6379/0
       - RESEND_API_KEY=${CORE_RESEND_API_KEY}
       - CORE_RESEND_API_KEY=${CORE_RESEND_API_KEY}
       - PYTHONPATH=/app
@@ -407,3 +433,4 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:

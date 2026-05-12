@@ -110,6 +110,13 @@ class InternoSettings(BaseSettings):
     )
     int_multi_tenant_mode: bool = True
     
+    # Redis (Caching & Rate Limiting)
+    REDIS_URL: Optional[str] = Field(
+        default="redis://redis:6379/0",
+        validation_alias=AliasChoices("CORE_REDIS_URL", "REDIS_URL"),
+        description="URL de conexión a Redis (ej. redis://localhost:6379/0)"
+    )
+    
     # Mail Config (Notificaciones)
     int_mail_server: Optional[str] = None
     int_mail_port: Optional[int] = 587

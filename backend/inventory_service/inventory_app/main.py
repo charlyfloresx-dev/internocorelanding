@@ -4,6 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from common.config import settings
 from common.middleware import InternoCoreGlobalMiddleware
+from common.security.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from common.responses import ApiResponse
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
 from common.models import Base
 from inventory_app.db.session import engine
 from inventory_app.api.v1.endpoints import transactions, reconciliation, boms, inter_company_transfers
@@ -42,7 +47,22 @@ app = FastAPI(
 )
 
 # 2. Global Middleware
+app.state.limiter = limiter
 app.add_middleware(InternoCoreGlobalMiddleware)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    trace_id = getattr(request.state, "transaction_id", "not-available")
+    response = ApiResponse.error(
+        message="Límite de peticiones excedido. Por favor, espere un momento.",
+        code="RATE_LIMIT_EXCEEDED",
+        trace_id=trace_id,
+        data={"limit": exc.detail}
+    )
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content=response.model_dump()
+    )
 
 # 1. CORS (DEBE SER EL ÚLTIMO EN AÑADIRSE PARA SER EL PRIMERO EN PROCESAR PREFLIGHTS)
 
