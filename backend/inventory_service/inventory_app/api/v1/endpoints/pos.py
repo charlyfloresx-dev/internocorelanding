@@ -122,7 +122,7 @@ async def pos_checkout(
 
         # 3. Price Enforcement
         if resolved_price is not None:
-            if abs(float(resolved_price) - item.unit_price) > 0.01:
+            if abs(Decimal(str(resolved_price)) - item.unit_price) > Decimal("0.01"):
                 if not product.allow_price_override:
                     raise HTTPException(
                         status_code=400, 

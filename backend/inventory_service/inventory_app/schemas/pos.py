@@ -1,5 +1,6 @@
 import uuid
 from pydantic import BaseModel, Field
+from decimal import Decimal
 from typing import List, Optional
 from common.domain.value_objects import Money
 
@@ -7,7 +8,7 @@ class SaleItemCreate(BaseModel):
     product_id: uuid.UUID
     sku: str
     quantity: float = Field(..., gt=0)
-    unit_price: float = Field(..., ge=0)
+    unit_price: Decimal = Field(..., ge=Decimal("0.0"))
     currency: str = "MXN"
     is_taxable: bool = True
 

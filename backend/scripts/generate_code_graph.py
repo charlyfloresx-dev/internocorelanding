@@ -216,6 +216,14 @@ class CodeGraphGenerator:
                     self.graph["invariants_errors"].append(err)
                     self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
+        # Phase 3: Float Extermination Guard (Domain Parity)
+        if "/models/" in rel_path or "/schemas/" in rel_path or "domain/" in rel_path:
+            # We specifically want to flag type hints like ": float" or "= float" or "Float(" or "[float]"
+            if re.search(r"(: float|\[float\]|Mapped\[float\]| Float\(|= float)", content):
+                err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"}
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
         # 5. RLS / Muro de Hierro Guard (Phase 5)
         if filename == "database.py" and "infrastructure" in rel_path:
             if "do_orm_execute" not in content or "with_loader_criteria" not in content:

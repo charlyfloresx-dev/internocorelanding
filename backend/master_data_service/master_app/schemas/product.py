@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from common.domain import ProductType, ProductStatus, VersionStatus
@@ -38,7 +39,7 @@ class ProductRead(BaseModel):
     product_url: Optional[str] = None # Virtual field for frontend
     
     # Financial Metadata (Phase 33.5)
-    last_price: Optional[float] = None
+    last_price: Optional[Decimal] = None
     currency: Optional[str] = None
     
     # Enriched Fields for Barcode / POS Lookup

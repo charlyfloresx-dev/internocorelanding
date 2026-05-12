@@ -2,6 +2,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Optional, Union
 from datetime import datetime
+from decimal import Decimal
 
 from inventory_app.domain.entities.inventory_item import TransactionType
 
@@ -48,7 +49,7 @@ class DocumentLine(BaseModel):
     quantity: float
     uom_id: Optional[Union[uuid.UUID, str]] = None
     weight: float
-    unit_price: float = 0.0
+    unit_price: Decimal = Decimal("0.00")
     currency: str = "MXN"
     location: Optional[str] = None
     customs_pedimento_id: Optional[Union[uuid.UUID, str]] = None
@@ -78,8 +79,8 @@ class InventoryLevelRead(BaseModel):
     quantity: float
     reserved_quantity: float
     weighted_average_cost: float
-    last_purchase_price: float
-    replacement_price: float
+    last_purchase_price: Decimal
+    replacement_price: Decimal
     currency_code: str
     version_id: int
     created_at: datetime

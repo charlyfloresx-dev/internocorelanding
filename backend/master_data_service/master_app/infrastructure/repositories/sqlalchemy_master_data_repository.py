@@ -1,6 +1,7 @@
 # pyre-ignore-all-errors[21]
 import uuid
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
+from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, select, update, and_
 from sqlalchemy.orm import selectinload
@@ -95,7 +96,7 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
             if key in processed_keys:
                 continue 
                 
-            p.last_price = float(row[1]) if row[1] is not None else None
+            p.last_price = Decimal(str(row[1])) if row[1] is not None else None
             p.currency = row[2] or "MXN"
             
             # Enrich Name with Variant Info if it exists
@@ -173,8 +174,8 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
         product = row[0]
         
         # Prioridad de precio: 1. Variante, 2. Precio Maestro, 3. 0.0
-        variant_price = float(row[6]) if row[6] is not None else None
-        master_price = float(row[1]) if row[1] is not None else None
+        variant_price = Decimal(str(row[6])) if row[6] is not None else None
+        master_price = Decimal(str(row[1])) if row[1] is not None else None
         
         product.last_price = variant_price if variant_price is not None else (master_price or 0.0)
         product.currency = row[2] or "MXN"

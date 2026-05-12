@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional, List
-from sqlalchemy import String, Boolean, ForeignKey, DateTime, Integer, BigInteger
+from sqlalchemy import String, Boolean, ForeignKey, DateTime, Integer, BigInteger, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgresUUID
 
@@ -25,7 +26,7 @@ class Plan(AuditBase):
     name: Mapped[str] = mapped_column(String(100), unique=True)
 
     description: Mapped[Optional[str]] = mapped_column(String(255))
-    price: Mapped[float] = mapped_column(default=0.0)
+    price: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.00"))
     currency: Mapped[str] = mapped_column(String(3), default="USD")
     trial_days: Mapped[int] = mapped_column(Integer, default=14)
     

@@ -5,9 +5,10 @@ class DomainException(Exception):
     """
     status_code: int = 400
 
-    def __init__(self, message: str, details: dict = None, status_code: int = None):
+    def __init__(self, message: str, details: dict = None, status_code: int = None, code: str = None):
         self.message = message
         self.details = details or {}
+        self.code = code
         if status_code is not None:
             self.status_code = status_code
         super().__init__(self.message)
@@ -17,8 +18,8 @@ class NotFoundException(DomainException):
     Raised when a resource (User, Company, Product, etc.) 
     does not exist in the database.
     """
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(message, details, status_code=404)
+    def __init__(self, message: str, details: dict = None, code: str = "NOT_FOUND"):
+        super().__init__(message, details, status_code=404, code=code)
 
 class UnauthorizedException(DomainException):
     """
@@ -27,8 +28,8 @@ class UnauthorizedException(DomainException):
     """
     status_code: int = 403
 
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(message, details, status_code=403)
+    def __init__(self, message: str, details: dict = None, code: str = "UNAUTHORIZED"):
+        super().__init__(message, details, status_code=403, code=code)
 
 class SelfTransferReceiptException(UnauthorizedException):
     """
@@ -42,21 +43,21 @@ class BusinessRuleException(DomainException):
     Violation of a specific business rule 
     (e.g., insufficient stock, duplicate product version, inactive company).
     """
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(message, details, status_code=422)
+    def __init__(self, message: str, details: dict = None, code: str = "BUSINESS_RULE_VIOLATION"):
+        super().__init__(message, details, status_code=422, code=code)
 
 class ValidationException(DomainException):
     """
     Raised when input data does not comply with the format 
     or validation rules of the schemas.
     """
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(message, details, status_code=422)
+    def __init__(self, message: str, details: dict = None, code: str = "VALIDATION_ERROR"):
+        super().__init__(message, details, status_code=422, code=code)
 
 class ConflictException(DomainException):
     """
     Raised when there is a state conflict 
     (e.g., trying to delete a record with active dependencies).
     """
-    def __init__(self, message: str, details: dict = None):
-        super().__init__(message, details, status_code=409)
+    def __init__(self, message: str, details: dict = None, code: str = "CONFLICT"):
+        super().__init__(message, details, status_code=409, code=code)

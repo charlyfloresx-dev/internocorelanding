@@ -3,6 +3,7 @@ import logging
 from typing import List, Optional, Any
 from uuid import UUID
 from fastapi import UploadFile
+from decimal import Decimal
 
 from master_app.domain.repositories.master_data_repository import IMasterDataRepository
 from master_app.schemas.product import ProductCreate
@@ -134,7 +135,7 @@ class ProductService:
 
         if resolved_price:
             # Set price on the transient product object
-            product.price = {"amount": float(resolved_price), "currency": "MXN"}
+            product.price = {"amount": Decimal(str(resolved_price)), "currency": "MXN"}
         else:
             product.price = {"amount": 0.0, "currency": "MXN"}
 
