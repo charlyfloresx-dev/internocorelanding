@@ -21,6 +21,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.exc import SQLAlchemyError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 # 1. Configurar PYTHONPATH para incluir TODAS las carpetas de servicios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -155,9 +156,10 @@ app = FastAPI(
 )
 
 # ─── MIDDLEWARES ───
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 app.add_middleware(InternoCoreGlobalMiddleware)
-app.state.limiter = limiter
 setup_cors(app)
 
 # ─── EXCEPTION HANDLERS ───

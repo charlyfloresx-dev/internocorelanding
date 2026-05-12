@@ -33,3 +33,17 @@ Se utilizará un script de estrés especializado (`backend/scripts/test_rate_lim
 
 ---
 **Gobernanza:** Este protocolo es de cumplimiento obligatorio para la certificación de la Fase 99.
+
+## Reporte de Ejecución (Phase 99)
+**Fecha:** 2026-05-12
+**Entorno:** Monolito Unificado (Docker)
+**Resultado Global:** ✅ EXITOSO (PASSED)
+
+### Detalles de la Validación:
+1.  **Test de Aislamiento Multi-tenant:**
+    *   **Inquilino A:** Bloqueado tras 100 peticiones en < 60s. Respuesta: `429 Too Many Requests`.
+    *   **Inquilino B:** Operatividad continua al 100% durante el bloqueo del Inquilino A.
+2.  **Resiliencia de Infraestructura:**
+    *   Se forzó desconexión de Redis y se verificó que el sistema responde con `500` (antes del parche) y luego con éxito (tras el parche del Exception Handler), demostrando recuperación de errores de comunicación.
+3.  **Observabilidad:**
+    *   Los logs de Docker muestran rechazos limpios sin inundación de trazas de error redundantes.

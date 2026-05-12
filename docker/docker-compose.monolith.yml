@@ -18,6 +18,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: interno-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - interno-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   interno-monolith:
     build:
       context: ../backend
@@ -31,6 +46,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - REDIS_URL=redis://redis:6379/0
+      - CORE_REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - CORE_BACKEND_CORS_ORIGINS=["http://localhost:4200","http://localhost:8080"]
@@ -40,6 +57,8 @@ services:
       - INT_API_EXTERNAL_URL=http://192.168.1.146:8000
     depends_on:
       postgres-db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     env_file:
       - ../.env
@@ -59,11 +78,14 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
+      - CORE_REDIS_URL=redis://redis:6379/0
       - CORE_SECRET_KEY=DEV_SECRET_KEY_CAMBIAME_EN_PROD_12345
       - PYTHONPATH=/app:/app/auth_service:/app/master_data_service:/app/inventory_service:/app/notification_service:/app/tickets_service:/app/mes_service
       - NOTIFICATION_SERVICE_URL=http://interno-monolith:8000/api/v1/events
     depends_on:
       postgres-db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       interno-monolith:
         condition: service_started
@@ -76,3 +98,4 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:
