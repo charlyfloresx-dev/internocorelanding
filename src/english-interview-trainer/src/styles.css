@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary-rgb: 99, 102, 241;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #090C14;
+    color: #F1F5F9;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(16px);
+  }
+  .glow-primary {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  }
+  .glow-red {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  }
+}
