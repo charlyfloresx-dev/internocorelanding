@@ -82,4 +82,28 @@ Al desplegar el contenedor del microservicio de Auth, se inyectarán las siguien
 5.  **Configurar ALB**: Registrar el servicio o los pods como targets del ALB.
 6.  **Migraciones de DB**: Ejecutar migraciones de base de datos (usando Alembic) como parte del pipeline de CI/CD o manualmente antes del despliegue completo, asegurando que la base de datos RDS tenga el esquema más reciente.
 
-Esta estrategia proporciona un marco seguro y escalable para el despliegue del microservicio de autenticación de NexoSuite en AWS.
+## 7. Estrategia de Resiliencia Industrial (Terraform Phase 5)
+
+Tras la validación del "Muro Elástico" (Chaos Test V4), la infraestructura codificada en Terraform debe heredar los siguientes parámetros de resiliencia:
+
+### 7.1 Amazon RDS Multi-AZ & Proxy
+*   **Alta Disponibilidad**: El despliegue de RDS DEBE ser Multi-AZ para garantizar failover nativo en caso de caída de una zona de disponibilidad.
+*   **RDS Proxy**: Se recomienda la implementación de Amazon RDS Proxy para:
+    *   Manejar de forma eficiente los pools de conexiones de los 14 microservicios.
+    *   Reducir el tiempo de reconexión durante el failover de RDS.
+    *   Soportar ráfagas masivas de inyección (Big Bang Loader) sin agotar los file descriptors de la instancia.
+
+### 7.2 Application Load Balancer (ALB) - Sentinel Healthchecks
+*   **Healthcheck Semántico**: El ALB debe monitorear el endpoint `/health` de los microservicios.
+*   **Configuración Agresiva**:
+    *   **Intervalo**: 10 segundos.
+    *   **Threshold de Fallo**: 2 intentos (Detección rápida de Kill Switch).
+    *   **Threshold de Éxito**: 2 intentos.
+*   **Sticky Sessions**: Desactivadas por defecto para maximizar el balanceo horizontal, confiando en que el JWT y `X-Company-ID` viajan en cada request.
+
+### 7.3 ECS Fargate Scaling
+*   **Políticas de Escalado**: Definir escalado automático basado en la utilización de CPU (>70%) para manejar picos de carga en procesos críticos (Anexo 24, HCM Payroll).
+
+---
+
+Esta estrategia proporciona un marco seguro y escalable para el despliegue del microservicio de autenticación de NexoSuite en AWS, alineado con los estándares de resiliencia de Phase 101.

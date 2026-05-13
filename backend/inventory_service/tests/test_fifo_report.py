@@ -23,7 +23,7 @@ from common.domain.value_objects import Money
 DB_URL = "postgresql+asyncpg://user:password@localhost:5433/inventory_db"
 
 async def test_fifo_logic():
-    engine = create_async_engine(DB_URL)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     async with async_session() as session:

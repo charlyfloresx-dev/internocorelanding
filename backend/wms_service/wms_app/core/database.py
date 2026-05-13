@@ -18,8 +18,7 @@ def get_corrected_url(url: str) -> str:
 
 # Base.metadata.clear() ya no es necesario y puede causar problemas de registro
 
-engine = create_async_engine(
-    get_corrected_url(DATABASE_URL),
+engine = create_async_engine(get_corrected_url(DATABASE_URL),
     pool_pre_ping=True,
     echo=settings.ENV_MODE == "local"
 )

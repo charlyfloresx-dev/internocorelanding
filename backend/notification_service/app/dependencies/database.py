@@ -3,10 +3,8 @@ from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 from typing import AsyncGenerator
 
-engine = create_async_engine(pool_pre_ping=True, settings.DATABASE_URL,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-)
+engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True, pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,)
 
 SessionLocal = async_sessionmaker(
     autocommit=False,

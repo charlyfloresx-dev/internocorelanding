@@ -12,7 +12,7 @@ WAREHOUSE_ID = "aa11aaaa-aaaa-4aaa-8aaa-123456789abc"
 
 async def verify_wac():
     # Pick a product that actually has movements to verify calculation
-    engine_inv = create_async_engine("postgresql+asyncpg://user:password@localhost:5433/inventory_db")
+    engine_inv = create_async_engine("postgresql+asyncpg://user:password@localhost:5433/inventory_db", pool_pre_ping=True)
     async with engine_inv.connect() as conn:
         res = await conn.execute(text("SELECT product_id FROM inventory_movements WHERE company_id = :cid LIMIT 1"), {"cid": COMPANY_ID})
         row = res.fetchone()

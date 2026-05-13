@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Header, Query, File, UploadFile, Request
+from fastapi import Security, APIRouter, Depends, status, HTTPException, Header, Query, File, UploadFile, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Any, Optional
 import uuid
@@ -10,6 +10,7 @@ from master_app.dependencies import get_current_user, get_product_service
 from common.responses import ApiResponse
 from common.exceptions import DomainException, NotFoundException
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 from common.security.limiter import limiter
 
 router = APIRouter()

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 
 # Replace the inner function configuration
 def get_session_factory():
-    engine = create_async_engine(os.environ["DATABASE_URL"])
+    engine = create_async_engine(os.environ["DATABASE_URL"], pool_pre_ping=True)
     return async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 from master_app.models.product_price import ProductPrice

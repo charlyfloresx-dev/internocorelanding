@@ -29,12 +29,12 @@ logger = logging.getLogger("currency_worker")
 
 # DB Connection for the currency service (own DB)
 CURRENCY_DB_URL = str(settings.database_url)
-engine = create_async_engine(CURRENCY_DB_URL)
+engine = create_async_engine(CURRENCY_DB_URL, pool_pre_ping=True)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 # Separate engine for reading companies (main DB)
 MAIN_DB_URL = str(settings.database_url)
-main_engine = create_async_engine(MAIN_DB_URL)
+main_engine = create_async_engine(MAIN_DB_URL, pool_pre_ping=True)
 main_session = async_sessionmaker(main_engine, expire_on_commit=False)
 
 async def run_worker():

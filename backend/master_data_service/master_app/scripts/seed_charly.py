@@ -26,7 +26,7 @@ CATEGORIES = [
 
 async def seed_charly():
     print(f"🌱 Seeding Master Data for Charly Company: {COMPANY_ID}")
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as db:

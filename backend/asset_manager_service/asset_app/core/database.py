@@ -6,13 +6,9 @@ from common.logger import get_logger
 logger = get_logger(__name__)
 
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,
+engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True, echo=False,
     pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,
-)
+    max_overflow=10,)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

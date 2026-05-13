@@ -1,10 +1,11 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Security, APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from master_app.services.sync_service import SyncService
 from master_app.schemas.sync import MasterDataSyncResponse
 from master_app.api.dependencies import get_db, get_current_user
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 
 router = APIRouter()

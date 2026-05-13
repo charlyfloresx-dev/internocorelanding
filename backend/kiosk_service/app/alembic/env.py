@@ -59,10 +59,7 @@ async def run_async_migrations() -> None:
 
     """
     from sqlalchemy.ext.asyncio import create_async_engine
-    connectable = create_async_engine(
-        settings.DATABASE_URL,
-        poolclass=pool.NullPool,
-    )
+    connectable = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True, poolclass=pool.NullPool,)
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

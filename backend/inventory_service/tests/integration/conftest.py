@@ -31,7 +31,7 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest.fixture(scope="session")
 def engine():
-    return create_async_engine(TEST_DATABASE_URL, echo=False)
+    return create_async_engine(TEST_DATABASE_URL, pool_pre_ping=True, echo=False)
 
 
 @pytest.fixture(scope="function")

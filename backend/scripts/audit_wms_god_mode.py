@@ -45,10 +45,7 @@ async def run_audit():
     print("✅ Money VO correctamente aislado en common.")
     
     # Setup test DB
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        echo=False
-    )
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", pool_pre_ping=True, echo=False)
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

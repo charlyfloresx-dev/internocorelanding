@@ -15,7 +15,7 @@ from master_app.db.session import DATABASE_URL
 
 async def inject_dirty_data():
     print("[Antigravity] Inyectando datos de prueba (Integridad Logica Comprometida)...")
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     
     async with engine.begin() as conn:
         # Inyectar un producto con un estatus inexistente en el Enum

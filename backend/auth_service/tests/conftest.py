@@ -66,7 +66,7 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def db_engine():
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine

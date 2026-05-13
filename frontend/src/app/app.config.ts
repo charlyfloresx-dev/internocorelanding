@@ -7,7 +7,7 @@ import {AuthService} from './core/services/auth.service';
 import { multiTenantInterceptor } from './core/interceptors/multi-tenant.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { imageInterceptor } from './core/interceptors/image.interceptor';
-import { idempotencyInterceptor } from './core/interceptors/idempotency.interceptor';
+import { resilienceInterceptor } from './core/interceptors/resilience.interceptor';
 
 export function initializeApp(authService: AuthService) {
   return () => authService.restoreSession();
@@ -18,7 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(
-      withInterceptors([multiTenantInterceptor, idempotencyInterceptor, errorInterceptor, imageInterceptor]),
+      withInterceptors([multiTenantInterceptor, resilienceInterceptor, errorInterceptor, imageInterceptor]),
       withFetch()
     ),
     {

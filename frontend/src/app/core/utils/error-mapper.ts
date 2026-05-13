@@ -30,10 +30,11 @@ export class ErrorMapper {
         case 'NOT_FOUND':
         case 'VALIDATION_ERROR':
         case 'BUSINESS_RULE_VIOLATION':
+        case 'DATABASE_RECONNECTING':
           return {
             title: `errors.${code}.title`,
             message: backendMessage || `errors.${code}.message`,
-            type: (code === 'INSUFFICIENT_STOCK' || code === 'VALIDATION_ERROR') ? 'error' : 'warning',
+            type: (code === 'DATABASE_RECONNECTING') ? 'info' : (code === 'INSUFFICIENT_STOCK' || code === 'VALIDATION_ERROR') ? 'error' : 'warning',
             code,
             details,
             trace_id: traceId

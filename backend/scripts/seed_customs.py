@@ -28,7 +28,7 @@ PRODUCTS = [
 async def seed_customs_balances():
     import os
     db_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@postgres-db:5432/dbname")
-    engine = create_async_engine(db_url)
+    engine = create_async_engine(db_url, pool_pre_ping=True)
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     now = datetime.now(timezone.utc)

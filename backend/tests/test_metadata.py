@@ -16,7 +16,7 @@ print("Tabelas registradas em Base.metadata:", list(Base.metadata.tables.keys())
 async def check_db():
     url = "postgresql+asyncpg://user:password@localhost:5432/mes_db"
     try:
-        engine = create_async_engine(url)
+        engine = create_async_engine(url, pool_pre_ping=True)
         async with engine.connect() as conn:
             print("Conn OK")
             # Podemos fazer queries aqui se estiver conectado

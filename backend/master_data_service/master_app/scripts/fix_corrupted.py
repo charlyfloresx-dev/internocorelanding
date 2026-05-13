@@ -13,7 +13,7 @@ from master_app.db.session import DATABASE_URL
 
 async def fix_corrupted_data():
     print("[Antigravity] Corrigiendo datos corruptos...")
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     
     async with engine.begin() as conn:
         # Corregir el estatus corrupto a ACTIVE

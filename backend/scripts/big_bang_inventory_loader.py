@@ -64,27 +64,35 @@ async def inject_batch(client: httpx.AsyncClient, batch_num: int):
     headers = {
         "X-Internal-Secret": INTERNAL_SECRET,
         "X-Company-ID": COMPANY_ID,
+        "X-Idempotency-Key": f"BIGBANG-B{batch_num}-V3"
     }
 
     start_time = time.time()
-    try:
-        response = await client.post(
-            f"{BASE_URL}/bulk-load",
-            json={"movements": movements},
-            headers=headers,
-            timeout=120.0  # 2 min timeout por batch
-        )
-        elapsed = time.time() - start_time
+    max_retries = 10
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            response = await client.post(
+                f"{BASE_URL}/bulk-load",
+                json={"movements": movements},
+                headers=headers,
+                timeout=120.0
+            )
+            elapsed = time.time() - start_time
+            
+            if response.status_code in (200, 201):
+                print(f"[+] Batch {batch_num} SUCCESS ({retry_count} retries) in {elapsed:.1f}s")
+                return True
+            else:
+                print(f"[!] Batch {batch_num} ERROR {response.status_code}: {response.text[:100]}")
+        except Exception as e:
+            print(f"[!] Batch {batch_num} EXCEPTION ({retry_count}/{max_retries}): {str(e)[:100]}")
         
-        if response.status_code in (200, 201):
-            print(f"[+] Batch {batch_num}/{TOTAL_RECORDS // BATCH_SIZE}: {BATCH_SIZE} records in {elapsed:.1f}s")
-            return True
-        else:
-            print(f"[!] Batch {batch_num} FAILED: HTTP {response.status_code} - {response.text[:200]}")
-            return False
-    except Exception as e:
-        print(f"[!] Batch {batch_num} EXCEPTION: {type(e).__name__}: {str(e)[:200]}")
-        return False
+        retry_count += 1
+        await asyncio.sleep(2) # Wait for DB to recover
+        
+    return False
 
 async def preflight_check(client: httpx.AsyncClient):
     """Verifica que el monolito esté vivo antes de lanzar la carga."""
@@ -121,7 +129,9 @@ async def main():
         
         async def sem_inject(b):
             async with semaphore:
-                return await inject_batch(client, b)
+                res = await inject_batch(client, b)
+                await asyncio.sleep(0.05) # Small delay for test visibility
+                return res
 
         tasks = [sem_inject(i + 1) for i in range(total_batches)]
         results = await asyncio.gather(*tasks)

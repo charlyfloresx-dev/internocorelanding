@@ -14,7 +14,7 @@ async def check_warehouses():
     # Inside docker: postgres:5432
     # Outside docker: localhost:5433
     db_url = "postgresql+asyncpg://user:password@localhost:5433/master_data_db"
-    engine = create_async_engine(db_url)
+    engine = create_async_engine(db_url, pool_pre_ping=True)
     
     async with engine.connect() as conn:
         stmt = select(Warehouse)

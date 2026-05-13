@@ -18,7 +18,7 @@ async def flow_evidence_quota():
     print("FLOW: EVIDENCE QUOTA ENFORCEMENT (MULTI-TENANT COMPLIANCE)")
     print("=" * 60)
 
-    engine = create_async_engine(DB_URL)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True)
     Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     try:

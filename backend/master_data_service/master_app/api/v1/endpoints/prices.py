@@ -7,7 +7,7 @@ Includes support for:
   - Price Override: the "resolve" endpoint returns the suggested price but
     the system never blocks if allow_price_override==True in the product.
 """
-from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile, File
+from fastapi import Security, APIRouter, Depends, status, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
@@ -22,6 +22,7 @@ from master_app.models.product_price import ProductPrice, UnitType
 from master_app.models.price_agreement import PriceAgreement
 from master_app.models.partner import Partner
 from master_app.dependencies import get_current_user, get_db
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from common.domain.entities.user_context import UserContext
 from pydantic import BaseModel, Field

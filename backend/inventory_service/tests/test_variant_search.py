@@ -17,7 +17,7 @@ from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository i
 LOGISTIC_COMPANY_ID = uuid.UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 
 async def test_search():
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     async with async_session() as session:

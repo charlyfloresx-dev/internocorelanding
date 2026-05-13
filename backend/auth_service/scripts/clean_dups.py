@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 
 async def main():
-    engine = create_async_engine(settings.ASYNC_DATABASE_URL)
+    engine = create_async_engine(settings.ASYNC_DATABASE_URL, pool_pre_ping=True)
     async with engine.begin() as conn:
         print("Executing cleanup...")
         # 1. Keep only one user_company_roles per user/company combination (delete duplicates)

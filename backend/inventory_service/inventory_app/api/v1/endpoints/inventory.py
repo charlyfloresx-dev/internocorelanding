@@ -28,7 +28,8 @@ async def bulk_load_movements(
     payload: BulkMovementLoad,
     session: AsyncSession = Depends(get_session),
     x_company_id: uuid.UUID = Header(...),
-    x_internal_secret: Optional[str] = Header(None)
+    x_internal_secret: Optional[str] = Header(None),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key")
 ):
     """
     [Phase 100] High-Performance Bulk Load: Inyecta registros masivos omitiendo lógica de negocio costosa.
@@ -37,6 +38,14 @@ async def bulk_load_movements(
     if not x_internal_secret or x_internal_secret != settings.INTERNAL_API_KEY:
         raise HTTPException(status_code=403, detail="Bypass Secret Invalid or Missing")
     
+    # [Resilience] Idempotency Check
+    from sqlalchemy import text
+    if x_idempotency_key:
+        check_stmt = text("SELECT key FROM idempotency_keys WHERE key = :k")
+        res = await session.execute(check_stmt, {"k": x_idempotency_key})
+        if res.scalar():
+            return ApiResponse(message="Batch already processed (Idempotent)", data={"count": len(payload.movements)})
+
     # 1. Preparación de datos para executemany
     bulk_data = []
     now = datetime.utcnow()
@@ -74,6 +83,10 @@ async def bulk_load_movements(
     try:
         # 2. Inserción Masiva Atómica
         await session.execute(insert(InventoryTransaction), bulk_data)
+        
+        if x_idempotency_key:
+            await session.execute(text("INSERT INTO idempotency_keys (key) VALUES (:k)"), {"k": x_idempotency_key})
+            
         await session.commit()
         return ApiResponse(message=f"Successfully injected {len(bulk_data)} records", data={"count": len(bulk_data)})
     except Exception as e:

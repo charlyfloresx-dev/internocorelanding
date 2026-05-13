@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import Security, APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -10,6 +10,7 @@ from master_app.models.movement_concept import MovementConcept
 from master_app.schemas.concept import ConceptCreate, ConceptUpdate, ConceptResponse
 from common.enums import MovementType
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 
 router = APIRouter()

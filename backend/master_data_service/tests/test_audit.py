@@ -19,7 +19,7 @@ async def test_audit():
     # Force registration just in case
     setup_audit_listeners(Product)
     
-    engine = create_async_engine('postgresql+asyncpg://user:password@postgres-db:5432/master_data_db')
+    engine = create_async_engine('postgresql+asyncpg://user:password@postgres-db:5432/master_data_db', pool_pre_ping=True)
     async_session = async_sessionmaker(engine, expire_on_commit=False)
     
     async with async_session() as session:

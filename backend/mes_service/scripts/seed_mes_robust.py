@@ -51,7 +51,7 @@ DOWNTIME_CATEGORIES = {
 LABOR_OPTIONS = ["Enfermería", "Recursos Humanos", "Auditorías", "Inventarios", "Entrenamiento", "Juntas", "Baños", "Cambio de Módulo", "Ausencia", "Término de Turno", "Falta de Personal", "Espera de Técnico Disponible", "Despeje/cambio de modelo/Cambio de orden"]
 
 async def run_seed():
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     async with AsyncSessionLocal() as session:

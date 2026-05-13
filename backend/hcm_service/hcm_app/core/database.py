@@ -17,8 +17,7 @@ def get_corrected_url(url: str) -> str:
     return url
 
 
-engine = create_async_engine(
-    get_corrected_url(settings.DATABASE_URL),
+engine = create_async_engine(get_corrected_url(settings.DATABASE_URL),
     pool_pre_ping=True,
     echo=False,
 )

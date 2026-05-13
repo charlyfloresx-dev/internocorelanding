@@ -250,5 +250,5 @@ if __name__ == "__main__":
         print("ERROR: DATABASE_URL is not configured in settings.")
         raise SystemExit(1)
 
-    standalone_engine = create_async_engine(db_url, echo=False)
+    standalone_engine = create_async_engine(db_url, pool_pre_ping=True, echo=False)
     asyncio.run(apply_migrations(standalone_engine))

@@ -15,7 +15,7 @@ class CreditAwardRequest(BaseModel):
     reference_id: str = None
 
 @router.post("/award")
-async def award_credit(req: CreditAwardRequest, db: AsyncSession = Depends(get_db_session)):
+async def award_credit(req: CreditAwardRequest, db: AsyncSession = Depends(get_db)):
     # 1. Provide Wallet
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == req.guest_session_id))
     wallet = result.scalar_one_or_none()
@@ -61,13 +61,13 @@ class DeductCreditRequest(BaseModel):
     reference_id: str = None
 
 @router.get("/balance/{guest_session_id}")
-async def get_balance(guest_session_id: str, db: AsyncSession = Depends(get_db_session)):
+async def get_balance(guest_session_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == guest_session_id))
     wallet = result.scalar_one_or_none()
     return {"balance_cents": wallet.balance_cents if wallet else 0}
 
 @router.get("/history/{guest_session_id}")
-async def get_history(guest_session_id: str, db: AsyncSession = Depends(get_db_session)):
+async def get_history(guest_session_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == guest_session_id))
     wallet = result.scalar_one_or_none()
     if not wallet: 
@@ -82,7 +82,7 @@ async def get_history(guest_session_id: str, db: AsyncSession = Depends(get_db_s
     return {"history": txs.scalars().all()}
 
 @router.post("/deduct")
-async def deduct_credit(req: DeductCreditRequest, db: AsyncSession = Depends(get_db_session)):
+async def deduct_credit(req: DeductCreditRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == req.guest_session_id))
     wallet = result.scalar_one_or_none()
     if not wallet or wallet.balance_cents < req.amount_cents:

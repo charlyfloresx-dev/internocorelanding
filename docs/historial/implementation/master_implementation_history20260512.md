@@ -136,3 +136,20 @@ Fortificación del Monolito y aislamiento local para garantizar su portabilidad 
 - **Security Scope Regression Fix**: Identificación de 63 alertas `MISSING_SCOPE_VALIDATION` mediante el Code Graph. Automatización de inyección de `Security(require_scope)` en `brands.py`, `categories.py`, etc., retornando a 100% de cumplimiento en Code Graph.
 - **Zero-Trust AWS Secrets**: Integración en `core/config.py` para inyectar automáticamente desde `us-east-2` vía AWS Secrets Manager si `ENV_MODE=production`.
 
+---
+
+## Phase 101: Resilience Stress-Test & Kill Switch Certification — COMPLETADA
+
+### Visión General
+Validación de la "Resiliencia Activa" del sistema mediante la simulación de fallos críticos de infraestructura durante operaciones de alta carga, garantizando la recuperación silenciosa y la integridad de datos.
+
+### Componentes y Cambios Clave
+- **Pessimistic Disconnect Handling (Global)**: Inyección de `pool_pre_ping=True` en todas las instancias de `create_async_engine` (14 microservicios). Esto garantiza que el Pool de SQLAlchemy descarte conexiones "muertas" tras un reinicio de DB y reintente la conexión automáticamente.
+- **Idempotency Guard (Inventory Service)**: Implementación de soporte para `X-Idempotency-Key` en el endpoint `/bulk-load`.
+    - **Persistencia**: Uso de la tabla `idempotency_keys` para registrar batches procesados.
+    - **Lógica**: Si un reintento del loader llega con la misma clave, el backend detecta el registro previo y retorna `200 OK` sin duplicar los movimientos en el Kardex.
+- **Chaos Test V4 (Kill Switch Certification)**:
+    - **Escenario**: Inyección de 1M de registros mientras se detiene el contenedor `interno-db` por 10 segundos.
+    - **Resultado**: El `big_bang_inventory_loader.py` ejecutó reintentos con backoff exponencial. Al volver la DB, el sistema se recuperó en milisegundos sin intervención humana. Cero duplicados detectados.
+- **Saneamiento de Motores**: Corrección de regresión en `hcm_service`, `wms_service` y `viatra_service` donde llamadas anidadas a `get_corrected_url` corrompían la inicialización del motor asíncrono.
+

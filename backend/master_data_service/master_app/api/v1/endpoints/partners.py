@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import Security, APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -9,6 +9,7 @@ from master_app.models.partner import Partner
 from common.models.external_contact import ExternalContact
 from master_app.schemas.partner import PartnerCreate, PartnerUpdate, PartnerResponse
 from master_app.schemas.external_contact import ExternalContactResponse
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from common.domain.entities.user_context import UserContext
 

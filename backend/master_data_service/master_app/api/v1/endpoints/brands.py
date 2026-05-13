@@ -1,8 +1,9 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Security, APIRouter, Depends, HTTPException, status
 from common.exceptions import ConflictException
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from master_app.schemas.product_brand import BrandRead, BrandCreate, BrandUpdate
 from master_app.services.product_brand_service import ProductBrandService

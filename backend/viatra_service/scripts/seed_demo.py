@@ -26,7 +26,7 @@ if not DATABASE_URL:
     # Fallback for Host-based execution (mapping container 5432 to host 5433)
     DATABASE_URL = "postgresql+asyncpg://user:password@localhost:5433/viatra_db"
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # Standard Demo IDs (Synced with Auth Service)

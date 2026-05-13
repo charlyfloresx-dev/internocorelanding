@@ -8,7 +8,7 @@ COMPANY_ID = "11111111-1111-4111-8111-123456789abc"
 WH_ID = "aa11aaaa-aaaa-4aaa-8aaa-123456789abc"
 
 async def check_or_create_location():
-    engine = create_async_engine(INV_DB_URL)
+    engine = create_async_engine(INV_DB_URL, pool_pre_ping=True)
     async with engine.begin() as conn:
         # 1. Ensure location exists with small capacity
         try:

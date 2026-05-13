@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import Security, APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from master_app.dependencies import get_db, get_current_user
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from sqlalchemy import Table, MetaData
 

@@ -14,7 +14,7 @@ from auth_app.models.company import Company
 
 async def setup_audit_scenario():
     print("🛠️  Detectando Entorno para Prueba de Fuego...")
-    engine = create_async_engine(settings.DATABASE_URL)
+    engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True)
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     async with AsyncSessionLocal() as session:

@@ -29,7 +29,7 @@ async def resolve_ids():
     from sqlalchemy import text
 
     db_url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://user:password@localhost:5433/dbname")
-    engine = create_async_engine(db_url)
+    engine = create_async_engine(db_url, pool_pre_ping=True)
 
     async with engine.connect() as conn:
         # Warehouse

@@ -1,5 +1,6 @@
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from common.security.dependencies import require_scope
 from pydantic import BaseModel
 import httpx
 

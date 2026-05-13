@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import Security, APIRouter, Depends, status, HTTPException
 from typing import Dict, Any
 import uuid
 from decimal import Decimal
@@ -6,6 +6,7 @@ from decimal import Decimal
 from master_app.dependencies import get_current_user, get_currency_service
 from master_app.services.currency_service import CurrencyService
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 
 router = APIRouter()

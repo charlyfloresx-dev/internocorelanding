@@ -62,9 +62,9 @@ def now_minus(days: int, hours=0):
     return datetime.now(timezone.utc) - timedelta(days=days, hours=hours)
 
 async def run_simulation():
-    engine_auth = create_async_engine(AUTH_DB_URL)
-    engine_master = create_async_engine(MASTER_DB_URL)
-    engine_inv = create_async_engine(INV_DB_URL)
+    engine_auth = create_async_engine(AUTH_DB_URL, pool_pre_ping=True)
+    engine_master = create_async_engine(MASTER_DB_URL, pool_pre_ping=True)
+    engine_inv = create_async_engine(INV_DB_URL, pool_pre_ping=True)
     
     print("[LIQUOR DISTRO V2] Construyendo Ecosistema de Licores...")
 

@@ -5,7 +5,7 @@ from sqlalchemy import text
 DB_URL = "postgresql+asyncpg://user:password@localhost:5433/dbname"
 
 async def check_table(table):
-    engine = create_async_engine(DB_URL)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True)
     async with engine.begin() as conn:
         res = await conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}'"))
         cols = [r[0] for r in res.fetchall()]

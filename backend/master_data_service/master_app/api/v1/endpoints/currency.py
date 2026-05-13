@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from fastapi import Security, APIRouter, Depends, HTTPException, Header, status
 from typing import List, Optional, Any
 import uuid
 from decimal import Decimal
@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from master_app.dependencies import get_db, get_currency_service, get_current_user
 from master_app.services.currency_service import CurrencyService
 from master_app.schemas.exchange_rate import RateRead, RateManualUpdate, RateSummaryResponse
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from common.domain.entities.user_context import UserContext
 

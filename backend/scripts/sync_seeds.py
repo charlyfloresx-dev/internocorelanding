@@ -179,8 +179,8 @@ async def main():
     args = parser.parse_args()
     company_id = uuid.UUID(args.company_id)
 
-    master_engine = create_async_engine(MASTER_DB_URL, echo=False)
-    inv_engine = create_async_engine(INVENTORY_DB_URL, echo=False)
+    master_engine = create_async_engine(MASTER_DB_URL, pool_pre_ping=True, echo=False)
+    inv_engine = create_async_engine(INVENTORY_DB_URL, pool_pre_ping=True, echo=False)
 
     try:
         async with master_engine.begin() as master_conn:

@@ -20,7 +20,7 @@ def hash_password(password: str) -> str:
 
 async def run_standalone_seed():
     logger.info(f"🚀 Iniciando SEED STANDALONE (Final Charly) en {DB_URL}...")
-    engine = create_async_engine(DB_URL, echo=False)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True, echo=False)
     
     # 0. Permanent Schema Adjustments
     async with engine.connect() as conn:

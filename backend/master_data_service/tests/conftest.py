@@ -57,7 +57,7 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 async def db_engine():
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     
     # IMPORTANTE: Asegurar el orden para que las FKs se resuelvan al cargar el metadata
     from master_app.models.uom import UOM

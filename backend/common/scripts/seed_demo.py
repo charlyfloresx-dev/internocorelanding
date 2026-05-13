@@ -46,7 +46,7 @@ COMPANY_A_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
 COMPANY_B_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
 
 async def seed_demo():
-    engine = create_async_engine(DATABASE_URL, echo=True)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True, echo=True)
     AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with AsyncSessionLocal() as session:

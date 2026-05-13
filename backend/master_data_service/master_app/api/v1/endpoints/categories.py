@@ -1,11 +1,12 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Security, APIRouter, Depends, HTTPException, status
 from common.exceptions import ConflictException
 
 from master_app.schemas.product_category import CategoryRead, CategoryCreate, CategoryUpdate
 from master_app.services.product_category_service import ProductCategoryService
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from master_app.dependencies import get_current_user, get_category_service
 from common.domain.entities.user_context import UserContext

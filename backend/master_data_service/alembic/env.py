@@ -46,10 +46,7 @@ def do_run_migrations(connection):
 async def run_migrations_online() -> None:
     # Usamos create_async_engine para asyncpg
     url = get_url()
-    connectable = create_async_engine(
-        url,
-        poolclass=pool.NullPool,
-    )
+    connectable = create_async_engine(url, pool_pre_ping=True, poolclass=pool.NullPool,)
 
     async with connectable.connect() as connection:
         # Ejecutamos las migraciones síncronas dentro del contexto asíncrono

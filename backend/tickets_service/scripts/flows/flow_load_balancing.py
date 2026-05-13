@@ -28,7 +28,7 @@ async def flow_load_balancing():
     print("FLOW: LOAD BALANCING (REASSIGNMENT VALIDATION)")
     print("=" * 60)
 
-    engine = create_async_engine(DB_URL)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True)
     Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     try:

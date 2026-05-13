@@ -36,7 +36,7 @@ async def run_triple_identity_flow():
     print("=" * 60)
 
     # 1. Resolve Identities
-    engine = create_async_engine(MONOLITH_DB_URL)
+    engine = create_async_engine(MONOLITH_DB_URL, pool_pre_ping=True)
     Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     
     collab_id = None

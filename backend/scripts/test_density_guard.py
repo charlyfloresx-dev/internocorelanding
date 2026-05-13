@@ -42,7 +42,7 @@ async def setup_test_environment():
     wh_id, concept_id, product_id = None, None, None
     
     # 1. Fetch Basic IDs from Inventory (Assumes sync_seeds has run)
-    inv_engine = create_async_engine(INV_DB_URL)
+    inv_engine = create_async_engine(INV_DB_URL, pool_pre_ping=True)
     async with inv_engine.begin() as conn:
         rw = await conn.execute(text("""
             SELECT id FROM inventory_warehouses
@@ -83,7 +83,7 @@ async def setup_test_environment():
     await inv_engine.dispose()
 
     # 2. Master Data SSOT Guarantee (Important for background audit)
-    md_engine = create_async_engine(MD_DB_URL)
+    md_engine = create_async_engine(MD_DB_URL, pool_pre_ping=True)
     async with md_engine.begin() as conn:
         await conn.execute(text("""
             INSERT INTO inventory_locations
@@ -116,7 +116,7 @@ async def verify_silent_auditor(movement_id):
     print("[*] Esperando al Auditor Silencioso (3s)...")
     await asyncio.sleep(3)
     
-    inv_engine = create_async_engine(INV_DB_URL)
+    inv_engine = create_async_engine(INV_DB_URL, pool_pre_ping=True)
     async with inv_engine.begin() as conn:
         res = await conn.execute(text("""
             SELECT validation_status FROM inventory_movements WHERE id = :id
@@ -168,7 +168,7 @@ async def run_stress_test():
         
         # Get movement ID from response if available, or fetch from DB
         # For simplicity, we fetch the latest movement for this correlation
-        inv_engine = create_async_engine(INV_DB_URL)
+        inv_engine = create_async_engine(INV_DB_URL, pool_pre_ping=True)
         async with inv_engine.begin() as conn:
             res = await conn.execute(text("SELECT id FROM inventory_movements WHERE document_id = :id"), {"id": correlation_id})
             mov_id = res.scalar()

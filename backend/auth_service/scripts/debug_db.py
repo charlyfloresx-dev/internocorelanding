@@ -7,7 +7,7 @@ from sqlalchemy import text
 DB_URL = "postgresql+asyncpg://user:password@localhost:5433/dbname"
 
 async def debug_db():
-    engine = create_async_engine(DB_URL)
+    engine = create_async_engine(DB_URL, pool_pre_ping=True)
     results = {}
     try:
         async with engine.begin() as conn:

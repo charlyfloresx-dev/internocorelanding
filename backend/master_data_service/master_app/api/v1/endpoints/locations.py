@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import Security, APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -12,6 +12,7 @@ from master_app.schemas.location import (
     LocationCapacityResponse
 )
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 
 router = APIRouter()

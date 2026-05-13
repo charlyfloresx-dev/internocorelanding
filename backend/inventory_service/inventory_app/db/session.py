@@ -3,7 +3,7 @@ from typing import AsyncGenerator
 from common.config import settings
 
 # Motor asíncrono de SQLAlchemy usando DATABASE_URL como Single Source of Truth
-engine = create_async_engine(pool_pre_ping=True, settings.DATABASE_URL, echo=False)
+engine = create_async_engine(settings.DATABASE_URL, pool_pre_ping=True, echo=False)
 
 # Fábrica de sesiones asíncronas
 AsyncSessionLocal = async_sessionmaker(

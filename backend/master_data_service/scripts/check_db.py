@@ -10,7 +10,7 @@ async def check():
     for url in urls:
         print(f"--- Checking {url} ---")
         try:
-            engine = create_async_engine(url)
+            engine = create_async_engine(url, pool_pre_ping=True)
             async with engine.connect() as conn:
                 res = await conn.execute(text("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';"))
                 tables = [row[0] for row in res]

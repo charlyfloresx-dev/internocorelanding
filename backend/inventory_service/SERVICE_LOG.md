@@ -1,6 +1,10 @@
 # Service Log — Inventory Service
 
-## 🕒 Última Actividad (2026-05-12)
+## 🕒 Última Actividad (2026-05-13)
+**Resilience Stress-Test & Idempotency (Phase 101)**
+- **Bulk Load Idempotency**: Integrated `X-Idempotency-Key` (UUIDv4) support in `bulk-load` endpoint. Batches are now registered in `idempotency_keys` table to prevent duplication during network retries.
+- **Chaos Test Certification**: Successfully processed 1,000,000 records under a DB "Kill Switch" scenario. The service resumed operations instantly after DB restoration thanks to `pool_pre_ping=True`.
+- **Bypass Verification**: Verified that `X-Internal-Secret` correctly bypasses the rate limiter for high-volume ingestion.
 **AWS S3 Neutralization & Recipe Serialization (Phase 98)**
 - **Cloud Storage Decommissioning**: Verified the deletion of residual logging buckets in S3 and confirmed $0.00 cost status for the service.
 - **Storage Strategy Transition**: Formally established the `LocalStorageProvider` as the primary engine for the Unified Monolith mode.

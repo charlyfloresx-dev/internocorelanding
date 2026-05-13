@@ -20,7 +20,7 @@ PRODUCT_DATA = [
 ]
 
 async def setup_prices():
-    engine = create_async_engine(MASTER_DATA_URL)
+    engine = create_async_engine(MASTER_DATA_URL, pool_pre_ping=True)
     
     async with engine.begin() as conn:
         print("==================================================")

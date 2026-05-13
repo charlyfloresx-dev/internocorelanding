@@ -18,7 +18,7 @@ async def run_integrity_scan():
     print("[Antigravity] Iniciando Escaneo de Integridad en Modo Auditor...")
     print(f"Target DB: {DATABASE_URL}")
     
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     
     # Modo Demo: Inicializar esquema si es SQLite en memoria o test
     if "sqlite" in DATABASE_URL:

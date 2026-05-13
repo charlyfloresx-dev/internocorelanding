@@ -8,12 +8,19 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-12] Phase 101: Resilience Stress-Test & Kill Switch Certification
+- **Definitive Chaos Test (V4)**: Successfully executed a 1,000,000 record injection while performing a controlled DB "Kill Switch" (10s outage). Verified:
+    - **Silent Recovery**: The pool (`pool_pre_ping=True`) automatically re-established connectivity without backend restarts.
+    - **Idempotency Protection**: Integrated `X-Idempotency-Key` prevented duplicate records during loader retries.
+- **Resilience Audit**: Documented full certification in `docs/audit/resilience_audit_v4.md`.
+- **Status**: ✅ Phase 101 COMPLETED — Industrial Recovery & Idempotency Certified.
+
 ### [2026-05-12] Phase 4.2: Resilience Auditing & "Sentinel" Frontend
+- **Frontend Sentinel (`resilience.interceptor.ts`)**: Implemented exponential backoff (2s, 4s, 8s) for transient network errors (Status 0/503) and semantic recovery codes (`DATABASE_RECONNECTING`).
+- **Idempotency Stability**: Interceptor now guarantees the SAME `X-Idempotency-Key` is used during retries of a single request instance, preventing server-side duplication.
 - **Backend Exception Semantics**: Patched `InternoCoreGlobalMiddleware` to inject domain exception `code` into the JSON response `meta` object.
-- **Frontend Error Mapper i18n**: Refactored `error-mapper.ts` to utilize the internal `TranslationService`, mapping semantic backend codes (e.g., `INSUFFICIENT_STOCK`) to specific UX responses and standardized HTTP fallbacks.
-- **Idempotency Interceptor**: Created and registered `idempotency.interceptor.ts`. It injects a `UUIDv4` into the `Idempotency-Key` header for critical POST/PUT/DELETE actions, guaranteeing protection against connection spikes or double clicks.
-- **Chaos Testing (Kill Switch)**: Verified graceful degradation of the UI and proper error routing (HTTP 500 & 0) when the PostgreSQL backend goes down.
-- **SQLAlchemy Auto-Reconnect**: Injected `pool_pre_ping=True` across all microservice async engine instances via programmatic sweep, ensuring "Stale Connections" are cleanly dropped upon DB reboot.
+- **Frontend Error Mapper**: Refactored `error-mapper.ts` to map semantic codes (e.g., `DATABASE_RECONNECTING`) to informational UX components.
+- **SQLAlchemy Auto-Reconnect**: Injected `pool_pre_ping=True` across all 14 microservices, ensuring "Stale Connections" are cleanly dropped upon DB reboot.
 - **Status**: ✅ Phase 4.2 COMPLETED — Frontend Sentinel Active & Connection Resilience Hardened.
 
 ---
