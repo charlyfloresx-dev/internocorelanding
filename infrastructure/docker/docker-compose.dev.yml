@@ -1,0 +1,287 @@
+version: '3.8'
+
+services:
+  # ==================================
+  # Base de Datos (PostgreSQL)
+  # ==================================
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: interno-db-dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dbname}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - interno-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-dbname}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================================
+  # Cache (Redis)
+  # ==================================
+  redis:
+    image: redis:7-alpine
+    container_name: interno-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - interno-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================================
+  # Auth Service (Priority 1)
+  # ==================================
+  auth-service:
+    build:
+      context: ../../backend
+      dockerfile: auth_service/Dockerfile
+    container_name: interno-auth-dev
+    image: interno-auth-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/auth_service:/app
+      - ../../backend/common:/app/common
+      - ../../backend/scripts:/app/scripts
+      - ../../backend/master_data_service/master_app:/app/master_app
+      - ../../backend/inventory_service/inventory_app:/app/inventory_app
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # Subscription Service (Priority 2)
+  # ==================================
+  subscription-service:
+    build:
+      context: ../../backend
+      dockerfile: subscription_service/Dockerfile
+    container_name: interno-subscription-dev
+    image: interno-subscription-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/subscription_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # Master Data Service (Priority 3)
+  # ==================================
+  master-data-service:
+    build:
+      context: ../../backend
+      dockerfile: master_data_service/Dockerfile
+    container_name: interno-master-data-dev
+    image: interno-master-data-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/master_data_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # Inventory Service (Priority 4)
+  # ==================================
+  inventory-service:
+    build:
+      context: ../../backend
+      dockerfile: inventory_service/Dockerfile
+    container_name: interno-inventory-dev
+    image: interno-inventory-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/inventory_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8006:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # Tickets Service (Priority 5)
+  # ==================================
+  tickets-service:
+    build:
+      context: ../../backend
+      dockerfile: tickets_service/Dockerfile
+    container_name: interno-tickets-dev
+    image: interno-tickets-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/tickets_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8008:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # Notification Service (Priority 6)
+  # ==================================
+  notification-service:
+    build:
+      context: ../../backend
+      dockerfile: notification_service/Dockerfile
+    container_name: interno-notification-dev
+    image: interno-notification-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/notification_service:/app/notification_service
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app:/app/notification_service
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8009:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # HCM Service (Priority 7)
+  # ==================================
+  hcm-service:
+    build:
+      context: ../../backend
+      dockerfile: hcm_service/Dockerfile
+    container_name: interno-hcm-dev
+    image: interno-hcm-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/hcm_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
+  # GATEWAY (Unified Entry Point)
+  # ==================================
+  gateway:
+    image: nginx:alpine
+    container_name: interno-gateway-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      auth-service:
+        condition: service_started
+      subscription-service:
+        condition: service_started
+      master-data-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      tickets-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      hcm-service:
+        condition: service_started
+
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+# ==================================
+# Redes y Volúmenes
+# ==================================
+networks:
+  interno-network:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+    driver: local

@@ -1,23 +1,36 @@
-# InternoCore: Consolidated Tasks - 2026-05-12
+# Consolidated Tasks — 2026-05-12
 
-## Contexto
-Phase 99: Muro de Hierro (Rate Limiting) — COMPLETADA.
-Phase 100: Big Bang (1M Records Stress Test) — COMPLETADA.
-Phase 101: Resilience Stress-Test & Kill Switch Certification — COMPLETADA.
+## ✅ Completado
 
-## Tareas Completadas ✅
-1.  **Inyección Global de pre_ping**: Se inyectó `pool_pre_ping=True` en todas las instancias de `create_async_engine` (14 servicios).
-2.  **Idempotencia en Bulk-Load**: Se implementó soporte para `X-Idempotency-Key` en el backend.
-3.  **Test de Caos V4 (Kill Switch)**: Resiliencia validada con caída de DB de 10s.
-4.  **Frontend Sentinel (Phase 4.1.2)**: Implementado `resilience.interceptor.ts` con Backoff Exponencial y mapeo semántico de `DATABASE_RECONNECTING`.
-5.  **Bypass Administrativo**: Validado bypass de rate limit mediante secreto interno.
-6.  **Integración de Redis**: Migrada dependencia a la infraestructura monolítica.
-7.  **Sync Docs Protocol**: Archivos de historial y REPO_LOG.md actualizados al 12 de Mayo.
+### Phase 104: Microservices Isolation & Gateway Stabilization
 
-## Pendientes ⏳
-1.  **[Frontend] Idempotency Persistence**: Asegurar que la UI mantenga el estado de "Procesando" durante los reintentos automáticos para evitar clics dobles.
-2.  **[Backend] Robustez de Enums**: Implementar `IF NOT EXISTS` en scripts de inicio para evitar `UniqueViolationError`.
-3.  **[Fase 5: IaC] Diseño de Red (VPC)**: Subredes Públicas (ALB), Privadas (Servicios) y Aisladas (DB).
-4.  **[Fase 5: IaC] Amazon RDS Multi-AZ**: Configurar failover nativo y evaluar RDS Proxy para optimización de ráfagas.
-5.  **[Fase 5: IaC] ALB Healthcheck Semántico**: Configuración agresiva (10s, 2 Fallos) apuntando a `/health`.
-6.  **[Fase 5: IaC] ECS Fargate Scaling**: Políticas de escalado basadas en CPU (>70%) para picos de tráfico industrial.
+| # | Tarea | Estado |
+|---|---|---|
+| 1 | Configurar `version_table` únicas en Alembic para 7 servicios | ✅ |
+| 2 | Crear `entrypoint.sh` industrial (Migrate→Seed→Serve) para todos los servicios | ✅ |
+| 3 | Añadir Notification Service al `docker-compose.dev.yml` (puerto 8009) | ✅ |
+| 4 | Añadir HCM Service al `docker-compose.dev.yml` (puerto 8004) | ✅ |
+| 5 | Corregir Dockerfile HCM: `app` → `hcm_app` (Gold Standard) | ✅ |
+| 6 | Resolver `ModuleNotFoundError: redis` en todos los servicios | ✅ |
+| 7 | Eliminar import cruzado `notification_app` en `inventory_service` (2 archivos) | ✅ |
+| 8 | Eliminar import cruzado `auth_app` en `notification_service` (1 archivo) | ✅ |
+| 9 | Comentar upstream/location de `wms-service` en Nginx (no desplegado en dev) | ✅ |
+| 10 | Añadir upstreams y locations de HCM y Notification en `nginx.conf` | ✅ |
+| 11 | Actualizar Gateway `depends_on` para incluir los 7 servicios | ✅ |
+| 12 | Crear `scripts/validate_ecosystem.ps1` (Ping Maestro) | ✅ |
+| 13 | Integrar validator en `initialize-dev.md` y `sync-docs.md` workflows | ✅ |
+| 14 | Añadir regla `CROSS_SERVICE_IMPORT_VIOLATION` al Code Graph | ✅ |
+| 15 | Crear `backend/README.md` con Gold Standard de microservicios | ✅ |
+| 16 | Añadir Sección 9 (Gold Standard) al `README.md` raíz | ✅ |
+| 17 | Actualizar `infrastructure/README.md` rango de puertos (8001-8009) | ✅ |
+| 18 | Ejecutar sync-docs completo y registrar en REPO_LOG | ✅ |
+
+## ⏳ Pendiente (Backlog para siguiente sesión)
+
+| # | Tarea | Prioridad |
+|---|---|---|
+| 1 | Inventory/HCM muestran `BadGateway` — revisar logs de arranque | ALTA |
+| 2 | Ejecutar `full_auth_flow.py` exitosamente vía Gateway (puerto 8000) | ALTA |
+| 3 | Desplegar Workers Asíncronos (Outbox, SLA) vía `docker-compose.workers.yml` | MEDIA |
+| 4 | Cold Start Test: `docker compose down -v` + `up` desde cero | MEDIA |
+| 5 | Implementar WMS Service y desbloquear su upstream en Nginx | BAJA |

@@ -11,7 +11,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
+      - ../../../backend/scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
     networks:
       - interno-network
     healthcheck:
@@ -20,18 +20,18 @@ services:
       timeout: 5s
       retries: 5
 
-  # --- AUTH SERVICE (Mantiene la gestión de sesiones) ---
+  # --- AUTH SERVICE ---
   auth-service:
     build:
-      context: ./backend
+      context: ../../../backend
       dockerfile: auth_service/Dockerfile
-    container_name: kiosk-auth-service
-    image: interno-backend-auth-service:kiosk
+    container_name: interno-auth-kiosk
+    image: interno-auth-service:latest
     ports:
       - "8001:8000"
     volumes:
-      - ./backend/auth_service:/app
-      - ./backend/common:/app/common
+      - ../../../backend/auth_service:/app
+      - ../../../backend/common:/app/common
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
@@ -63,20 +63,20 @@ services:
   # --- KIOSK SERVICE (El Core fotográfico) ---
   kiosk-service:
     build:
-      context: ./backend
+      context: ../../../backend
       dockerfile: kiosk_service/Dockerfile
     container_name: kiosk-image-service
     image: interno-kiosk-service:latest
     ports:
       - "8020:8000"
     volumes:
-      - ./backend/kiosk_service/app:/app/app
-      - ./backend/common:/app/common
+      - ../../../backend/kiosk_service/app:/app/app
+      - ../../../backend/common:/app/common
       # Volumen para pruebas locales de Pillow si Minio no es usado temporalmente
-      - ./backend/uploads:/app/uploads 
+      - ../../../backend/uploads:/app/uploads 
       # Montar socket local de la impresora de linux (DNP/Hiti via CUPS)
       - /var/run/cups/cups.sock:/var/run/cups/cups.sock
-      - ./certs:/app/certs
+      - ../../certs:/app/certs
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/kiosk_db
@@ -103,15 +103,15 @@ services:
   # --- SUBSCRIPTION SERVICE (Maneja el Wallet de Gamificación) ---
   subscription-service:
     build:
-      context: ./backend
+      context: ../../../backend
       dockerfile: subscription_service/Dockerfile
     container_name: kiosk-subscription-service
     image: interno-subscription-service:kiosk
     ports:
       - "8008:8000"
     volumes:
-      - ./backend/subscription_service:/app
-      - ./backend/common:/app/common
+      - ../../../backend/subscription_service:/app
+      - ../../../backend/common:/app/common
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
@@ -130,15 +130,15 @@ services:
   # --- NOTIFICATION SERVICE (Maneja Alertas en Tiempo Real) ---
   notification-service:
     build:
-      context: ./backend
+      context: ../../../backend
       dockerfile: notification_service/Dockerfile
     container_name: kiosk-notification-service
     image: interno-notification-service:kiosk
     ports:
       - "8009:8000"
     volumes:
-      - ./backend/notification_service:/app
-      - ./backend/common:/app/common
+      - ../../../backend/notification_service:/app
+      - ../../../backend/common:/app/common
     environment:
       - CORE_BACKEND_CORS_ORIGINS=${CORE_BACKEND_CORS_ORIGINS:-"[http://localhost:8080, http://192.168.1.50:8080]"}
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname

@@ -20,13 +20,17 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copy service structure
 COPY common /app/common
-COPY tickets_service/app /app/tickets_service/app
+COPY tickets_service/tickets_app /app/tickets_app
+COPY tickets_service/scripts /app/scripts
+
+COPY tickets_service/entrypoint.sh /app/entrypoint.sh
 
 # 4. Final Workdir
-WORKDIR /app/tickets_service
+WORKDIR /app
 
 # 5. Security - Non-root user
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
@@ -34,4 +38,4 @@ USER app
 EXPOSE 8000
 
 # 6. Execution
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/bin/sh", "/app/entrypoint.sh"]

@@ -123,22 +123,18 @@ class NotificationService:
         """
         Envía una notificación a todos los usuarios que tengan un rol específico.
         """
-        from sqlalchemy import select
-        from auth_app.models.user import User
-        from auth_app.models.role import Role
-        from auth_app.models.user_company_role import UserCompanyRole
+        # Consulta directa a las tablas compartidas (sin importar auth_app)
+        # Ambos servicios comparten la misma BD, las tablas siempre existen.
+        from sqlalchemy import text
 
-        # 1. Buscar a los usuarios que tienen ese rol en esa empresa (case-insensitive)
-        query = (
-            select(User.id)
-            .join(UserCompanyRole, User.id == UserCompanyRole.user_id)
-            .join(Role, UserCompanyRole.role_id == Role.id)
-            .where(
-                UserCompanyRole.company_id == company_id,
-                sa.func.lower(Role.name) == role_name.lower()
-            )
-        )
-        result = await self.db.execute(query)
+        query = text("""
+            SELECT u.id FROM users u
+            JOIN user_company_roles ucr ON u.id = ucr.user_id
+            JOIN roles r ON ucr.role_id = r.id
+            WHERE ucr.company_id = :company_id
+              AND lower(r.name) = lower(:role_name)
+        """)
+        result = await self.db.execute(query, {"company_id": company_id, "role_name": role_name})
         user_ids = result.scalars().all()
 
         if not user_ids:

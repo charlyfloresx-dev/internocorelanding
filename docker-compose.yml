@@ -41,8 +41,8 @@ services:
     build:
       context: ./backend
       dockerfile: auth_service/Dockerfile
-    container_name: auth-service-api
-    image: interno-backend-auth-service:latest
+    container_name: interno-auth-service
+    image: interno-auth-service:latest
     ports:
       - "8001:8000"
     volumes:
@@ -68,8 +68,8 @@ services:
     build:
       context: ./backend
       dockerfile: hcm_service/Dockerfile
-    container_name: hcm-service-api
-    image: interno-backend-hcm-service:latest
+    container_name: interno-hcm-service
+    image: interno-hcm-service:latest
     ports:
       - "8009:8000"
     volumes:
@@ -94,8 +94,8 @@ services:
     build:
       context: ./backend
       dockerfile: master_data_service/Dockerfile
-    container_name: master-data-service-api
-    image: interno-backend-master-data-service:latest
+    container_name: interno-master-data-service
+    image: interno-master-data-service:latest
     ports:
       - "8003:8000"
     volumes:
@@ -144,8 +144,8 @@ services:
     build:
       context: ./backend
       dockerfile: inventory_service/Dockerfile
-    container_name: inventory-service-api
-    image: interno-backend-inventory-service:latest
+    container_name: interno-inventory-service
+    image: interno-inventory-service:latest
     ports:
       - "8006:8000"
     volumes:

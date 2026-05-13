@@ -38,6 +38,7 @@ services:
       context: ../../backend
       dockerfile: docker/Monolith.Dockerfile
     container_name: interno-monolith
+    image: interno-monolith:latest
     ports:
       - "8000:8000"
     command: uvicorn main_monolith:app --host 0.0.0.0 --port 8000 --workers 4

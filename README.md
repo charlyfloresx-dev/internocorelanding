@@ -110,6 +110,34 @@ Se ha definido un protocolo estricto para el alta y configuración de empresas e
 
 ---
 
+## 🏗️ 9. Estándar de Construcción de Microservicios (Gold Standard)
+
+Para garantizar consistencia, resiliencia y evitar colisiones en la base de datos unificada, TODO nuevo microservicio debe seguir esta topología estricta:
+
+```text
+backend/<module>_service/
+├── Dockerfile          # Debe invocar entrypoint.sh vía CMD ["/bin/sh", "/app/entrypoint.sh"]
+├── entrypoint.sh       # Secuencia obligatoria: Migrate -> Seed -> Serve
+├── requirements.txt    # Dependencias aisladas del servicio
+├── alembic.ini         # Configuración de migraciones
+├── alembic/            
+│   └── env.py          # CRÍTICO: Debe definir un 'version_table' único (ej. alembic_version_auth)
+├── scripts/            
+│   └── seed.py         # Opcional: Inyección de datos maestros
+└── <module>_app/       # CRÍTICO: Nombrado explícito (No usar la palabra genérica 'app')
+    ├── main.py         # Instancia FastAPI
+    ├── core/           # Configuración (Pydantic Settings)
+    ├── models/         # Modelos SQLAlchemy (Heredan de MultiTenantBase)
+    ├── routers/        # Controladores API (Endpoints)
+    ├── schemas/        # Validadores Pydantic (DTOs)
+    └── services/       # Lógica de negocio pura
+```
+**Reglas de Oro:**
+1. **Zero-Collision DB:** En modo Monolito Unificado (misma BD), cada servicio DEBE aislar su historial de Alembic usando `version_table="alembic_version_<suffix>"` en `env.py`.
+2. **Auto-Bootstrap:** El contenedor debe ser 100% autónomo. Al arrancar, el `entrypoint.sh` se encarga de crear sus tablas y poblar sus catálogos base antes de exponer el puerto `8000`.
+
+---
+
 ## 🛡️ 7. Gobernanza y Estructura
 - **Ecosistema `src/`:** Carpeta central para aplicaciones satélite (Móvil, Kioscos, Trainers). Cada proyecto en `src/` debe ser una entidad independiente que consume las APIs del núcleo.
 - **Seguridad Vault:** La carpeta `docs/infraestructura/vault/` es el único lugar permitido para credenciales sensibles. Está estrictamente excluida de Git.

@@ -3,10 +3,33 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-12] Phase 104: Microservices Isolation & Cross-Service Import Eradication
+- **Cross-Service Import Guard**: Enhanced `generate_code_graph.py` to detect and report `CROSS_SERVICE_IMPORT_VIOLATION` as CRITICAL errors. Matches both `*_service` and `*_app` module patterns.
+- **Decoupled inventory→notification**: Replaced direct `from notification_app...` imports in `density_guard_audit.py` and `transactions.py` with async HTTP event dispatch via `httpx` to `notification-service:8000/api/v1/events/`.
+- **Decoupled notification→auth**: Replaced `from auth_app.models...` ORM imports in `notification_service.py` with raw SQL `text()` queries against shared tables (`users`, `roles`, `user_company_roles`).
+- **Gateway Stabilized**: Fixed Nginx crash loop caused by undefined `wms-service` upstream (commented out WMS until deployed). Added `hcm-service` and `notification-service` upstreams and location blocks.
+- **Redis Dependency**: Added `redis==5.0.1` to `common/requirements.txt` — required by `InternoCoreGlobalMiddleware` across all services.
+- **HCM Dockerfile Fix**: Corrected `COPY hcm_service/app` → `COPY hcm_service/hcm_app` to match Gold Standard naming.
+- **Alembic Zero-Collision**: All 7 services now use unique `version_table` names (`alembic_version_auth`, `_sub`, `_md`, `_inv`, `_tickets`, `_notif`, `_hcm`).
+- **Industrial Entrypoints**: All services implement `entrypoint.sh` with Migrate→Seed→Serve lifecycle.
+- **Documentation**: Created `backend/README.md` with Gold Standard microservice template. Updated `infrastructure/README.md` port matrix (8001-8009).
+- **Ecosystem Validator**: Created `scripts/validate_ecosystem.ps1` — integrated into `initialize-dev.md` and `sync-docs.md` workflows.
+- **Code Graph Result**: 0 CRITICAL, 0 CROSS_SERVICE violations, 2 minor WARNINGs (ENV_ACCESS in inventory — acceptable for Docker network defaults).
+- **Status**: ✅ Phase 104 COMPLETED — Microservices fully isolated, Gateway operational, Code Graph clean.
+
+---
 ### 🌟 [2026-05-12] GOLDEN BASELINE ESTABLISHED
 **Estatus:** Phase 100 (Big Bang — 1M Records) ✅ COMPLETED. Industrial performance verified at 25k rec/s. Environment cleaned and stabilized.
 
 ---
+
+### [2026-05-12] Phase 103: Infrastructure Industrialization & Gateway Unification
+- **Standardized Orchestration**: Refactored all Docker configurations into a centralized `infrastructure/` directory, isolating `docker/` (Dev Microservices) from `onprem/` (Production Monolith).
+- **Nginx Gateway (Port 8000)**: Implemented a unified entry point for microservices. This enables Frontend (Angular) and Mobile (Flutter) clients to communicate with the entire ecosystem through a single port, maintaining parity with the Monolith architecture.
+- **Bulletproof Startup (Healthchecks)**: Integrated Docker Healthchecks for `postgres` and `redis`. Configured service dependencies (`service_healthy`) to ensure 100% connection reliability during cold starts, eliminating transient 500/Restarting errors.
+- **Unified Migration Engine**: Developed `migrate_all.ps1`, a PowerShell orchestrator that performs a "Migration Sweep" across all active microservices using Alembic.
+- **Nuclear Reset Protocol**: Updated `hard-reset.md` with forensic system pruning, recovering 11GB+ of storage and ensuring zero network/volume collisions.
+- **Status**: ✅ Phase 103 COMPLETED — Infrastructure Industrialized & Gateway Unified.
 
 ### [2026-05-12] Phase 102: Sentinel Móvil & Industrial POS Resilience
 - **Functional Resilience Port**: Successfully ported the Sentinel architecture to Flutter (`interno_billing_app`).

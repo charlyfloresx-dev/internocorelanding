@@ -20,18 +20,21 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY subscription_service/app /app/app
+COPY subscription_service/subscription_app /app/subscription_app
 COPY subscription_service/alembic /app/alembic
 COPY subscription_service/alembic.ini /app/alembic.ini
 COPY subscription_service/scripts /app/scripts
 
-# 4. Ajuste de permisos
+COPY subscription_service/entrypoint.sh /app/entrypoint.sh
+
+# 4. Ajuste de permisos y entrypoint ejecutable
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# 5. Ejecución: Semillas -> API
-CMD ["sh", "-c", "python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# 5. Ejecución: Migrate -> Serve (via entrypoint)
+CMD ["/bin/sh", "/app/entrypoint.sh"]

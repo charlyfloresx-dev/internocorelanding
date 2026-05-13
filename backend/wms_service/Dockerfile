@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY common /app/common
 
 # Copiamos el código de la aplicación
-COPY wms_service/app /app/app
+COPY wms_service/wms_app /app/wms_app
 
 # Copiamos archivos de configuración de base de datos
 COPY wms_service/alembic /app/alembic
@@ -45,4 +45,4 @@ USER app
 EXPOSE 8000
 
 # 5. Ejecución: Migraciones -> Semillas -> Inicio de API
-CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m alembic upgrade head && python scripts/seed.py && python -m uvicorn wms_app.main:app --host 0.0.0.0 --port 8000"]

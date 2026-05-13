@@ -1,12 +1,17 @@
 import uuid
 import logging
+import os
 from decimal import Decimal
 from typing import Optional
+
+import httpx
 
 from inventory_app.db.session import AsyncSessionLocal
 from inventory_app.infrastructure.clients.master_data import MasterDataClient
 from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from notification_app.services.notification_service import NotificationService, NotificationCategory, NotificationPriority
+
+# URL del Notification Service vía red interna de Docker
+_NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8000")
 
 logger = logging.getLogger(__name__)
 
@@ -79,25 +84,27 @@ async def _execute_audit(warehouse_id, location_code, quantity_moved, movement_i
                 }
             )
             
-            # Injecting the notification service with the active session
-            notif_service = NotificationService(session)
-            await notif_service.notify_role(
-                company_id=company_id,
-                role_name="OPERATIONS_MANAGER", # Broadcast to tactical managers
-                title="ALERTA DE DENSIDAD",
-                message=f"La ubicacion {location_code} ha excedido su capacidad maxima ({occupancy}/{capacity}).",
-                category=NotificationCategory.INVENTORY,
-                priority=NotificationPriority.HIGH,
-                metadata={
-                    "warehouse_id": str(warehouse_id),
-                    "location_code": location_code,
-                    "occupancy": float(occupancy),
-                    "capacity": float(capacity),
-                    "movement_id": str(movement_id)
-                }
-            )
+            # Disparar evento al Notification Service vía HTTP (desacoplamiento entre microservicios)
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(
+                        f"{_NOTIFICATION_SERVICE_URL}/api/v1/events/",
+                        json={
+                            "event_id": str(movement_id),
+                            "event_type": "CapacityViolationEvent",
+                            "location_code": location_code,
+                            "current_occupancy": float(occupancy),
+                            "max_capacity": float(capacity),
+                            "severity": "RED" if occupancy > capacity * 1.2 else "YELLOW",
+                        },
+                        headers={"X-Company-ID": str(company_id)},
+                    )
+                    logger.info("CapacityViolationEvent dispatched to notification-service for location %s", location_code)
+            except Exception as notif_err:
+                # El fallo de notificación no debe bloquear la transacción de inventario
+                logger.warning("Non-critical: Failed to dispatch notification event: %s", notif_err)
         
-        # Final Commit (Status + Notifications)
+        # Final Commit (Status)
         await session.commit()
 
     except Exception as e:

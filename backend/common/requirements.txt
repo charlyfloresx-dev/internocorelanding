@@ -8,3 +8,4 @@ slowapi==0.1.9
 beautifulsoup4==4.12.3
 lxml==5.1.0
 httpx==0.26.0
+redis==5.0.1

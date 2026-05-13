@@ -26,19 +26,25 @@ Validar que el bloqueo reactivo funcione en tiempo real:
 ```
 > **Validación:** Confirmar visualmente el banner de "Pago Pendiente" o el error 402 en consola de red. No documentar si el webhook falla o el bypass de desarrollo está roto.
 
-### 3. Actualizar Documentación FinOps & Infraestructura
-Revisar la carpeta `docs/infraestructura/` y verificar si es necesario actualizar alguna de las guías base basándose en los comandos y flujos estabilizados recientemente.
+### 3. Actualizar Documentación de Infraestructura & Orquestación
+Revisar la carpeta `infrastructure/` y verificar que el `README.md` maestro esté alineado con los puertos y servicios actuales.
 Ejemplos críticos a verificar:
-*   `APP_RUNNER_DEPLOY_GUIDE.md`: Chequear si existen nuevos parámetros o límites encontrados (ej. Cuotas).
-*   `AWS_Deployment_Strategy.md`: Actualizar topología si se migró un frontend o se cambió el plan.
+*   `infrastructure/README.md`: ¿La matriz de decisión sigue siendo válida?
+*   `infrastructure/docker/docker-compose.dev.yml`: ¿Los healthchecks están operativos?
+*   `infrastructure/docker/migrate_all.ps1`: ¿Se agregaron los nuevos microservicios al barrido de migraciones?
+
+### 3.5. Validación del Ecosistema Local (Ping Maestro)
+Asegurar que el orquestador esté levantado y enrutando correctamente antes de documentar:
+// turbo
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/validate_ecosystem.ps1
+```
+> **Validación:** Confirmar que todos los servicios reporten `[ OK ]` o estatus HTTP esperados, garantizando la salud del API Gateway.
 
 ### 4. Actualizar Bitácoras de Ingeniería (REPO_LOG y SERVICE_LOG)
-Escribir un resumen breve en el `REPO_LOG.md` raíz con los siguientes detalles de la fase actual:
-1. Número de la Fase y Objetivo (Ej. *Estabilización App Runner*).
-2. Tareas técnicas completadas con éxito.
-3. Decisiones Arquitectónicas o Workarounds aplicados.
+Escribir un resumen breve en el `REPO_LOG.md` raíz con los detalles de la fase actual (Objetivos, Decisiones Arquitectónicas y Workarounds).
 
-**IMPORTANTE:** Replicar un resumen técnico adaptado en el respectivo `SERVICE_LOG.md` de cada microservicio afectado (Ej. `backend/auth_service/SERVICE_LOG.md`) para mantener su contexto individualizado y seguir el estándar de microservicios.
+**IMPORTANTE:** Replicar un resumen técnico adaptado en el respectivo `SERVICE_LOG.md` de cada microservicio afectado y en el `README_DEV.md` de la infraestructura si hubo cambios en puertos o variables.
 
 ### 4.5. Consolidados Diarios y Planes de Implementación
 Para no contaminar la raíz documental, dividir y clasificar la jornada obligatoriamente respetando esta nomenclatura estricta:

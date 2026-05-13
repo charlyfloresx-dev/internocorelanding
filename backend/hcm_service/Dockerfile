@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY hcm_service/app /app/app
+COPY hcm_service/hcm_app /app/hcm_app
 COPY hcm_service/alembic /app/alembic
 COPY hcm_service/alembic.ini /app/alembic.ini
 COPY hcm_service/scripts /app/scripts

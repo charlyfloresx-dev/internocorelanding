@@ -17,26 +17,41 @@ for path in ['.env', 'backend/.env']:
                 f.write(data[3:])
             print(f'BOM removed from {path}')
         else:
-            print(f'{path}: clean')
-    except FileNotFoundError:
-        print(f'{path}: not found (skip)')
-"
-```
+# Workflow: Hard Reset - InternoCore Clean Slate
 
-### 2. Demolición y Limpieza de Volúmenes // turbo
-Detiene todos los servicios del monolito y elimina volúmenes persistentes.
+Use this workflow to NUCLEARLY reset the environment. This deletes all data, images, and network configurations.
+
+## 1. Stop and Remove All Environments
+// turbo
 ```powershell
-docker compose -f docker/docker-compose.monolith.yml down -v --remove-orphans
+# Stop Dev Stack
+docker compose -f infrastructure/docker/docker-compose.dev.yml down -v --remove-orphans
+
+# Stop On-Prem Monolith
+docker compose -f infrastructure/onprem/docker-compose.yml down -v --remove-orphans
+
+# Stop any legacy root-level stack
+docker compose down -v --remove-orphans
 ```
 
-### 3. Ignición de Servicios (Rebuild) // turbo
-Levanta los contenedores reconstruyendo las imágenes para asegurar la integridad del código.
+## 2. Forensic Image & Volume Purge
+// turbo
+> [!CAUTION]
+> This will delete all unused images and volumes. It is non-reversible.
 ```powershell
-docker compose -f docker/docker-compose.monolith.yml up -d --build
+docker system prune -a --volumes -f
 ```
 
-### 4. Sincronización de Esquemas y Salud
-Esperamos a que el monolito termine su `lifespan` (creación de tablas vía SQLAlchemy Metadata).
+## 3. Environment Variable Sanitization
+// turbo
+```powershell
+# Remove BOM and hidden characters from .env
+python -c "content = open('.env', 'rb').read().replace(b'\xef\xbb\xbf', b''); open('.env', 'wb').write(content)"
+```
+
+## 4. Re-Initialization
+After this, follow the [initialize-dev.md](./initialize-dev.md) or [initialize-monolith.md](./initialize-monolith.md) workflows.
+lifespan` (creación de tablas vía SQLAlchemy Metadata).
 > [!NOTE]
 > El Monolito Unificado crea automáticamente todas las tablas (auth, master, inv, tickets) al iniciar.
 > Verificar con `docker logs interno-monolith --tail 5` que aparezca `Application startup complete`.

@@ -1,4 +1,5 @@
 import uuid
+import os
 import httpx
 import logging
 from typing import List, Optional, Any, Union
@@ -35,40 +36,33 @@ async def _notify_admin_new_document(
     doc_id: str = None
 ):
     """
-    Background task to notify ADMIN users on new inventory document.
+    Background task: dispatches an HTTP event to the notification-service.
+    Fire-and-forget — never blocks the main inventory transaction.
     """
+    _NOTIF_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8000")
+    type_clean = str(doc_type).lower()
+    type_desc = "Entrada" if "in" in type_clean else "Salida" if "out" in type_clean else "Movimiento"
     try:
-        from notification_app.services.notification_service import NotificationService
-        from notification_app.models.notification import NotificationCategory, NotificationPriority
-        from common.infrastructure.database import AsyncSessionLocal
-        import uuid
-
-        async with AsyncSessionLocal() as db:
-            svc = NotificationService(db)
-            
-            # Formatear tipo para humanos
-            type_clean = str(doc_type).lower()
-            type_desc = "Entrada" if "in" in type_clean else "Salida" if "out" in type_clean else "Movimiento"
-            
-            # Asegurar que company_id sea UUID
-            final_company_id = company_id if isinstance(company_id, uuid.UUID) else uuid.UUID(str(company_id))
-            
-            await svc.notify_role(
-                company_id=final_company_id,
-                role_name="admin",
-                title=f"📦 {type_desc} — {folio}",
-                message=(
-                    f"{type_desc} en {origin} con {items_count} partida(s). "
-                    f"Total: ${total_amount:,.2f}"
-                ),
-                category=NotificationCategory.INVENTORY,
-                priority=NotificationPriority.MEDIUM,
-                action_url=f"/inventory/documents/{doc_id}" if doc_id else "/inventory/documents"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{_NOTIF_URL}/api/v1/events/",
+                json={
+                    "event_id": doc_id or folio,
+                    "event_type": "InventoryDocumentCreated",
+                    "folio": folio,
+                    "doc_type": type_desc,
+                    "origin": origin,
+                    "destination": destination,
+                    "items_count": items_count,
+                    "total_amount": total_amount,
+                    "action_url": f"/inventory/documents/{doc_id}" if doc_id else "/inventory/documents",
+                },
+                headers={"X-Company-ID": str(company_id)},
             )
-            await db.commit()
-            logger.info(f"🔔 Admin notified for document {folio}")
+            logger.info(f"🔔 InventoryDocumentCreated event dispatched for {folio}")
     except Exception as e:
         logger.warning(f"⚠️ NOTIFY_ADMIN_FAILED (non-critical): {e}")
+
 
 @router.post("/documents", response_model=ApiResponse)
 @idempotent()

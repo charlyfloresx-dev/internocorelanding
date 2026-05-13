@@ -146,7 +146,13 @@ class CodeGraphGenerator:
 
         # Definitions for filters
         is_config = filename.endswith("config.py") and "logging_config" not in filename
-        is_test = filename.startswith("test_") or "/tests/" in rel_path or "/scripts/" in rel_path
+        # Exclude test files AND root-level diagnostic/utility scripts (not production code)
+        is_test = (
+            filename.startswith("test_")
+            or "/tests/" in rel_path
+            or "/scripts/" in rel_path
+            or rel_path.startswith("scripts/")   # root-level dev utilities
+        )
 
         # 1. ENV Violation (Ignore config files and core folder as they are the source of truth)
         if "/app/core/" not in rel_path and not is_config and "setup.py" not in rel_path and "seed" not in rel_path and not is_test:
@@ -247,14 +253,34 @@ class CodeGraphGenerator:
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
-        # 4. Cross-Service Dependency Tracking
-        if ms in self.MICROSERVICES:
-            for imp_module in imports.values():
-                for other in self.MICROSERVICES:
-                    if other != ms and f"{other}." in imp_module and "common" not in imp_module:
+        # 4. Cross-Service Import Violation Guard (Microservices Isolation)
+        # CRITICAL: Direct module imports from other microservices break runtime isolation.
+        # Services must communicate via HTTP only (not by importing each other's code).
+        if ms in self.MICROSERVICES and not is_test:
+            for imp_name, imp_module in imports.items():
+                # Check for _service style imports (e.g. inventory_service.xxx)
+                for other_ms in self.MICROSERVICES:
+                    if other_ms == ms or other_ms == "common":
+                        continue
+                    # Match both 'other_service.xxx' and 'other_app.xxx' patterns
+                    other_app = other_ms.replace("_service", "_app")
+                    if (f"{other_ms}." in imp_module or f"{other_app}." in imp_module) and "common" not in imp_module:
+                        # Track for graph
                         deps = self.inter_service_dependencies.get(ms, set())
-                        deps.add(other)
+                        deps.add(other_ms)
                         self.inter_service_dependencies[ms] = deps
+                        # Report as CRITICAL violation
+                        err = {
+                            "file": rel_path,
+                            "severity": "CRITICAL",
+                            "ms": ms,
+                            "error": (
+                                f"CROSS_SERVICE_IMPORT_VIOLATION: '{ms}' directly imports from '{other_ms}' "
+                                f"(module: {imp_module}). Use HTTP events instead."
+                            )
+                        }
+                        self.graph["invariants_errors"].append(err)
+                        self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
         # Analyze structure
         for node in tree.body:
