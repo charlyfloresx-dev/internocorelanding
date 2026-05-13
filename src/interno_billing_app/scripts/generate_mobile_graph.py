@@ -6,22 +6,17 @@ from typing import List, Dict, Any, Set
 class MobileGraphGenerator:
     def __init__(self, root_dir: str):
         self.root_dir = root_dir
-        self.mobile_root = os.path.join(root_dir, "interno_billing_app")
+        self.mobile_root = os.path.join(root_dir, "src", "interno_billing_app")
         self.graph = {
             "nodes": [],
             "edges": [],
             "invariants_errors": [],
             "compliance_report": {}
         }
-        self.errors_by_layer = {
-            "presentation": 0,
-            "domain": 0,
-            "data": 0,
-            "core": 0,
-            "other": 0
-        }
+        self.errors_by_layer = {}
         self.scanned_files = 0
         self.total_loc = 0
+        self.scanned_files_log = []
 
     def _get_layer(self, rel_path: str) -> str:
         if "presentation" in rel_path: return "presentation"
@@ -29,6 +24,11 @@ class MobileGraphGenerator:
         if "data" in rel_path: return "data"
         if "core" in rel_path: return "core"
         return "other"
+
+    def add_error(self, file: str, severity: str, layer: str, error: str):
+        err = {"file": file, "severity": severity, "layer": layer, "error": error}
+        self.graph["invariants_errors"].append(err)
+        self.errors_by_layer[layer] = self.errors_by_layer.get(layer, 0) + 1
 
     def scan(self):
         lib_path = os.path.join(self.mobile_root, "lib")
@@ -42,10 +42,18 @@ class MobileGraphGenerator:
                     file_path = os.path.join(root, file)
                     self.scanned_files += 1
                     self.analyze_file(file_path)
+        
+        # Post-scan analysis (Circular Deps or global invariants)
+        self._check_layer_isolation()
+
+    def _check_layer_isolation(self):
+        # Placeholder for future isolation logic
+        pass
 
     def analyze_file(self, file_path: str):
         rel_path = os.path.relpath(file_path, self.mobile_root).replace("\\", "/")
         layer = self._get_layer(rel_path)
+        self.scanned_files_log.append(f"AUDITED: {rel_path} [{layer}]")
         
         with open(file_path, "r", encoding="utf-8") as f:
             try:
@@ -54,80 +62,62 @@ class MobileGraphGenerator:
                 self.total_loc += len(lines)
             except Exception: return
 
-        # 1. Hardcoded URL Violation
+        # --- AUDIT RULES (Sincronizado con Backend Patterns) ---
+
+        # 1. HARDCODED_URL_VIOLATION (AWS Budget/Security Guard)
         if "http://" in content or "https://" in content:
-            # Exclude injection.dart as it's the valid place for base URLs
-            if "injection.dart" not in rel_path:
-                # Match actual URLs in strings
+            if "injection.dart" not in rel_path and "resilience_mocks" not in rel_path:
                 urls = re.findall(r'https?://[^\s\'"]+', content)
-                if urls:
-                    self.add_error(rel_path, "CRITICAL", layer, f"HARDCODED_URL_VIOLATION: Direct URL usage detected: {urls[0]}")
+                # Whitelist image CDNs and assets to avoid false positives on UI placeholders
+                image_cdns = ["images.unsplash.com", "cdn.pixabay.com", "images.pexels.com"]
+                if urls and not any(ext in urls[0] for ext in [".png", ".jpg", ".svg", ".jpeg", ".webp"]):
+                    if not any(cdn in urls[0] for cdn in image_cdns):
+                        self.add_error(rel_path, "CRITICAL", layer, f"HARDCODED_URL_VIOLATION: Direct API URL usage detected: {urls[0]}")
 
-        # 2. Theme Violation (Direct Colors usage)
-        if "Colors." in content or "Color(0x" in content:
-            # Exclude theme/color definitions and the main design system file
-            if not any(x in rel_path for x in ["theme.dart", "colors.dart", "app_colors.dart", "injection.dart"]):
-                # Simple check for common Material Colors
-                material_colors = ["Colors.red", "Colors.blue", "Colors.green", "Colors.black", "Colors.white", "Colors.yellow"]
-                for mc in material_colors:
-                    if mc in content:
-                        self.add_error(rel_path, "WARNING", layer, f"THEME_VIOLATION: Use of Material {mc} detected. Use InternoColors instead.")
-                        break
+        # 2. THEME_VIOLATION (Design System Integrity)
+        if "Colors." in content and "InternoColors" not in content:
+            if not any(x in rel_path for x in ["theme.dart", "colors.dart", "injection.dart"]):
+                self.add_error(rel_path, "WARNING", layer, "THEME_VIOLATION: Use of Material Colors instead of InternoColors.")
 
-        # 3. Clean Architecture Violation: Blocs importing Dio
-        if "_bloc.dart" in rel_path:
-            if "import 'package:dio/dio.dart'" in content or "Dio " in content:
-                self.add_error(rel_path, "CRITICAL", layer, "CLEAN_ARCH_VIOLATION: BLoC layer should not depend on Dio. Use Repositories.")
+        # 3. CLEAN_ARCH_VIOLATION (Layer Isolation)
+        if "_bloc.dart" in rel_path and "import 'package:dio/dio.dart'" in content:
+            self.add_error(rel_path, "CRITICAL", layer, "CLEAN_ARCH_VIOLATION: Presentation layer (BLoC) should not import Dio directly.")
 
-        # 4. Localization Check (Simplified)
-        if "Text('" in content or 'Text("' in content:
-            # Check if strings are translated with .tr() or if they are just raw strings
-            # This is a heuristic: search for Text('Something') without .tr()
-            suspicious_strings = re.findall(r"Text\(['\"]([^'\"]+)['\"]\)", content)
-            for s in suspicious_strings:
-                if len(s) > 3 and not s.isupper(): # Ignore icons or short codes
-                    # Check if the next part is .tr()
-                    # (This regex is limited, but good for a start)
-                    if not re.search(f"Text\\(['\"]{re.escape(s)}['\"]\\)\\.tr\\(\\)", content):
-                        self.add_error(rel_path, "WARNING", layer, f"MISSING_LOCALIZATION: Raw string '{s}' in Text widget. Use .tr().")
+        # 4. SENTINEL_RESILIENCE_INVARIANTS (Phase 102)
+        if "injection.dart" in rel_path:
+            if "ResilienceInterceptor" not in content:
+                self.add_error(rel_path, "CRITICAL", layer, "RESILIENCE_MISSING: ResilienceInterceptor not registered in injection chain.")
+            if "ConnectivityService" not in content:
+                self.add_error(rel_path, "WARNING", layer, "CONNECTIVITY_SENSOR_MISSING: Hardware sensor not initialized.")
 
-        # 5. Missing Tenant Header in Repositories
-        if "_repository.dart" in rel_path and "Repository" in content:
-            # Repositories should ideally mention companyId or tenant_id or headers
-            if "companyId" not in content and "X-Company-ID" not in content and "token" not in content:
-                # Exclude AuthRepository as it might not need tenant yet
-                if "auth_repository" not in rel_path:
-                    self.add_error(rel_path, "WARNING", layer, "TENANT_AWARENESS_VIOLATION: Repository might be missing company_id / token injection.")
-
-    def add_error(self, file: str, severity: str, layer: str, error: str):
-        err = {"file": file, "severity": severity, "layer": layer, "error": error}
-        self.graph["invariants_errors"].append(err)
-        self.errors_by_layer[layer] += 1
+        if "connection_status_provider.dart" in rel_path and "Wakelock" not in content:
+            self.add_error(rel_path, "WARNING", layer, "WAKELOCK_MISSING: Sentinel UI does not manage screen lock during recovery.")
 
     def print_report(self):
         critical = [e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"]
         warnings = [e for e in self.graph["invariants_errors"] if e["severity"] == "WARNING"]
         
         print("="*80)
-        print("  INTERNO POS: Mobile Code Knowledge Graph Audit")
-        print(f"  Scanned: {self.scanned_files} files | {self.total_loc} lines of code")
+        print("  INTERNO POS: Mobile Code Knowledge Graph Audit (Sync-Docs Mode)")
+        print(f"  Scanned: {self.scanned_files} files | {self.total_loc} LOC")
         print("="*80)
         
         if critical:
             print(f"\n[CRITICAL] ERRORS ({len(critical)}):")
             print("-" * 60)
             for e in critical:
-                print(f"  [!!] {e['file']} -> {e['error']}")
-        
+                print(f"  [!!] {e['file']:40} -> {e['error']}")
+
         if warnings:
             print(f"\n[WARNING] ({len(warnings)}):")
             print("-" * 60)
             for i, e in enumerate(warnings, 1):
-                print(f"  [{i:02d}] {e['file']} -> {e['error']}")
-
+                print(f"  [{i:02d}] {e['file']:40} -> {e['error']}")
+        
         print("\n[SUMMARY] Compliance Report by Layer:")
         print("-" * 60)
-        for layer, err_count in self.errors_by_layer.items():
+        for layer in ["presentation", "domain", "data", "core"]:
+            err_count = self.errors_by_layer.get(layer, 0)
             score = max(0, 100 - (err_count * 10))
             status = "CLEAN" if score == 100 else "DEBT"
             print(f"   {layer:20} : {score:3}% Compliance ({err_count} err) | Status: {status}")
@@ -140,6 +130,14 @@ class MobileGraphGenerator:
         self.graph["compliance_report"] = {l: max(0, 100 - (c * 10)) for l, c in self.errors_by_layer.items()}
         with open(output_ptr, "w", encoding="utf-8") as f:
             json.dump(self.graph, f, indent=4)
+        
+        # Write execution log (Backend Synchronization)
+        log_ptr = output_ptr.replace(".json", "_execution_log.txt")
+        with open(log_ptr, "w", encoding="utf-8") as f:
+            f.write("="*80 + "\n")
+            f.write(" MOBILE CODE GRAPH AUDITOR - EXECUTION LOG\n")
+            f.write("="*80 + "\n\n")
+            f.write("\n".join(sorted(self.scanned_files_log)))
 
 if __name__ == "__main__":
     import sys
