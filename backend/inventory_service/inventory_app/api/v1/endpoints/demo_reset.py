@@ -27,7 +27,7 @@ from inventory_app.db.session import AsyncSessionLocal
 from inventory_app.models.movement import Movement
 from inventory_app.models.inventory import InventoryLevel, InventoryTransaction, TransactionType
 from inventory_app.models.document import InventoryDocument, DocumentStatus
-from master_app.models.movement_concept import MovementConcept
+# from master_app.models.movement_concept import MovementConcept (Removed cross-service import)
 from common.enums import MovementType
 from inventory_app.models.item_variant import ItemVariant
 from inventory_app.models.inter_company_transfer import InterCompanyTransfer, TransferStatus
@@ -129,22 +129,30 @@ async def _run_demo_seed(company_id: uuid.UUID) -> dict:
             concept_ids: dict[str, uuid.UUID] = {}
             for code, cfg in _CONCEPT_CONFIG.items():
                 c_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.concept.{company_id}.{code}")
-                stmt = select(MovementConcept).filter_by(id=c_id, company_id=company_id)
-                res = await session.execute(stmt)
-                obj = res.scalars().first()
-                if not obj:
-                    obj = MovementConcept(
-                        id=c_id, 
-                        name=cfg["name"],
-                        code=code, 
-                        type=cfg["type"],
-                        company_id=company_id, 
-                        tenant_id=company_id,
-                        created_by=_SYSTEM_USER
+                # Industrial approach: Use raw SQL to avoid importing models from other services
+                res = await session.execute(
+                    text("SELECT id FROM movement_concepts WHERE id = :id AND company_id = :cid"),
+                    {"id": c_id, "cid": company_id}
+                )
+                exists = res.scalar()
+                if not exists:
+                    await session.execute(
+                        text("""
+                            INSERT INTO movement_concepts (id, name, code, type, company_id, tenant_id, created_by, created_at)
+                            VALUES (:id, :name, :code, :type, :cid, :tid, :cb, :now)
+                        """),
+                        {
+                            "id": c_id, 
+                            "name": cfg["name"],
+                            "code": code, 
+                            "type": cfg["type"].value if hasattr(cfg["type"], "value") else cfg["type"],
+                            "cid": company_id, 
+                            "tid": company_id,
+                            "cb": _SYSTEM_USER,
+                            "now": now
+                        }
                     )
-                    session.add(obj)
-                    await session.flush()
-                concept_ids[code] = obj.id
+                concept_ids[code] = c_id
             result["seeded"]["concepts"] = len(concept_ids)
 
             # ── 4. STOCK (base levels with alerts) ─────────────────────────

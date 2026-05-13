@@ -43,39 +43,52 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
     Retorna un dict con los IDs reales de la DB resueltos por codigo estable.
     Lanza RuntimeError si algún dato maestro no existe (indica que el seed no se ejecutó).
     """
-    from master_app.models.warehouse import Warehouse
-    from master_app.models.uom import UOM
-    from master_app.models.product import Product
-    from master_app.models.location import InventoryLocation
+    # from master_app.models.warehouse import Warehouse (Removed cross-service import)
+    # from master_app.models.uom import UOM (Removed cross-service import)
+    # from master_app.models.product import Product (Removed cross-service import)
+    # from master_app.models.location import InventoryLocation (Removed cross-service import)
+    from sqlalchemy import text
     from inventory_app.models.customs_pedimento import CustomsPedimento
 
     # Almacen
-    wh = (await session.execute(
-        select(Warehouse).where(Warehouse.code == "WH-001", Warehouse.company_id == CO_ENTERPRISE_ID)
-    )).scalars().first()
-    if not wh:
+    # Almacen via Raw SQL
+    wh_res = await session.execute(
+        text("SELECT id FROM warehouses WHERE code = 'WH-001' AND company_id = :cid"),
+        {"cid": CO_ENTERPRISE_ID}
+    )
+    wh_id = wh_res.scalar()
+    if not wh_id:
         raise RuntimeError("Almacen WH-001 no encontrado. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
     # UOM
-    uom = (await session.execute(
-        select(UOM).where(UOM.code == "PZ")
-    )).scalars().first()
-    if not uom:
+    # UOM via Raw SQL
+    uom_res = await session.execute(
+        text("SELECT id FROM uoms WHERE code = 'PZ'")
+    )
+    uom_id = uom_res.scalar()
+    if not uom_id:
         raise RuntimeError("UOM PZ no encontrada. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
     # Producto
-    prod = (await session.execute(
-        select(Product).where(Product.sku == "ECM-600", Product.company_id == CO_ENTERPRISE_ID)
-    )).scalars().first()
-    if not prod:
+    # Producto via Raw SQL
+    prod_res = await session.execute(
+        text("SELECT id FROM products WHERE sku = 'ECM-600' AND company_id = :cid"),
+        {"cid": CO_ENTERPRISE_ID}
+    )
+    prod_id = prod_res.scalar()
+    if not prod_id:
         raise RuntimeError("Producto ECM-600 no encontrado. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
     # Ubicacion
-    loc = (await session.execute(
-        select(InventoryLocation).where(InventoryLocation.code == "LOC-AUDIT-01")
-    )).scalars().first()
-    if not loc:
+    # Ubicacion via Raw SQL
+    loc_res = await session.execute(
+        text("SELECT id, code, max_capacity_units FROM inventory_locations WHERE code = 'LOC-AUDIT-01'")
+    )
+    loc_row = loc_res.fetchone()
+    if not loc_row:
         raise RuntimeError("Ubicacion LOC-AUDIT-01 no encontrada. Ejecuta primero: python scripts/unified_industrial_seed.py")
+    
+    loc_id, loc_code, loc_capacity = loc_row
 
     # Pedimento (Resolve any valid pedimento for the company)
     ped = (await session.execute(
@@ -85,25 +98,32 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
         raise RuntimeError("No se encontro Pedimento para Enterprise. Ejecuta primero: python backend/scripts/seed_customs.py")
 
     # Conceptos
-    from master_app.models.movement_concept import MovementConcept
-    concepts_res = await session.execute(select(MovementConcept).where(MovementConcept.group_id == uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")))
-    concepts = {c.code: c.id for c in concepts_res.scalars().all()}
+    # Conceptos via Raw SQL
+    # from master_app.models.movement_concept import MovementConcept (Removed cross-service import)
+    concepts_res = await session.execute(
+        text("SELECT id, code FROM movement_concepts WHERE group_id = :gid"),
+        {"gid": uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")}
+    )
+    concepts = {row[1]: row[0] for row in concepts_res.fetchall()}
     
     # Fallback to local codes if group inheritance not found in DB yet
     if not concepts:
-        concepts_res = await session.execute(select(MovementConcept).where(MovementConcept.company_id == CO_ENTERPRISE_ID))
-        concepts = {c.code: c.id for c in concepts_res.scalars().all()}
+        concepts_res = await session.execute(
+            text("SELECT id, code FROM movement_concepts WHERE company_id = :cid"),
+            {"cid": CO_ENTERPRISE_ID}
+        )
+        concepts = {row[1]: row[0] for row in concepts_res.fetchall()}
 
     return {
         "company_id":   CO_ENTERPRISE_ID,
         "user_id":      USER_CHARLY_ID,
         "receiver_id":  USER_RECEIVER_ID,
-        "warehouse_id": wh.id,
-        "uom_id":       uom.id,
-        "product_id":   prod.id,
-        "location_id":  loc.id,
-        "location_code": loc.code,
-        "location_capacity": float(loc.max_capacity_units),
+        "warehouse_id": wh_id,
+        "uom_id":       uom_id,
+        "product_id":   prod_id,
+        "location_id":  loc_id,
+        "location_code": loc_code,
+        "location_capacity": float(loc_capacity),
         "pedimento_id": ped.id,
         "concepts":     concepts
     }

@@ -387,7 +387,7 @@ export class MasterDataService {
 
   // --- PRODUCTS ---
   getProducts(q?: string, warehouseId?: string): Observable<ApiResponse<Product[]>> {
-    let url = q ? `${this.apiUrl}/products/?q=${encodeURIComponent(q)}` : `${this.apiUrl}/products/`;
+    let url = q ? `${this.apiUrl}/products?q=${encodeURIComponent(q)}` : `${this.apiUrl}/products`;
     
     if (warehouseId) {
       url += (url.includes('?') ? '&' : '?') + `warehouse_id=${warehouseId}`;
@@ -409,7 +409,7 @@ export class MasterDataService {
   }
 
   createProduct(product: Partial<Product>): Observable<ApiResponse<Product>> {
-    return this.http.post<ApiResponse<Product>>(`${this.apiUrl}/products/`, product).pipe(
+    return this.http.post<ApiResponse<Product>>(`${this.apiUrl}/products`, product).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -431,7 +431,7 @@ export class MasterDataService {
 
   // --- UOMs ---
   getUoms(): Observable<ApiResponse<UOM[]>> {
-    const req = this.http.get<ApiResponse<UOM[]>>(`${this.apiUrl}/uoms/`);
+    const req = this.http.get<ApiResponse<UOM[]>>(`${this.apiUrl}/uoms`);
     return this.fetchWithFallback('uoms', req);
   }
 
@@ -443,7 +443,7 @@ export class MasterDataService {
   }
 
   createUom(uom: Partial<UOM>): Observable<ApiResponse<UOM>> {
-    return this.http.post<ApiResponse<UOM>>(`${this.apiUrl}/uoms/`, uom).pipe(
+    return this.http.post<ApiResponse<UOM>>(`${this.apiUrl}/uoms`, uom).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -458,12 +458,12 @@ export class MasterDataService {
 
   // --- CATEGORIES ---
   getCategories(): Observable<ApiResponse<Category[]>> {
-    const req = this.http.get<ApiResponse<Category[]>>(`${this.apiUrl}/categories/`, { headers: { 'X-Silent-Error': 'true' } });
+    const req = this.http.get<ApiResponse<Category[]>>(`${this.apiUrl}/categories`, { headers: { 'X-Silent-Error': 'true' } });
     return this.fetchWithFallback('categories', req);
   }
 
   createCategory(category: Partial<Category>): Observable<ApiResponse<Category>> {
-    return this.http.post<ApiResponse<Category>>(`${this.apiUrl}/categories/`, category).pipe(
+    return this.http.post<ApiResponse<Category>>(`${this.apiUrl}/categories`, category).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -485,12 +485,12 @@ export class MasterDataService {
 
   // --- BRANDS ---
   getBrands(): Observable<ApiResponse<Brand[]>> {
-    const req = this.http.get<ApiResponse<Brand[]>>(`${this.apiUrl}/brands/`, { headers: { 'X-Silent-Error': 'true' } });
+    const req = this.http.get<ApiResponse<Brand[]>>(`${this.apiUrl}/brands`, { headers: { 'X-Silent-Error': 'true' } });
     return this.fetchWithFallback('brands', req);
   }
 
   createBrand(brand: Partial<Brand>): Observable<ApiResponse<Brand>> {
-    return this.http.post<ApiResponse<Brand>>(`${this.apiUrl}/brands/`, brand).pipe(
+    return this.http.post<ApiResponse<Brand>>(`${this.apiUrl}/brands`, brand).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -512,12 +512,12 @@ export class MasterDataService {
 
   // --- WAREHOUSES ---
   getWarehouses(): Observable<ApiResponse<Warehouse[]>> {
-    const req = this.http.get<ApiResponse<Warehouse[]>>(`${this.apiUrl}/warehouses/`);
+    const req = this.http.get<ApiResponse<Warehouse[]>>(`${this.apiUrl}/warehouses`);
     return this.fetchWithFallback('warehouses', req);
   }
 
   createWarehouse(warehouse: Partial<Warehouse>): Observable<ApiResponse<Warehouse>> {
-    return this.http.post<ApiResponse<Warehouse>>(`${this.apiUrl}/warehouses/`, warehouse).pipe(
+    return this.http.post<ApiResponse<Warehouse>>(`${this.apiUrl}/warehouses`, warehouse).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -538,12 +538,12 @@ export class MasterDataService {
   }
 
   getPartners(): Observable<ApiResponse<Partner[]>> {
-    const req = this.http.get<ApiResponse<Partner[]>>(`${this.apiUrl}/partners/`);
+    const req = this.http.get<ApiResponse<Partner[]>>(`${this.apiUrl}/partners`);
     return this.fetchWithFallback('partners', req);
   }
 
   createPartner(partner: Partial<Partner>): Observable<ApiResponse<Partner>> {
-    return this.http.post<ApiResponse<Partner>>(`${this.apiUrl}/partners/`, partner).pipe(
+    return this.http.post<ApiResponse<Partner>>(`${this.apiUrl}/partners`, partner).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -565,12 +565,12 @@ export class MasterDataService {
 
   // --- CONCEPTS ---
   getConcepts(): Observable<ApiResponse<Concept[]>> {
-    const req = this.http.get<ApiResponse<Concept[]>>(`${this.apiUrl}/concepts/`);
+    const req = this.http.get<ApiResponse<Concept[]>>(`${this.apiUrl}/concepts`);
     return this.fetchWithFallback('concepts', req);
   }
 
   createConcept(concept: Partial<Concept>): Observable<ApiResponse<Concept>> {
-    return this.http.post<ApiResponse<Concept>>(`${this.apiUrl}/concepts/`, concept).pipe(
+    return this.http.post<ApiResponse<Concept>>(`${this.apiUrl}/concepts`, concept).pipe(
       tap(() => this.health.reportSuccess('masterData')),
       catchError(this.handleError)
     );
@@ -592,7 +592,7 @@ export class MasterDataService {
 
   // --- ENUMERATIONS ---
   getEnumerations(): Observable<ApiResponse<Enumeration[]>> {
-    return this.http.get<ApiResponse<Enumeration[]>>(`${this.apiUrl}/enumerations/`).pipe(
+    return this.http.get<ApiResponse<Enumeration[]>>(`${this.apiUrl}/enumerations`).pipe(
       catchError(this.handleError)
     );
   }

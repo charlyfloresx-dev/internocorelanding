@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from common.models.user_context import UserContext
+from common.domain.entities.user_context import UserContext
 from common.context import request_context
 
 oauth2_scheme = OAuth2PasswordBearer(

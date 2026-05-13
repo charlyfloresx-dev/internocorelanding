@@ -61,7 +61,7 @@ export class NotificationHubService {
     const companyId = this.auth.activeCompanyId();
     if (!companyId) return of([]);
 
-    return this.http.get<ApiResponse<AppNotification[]>>(`${this.apiUrl}/`, {
+    return this.http.get<ApiResponse<AppNotification[]>>(`${this.apiUrl}`, {
       headers: { 'x-company-id': companyId }
     }).pipe(
       switchMap(res => of(res.data || [])),

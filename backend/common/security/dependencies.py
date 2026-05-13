@@ -77,21 +77,18 @@ async def get_current_active_user(
 def require_scope(required_scopes: list[str]):
     """
     Dependency factory to enforce scope-based access control.
-    Example: @router.post("/", dependencies=[Depends(require_scope(["inv:write"]))])
+    Example: @router.post("/", dependencies=[Security(require_scope(["inv:write"]))])
     """
     async def _require_scope(
         current_user: TokenPayload = Depends(get_current_active_user)
     ):
         # Admin / God Mode Bypass
-        if "GOD_MODE_ADMIN" in current_user.role_names or "*" in current_user.scopes:
+        if "GOD_MODE_ADMIN" in (current_user.role_names or []) or "*" in (current_user.scopes or []):
             return current_user
             
-        user_scopes = set(current_user.scopes)
+        user_scopes = set(current_user.scopes or [])
         required = set(required_scopes)
         
-        # Check if the user has AT LEAST ONE of the required scopes, or require all?
-        # Usually requires all if passed as a list, or we can just do intersection if it's an 'ANY' check.
-        # Let's enforce that the user must have ALL the required scopes.
         if not required.issubset(user_scopes):
             missing = required - user_scopes
             raise HTTPException(

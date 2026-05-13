@@ -158,6 +158,7 @@ class InternoSettings(BaseSettings):
         "X-Transaction-ID",
         "X-Correlation-ID",
         "X-Client-Request-ID",
+        "X-Idempotency-Key",
         "X-Selection-Token",
         "X-Admin-Master-Key",
         "X-Internal-Secret",

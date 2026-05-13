@@ -13,9 +13,9 @@ from common.domain.entities.user_context import UserContext
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[CategoryRead]], summary="List Categories")
+@router.get("", response_model=ApiResponse[List[CategoryRead]], summary="List Categories")
 async def list_categories(
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     service: ProductCategoryService = Depends(get_category_service)
 ):
     categories = await service.get_categories(
@@ -24,10 +24,10 @@ async def list_categories(
     )
     return ApiResponse(status="success", data=categories, message="Categories retrieved successfully")
 
-@router.post("/", response_model=ApiResponse[CategoryRead], summary="Create Category")
+@router.post("", response_model=ApiResponse[CategoryRead], summary="Create Category")
 async def create_category(
     category_in: CategoryCreate,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     service: ProductCategoryService = Depends(get_category_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -46,7 +46,7 @@ async def create_category(
 @router.get("/{category_id}", response_model=ApiResponse[CategoryRead], summary="Get Category")
 async def get_category(
     category_id: uuid.UUID,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     service: ProductCategoryService = Depends(get_category_service)
 ):
     category = await service.get_category_by_id(
@@ -62,7 +62,7 @@ async def get_category(
 async def update_category(
     category_id: uuid.UUID,
     category_in: CategoryUpdate,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     service: ProductCategoryService = Depends(get_category_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -83,7 +83,7 @@ async def update_category(
 @router.delete("/{category_id}", response_model=ApiResponse[None], summary="Delete Category")
 async def delete_category(
     category_id: uuid.UUID,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     service: ProductCategoryService = Depends(get_category_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):

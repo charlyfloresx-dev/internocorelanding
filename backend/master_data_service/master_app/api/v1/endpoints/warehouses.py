@@ -13,11 +13,11 @@ from common.responses import ApiResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[WarehouseResponse]])
+@router.get("", response_model=ApiResponse[List[WarehouseResponse]])
 async def get_warehouses(
     company_id: Optional[uuid.UUID] = Query(None, description="Optional: specific company filter"),
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
+    current_user: UserContext = Security(require_scope(["master_data:read"]))
 ):
     # Default to current tenant if not specified
     target_company = company_id or current_user.company_id
@@ -38,7 +38,7 @@ async def get_warehouses(
 async def create_warehouse(
     warehouse_in: WarehouseCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     # Industrial Authorization Guard: Only Admins can create master data
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -65,7 +65,7 @@ async def create_warehouse(
 async def get_warehouse(
     warehouse_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
+    current_user: UserContext = Security(require_scope(["master_data:read"]))
 ):
     stmt = select(Warehouse).filter(
         Warehouse.id == warehouse_id,
@@ -84,7 +84,7 @@ async def update_warehouse(
     warehouse_id: uuid.UUID,
     warehouse_in: WarehouseUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
         raise HTTPException(
@@ -115,7 +115,7 @@ async def update_warehouse(
 async def delete_warehouse(
     warehouse_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
         raise HTTPException(

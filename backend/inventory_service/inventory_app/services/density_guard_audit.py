@@ -11,7 +11,8 @@ from inventory_app.infrastructure.clients.master_data import MasterDataClient
 from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
 
 # URL del Notification Service vía red interna de Docker
-_NOTIFICATION_SERVICE_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8000")
+from common.config import settings
+_NOTIFICATION_SERVICE_URL = settings.NOTIFICATION_SERVICE_URL
 
 logger = logging.getLogger(__name__)
 

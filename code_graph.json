@@ -1,27 +1,14 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [
-        {
-            "file": "backend/inventory_service/inventory_app/api/v1/endpoints/transactions.py",
-            "severity": "WARNING",
-            "ms": "inventory_service",
-            "error": "ENV_ACCESS_VIOLATION: Direct OS environment access detected"
-        },
-        {
-            "file": "backend/inventory_service/inventory_app/services/density_guard_audit.py",
-            "severity": "WARNING",
-            "ms": "inventory_service",
-            "error": "ENV_ACCESS_VIOLATION: Direct OS environment access detected"
-        }
-    ],
+    "invariants_errors": [],
     "compliance_report": {
         "asset_manager_service": 100,
         "auth_service": 100,
         "cmms_service": 100,
         "common": 100,
         "hcm_service": 100,
-        "inventory_service": 80,
+        "inventory_service": 100,
         "kiosk_service": 100,
         "master_data_service": 100,
         "mes_service": 100,

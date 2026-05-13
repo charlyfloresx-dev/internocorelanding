@@ -8,9 +8,8 @@ from sqlalchemy import select, desc
 from common.infrastructure.database import get_db
 from common.responses import ApiResponse
 from common.models.audit import AuditLog
-from master_app.dependencies import get_current_user
-from common.domain.entities.user_context import UserContext
-from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
+from common.security.dependencies import require_scope, get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,14 +20,14 @@ async def list_audit_logs(
     offset: int = Query(0, ge=0),
     table_name: Optional[str] = None,
     action: Optional[str] = None,
-    current_user: UserContext = Depends(get_current_user),
+    token: TokenPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # Security: require_scope handled in decorator
     """
     Lista los registros de auditoría para la empresa actual.
     """
-    query = select(AuditLog).where(AuditLog.company_id == current_user.company_id)
+    query = select(AuditLog).where(AuditLog.company_id == token.company_id)
     
     if table_name:
         query = query.where(AuditLog.table_name == table_name)

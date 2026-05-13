@@ -9,7 +9,7 @@ import uuid
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
-@router.get("/", response_model=ApiResponse)
+@router.get("", response_model=ApiResponse)
 async def list_notifications(
     x_company_id: uuid.UUID = Header(...),
     limit: int = 50,

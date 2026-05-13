@@ -2,7 +2,7 @@
  CODE GRAPH AUDITOR - EXECUTION LOG
 ================================================================================
 
-Total files scanned: 838
+Total files scanned: 839
 
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
@@ -109,6 +109,7 @@ AUDITED: backend/auth_service/auth_app/services/biometric_service.py [auth_servi
 AUDITED: backend/auth_service/auth_app/services/permission_checker.py [auth_service]
 AUDITED: backend/auth_service/auth_app/services/social_auth_service.py [auth_service]
 AUDITED: backend/auth_service/auth_app/services/tenant_user_service.py [auth_service]
+AUDITED: backend/auth_service/scratch/check_emails.py [auth_service]
 AUDITED: backend/auth_service/scratch/check_hash.py [auth_service]
 AUDITED: backend/auth_service/scratch/check_hash_v2.py [auth_service]
 AUDITED: backend/auth_service/scratch/check_hash_v3.py [auth_service]
@@ -208,7 +209,6 @@ AUDITED: backend/common/models/file_metadata.py [common]
 AUDITED: backend/common/models/idempotency_key.py [common]
 AUDITED: backend/common/models/location.py [common]
 AUDITED: backend/common/models/security_audit_log.py [common]
-AUDITED: backend/common/models/user_context.py [common]
 AUDITED: backend/common/models/work_order_base.py [common]
 AUDITED: backend/common/repository.py [common]
 AUDITED: backend/common/responses.py [common]
@@ -601,6 +601,7 @@ AUDITED: backend/scripts/debug_bulk.py [scripts]
 AUDITED: backend/scripts/debug_concepts.py [scripts]
 AUDITED: backend/scripts/debug_concepts_v2.py [scripts]
 AUDITED: backend/scripts/debug_inventory_post.py [scripts]
+AUDITED: backend/scripts/diag_login.py [scripts]
 AUDITED: backend/scripts/diag_middleware.py [scripts]
 AUDITED: backend/scripts/diag_token.py [scripts]
 AUDITED: backend/scripts/enable_pre_ping.py [scripts]

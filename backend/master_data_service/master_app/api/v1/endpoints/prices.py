@@ -125,7 +125,7 @@ class PriceResolutionResult(BaseModel):
     summary="List all company prices"
 )
 async def list_all_prices(
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Lists all active prices for the current company."""
@@ -149,7 +149,7 @@ async def list_product_prices(
     product_id: uuid.UUID,
     currency: Optional[str] = Query(None, description="Filter by MXN or USD"),
     list_index: Optional[int] = Query(None, ge=0, le=10),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Lists all price lists (1-10) for a product of the current company."""
@@ -179,7 +179,7 @@ async def list_product_prices(
 async def upsert_product_price(
     product_id: uuid.UUID,
     price_in: ProductPriceCreate,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Creates a list price for the product. If the combination already exists,
@@ -238,7 +238,7 @@ async def resolve_price(
     price_list_index: int = Query(default=1, ge=0, le=10),
     currency: str = Query(default="MXN"),
     unit_type: UnitType = Query(default=UnitType.SALE),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -379,7 +379,7 @@ class DownloadTicket(BaseModel):
 )
 async def create_price_export_ticket(
     entity_id: Optional[uuid.UUID] = None,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
 ):
     """
     Step 1: Create a secure ticket with the user's context.
@@ -497,7 +497,7 @@ async def native_price_download_bridge(
 )
 async def upsert_price_agreement(
     agreement_in: PriceAgreementCreate,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -547,7 +547,7 @@ async def list_product_agreements(
     product_id: uuid.UUID,
     partner_id: Optional[uuid.UUID] = Query(None),
     currency: Optional[str] = Query(None),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(PriceAgreement).where(
@@ -572,7 +572,7 @@ async def list_product_agreements(
 )
 async def download_agreements_template(
     entity_id: uuid.UUID,
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -619,7 +619,7 @@ async def download_agreements_template(
 )
 async def import_prices_csv(
     file: UploadFile = File(...),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
     db: AsyncSession = Depends(get_db),
 ):
     """

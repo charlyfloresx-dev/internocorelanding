@@ -46,15 +46,7 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
   const isValidUUID = (id: string | null): boolean => 
     !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-  // 0. Generate Correlation & Idempotency IDs
-  const correlationId = crypto.randomUUID();
   let headers = req.headers;
-  headers = headers.set('X-Correlation-ID', correlationId);
-
-  // Inject Idempotency key for mutations (POST, PUT, PATCH, DELETE)
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method.toUpperCase())) {
-    headers = headers.set('X-Client-Request-ID', correlationId);
-  }
 
   // Exclude auth routes from context injection to prevent handshake interference
   const url = req.url.toLowerCase();

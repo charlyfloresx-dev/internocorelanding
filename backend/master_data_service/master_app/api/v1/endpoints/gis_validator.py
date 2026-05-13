@@ -52,7 +52,7 @@ class AddressRequest(BaseModel):
 @router.post("/validate-coordinates", response_model=Any)
 async def validate_by_coordinates(
     request: CoordsRequest,
-    current_user: dict = Security(require_scope, scopes=["master_data:write"]),
+    current_user: dict = Security(require_scope(["master_data:write"])),
     handler: GetPropertyDataByCoordinatesQueryHandler = Depends(get_coor_query_handler)
 ) -> Any:
     """Busca clave catastral y dueño a partir de latitud y longitud."""
@@ -72,7 +72,7 @@ async def validate_by_coordinates(
 @router.post("/validate-address", response_model=Any)
 async def validate_by_address(
     request: AddressRequest,
-    current_user: dict = Security(require_scope, scopes=["master_data:write"]),
+    current_user: dict = Security(require_scope(["master_data:write"])),
     handler: GetPropertyDataByAddressQueryHandler = Depends(get_address_query_handler)
 ) -> Any:
     """Busca clave catastral y dueño a partir de una dirección en texto libre."""
@@ -115,7 +115,7 @@ async def _propagate_to_asset_manager(report_payload: dict, user_id: str | None)
 async def get_full_report(
     request: CoordsRequest,
     background_tasks: BackgroundTasks,
-    current_user: dict = Security(require_scope, scopes=["master_data:write"]),
+    current_user: dict = Security(require_scope(["master_data:write"])),
     handler: GetFullPropertyReportQueryHandler = Depends(get_full_report_query_handler)
 ) -> Any:
     """Busca clave, propietario, superficie y dirección unificada por coordenadas.

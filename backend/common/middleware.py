@@ -221,12 +221,16 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 user_ctx = UserContext(
                     company_id=company_uuid, 
                     user_id=str(user_id) if user_id else None,
+                    sub=str(user_id) if user_id else None,
                     group_id=group_uuid,
                     trace_id=transaction_id,
                     token=token,
                     role=role_val,
                     role_names=role_names_val,
-                    accessible_warehouses=warehouses_val
+                    accessible_warehouses=warehouses_val,
+                    readonly=is_readonly if 'is_readonly' in locals() else False,
+                    scopes=getattr(request.state.user_token, "scopes", []) if hasattr(request.state, "user_token") and request.state.user_token else [],
+                    status=getattr(request.state.user_token, "status", "ACTIVE") if hasattr(request.state, "user_token") and request.state.user_token else "ACTIVE"
                 )
                 token_ctx = request_context.set(user_ctx)
             except (ValueError, TypeError):

@@ -21,17 +21,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 3. Copy service structure
 COPY common /app/common
 COPY notification_service/app /app/notification_service/app
+COPY notification_service/entrypoint.sh /app/notification_service/entrypoint.sh
 
 # 4. Final Workdir
 WORKDIR /app/notification_service
 
 # 5. Security - Non-root user
 RUN addgroup --system app && adduser --system --group app && \
-    chown -R app:app /app
+    chown -R app:app /app && \
+    chmod +x /app/notification_service/entrypoint.sh
 
 USER app
 
 EXPOSE 8000
 
 # 6. Execution
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/notification_service/entrypoint.sh"]

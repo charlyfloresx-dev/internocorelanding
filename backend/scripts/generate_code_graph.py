@@ -262,9 +262,11 @@ class CodeGraphGenerator:
                 for other_ms in self.MICROSERVICES:
                     if other_ms == ms or other_ms == "common":
                         continue
-                    # Match both 'other_service.xxx' and 'other_app.xxx' patterns
+                    # Match both 'other_service.xxx', 'other_app.xxx', and generic '[prefix]_app' patterns
                     other_app = other_ms.replace("_service", "_app")
-                    if (f"{other_ms}." in imp_module or f"{other_app}." in imp_module) and "common" not in imp_module:
+                    generic_app = other_ms.split("_")[0] + "_app"
+                    
+                    if (f"{other_ms}." in imp_module or f"{other_app}." in imp_module or f"{generic_app}." in imp_module) and "common" not in imp_module:
                         # Track for graph
                         deps = self.inter_service_dependencies.get(ms, set())
                         deps.add(other_ms)
@@ -466,9 +468,156 @@ class CodeGraphGenerator:
             f.write(" AUDIT COMPLETED SUCCESSFULLY\n")
             f.write("="*80 + "\n")
 
+class SchemaAuditor:
+    """
+    Audits the live Postgres schema against SQLAlchemy model definitions.
+    Usage: python generate_code_graph.py --audit-schema
+    Requires: CORE_DATABASE_URL in .env pointing to the target DB (use localhost:5433 for host access).
+    """
+
+    def __init__(self, root_dir: str):
+        self.root_dir = root_dir
+        self.backend_dir = os.path.join(root_dir, "backend")
+
+    def _setup_paths(self):
+        """Add all microservice paths so models can be imported."""
+        import sys
+        dirs = [self.backend_dir]
+        for item in os.listdir(self.backend_dir):
+            p = os.path.join(self.backend_dir, item)
+            if os.path.isdir(p) and not item.startswith("."):
+                dirs.append(p)
+        for d in dirs:
+            if d not in sys.path:
+                sys.path.insert(0, d)
+
+    def _discover_models(self):
+        """Import all model files and collect SQLAlchemy Table metadata."""
+        from sqlalchemy.orm import DeclarativeBase
+        self._setup_paths()
+
+        # Import base to get metadata
+        from common.infrastructure.models.base import Base
+        
+        # Walk all model files to trigger registration
+        model_dirs = []
+        for svc in os.listdir(self.backend_dir):
+            svc_path = os.path.join(self.backend_dir, svc)
+            if not os.path.isdir(svc_path):
+                continue
+            for sub in os.listdir(svc_path):
+                sub_path = os.path.join(svc_path, sub)
+                if sub == "models" and os.path.isdir(sub_path):
+                    model_dirs.append((svc, sub_path))
+
+        import importlib
+        for svc, mdir in model_dirs:
+            for f in os.listdir(mdir):
+                if f.endswith(".py") and f != "__init__.py":
+                    # Build module name relative to backend
+                    app_folder = os.path.basename(os.path.dirname(mdir))
+                    module_name = f"{app_folder}.models.{f[:-3]}"
+                    try:
+                        importlib.import_module(module_name)
+                    except Exception:
+                        pass
+        return Base.metadata
+
+    def run(self):
+        import asyncio
+        asyncio.run(self._run_async())
+
+    async def _run_async(self):
+        from sqlalchemy.ext.asyncio import create_async_engine
+        from sqlalchemy import inspect, text
+
+        metadata = self._discover_models()
+
+        # Get DB URL from settings
+        from common.config import settings
+        db_url = settings.DATABASE_URL
+        print(f"\n{'='*80}")
+        print(f"  SCHEMA AUDITOR — Comparing Models vs Live DB")
+        print(f"  DB: {db_url.split('@')[-1] if '@' in db_url else db_url}")
+        print(f"{'='*80}\n")
+
+        engine = create_async_engine(db_url, echo=False)
+
+        async with engine.connect() as conn:
+            # Get live DB columns per table
+            result = await conn.execute(text(
+                "SELECT table_name, column_name "
+                "FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name NOT LIKE 'alembic%' "
+                "ORDER BY table_name, ordinal_position"
+            ))
+            rows = result.fetchall()
+
+        await engine.dispose()
+
+        db_schema: Dict[str, Set[str]] = {}
+        for table_name, col_name in rows:
+            db_schema.setdefault(table_name, set()).add(col_name)
+
+        # Compare
+        total_issues = 0
+        tables_ok = 0
+        tables_with_issues = 0
+
+        model_tables = {t.name: {c.name for c in t.columns} for t in metadata.tables.values()}
+
+        for table_name in sorted(model_tables.keys()):
+            model_cols = model_tables[table_name]
+            db_cols = db_schema.get(table_name, None)
+
+            if db_cols is None:
+                print(f"  [MISSING TABLE] {table_name}")
+                print(f"     Model defines {len(model_cols)} columns but table does not exist in DB.")
+                print(f"     Columns needed: {', '.join(sorted(model_cols))}")
+                print()
+                total_issues += 1
+                tables_with_issues += 1
+                continue
+
+            missing_in_db = model_cols - db_cols
+            extra_in_db = db_cols - model_cols
+
+            if missing_in_db or extra_in_db:
+                tables_with_issues += 1
+                print(f"  [MISMATCH] {table_name}")
+                if missing_in_db:
+                    print(f"     Missing in DB : {', '.join(sorted(missing_in_db))}")
+                    total_issues += len(missing_in_db)
+                if extra_in_db:
+                    print(f"     Extra in DB   : {', '.join(sorted(extra_in_db))}")
+                print()
+            else:
+                tables_ok += 1
+
+        # Tables in DB but not in models
+        orphan_tables = set(db_schema.keys()) - set(model_tables.keys())
+        if orphan_tables:
+            print(f"  [ORPHAN TABLES] In DB but no model found:")
+            for t in sorted(orphan_tables):
+                print(f"     - {t}")
+            print()
+
+        print(f"{'='*80}")
+        print(f"  RESULTS: {tables_ok} OK | {tables_with_issues} with issues | {total_issues} total column mismatches")
+        print(f"{'='*80}")
+
+        return total_issues
+
+
 if __name__ == "__main__":
     import sys
     root = os.getcwd()
+
+    if "--audit-schema" in sys.argv:
+        auditor = SchemaAuditor(root)
+        issues = auditor.run()
+        sys.exit(1 if issues > 0 else 0)
+
     gen = CodeGraphGenerator(root)
     gen.scan()
     gen.print_report()

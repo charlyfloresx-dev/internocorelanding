@@ -17,19 +17,7 @@ export const resilienceInterceptor: HttpInterceptorFn = (
 ): Observable<HttpEvent<unknown>> => {
   const toast = inject(ToastService);
   
-  // 1. Identify Mutations for Idempotency
-  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method.toUpperCase());
-  const isIdempotentEligible = isMutating && !req.headers.has('X-Idempotency-Key');
-  
-  // Generate a key that will PERSIST during retries of this specific request instance
-  const idempotencyKey = isIdempotentEligible ? crypto.randomUUID() : null;
-  
-  let finalReq = req;
-  if (idempotencyKey) {
-    finalReq = req.clone({
-      headers: req.headers.set('X-Idempotency-Key', idempotencyKey)
-    });
-  }
+  const finalReq = req;
 
   // 2. Resilience Loop with Exponential Backoff
   return next(finalReq).pipe(

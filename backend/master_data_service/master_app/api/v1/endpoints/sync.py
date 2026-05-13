@@ -14,7 +14,7 @@ router = APIRouter()
 async def sync_all_master_data(
     db: AsyncSession = Depends(get_db),
     service: SyncService = Depends(),
-    current_user: dict = Security(require_scope, scopes=["master_data:read"])
+    current_user: dict = Security(require_scope(["master_data:read"]))
 ):
     """
     Devuelve todos los productos y UOMs activos para hidratación inicial de otros servicios (WMS).

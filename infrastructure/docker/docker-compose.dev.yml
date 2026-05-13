@@ -55,9 +55,6 @@ services:
     volumes:
       - ../../backend/auth_service:/app
       - ../../backend/common:/app/common
-      - ../../backend/scripts:/app/scripts
-      - ../../backend/master_data_service/master_app:/app/master_app
-      - ../../backend/inventory_service/inventory_app:/app/inventory_app
     environment:
       PYTHONPATH: /app
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}

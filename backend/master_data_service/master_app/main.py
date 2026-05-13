@@ -47,7 +47,8 @@ app = FastAPI(
     title="Master Data Service",
     description="Single Source of Truth for Products, UOMs, and Business Partners.",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # 2. Global Middleware

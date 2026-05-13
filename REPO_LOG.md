@@ -3,6 +3,15 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-13] Phase 105: Idempotent Monolith Infrastructure Synchronization
+- **Zero-Trust Migrations**: Refactored `init` migrations for `auth_service`, `inventory_service`, and `tickets_service` to be fully idempotent using `if not table_exists` logic. This prevents `DuplicateTableError` when deploying over shared databases with pre-existing tables.
+- **Schema Auditor v2**: Enhanced `generate_code_graph.py` with `--audit-schema` mode. The auditor now introspects the live PostgreSQL schema and compares it against SQLAlchemy models, detecting missing columns and type mismatches.
+- **Phase 83 Implementation**: Formally integrated 16+ missing columns in `inventory_locations` (Hierarchical Addressing, Density Guard, Volumetric Limits) via a formal Alembic migration (`c83f_phase83`).
+- **Alembic Version Sync**: Successfully marked version tables (`alembic_version_auth`, `_inv`, `_tickets`) in the shared database to ensure consistent migration tracking.
+- **Gateway Resilience**: Patched `nginx.conf` to gracefully handle missing microservices in the current dev stack (commented out non-existent upstreams), restoring the Gateway to `[ OK ]` status.
+- **Status**: ✅ Phase 105 COMPLETED — Infrastructure Synchronized & Idempotency Hardened.
+
+---
 ### [2026-05-12] Phase 104: Microservices Isolation & Cross-Service Import Eradication
 - **Cross-Service Import Guard**: Enhanced `generate_code_graph.py` to detect and report `CROSS_SERVICE_IMPORT_VIOLATION` as CRITICAL errors. Matches both `*_service` and `*_app` module patterns.
 - **Decoupled inventory→notification**: Replaced direct `from notification_app...` imports in `density_guard_audit.py` and `transactions.py` with async HTTP event dispatch via `httpx` to `notification-service:8000/api/v1/events/`.

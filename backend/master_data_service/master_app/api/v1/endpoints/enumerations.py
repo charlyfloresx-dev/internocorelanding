@@ -11,11 +11,11 @@ from sqlalchemy import Table, MetaData
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[dict]])
+@router.get("", response_model=ApiResponse[List[dict]])
 async def get_enumerations(
     type: Optional[str] = Query(None, description="Filtrar por tipo de enumeración"),
     db: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
+    current_user: UserContext = Security(require_scope(["master_data:read"]))
 ):
     metadata = MetaData()
     enumerations_table = Table("enumerations", metadata, autoload_with=None) # We'll use text or defined model if possible

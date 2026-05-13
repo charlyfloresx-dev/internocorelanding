@@ -15,10 +15,10 @@ from common.responses import ApiResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[ConceptResponse]])
+@router.get("", response_model=ApiResponse[List[ConceptResponse]])
 async def get_concepts(
     type: Optional[MovementType] = Query(None, description="Filtrar por tipo de movimiento (ENTRADA, SALIDA, TRASPASO)"),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
     repo: SQLAlchemyMasterDataRepository = Depends(get_master_data_repository)
 ):
     concepts = await repo.get_concepts(
@@ -33,7 +33,7 @@ async def get_concepts(
 async def create_concept(
     concept_in: ConceptCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
         raise HTTPException(
@@ -60,7 +60,7 @@ async def update_concept(
     concept_id: uuid.UUID,
     concept_in: ConceptUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
         raise HTTPException(
@@ -91,7 +91,7 @@ async def update_concept(
 async def delete_concept(
     concept_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
+    current_user: UserContext = Security(require_scope(["master_data:write"]))
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
         raise HTTPException(

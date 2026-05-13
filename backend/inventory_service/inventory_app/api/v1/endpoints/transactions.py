@@ -39,7 +39,8 @@ async def _notify_admin_new_document(
     Background task: dispatches an HTTP event to the notification-service.
     Fire-and-forget — never blocks the main inventory transaction.
     """
-    _NOTIF_URL = os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8000")
+    from common.config import settings
+    _NOTIF_URL = settings.NOTIFICATION_SERVICE_URL
     type_clean = str(doc_type).lower()
     type_desc = "Entrada" if "in" in type_clean else "Salida" if "out" in type_clean else "Movimiento"
     try:

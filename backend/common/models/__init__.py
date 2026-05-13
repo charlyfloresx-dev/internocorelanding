@@ -1,6 +1,6 @@
 from common.infrastructure.models.base import Base, BaseDomainEntity, AuditBase, MultiTenantBase
 BaseEntity = BaseDomainEntity
-from common.models.user_context import UserContext
+from common.domain.entities.user_context import UserContext
 from common.models.business_group import BusinessGroup
 from common.models.company import Company
 from common.models.audit import AuditLog
