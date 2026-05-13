@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional, List
 from uuid import UUID
 from pydantic import BaseModel, Field
@@ -23,12 +24,11 @@ class UserCompanyRoleEntity(BaseModel):
     company_name: Optional[str] = None
     group_id: Optional[UUID] = None
     logo: Optional[str] = None
-    default_tax_rate: float = 0.16
+    default_tax_rate: Decimal = 0.16
 
 class UserEntity(BaseModel):
     id: UUID
     email: str
     hashed_password: Optional[str] = None
-    identity_token: Optional[str] = None
     is_active: bool = True
     company_id: UUID

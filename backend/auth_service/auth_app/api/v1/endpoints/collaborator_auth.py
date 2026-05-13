@@ -19,6 +19,7 @@ from auth_app.schemas.auth import CompanySelection
 class CollaboratorLoginRequest(BaseModel):
     identity_identifier: str  # RFID or PIN
     access_method: str       # 'RFID_SCAN' or 'PIN_PAD'
+    internal_id: Optional[str] = None # Added for PIN_PAD method
     terminal_id: Optional[str] = None
     company_id: Optional[uuid.UUID] = None
 
@@ -57,10 +58,12 @@ async def collaborator_login_endpoint(
     # Unpack identity_identifier based on access_method
     rfid = request.identity_identifier if request.access_method == "RFID_SCAN" else None
     pin = request.identity_identifier if request.access_method == "PIN_PAD" else None
+    internal_id = request.internal_id if request.access_method == "PIN_PAD" else None
 
     result = await collaborator_login(
         db=db,
         rfid_tag=rfid,
+        internal_id=internal_id,
         pin_code=pin,
         company_id=request.company_id,
         ip_address=req.client.host if req.client else None,

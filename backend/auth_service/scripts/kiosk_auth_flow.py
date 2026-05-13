@@ -3,16 +3,17 @@ import requests
 import json
 import jwt
 
-BASE_URL = "http://localhost:8000/api/v1/auth"
+import os
+BASE_URL = os.getenv("API_URL", "http://localhost:8000/api/v1/auth")
 
 def test_rfid_flow(rfid_tag: str):
     """Simula el escaneo de una tarjeta RFID en el Kiosco."""
     print(f"\n[RFID FLOW] Escaneando Tag: {rfid_tag}")
     print("-" * 60)
     
-    payload = {"rfid_tag": rfid_tag}
+    payload = {"identity_identifier": rfid_tag, "access_method": "RFID_SCAN"}
     try:
-        response = requests.post(f"{BASE_URL}/collaborator/login", json=payload)
+        response = requests.post(f"{BASE_URL}/collaborator-login", json=payload)
         response.raise_for_status()
         data = response.json().get("data")
         
@@ -41,10 +42,11 @@ def test_pin_flow(internal_id: str, pin: str):
     
     payload = {
         "internal_id": internal_id,
-        "pin_code": pin
+        "identity_identifier": pin,
+        "access_method": "PIN_PAD"
     }
     try:
-        response = requests.post(f"{BASE_URL}/collaborator/login", json=payload)
+        response = requests.post(f"{BASE_URL}/collaborator-login", json=payload)
         response.raise_for_status()
         data = response.json().get("data")
         

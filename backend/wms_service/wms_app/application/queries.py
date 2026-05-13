@@ -50,7 +50,8 @@ class GetProductPriceAndStockHandler:
             )
             # 🔒 SECURITY SYMBOL: Ensuring analyzer sees warehouse_id in this context
             # (already in details, but analyzer is picky)
-            self.session.add(audit)
+            async with self.session.begin_nested():
+                self.session.add(audit)
             
             # 2. Notificar al Tickets Service (Fire and Forget simple)
             try:

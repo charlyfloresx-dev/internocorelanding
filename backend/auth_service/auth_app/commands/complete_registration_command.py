@@ -32,7 +32,7 @@ class CompleteRegistrationCommandHandler(ICommandHandler[dict]):
             invitation = inv_result.scalar_one_or_none()
             
             if not invitation:
-                raise NotFoundException(entity="Invitation", entity_id=command.code)
+                raise NotFoundException(message=f"Invitation {command.code} not found")
                 
             if invitation.expires_at < datetime.utcnow():
                 raise UnauthorizedException(message="Invitation code has expired")
@@ -43,7 +43,7 @@ class CompleteRegistrationCommandHandler(ICommandHandler[dict]):
             user = user_result.scalar_one_or_none()
             
             if not user:
-                raise NotFoundException(entity="User", entity_id=invitation.email)
+                raise NotFoundException(message=f"User {invitation.email} not found")
 
             # 3. Establecer contraseña
             user.hashed_password = pwd_context.hash(command.password)

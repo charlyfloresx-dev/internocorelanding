@@ -122,3 +122,17 @@ Request → multi_layer_key_func()
 - **Timeout**: 120s por batch
 - **Pre-flight Check**: Verifica `/health` antes de iniciar
 - **ASCII Mode**: Logging seguro para Windows CMD/PowerShell
+
+---
+
+## Phase 4.1: Industrial Infrastructure Consolidation & Ignition Ready — COMPLETADA
+
+### Visión General
+Fortificación del Monolito y aislamiento local para garantizar su portabilidad directa a entornos AWS ECS/Fargate sin fricción operativa. Preparación del "Clean Root".
+
+### Componentes y Cambios Clave
+- **Multi-Stage Docker Builds**: Reestructuración de `backend/docker/Monolith.Dockerfile` y microservicios (`master_data_service/Dockerfile`, etc.) usando construcciones multi-etapa (Builder -> Runner) eliminando dependencias de SO (`gcc`, etc.) en tiempo de ejecución.
+- **On-Premise SOP (`infrastructure/onprem/`)**: Extracción de archivos de despliegue monolítico hacia un entorno encapsulado (Clean Root). Scripts inteligentes `init_db.sh` y `migrate.sh` implementados.
+- **Security Scope Regression Fix**: Identificación de 63 alertas `MISSING_SCOPE_VALIDATION` mediante el Code Graph. Automatización de inyección de `Security(require_scope)` en `brands.py`, `categories.py`, etc., retornando a 100% de cumplimiento en Code Graph.
+- **Zero-Trust AWS Secrets**: Integración en `core/config.py` para inyectar automáticamente desde `us-east-2` vía AWS Secrets Manager si `ENV_MODE=production`.
+

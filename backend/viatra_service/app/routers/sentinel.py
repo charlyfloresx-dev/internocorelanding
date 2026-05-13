@@ -1,18 +1,20 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_db
+from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
 from app.models.group import TravelerGroup
 from app.models.price_alert import PriceAlert
 from app.models.itinerary import ItineraryItem
-from common.models.user_context import UserContext
+
 
 
 router = APIRouter(prefix="/api/v1/sentinel", tags=["SkySentinel — Monitoring"])
 
 @router.get("/status", summary="Consultar salud y métricas del bot SkySentinel")
 async def get_sentinel_status(
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db)
 ):
     """

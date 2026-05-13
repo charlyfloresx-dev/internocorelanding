@@ -216,17 +216,19 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES),
             revoked=False,
         )
-        self.db.add(refresh_record)
+        
+        async with self.db.begin_nested():
+            self.db.add(refresh_record)
 
-        # 5. Audit logging (Atomic with Transaction)
-        await AuditService.log_action(
-            db=self.db,
-            user_id=command.user_id,
-            action="SELECT_COMPANY",
-            entity_name="CompanyAccess",
-            entity_id=command.company_id,
-            details=f"method: X-Selection-Token, correlation_id: {correlation_id}",
-        )
+            # 5. Audit logging (Atomic with Transaction)
+            await AuditService.log_action(
+                db=self.db,
+                user_id=command.user_id,
+                action="SELECT_COMPANY",
+                entity_name="CompanyAccess",
+                entity_id=command.company_id,
+                details=f"method: X-Selection-Token, correlation_id: {correlation_id}",
+            )
 
         # Fetch user to hydrate email in response
         user_obj = await self.db.get(User, command.user_id)

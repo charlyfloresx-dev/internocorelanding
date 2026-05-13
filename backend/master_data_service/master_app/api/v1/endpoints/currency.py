@@ -16,7 +16,7 @@ router = APIRouter()
 async def get_summary(
     base: str = "USD",
     targets: str = "MXN,EUR",
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     target_list = targets.split(",")
@@ -27,7 +27,7 @@ async def get_summary(
 async def trigger_update(
     base: str = "USD",
     targets: str = "MXN,EUR",
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     target_list = targets.split(",")
@@ -37,7 +37,7 @@ async def trigger_update(
 @router.post("/manual", response_model=ApiResponse[RateRead])
 async def manual_update(
     update_in: RateManualUpdate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     rate = await service.manual_update_rate(
@@ -52,7 +52,7 @@ async def manual_update(
 @router.patch("/verify/{rate_id}")
 async def verify_rate(
     rate_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     success = await service.verify_rate(rate_id, current_user.company_id)

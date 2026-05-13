@@ -9,6 +9,11 @@ from subscription_app.core.enums import SubscriptionStatus
 from common.config import settings
 # Assuming StorageAuditService also needs refactoring but keeping it for now if it's out of scope or will be handled later
 from subscription_app.infrastructure.storage_audit import StorageAuditService 
+from subscription_app.application.change_subscription_plan_handler import ChangeSubscriptionPlanHandler, ChangeSubscriptionPlanCommand
+
+class ChangePlanRequest(BaseModel):
+    new_plan_id: str
+    reason: str = "Admin plan change"
 
 router = APIRouter()
 
@@ -70,3 +75,24 @@ async def override_grace_period(
         "status": "success",
         "message": f"Grace period extended until {sub.grace_period_until} for tenant {company_id}."
     }
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from subscription_app.dependencies import get_db
+
+@router.post("/tenants/{company_id}/change-plan", dependencies=[Depends(verify_admin_master_key)])
+async def change_subscription_plan(
+    company_id: uuid.UUID,
+    request: ChangePlanRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    handler = ChangeSubscriptionPlanHandler(db)
+    command = ChangeSubscriptionPlanCommand(
+        company_id=str(company_id),
+        new_plan_id=request.new_plan_id,
+        reason=request.reason
+    )
+    result = await handler.handle(command)
+    await db.commit()
+    return result
+
+

@@ -44,25 +44,22 @@ sequenceDiagram
 
 ---
 
-## Use Case 2: Plant Floor & Station Access
-**Persona**: Operators, Warehouse Personnel.
-**Credential**: RFID Card or Barcode Badge.
+## Use Case 2: Plant Floor & Station Access (Kiosk)
+**Persona**: Operators, Warehouse Personnel, Technicians.
+**Credential**: RFID Card or Employee ID + PIN.
 
 ### Flow Description
-1. **Phase 1 (Quick Handshake)**: Operator scans their physical identity token at a tablet or station.
-   - **Endpoint**: `POST /api/v1/auth/login`
-   - **Payload**: `{"identity_token": "RFID_UID_..."}`
-   - **Result**: `selection_token` (T1) + `List<CompanyAccessDto>`. 
-   - *Note: If the operator only has access to one company (common for plant floor), the frontend can auto-trigger Phase 2.*
-2. **Phase 2 (Final Handshake)**: Selection of active tenant.
-   - **Endpoint**: `POST /api/v1/auth/select-company`
-   - **Header**: `X-Selection-Token: <T1>`
-   - **Payload**: `{"company_id": "<UUID>"}`
-   - **Result**: Final JWT (T2).
+1. **Physical Identity Scan**: Operator scans their physical identity token or enters their PIN at a tablet or station.
+   - **Endpoint**: `POST /api/v1/collaborator-login`
+   - **Payload**: `{"identity_identifier": "RFID_UID_...", "access_method": "RFID_SCAN", "company_id": "..."}` or `{"identity_identifier": "1234", "access_method": "PIN_PAD", "internal_id": "EMP-001"}`
+   - **Result**: 
+     - **Path A (Single Company match)**: Returns final `access_token` directly (T2). This is the most common path for industrial floor operators.
+     - **Path B (Multi-Company match)**: Returns `selection_token` (T1) + `companies` array, forcing a Tenant Selection handshake via `/select-company`.
 
 ### Technical Handshake Detail
-- **Priority**: The header `X-Selection-Token` is extracted with priority to avoid collisions with previous valid sessions.
-- **Expiry**: T1 is extremely short-lived (5 mins), while T2 is long-lived (7 days).
+- **Dedicated Flow**: The Kiosk flow is strictly isolated from the Web Flow to prevent mixing interactive credentials with physical tokens.
+- **Auto-Resolution**: The `collaborator_login_command` automatically resolves the target tenant if the user is only assigned to one company, bypassing the two-step handshake.
+- **Audit Logging**: Every kiosk login (successful or failed) is centrally audited in the `SecurityAuditLog`.
 
 ---
 
@@ -80,7 +77,8 @@ sequenceDiagram
 
 | Endpoint | Method | Input | Output | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| `/login` | `POST` | `email/pass` OR `identity_token` | `selection_token` + `companies` | Identity Verification |
+| `/login` | `POST` | `email/pass` | `selection_token` + `companies` | Web Identity Verification |
 | `/select-company` | `POST` | `company_id` | `access_token` (JWT) | Tenant Authorization |
+| `/collaborator-login` | `POST` | `RFID` or `PIN` | `access_token` OR `selection_token` | Kiosk / Plant Floor Access |
 | `/refresh` | `POST` | `refresh_token` | `access_token` | Session Extension |
 | `/` | `GET` | N/A | `status: "online"` | Service Health |

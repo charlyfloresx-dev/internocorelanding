@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -15,7 +16,7 @@ class StockLot(MultiTenantBase):
     product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     batch_number: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     expiration_date: Mapped[Optional[datetime]] = mapped_column(Date, nullable=True)
-    quantity: Mapped[float] = mapped_column(Numeric(18, 4), default=0, nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0, nullable=False)
 
     def __repr__(self) -> str:
         return f"<StockLot(product_id={self.product_id}, batch={self.batch_number}, qty={self.quantity})>"

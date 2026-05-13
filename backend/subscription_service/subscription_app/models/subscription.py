@@ -82,3 +82,15 @@ class AuditSubscriptionLog(MultiTenantBase):
     before_state: Mapped[dict] = mapped_column(JSONB, nullable=True)
     after_state: Mapped[dict] = mapped_column(JSONB, nullable=True)
     reason: Mapped[Optional[str]] = mapped_column(String(255))
+
+class BillingEvent(MultiTenantBase):
+    """Eventos de facturación para sincronización con Stripe/MercadoPago."""
+    __tablename__ = "billing_events"
+
+    subscription_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subscriptions.id"))
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.00"))
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    provider: Mapped[str] = mapped_column(String(50), default="STRIPE") # STRIPE, MERCADOPAGO
+    event_type: Mapped[str] = mapped_column(String(50)) # CREATE_INVOICE, CHANGE_PLAN
+    status: Mapped[str] = mapped_column(String(50), default="PENDING")
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

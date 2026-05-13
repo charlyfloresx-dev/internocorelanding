@@ -62,17 +62,10 @@ async def login(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
             )
-    elif credentials.identity_token:
-        user = await auth_service.authenticate_by_identity_token(credentials.identity_token)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid identity token",
-            )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing credentials. Provide email/password or identity_token.",
+            detail="Missing credentials. Provide email/password.",
         )
 
     if not user.is_active:

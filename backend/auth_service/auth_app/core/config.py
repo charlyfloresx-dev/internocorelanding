@@ -44,9 +44,10 @@ class AuthSettings(InternoSettings):
 
     @property
     def ASYNC_DATABASE_URL(self) -> str:
-        if self.DATABASE_URL.startswith("postgresql://"):
-            return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return self.DATABASE_URL
+        url = super().ASYNC_DATABASE_URL
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -25,9 +25,9 @@ class RateManualUpdate(BaseModel):
 
 class RateSummaryItem(BaseModel):
     currency: str
-    current_stored_rate: Optional[float]
-    new_external_rate: Optional[float]
-    variation_percentage: float
+    current_stored_rate: Optional[Decimal]
+    new_external_rate: Optional[Decimal]
+    variation_percentage: Decimal
     is_drastic: bool
     last_update: Optional[datetime]
 

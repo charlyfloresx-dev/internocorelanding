@@ -18,7 +18,7 @@ class UOM:
     code: str
     name: str
     symbol: Optional[str] = None
-    conversion_factor: float = 1.0
+    conversion_factor: Decimal = Decimal("1.0")
 
 @dataclass(frozen=True)
 class Address:

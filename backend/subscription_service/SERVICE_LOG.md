@@ -5,6 +5,15 @@ The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitl
 
 ---
 
+## Phase 3 – Industrial Domain Parity & CQRS Finalization ✅
+**Status**: ✅ Completed · **Date**: 2026-05-12
+- **Financial Tracking Engine**: Introduced the `BillingEvent` entity for seamless financial logging coupling Stripe/MercadoPago integrations.
+- **CQRS Subscription Mutations**: Developed `ChangeSubscriptionPlanHandler` via Unit of Work (`db.begin_nested()`) allowing fully atomic transitions of subscription plans.
+- **Quota Validation (Guardrail)**: Integrated real-time storage checks prior to plan downgrades (`allow_overage`), triggering `BusinessRuleException` if current storage usage exceeds the incoming plan.
+- **100% Code Graph Compliant**: Met architectural requirements for CQRS atomicity and primitive validation.
+
+---
+
 ## Phase 74 – Controlled Service Degradation & SaaS Integrity ✅
 **Status**: ✅ Completed · **Date**: 2026-04-30
 - **L7 Enforcement**: Integration with global middleware to block restricted/unpaid tenants based on subscription state.

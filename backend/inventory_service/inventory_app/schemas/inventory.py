@@ -24,10 +24,10 @@ class InventoryTransactionCreate(BaseModel):
     warehouse_id: Union[uuid.UUID, str]
     transaction_type: TransactionType
     concept_id: Optional[Union[uuid.UUID, str]] = None
-    quantity_change: float = Field(..., description="Amount to add (positive) or remove (negative, handled by logic usually positive magnitude with OUT type)")
-    weight: float = Field(0.0, description="Total weight of this item in movement")
+    quantity_change: Decimal = Field(..., description="Amount to add (positive) or remove (negative, handled by logic usually positive magnitude with OUT type)")
+    weight: Decimal = Field(0.0, description="Total weight of this item in movement")
     target_warehouse_id: Optional[Union[uuid.UUID, str]] = None
-    unit_cost: Optional[float] = Field(0.0, description="Cost of the unit for CPP calculation (only for IN)")
+    unit_cost: Optional[Decimal] = Field(0.0, description="Cost of the unit for CPP calculation (only for IN)")
     currency: str = Field("MXN", max_length=3)
     fulfill_reservation: bool = False
     reference_id: Optional[Union[uuid.UUID, str]] = None
@@ -46,9 +46,9 @@ class InventoryTransactionCreate(BaseModel):
 class DocumentLine(BaseModel):
     sku: str
     product_id: Union[uuid.UUID, str]
-    quantity: float
+    quantity: Decimal
     uom_id: Optional[Union[uuid.UUID, str]] = None
-    weight: float
+    weight: Decimal
     unit_price: Decimal = Decimal("0.00")
     currency: str = "MXN"
     location: Optional[str] = None
@@ -76,9 +76,9 @@ class InventoryLevelRead(BaseModel):
     product_id: uuid.UUID
     warehouse_id: uuid.UUID
     uom_id: uuid.UUID
-    quantity: float
-    reserved_quantity: float
-    weighted_average_cost: float
+    quantity: Decimal
+    reserved_quantity: Decimal
+    weighted_average_cost: Decimal
     last_purchase_price: Decimal
     replacement_price: Decimal
     currency_code: str
@@ -94,9 +94,9 @@ class InventoryTransactionRead(BaseModel):
     product_id: uuid.UUID
     warehouse_id: uuid.UUID
     transaction_type: TransactionType
-    quantity_change: float
-    previous_balance: float
-    new_balance: float
+    quantity_change: Decimal
+    previous_balance: Decimal
+    new_balance: Decimal
     reference_id: Optional[uuid.UUID]
     comments: Optional[str] = None
     created_at: datetime
@@ -110,7 +110,7 @@ class StockRelocationCreate(BaseModel):
     product_id: uuid.UUID
     uom_id: uuid.UUID
     warehouse_id: uuid.UUID
-    quantity: float
+    quantity: Decimal
     from_location: str
     to_location: str
     concept_id: Optional[uuid.UUID] = None

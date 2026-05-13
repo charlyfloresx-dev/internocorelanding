@@ -7,7 +7,7 @@ from common.services.audit_service import AuditService
 from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from tickets_app.dependencies.database import get_db
-from tickets_app.dependencies.auth import get_current_user
+from common.security.dependencies import require_scope
 from tickets_app.services.ticket_service import TicketService
 from tickets_app.schemas.ticket_dto import (
     TicketRead, 
@@ -35,7 +35,7 @@ router = APIRouter(tags=["tickets"])
 @router.get("/technicians/workload/")
 async def get_technicians_workload(
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     """
     Retorna la carga de trabajo actual de los técnicos del tenant.
@@ -177,7 +177,7 @@ async def resolve_tickets_by_station_endpoint(
 async def create_ticket(
     cmd: TicketCreate,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     # Seguir el multitenancy: El usuario solo puede crear tickets para su empresa o las permitidas
@@ -201,7 +201,7 @@ async def create_ticket(
 @router.get("/", response_model=ApiResponse)
 async def list_tickets(
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     tickets = await service.get_tickets(uuid.UUID(user.company_id))
@@ -210,7 +210,7 @@ async def list_tickets(
 @router.get("/mine", response_model=ApiResponse)
 async def list_my_tickets(
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     """
     Retorna tickets creados por o asignados al usuario actual en su empresa activa.
@@ -230,7 +230,7 @@ async def triage_ticket(
     ticket_id: uuid.UUID,
     cmd: TicketTriage,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:triage"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     is_supervisor = "supervisor" in [r.lower() for r in user.role_names] or "admin" in [r.lower() for r in user.role_names]
@@ -262,7 +262,7 @@ async def triage_ticket(
 async def get_ticket(
     ticket_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     ticket = await service.get_ticket(ticket_id, uuid.UUID(user.company_id))
@@ -275,7 +275,7 @@ async def update_ticket(
     ticket_id: uuid.UUID,
     cmd: TicketUpdate,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     ticket = await service.update_ticket(ticket_id, uuid.UUID(user.company_id), cmd, uuid.UUID(user.sub))
@@ -298,7 +298,7 @@ async def add_comment(
     ticket_id: uuid.UUID,
     cmd: TicketCommentBase, # Solo contenido
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     # Validar acceso al ticket primero
@@ -318,7 +318,7 @@ async def add_comment(
 async def list_comments(
     ticket_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     ticket = await service.get_ticket(ticket_id, uuid.UUID(user.company_id))
@@ -333,7 +333,7 @@ async def consume_ticket_resources(
     ticket_id: uuid.UUID,
     resources: List[ConsumeResourceDto],
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
 ):
     """
     CQRS: Registra consumo de recursos operacionales.
@@ -359,7 +359,7 @@ async def consume_ticket_resources(
 @router.post("/admin/seed-escalation-rules", response_model=ApiResponse)
 async def seed_escalation_rules(
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["admin"]))
 ):
     """
     Bootstrap: Pueba las reglas de escalación dinámicas para la empresa actual.
@@ -377,7 +377,7 @@ async def seed_escalation_rules(
 async def get_escalation_rules(
     area: str = Query(..., description="Área operacional (Producción, Almacén, etc.)"),
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     """
     Retorna la configuración activa de escalación para un área.
@@ -411,7 +411,7 @@ async def get_ticket_constants():
 async def delete_ticket(
     ticket_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(get_current_user)
+    user: TokenPayload = Depends(require_scope(["ticket:delete"]))
 ):
     """
     Soft-delete: marca is_active=False para mantener integridad referencial

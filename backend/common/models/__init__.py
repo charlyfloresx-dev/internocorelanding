@@ -18,7 +18,7 @@ from common.models.work_order_base import (
 )
 from common.models.enumeration import Enumeration
 from common.models.security_audit_log import SecurityAuditLog
-from common.models.external_contact import ExternalContact
+# from common.models.external_contact import ExternalContact
 
 __all__ = [
     "Base", 
@@ -47,5 +47,5 @@ __all__ = [
     "Enumeration",
     "SecurityAuditLog",
     # Providers
-    "ExternalContact",
+    # "ExternalContact",
 ]

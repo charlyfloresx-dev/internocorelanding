@@ -54,9 +54,6 @@ class AuthService:
             return None
         return user
 
-    async def authenticate_by_identity_token(self, token: str) -> Optional[UserEntity]:
-        return await self.user_repo.get_by_identity_token(token)
-
     # ── COMPANY / PERMISSION QUERIES ──────────────────────────────────────────
 
     async def get_user_companies(self, user_id: uuid.UUID) -> List[dict]:

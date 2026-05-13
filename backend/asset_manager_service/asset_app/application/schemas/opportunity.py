@@ -31,11 +31,11 @@ class FullReportInput(BaseModel):
     Mapea exactamente los campos que devuelve el endpoint.
     """
     cve_cat: str
-    lat: Optional[float] = None
-    lng: Optional[float] = None
+    lat: Optional[Decimal] = None
+    lng: Optional[Decimal] = None
     propietario: Optional[str] = None
     folio_real: Optional[str] = None
-    superficie: Optional[float] = None
+    superficie: Optional[Decimal] = None
     direccion_catastral: Optional[str] = None
     colonia: Optional[str] = None
     adeudo_total: Optional[Decimal] = None
@@ -49,11 +49,11 @@ class FullReportInput(BaseModel):
 
 class OpportunityResponse(BaseModel):
     cve_cat: str
-    lat: Optional[float] = None
-    lng: Optional[float] = None
+    lat: Optional[Decimal] = None
+    lng: Optional[Decimal] = None
     propietario_rppc: Optional[str] = None
     folio_real: Optional[str] = None
-    superficie: Optional[float] = None
+    superficie: Optional[Decimal] = None
     direccion_catastral: Optional[str] = None
     colonia: Optional[str] = None
     adeudo_total: Optional[Decimal] = None

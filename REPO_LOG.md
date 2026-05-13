@@ -8,6 +8,24 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-12] Phase 4.1: Industrial Infrastructure Consolidation & Ignition Ready
+- **Multi-Stage Containerization**: Refactored Monolith and Microservices Dockerfiles from single-stage to Multi-Stage alpine/distroless environments. Extracted C libraries/build tools (`gcc`, `build-essential`) leaving only the runtime binaries, drastically reducing the image footprint and attack surface.
+- **Zero-Trust Connectivity**: Hardened Alembic migrations and application entrypoints to force `ssl=require` on Postgres connections. Ensured Secret Manager (AWS) dynamic resolution via `boto3` when `ENV_MODE=production`.
+- **On-Premise Standard Operating Procedure (SOP)**: Created an encapsulated deployment package in `infrastructure/onprem` containing a clean `docker-compose.yml`, `init_db.sh` (with healthchecks), and `migrate.sh` specifically adapted for monolithic orchestrations.
+- **Auditor Defense Verification**: Remedied a severe regression in `master_data_service` caused by an automated `git checkout`. Developed a dynamic Python script to re-inject `Security(require_scope)` across 63 endpoints, restoring the Muro de Hierro Code Graph Auditor to 100% Compliance.
+- **Status**: ✅ Phase 4.1 COMPLETED — Backend is "Ignition Ready" for AWS VPC Deployment.
+
+---
+
+### [2026-05-12] Phase 3: Industrial Domain Parity & CQRS Finalization
+- **Float Extermination Guard**: Replaced all `float` datatypes across models and schemas with the unified `Decimal` and `Money` Value Objects. Engineered a Code Graph Invariant (`PRIMITIVE_FLOAT_VIOLATION`) to actively prevent float contamination in core architectures, securing financial and volumetric calculations.
+- **WMS CQRS Atomicity**: Refactored inventory transaction flows into atomic handlers (`TransferStockHandler`, `CreateSalesOrderHandler`) governed by the Unit of Work pattern (`db.begin_nested()`). Implemented strict optimistic locking (`with_for_update()`) to prevent stock-deduction race conditions during industrial throughput.
+- **Subscription Governance Hardening**: Developed `ChangeSubscriptionPlanHandler` bridging financial tracking (`BillingEvent`) with identity scopes. Hardened the downgrade validation algorithm (Quota Invariant) to verify that current multi-tenant storage consumption does not exceed the incoming plan's limits, rejecting the transaction instantly otherwise.
+- **Code Graph Evolution**: Deployed `CQRS_QUERY_VIOLATION` and `CQRS_ATOMICITY_WARNING` invariants into the static auditor. Rewrote all legacy handlers in `wms_service` and `auth_service` to conform with explicit `begin_nested()` blocks, achieving a pristine 100% Compliance rate across all 14 microservices.
+- **Status**: ✅ Phase 3 COMPLETED — CQRS Architecture Stabilized & Float Precision Eradicated.
+
+---
+
 ### [2026-05-12] Phase 2: Identity & Access Audit (Heartbeat & Scope Hardening)
 - **Granular Scope Enforcement**: Engineered the `require_scope` dependency factory in `common.security.dependencies.py`. Injected `Dependencies(require_scope(["x:read"]))` into high-risk endpoints (WMS locations, MES work orders) to enforce exact RBAC permissions, closing validation gaps.
 - **Session Heartbeat (Real-time Revocation)**: Implemented an asynchronous Redis blocklist check within `get_current_active_user`. This "Heartbeat" validates the `blacklist:{user_id}` key, instantly revoking compromised JWTs. Backed by a 5-minute In-Memory Local Cache to absorb heavy frontend traffic without DB/Redis saturation.

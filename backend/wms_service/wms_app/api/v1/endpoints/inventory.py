@@ -14,7 +14,8 @@ from wms_app.domain.repositories.item_repository import IItemRepository
 from wms_app.domain.interfaces.inventory_client import IInventoryClient
 from wms_app.infrastructure.repositories.sqlalchemy_item_repository import SQLAlchemyItemRepository
 from wms_app.infrastructure.clients.inventory_client import InventoryClient
-from wms_app.dependencies import get_db, get_current_user, oauth2_scheme
+from wms_app.dependencies import get_db, oauth2_scheme
+from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 
 router = APIRouter()
@@ -35,7 +36,7 @@ async def sync_initial_inventory(
     payload: MasterDataSyncPayload,
     repo: IItemRepository = Depends(get_item_repository),
     inv_client: IInventoryClient = Depends(get_inventory_client),
-    token_data: TokenPayload = Depends(get_current_user),
+    token_data: TokenPayload = Depends(require_scope(["wms:write"])),
     token: str = Depends(oauth2_scheme)
 ) -> Any:
     """

@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from typing import Optional
 from sqlalchemy import String, Numeric
@@ -12,4 +13,4 @@ class StandardTime(MultiTenantBase):
     operation_name: Mapped[str] = mapped_column(String(100))
     
     # Numeric 10,4 to capture precise minutes/seconds in hours without float rounding errors
-    set_time_hours: Mapped[float] = mapped_column(Numeric(10, 4))
+    set_time_hours: Mapped[Decimal] = mapped_column(Numeric(10, 4))

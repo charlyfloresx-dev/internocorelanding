@@ -287,7 +287,15 @@ class InternoSettings(BaseSettings):
 
     @property
     def ASYNC_DATABASE_URL(self) -> str:
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        # Force ssl=require in production/AWS for zero-trust compliance
+        if self.int_environment.lower() in ["production", "prod", "aws"]:
+            if "?" in url:
+                if "ssl=" not in url.lower():
+                    url += "&ssl=require"
+            else:
+                url += "?ssl=require"
+        return url
         
     @property
     def DB_MAX_OVERFLOW(self) -> int:

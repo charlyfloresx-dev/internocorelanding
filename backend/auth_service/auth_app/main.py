@@ -78,9 +78,9 @@ async def lifespan(app: FastAPI):
         sys.exit(1)
     
     async with engine.begin() as conn:
-        logger.info("Sincronizando esquema de base de datos...")
-        await conn.run_sync(Base.metadata.create_all)
-        logger.info("Esquema sincronizado.")
+        logger.info("Sincronizando esquema de base de datos... (Delegado a Alembic)")
+        # await conn.run_sync(Base.metadata.create_all)
+        logger.info("Esquema sincronizado (Alembic manejara las tablas).")
 
     yield
     logger.info("Apagando InternoCore Auth-Service...")

@@ -46,7 +46,7 @@ class ProductRead(BaseModel):
     brand_name: Optional[str] = None
     category_name: Optional[str] = None
     uom_name: Optional[str] = None
-    current_stock: Optional[float] = None
+    current_stock: Optional[Decimal] = None
 
     model_config = ConfigDict(from_attributes=True)
 

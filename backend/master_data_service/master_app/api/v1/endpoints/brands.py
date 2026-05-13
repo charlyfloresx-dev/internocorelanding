@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("/", response_model=ApiResponse[List[BrandRead]], summary="List Brands")
 async def list_brands(
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: ProductBrandService = Depends(get_brand_service)
 ):
     brands = await service.get_brands(
@@ -25,7 +25,7 @@ async def list_brands(
 @router.post("/", response_model=ApiResponse[BrandRead], summary="Create Brand")
 async def create_brand(
     brand_in: BrandCreate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductBrandService = Depends(get_brand_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -44,7 +44,7 @@ async def create_brand(
 @router.get("/{brand_id}", response_model=ApiResponse[BrandRead], summary="Get Brand")
 async def get_brand(
     brand_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: ProductBrandService = Depends(get_brand_service)
 ):
     brand = await service.get_brand_by_id(
@@ -60,7 +60,7 @@ async def get_brand(
 async def update_brand(
     brand_id: uuid.UUID,
     brand_in: BrandUpdate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductBrandService = Depends(get_brand_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -81,7 +81,7 @@ async def update_brand(
 @router.delete("/{brand_id}", response_model=ApiResponse[None], summary="Delete Brand")
 async def delete_brand(
     brand_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductBrandService = Depends(get_brand_service)
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):

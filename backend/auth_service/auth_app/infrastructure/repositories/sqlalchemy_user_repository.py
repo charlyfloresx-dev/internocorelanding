@@ -19,7 +19,6 @@ class SQLAlchemyUserRepository(IUserRepository):
             id=user_model.id,
             email=user_model.email,
             hashed_password=user_model.hashed_password,
-            identity_token=getattr(user_model, 'identity_token', None),
             is_active=user_model.is_active,
             company_id=user_model.company_id
         )
@@ -45,18 +44,9 @@ class SQLAlchemyUserRepository(IUserRepository):
                 id=user.id,
                 email=cred.email,
                 hashed_password=cred.hashed_password,
-                identity_token=None,
                 is_active=user.is_active and cred.is_active,
                 company_id=uuid.UUID(int=0) # Ignored in M:1:M for login
             )
-        return None
-
-    async def get_by_identity_token(self, token: str) -> Optional[UserEntity]:
-        """Gets user by token (bypass_tenant: global for SSO/Tokens)"""
-        result = await self.db.execute(select(User).where(User.identity_token == token))
-        user = result.scalar_one_or_none()
-        if user:
-            return self._to_entity(user)
         return None
 
     async def get_user_companies(self, user_id: UUID) -> List[UserCompanyRoleEntity]:

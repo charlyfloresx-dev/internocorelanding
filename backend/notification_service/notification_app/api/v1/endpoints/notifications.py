@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from common.responses import ApiResponse
 from common.infrastructure.database import get_db
-from common.domain.entities.user_context import UserContext
-from master_app.dependencies import get_current_user # Reutilizamos contexto de seguridad
+from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
 from notification_app.models.notification import Notification, NotificationRecipient
 from notification_app.core.websocket import manager
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def list_notifications(
     unread_only: bool = False,
     limit: int = 50,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["notification:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -31,7 +31,7 @@ async def list_notifications(
         .join(NotificationRecipient, Notification.id == NotificationRecipient.notification_id)
         .where(
             NotificationRecipient.company_id == current_user.company_id,
-            NotificationRecipient.user_id == uuid.UUID(current_user.user_id)
+            NotificationRecipient.user_id == uuid.UUID(current_user.sub)
         )
     )
 
@@ -54,7 +54,7 @@ async def list_notifications(
 @router.patch("/{notification_id}/read", response_model=ApiResponse)
 async def mark_as_read(
     notification_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["notification:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """ Marca una notificación específica como leída. """
@@ -62,14 +62,14 @@ async def mark_as_read(
         update(NotificationRecipient)
         .where(
             NotificationRecipient.notification_id == notification_id,
-            NotificationRecipient.user_id == uuid.UUID(current_user.user_id)
+            NotificationRecipient.user_id == uuid.UUID(current_user.sub)
         )
         .values(is_read=True, read_at=datetime.now(timezone.utc))
     )
     res = await db.execute(stmt)
     await db.commit()
     
-    logger.info(f"🔔 Notification {notification_id} marked as read for user {current_user.user_id}. Rows affected: {res.rowcount}")
+    logger.info(f"🔔 Notification {notification_id} marked as read for user {current_user.sub}. Rows affected: {res.rowcount}")
     
     return ApiResponse(status="success", message="Notification marked as read")
 

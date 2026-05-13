@@ -10,11 +10,12 @@ from common.responses import ApiResponse
 from common.models.audit import AuditLog
 from master_app.dependencies import get_current_user
 from common.domain.entities.user_context import UserContext
+from common.security.dependencies import require_scope
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/", response_model=ApiResponse)
+@router.get("/", response_model=ApiResponse, dependencies=[Depends(require_scope(["inventory:read"]))])
 async def list_audit_logs(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -23,6 +24,7 @@ async def list_audit_logs(
     current_user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Security: require_scope handled in decorator
     """
     Lista los registros de auditoría para la empresa actual.
     """

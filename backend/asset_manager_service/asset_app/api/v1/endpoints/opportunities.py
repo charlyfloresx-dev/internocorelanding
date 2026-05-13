@@ -45,7 +45,7 @@ router = APIRouter()
 async def evaluate_opportunity(
     payload: FullReportInput,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     """
     Recibe los datos del /full-report del GIS y los procesa financieramente.
@@ -76,7 +76,7 @@ async def list_opportunities(
     limit: int = Query(50, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_user),
+    _: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     repo = OpportunityRepository(db)
     results = await repo.list_opportunities(
@@ -100,7 +100,7 @@ async def list_opportunities(
 async def get_opportunity(
     cve_cat: str,
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_user),
+    _: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     repo = OpportunityRepository(db)
     opp = await repo.get_by_cve_cat(cve_cat)
@@ -120,7 +120,7 @@ async def update_opportunity_status(
     cve_cat: str,
     payload: OpportunityStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     repo = OpportunityRepository(db)
     opp = await repo.update_status(
@@ -145,7 +145,7 @@ async def update_opportunity_data(
     cve_cat: str,
     payload: OpportunityManualUpdate,
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_user),
+    _: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     """
     Permite que Indiana o el operador ingresen datos que el sistema no pudo obtener
@@ -169,7 +169,7 @@ async def update_opportunity_data(
 )
 async def list_zone_configs(
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_user),
+    _: dict: TokenPayload = Depends(require_scope(['admin'])),
 ) -> Any:
     repo = OpportunityRepository(db)
     zones = await repo.list_zone_configs()

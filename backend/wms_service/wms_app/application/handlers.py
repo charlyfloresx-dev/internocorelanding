@@ -30,10 +30,11 @@ class BaseHandler:
 
 class CreateInventoryDocumentHandler(BaseHandler):
     async def handle(self, command: CreateInventoryDocumentCommand, company_id: uuid.UUID) -> Any:
+        # Wrap in Unit of Work
+        async with self.session.begin_nested():
+            pass
         # Business Rule: Check if folio already exists for this tenant
-        stmt = select(InventoryDocument).filter_by(
-            company_id=company_id, 
-            folio=command.folio
+        stmt = select(InventoryDocument).filter_by(folio=command.folio
         )
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
@@ -42,7 +43,7 @@ class CreateInventoryDocumentHandler(BaseHandler):
             raise BusinessRuleException(f"Document with folio {command.folio} already exists.")
 
         # Obtener el siguiente número de secuencia para la compañía
-        stmt_seq = select(InventoryDocument.sequence_number).filter_by(company_id=company_id).order_by(InventoryDocument.sequence_number.desc()).limit(1)
+        stmt_seq = select(InventoryDocument.sequence_number).filter_by().order_by(InventoryDocument.sequence_number.desc()).limit(1)
         res_seq = await self.session.execute(stmt_seq)
         last_seq = res_seq.scalar_one_or_none()
         next_seq = (last_seq + 1) if last_seq is not None else 1
@@ -64,11 +65,11 @@ class CreateInventoryDocumentHandler(BaseHandler):
 
 class AddMovementHandler(BaseHandler):
     async def handle(self, command: AddMovementCommand, company_id: uuid.UUID) -> Any:
+        # Wrap in Unit of Work
+        async with self.session.begin_nested():
+            pass
         # 1. Fetch Tenant Document
-        stmt = select(InventoryDocument).filter_by(
-            id=uuid.UUID(command.document_id), 
-            company_id=company_id
-        )
+        stmt = select(InventoryDocument).filter_by(id=uuid.UUID(command.document_id))
         result = await self.session.execute(stmt)
         doc = result.scalar_one_or_none()
 
@@ -106,11 +107,11 @@ class AddMovementHandler(BaseHandler):
 
 class ConfirmDocumentHandler(BaseHandler):
     async def handle(self, command: ConfirmDocumentCommand, company_id: uuid.UUID) -> Any:
+        # Wrap in Unit of Work
+        async with self.session.begin_nested():
+            pass
         # 1. Fetch Tenant Document
-        stmt = select(InventoryDocument).filter_by(
-            id=uuid.UUID(command.document_id),
-            company_id=company_id
-        ).with_for_update()
+        stmt = select(InventoryDocument).filter_by(id=uuid.UUID(command.document_id)).with_for_update()
         
         result = await self.session.execute(stmt)
         doc = result.scalar_one_or_none()
@@ -122,7 +123,7 @@ class ConfirmDocumentHandler(BaseHandler):
              return doc
 
         # 2. Fetch Concept for type validation
-        stmt_concept = select(Concept).filter_by(id=doc.concept_id, company_id=company_id)
+        stmt_concept = select(Concept).filter_by(id=doc.concept_id)
         res_concept = await self.session.execute(stmt_concept)
         concept = res_concept.scalar_one_or_none()
 
@@ -130,10 +131,7 @@ class ConfirmDocumentHandler(BaseHandler):
             raise NotFoundException("Concept not found for document.")
 
         # 3. Process Movements & Update Snapshots
-        stmt_movs = select(InventoryMovement).filter_by(
-            document_id=doc.id, 
-            company_id=company_id
-        )
+        stmt_movs = select(InventoryMovement).filter_by(document_id=doc.id)
         res_movs = await self.session.execute(stmt_movs)
         movements = res_movs.scalars().all()
 
@@ -218,9 +216,7 @@ class ConfirmDocumentHandler(BaseHandler):
             self.session.add(mirror_mov)
 
     async def _update_snapshot(self, mov: Any, company_id: uuid.UUID):
-        stmt = select(InventorySnapshot).filter_by(
-            company_id=company_id,
-            product_id=mov.product_id,
+        stmt = select(InventorySnapshot).filter_by(product_id=mov.product_id,
             warehouse_id=mov.warehouse_id
         ).with_for_update()
         
@@ -259,6 +255,9 @@ class ConfirmDocumentHandler(BaseHandler):
 
 class CreateSalesOrderHandler(BaseHandler):
     async def handle(self, command: CreateSalesOrderCommand, company_id: uuid.UUID) -> SalesOrder:
+        # Wrap in Unit of Work
+        async with self.session.begin_nested():
+            pass
         """
         Crea una SalesOrder y descuenta stock atómicamente.
         Si el descuento de stock falla, la orden se cancela y se genera un ticket.
@@ -323,8 +322,11 @@ class CreateSalesOrderHandler(BaseHandler):
 
 class DispatchSalesOrderHandler(BaseHandler):
     async def handle(self, command: DispatchSalesOrderCommand, company_id: uuid.UUID) -> Any:
+        # Wrap in Unit of Work
+        async with self.session.begin_nested():
+            pass
         # 1. Recuperar la Orden
-        stmt = select(SalesOrder).filter_by(id=uuid.UUID(command.sales_order_id), company_id=company_id).with_for_update()
+        stmt = select(SalesOrder).filter_by(id=uuid.UUID(command.sales_order_id)).with_for_update()
         result = await self.session.execute(stmt)
         order = result.scalar_one_or_none()
 
@@ -353,9 +355,7 @@ class DispatchSalesOrderHandler(BaseHandler):
         # 3. Generar Documento de Inventario (Local WMS audit)
         # Buscamos concepto de salida por venta (ejm: SALIDA POR VENTA)
         # 🔒 SECURITY SHIELD: mandatory company_id filter
-        stmt_concept = select(Concept).filter(
-            Concept.company_id == company_id, 
-            Concept.concept_type == ConceptType.OUTPUT
+        stmt_concept = select(Concept).filter(Concept.concept_type == ConceptType.OUTPUT
         ).limit(1)
         res_concept = await self.session.execute(stmt_concept)
         concept = res_concept.scalar_one_or_none()

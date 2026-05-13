@@ -20,7 +20,7 @@ router = APIRouter()
 async def get_locations(
     warehouse_id: Optional[uuid.UUID] = Query(None),
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     stmt = select(InventoryLocation).where(
         InventoryLocation.company_id == current_user.company_id
@@ -37,7 +37,7 @@ async def get_location_capacity(
     warehouse_id: uuid.UUID,
     location_code: str,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     """
     [Phase 63] Ultra-fast capacity endpoint for Density Guard.
@@ -79,7 +79,7 @@ async def get_location_capacity(
 async def create_location(
     location_in: LocationCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
 ):
     # Industrial Authorization Guard
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):

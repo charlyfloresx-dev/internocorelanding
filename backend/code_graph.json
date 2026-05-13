@@ -51,132 +51,12 @@
             "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
         },
         {
-            "file": "asset_manager_service/asset_app/application/schemas/opportunity.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/api/v2/endpoints/admin.py",
-            "class": "ModuleLevel",
-            "method": "get_roles",
-            "severity": "WARNING",
-            "ms": "common",
-            "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/api/v2/endpoints/admin.py",
-            "class": "ModuleLevel",
-            "method": "invite_user",
-            "severity": "WARNING",
-            "ms": "common",
-            "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/api/v2/endpoints/admin.py",
-            "class": "ModuleLevel",
-            "method": "assign_role",
-            "severity": "WARNING",
-            "ms": "common",
-            "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/domain/entities/user_aggregate.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/schemas/auth.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "auth_service/auth_app/schemas/company.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "cmms_service/cmms_app/schemas/storage_schemas.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "common/domain/value_objects.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "common/gis/domain/dtos.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "common/gis/domain/interfaces/gis_service.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "common/models/company.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
             "file": "inventory_service/inventory_app/api/v1/endpoints/audit.py",
             "class": "ModuleLevel",
             "method": "list_audit_logs",
             "severity": "WARNING",
             "ms": "common",
             "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/models/backflush_error.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/models/bom.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/models/customs_pedimento.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/models/stock_lot.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/schemas/customs.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/schemas/inventory.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "inventory_service/inventory_app/schemas/pos.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
         },
         {
             "file": "master_data_service/master_app/api/v1/products.py",
@@ -723,48 +603,6 @@
             "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
         },
         {
-            "file": "master_data_service/master_app/models/product.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "master_data_service/master_app/schemas/exchange_rate.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "master_data_service/master_app/schemas/product.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "mes_service/mes_app/models/downtime_event.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "mes_service/mes_app/models/production_snapshot.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "mes_service/mes_app/models/run_metrics_snapshot.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "mes_service/mes_app/models/standard_time.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
             "file": "notification_service/notification_app/api/v1/endpoints/notifications.py",
             "class": "ModuleLevel",
             "method": "list_notifications",
@@ -867,18 +705,6 @@
             "severity": "WARNING",
             "ms": "common",
             "error": "ENV_ACCESS_VIOLATION: Direct OS environment access detected"
-        },
-        {
-            "file": "scripts/generate_code_graph.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "AWS_BUDGET_VIOLATION: ALB detected. Use AWS App Runner for microservices to maintain $5.00-$20.00 budget."
-        },
-        {
-            "file": "subscription_service/subscription_app/domain/entities/subscription.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
         },
         {
             "file": "tickets_service/tickets_app/routers/ticket_routes.py",
@@ -985,12 +811,6 @@
             "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
         },
         {
-            "file": "viatra_service/app/domain/ports/hotel_availability_provider.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
             "file": "viatra_service/app/routers/booking.py",
             "class": "ModuleLevel",
             "method": "list_packages",
@@ -1085,18 +905,6 @@
             "severity": "WARNING",
             "ms": "common",
             "error": "MISSING_SCOPE_VALIDATION: Endpoint uses get_current_user but lacks require_scope or SecurityScopes (Phase 2 Audit)"
-        },
-        {
-            "file": "wms_service/wms_app/models/sales_order.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
-        },
-        {
-            "file": "wms_service/wms_app/schemas/sales_order.py",
-            "severity": "CRITICAL",
-            "ms": "common",
-            "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"
         }
     ],
     "compliance_report": {

@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 import enum
 from datetime import datetime
@@ -35,7 +36,7 @@ class BackflushError(MultiTenantBase):
     
     # Problematic item
     item_code: Mapped[str] = mapped_column(String(100), nullable=False)
-    required_qty: Mapped[float] = mapped_column(Numeric(14, 4), nullable=False)
+    required_qty: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
     
     error_type: Mapped[BackflushErrorType] = mapped_column(Enum(BackflushErrorType), nullable=False)
     status: Mapped[BackflushStatus] = mapped_column(Enum(BackflushStatus), default=BackflushStatus.PENDING)

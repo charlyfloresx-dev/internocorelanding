@@ -35,14 +35,14 @@ services:
 
   interno-monolith:
     build:
-      context: ../backend
+      context: ../../backend
       dockerfile: docker/Monolith.Dockerfile
     container_name: interno-monolith
     ports:
       - "8000:8000"
     command: uvicorn main_monolith:app --host 0.0.0.0 --port 8000 --workers 4
     volumes:
-      - ../backend:/app
+      - ../../backend:/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
@@ -61,20 +61,20 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ../.env
+      - ../../.env
     networks:
       - interno-network
 
   tickets-unified-worker:
     build:
-      context: ../backend
+      context: ../../backend
       dockerfile: docker/Monolith.Dockerfile
     container_name: tickets-unified-worker
     image: interno-monolith:latest
     restart: always
     command: python tickets_service/scripts/unified_worker.py
     volumes:
-      - ../backend:/app
+      - ../../backend:/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname
       - CORE_DATABASE_URL=postgresql+asyncpg://user:password@postgres-db:5432/dbname

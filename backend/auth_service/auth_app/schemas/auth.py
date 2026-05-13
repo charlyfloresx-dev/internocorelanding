@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from uuid import UUID
 from typing import List, Optional
@@ -6,7 +7,6 @@ class LoginRequest(BaseModel):
     """Datos de entrada para el login inicial (Soporta Email o RFID)."""
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    identity_token: Optional[str] = None
 
 class SelectCompanyRequest(BaseModel):
     company_id: UUID
@@ -21,7 +21,7 @@ class CompanySelection(BaseModel):
     logo: Optional[str] = None
     role_names: List[str]
     is_new: bool = False # Esencial para el flujo de bienvenida de la demo [cite: 2026-01-27]
-    default_tax_rate: float = 0.16
+    default_tax_rate: Decimal = 0.16
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,7 +77,7 @@ class AccessTokenResponse(BaseModel):
     # Claims de suscripción (Fase 19)
     status: str = "ACTIVE"
     readonly: bool = False
-    default_tax_rate: float = 0.16
+    default_tax_rate: Decimal = 0.16
 
     model_config = ConfigDict(from_attributes=True)
 

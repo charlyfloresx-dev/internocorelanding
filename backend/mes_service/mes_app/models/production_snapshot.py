@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from datetime import date
 from sqlalchemy import Integer, ForeignKey, Date, Numeric, UniqueConstraint, String
@@ -22,7 +23,7 @@ class HourlyProductionSnapshot(MultiTenantBase):
     actual_quantity: Mapped[int] = mapped_column(Integer, default=0)
     
     # Pre-calculated efficiency (Actual / Goal)
-    efficiency_percentage: Mapped[float] = mapped_column(Numeric(5, 2), default=0.0)
+    efficiency_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0.0)
     
     # Store the item code for easy filtering on the dashboard without joins
     item_code: Mapped[str] = mapped_column(String(100), index=True)

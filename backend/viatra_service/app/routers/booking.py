@@ -7,13 +7,14 @@ from sqlalchemy import select
 from pydantic import BaseModel, Field
 from decimal import Decimal
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_db
+from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
 from app.services.booking_service import BookingService
 from app.services.pdf_generator import PDFGenerator
 from app.repositories.payment_repository import PaymentRepository
 from app.models.group import TravelerGroup
 from app.models.itinerary import ItineraryItem
-from common.models.user_context import UserContext
 from common.value_objects import Money
 
 router = APIRouter(prefix="/api/v1/booking", tags=["Booking & Inventory"])
@@ -39,7 +40,7 @@ class PackageResponse(BaseModel):
 
 @router.get("/packages", response_model=List[PackageResponse], summary="Listar paquetes de viaje del Tenant")
 async def list_packages(
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -64,7 +65,7 @@ async def list_packages(
 @router.post("/packages", response_model=PackageResponse, summary="Crear un nuevo paquete de viaje")
 async def create_package(
     request: CreatePackageRequest,
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:write"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -80,7 +81,7 @@ async def create_package(
             description=request.description,
             total_price=total_price,
             company_id=user.company_id,
-            user_id=user.user_id,
+            user_id=uuid.UUID(user.sub),
             max_capacity=request.max_capacity
         )
         
@@ -99,7 +100,7 @@ async def create_package(
 @router.get("/itinerary/{group_id}/download", summary="Descargar itinerario oficial en PDF")
 async def download_itinerary(
     group_id: uuid.UUID,
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -132,7 +133,7 @@ async def download_itinerary(
 
     # 5. Generar PDF
     pdf_buffer = await PDFGenerator.generate_travel_itinerary(
-        group, items, payments, user.user_id # Usando user_id como nombre literal por ahora
+        group, items, payments, uuid.UUID(user.sub) # Usando user_id como nombre literal por ahora
     )
 
     filename = f"Itinerario_{group.name.replace(' ', '_')}.pdf"
@@ -146,7 +147,7 @@ async def download_itinerary(
 
 @router.get("/status", summary="Consultar el estado del viaje y pagos del usuario actual")
 async def get_booking_status(
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -154,7 +155,7 @@ async def get_booking_status(
     Esencial para el 'desbloqueo' del Dashboard en el Frontend.
     """
     # Debug: Log context
-    print(f"DEBUG VIATRA: Getting status for user {user.user_id} in company {user.company_id}")
+    print(f"DEBUG VIATRA: Getting status for user {user.sub} in company {user.company_id}")
     
     service = BookingService(db)
     
@@ -173,7 +174,7 @@ async def get_booking_status(
     # Buscamos si hay pagos exitosos para este grupo y usuario
     payment_repo = PaymentRepository(db)
     payments = await payment_repo.list_all(user.company_id)
-    has_paid = any(p.user_id == user.user_id and p.group_id == active_group.id for p in payments)
+    has_paid = any(p.user_id == uuid.UUID(user.sub) and p.group_id == active_group.id for p in payments)
     
     # En la demo, si el grupo está CONFIRMED, desbloqueamos para todos
     is_confirmed = has_paid or active_group.status == "CONFIRMED"
@@ -187,12 +188,12 @@ async def get_booking_status(
 
 
 @router.get("/packages/{package_id}/seats", summary="Consultar disponibilidad de asientos")
-async def get_seat_availability(package_id: uuid.UUID, user: UserContext = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_seat_availability(package_id: uuid.UUID, user: TokenPayload = Depends(require_scope(["viatra:read"])), db: AsyncSession = Depends(get_db)):
     """Retorna los asientos disponibles y asignados para un paquete."""
     return {"package_id": package_id, "available": 20, "occupied": 0}
 
 
 @router.post("/packages/{package_id}/assign-seat", summary="Asignar asiento a un viajero")
-async def assign_seat(package_id: uuid.UUID, user: UserContext = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def assign_seat(package_id: uuid.UUID, user: TokenPayload = Depends(require_scope(["viatra:write"])), db: AsyncSession = Depends(get_db)):
     """Asigna un asiento/habitación a un viajero. Protegido por auditoría e imdependencia."""
     return {"message": "Seat assigned in booking context", "package_id": package_id}

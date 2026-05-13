@@ -1,3 +1,4 @@
+from decimal import Decimal
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -10,7 +11,7 @@ class HotelAvailabilityResult:
     confirmation_number: str
     status: str               # CONFIRMED | AT_RISK | CANCELLED | SOLD_OUT
     available_rooms: int
-    lowest_rate: Optional[float] = None
+    lowest_rate: Optional[Decimal] = None
     currency: str = "USD"
     source: str = "UNKNOWN"
 

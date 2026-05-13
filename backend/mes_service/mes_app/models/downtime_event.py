@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from typing import Optional
 from sqlalchemy import Integer, ForeignKey, String, Boolean, Numeric
@@ -12,7 +13,7 @@ class DowntimeEvent(MultiTenantBase):
     reason_code: Mapped[str] = mapped_column(String(100), nullable=False)
     
     # High precision numeric for exact minutes
-    duration_minutes: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    duration_minutes: Mapped[Decimal] = mapped_column(Numeric(10, 4), nullable=False)
     
     # Flag to differentiate between actual issues and planned breaks (e.g., lunch)
     is_planned: Mapped[bool] = mapped_column(Boolean, default=False)

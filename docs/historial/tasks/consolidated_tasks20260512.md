@@ -25,7 +25,11 @@ Phase 100: Big Bang (1M Records Stress Test) — COMPLETADA.
 18. **WMS Optimistic Locking**: Implementado `with_for_update()` para control de concurrencia en la ubicación de Kardex.
 19. **CQRS Subscriptions**: Validada la mutación de estado con protección de Invariant sobre Quota Limits (`allow_overage`).
 20. **Excepciones Arquitectónicas (Code Graph)**: Agregado `auth_service` como excepción lícita para Handshakes que no mutan el dominio.
-21. **Sync Docs Protocol**: Archivos de historial, REPO_LOG.md y SERVICE_LOG.md actualizados rigurosamente.
+21. **Multi-Stage Docker**: Optimización de `Monolith.Dockerfile` y microservicios para reducir superficie de ataque.
+22. **Clean Root (On-Premise)**: Agrupación de `docker-compose.yml`, `init_db.sh` y `migrate.sh` en `infrastructure/onprem/`.
+23. **Security Check Automation**: Script de inyección dinámica para proteger 63 endpoints de Master Data y restaurar 100% de cumplimiento en el Auditor.
+24. **Zero-Trust Connection**: Integración con AWS Secrets Manager y `ssl=require` para BD en modo de producción.
+25. **Sync Docs Protocol**: Archivos de historial, REPO_LOG.md y SERVICE_LOG.md actualizados rigurosamente.
 
 ## Pendientes ⏳
 1.  **Robustez de Enums**: Implementar `IF NOT EXISTS` o migraciones Alembic para evitar `UniqueViolationError` en arranque concurrente (detectado en Phase 100).

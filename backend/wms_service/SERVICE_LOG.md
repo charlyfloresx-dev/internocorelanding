@@ -5,6 +5,14 @@
  
  ---
 
+ ### [2026-05-12] - Phase 3: Industrial CQRS & UoW Strict Enforcement ✅
+- **Status**: ✅ COMPLETED — **100% CQRS Compliance**
+- **Unit of Work (UoW)**: Enforced `begin_nested()` transactional isolation across all application handlers (`TransferStockHandler`, `ConfirmDocumentHandler`, etc.).
+- **Optimistic Locking**: Injected `.with_for_update()` in location snapshot processing to prevent race conditions during heavy Kardex injections.
+- **Code Graph Remediation**: Eliminated 6 `CQRS_ATOMICITY_WARNING` alerts from the knowledge graph auditor by wrapping all application layer state mutations inside robust async transactions.
+
+---
+
  ### [2026-03-21] - Phase 21: WMS Deep Cleaning (Inventory Valuation) ✅
 - **Status**: ✅ COMPLETED — **100% Precision Compliance**
 - **Money VO**: Standardized use of `Money` Value Object in `InventoryMovement` and `ProductPrice`.

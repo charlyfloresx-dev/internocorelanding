@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from sqlalchemy import String, Numeric, Integer
 from sqlalchemy.dialects.postgresql import UUID
@@ -15,7 +16,7 @@ class BOM(MultiTenantBase):
     product_id: Mapped[uuid.UUID] = mapped_column(UUID, index=True, nullable=False)
     uom_id: Mapped[uuid.UUID] = mapped_column(UUID, index=True, nullable=False)
     component_item_code: Mapped[str] = mapped_column(String(100), nullable=False)
-    quantity: Mapped[float] = mapped_column(Numeric(14, 4), nullable=False, default=1.0)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False, default=1.0)
     uom: Mapped[str] = mapped_column(String(20), nullable=False, default="PCS")
     level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 

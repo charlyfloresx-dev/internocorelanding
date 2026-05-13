@@ -15,8 +15,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 # 2. Importar Configuración y Modelos
-from app.core.config import settings
-from app.models import Base
+from subscription_app.core.config import settings
+from common.models import Base
+import subscription_app.models
 
 # 3. Configuración de Alembic
 config = context.config

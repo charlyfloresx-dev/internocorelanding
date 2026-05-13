@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_db
+from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
 from app.services.stripe_service import StripeService
 from app.services.booking_service import BookingService
 from app.repositories.payment_repository import PaymentRepository
@@ -13,7 +15,6 @@ from app.models.payment_history import PaymentHistory
 from app.models.group import TravelerGroup
 
 
-from common.models.user_context import UserContext
 from common.security.idempotency import idempotent
 
 router = APIRouter(prefix="/api/v1/payments", tags=["Fintech & Payments"])
@@ -28,7 +29,7 @@ class CheckoutSessionRequest(BaseModel):
 async def create_checkout_session(
     request: Request,
     payload: CheckoutSessionRequest,
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:write"])),
     db: AsyncSession = Depends(get_db),
     client_request_id: Optional[str] = None
 ):
@@ -63,7 +64,7 @@ async def create_checkout_session(
             metadata={
                 "group_id": str(group.id),
                 "package_id": str(package.id),
-                "user_id": str(user.user_id),
+                "user_id": str(user.sub),
                 "company_id": str(user.company_id),
                 "client_request_id": client_request_id
             }
@@ -163,7 +164,7 @@ async def stripe_webhook(
 
 @router.get("/history", summary="Consultar el historial de pagos del usuario actual")
 async def get_payment_history(
-    user: UserContext = Depends(get_current_user),
+    user: TokenPayload = Depends(require_scope(["viatra:read"])),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -174,7 +175,7 @@ async def get_payment_history(
     # Por ahora limitamos la carga a los pagos recientes,
     # TODO: Implementar un .get_user_payments_history real en el repo
     payments = await payment_repo.list_all(user.company_id)
-    user_payments = [p for p in payments if p.user_id == user.user_id]
+    user_payments = [p for p in payments if p.user_id == uuid.UUID(user.sub)]
     
     return [
         {

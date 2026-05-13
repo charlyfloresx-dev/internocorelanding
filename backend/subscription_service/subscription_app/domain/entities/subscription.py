@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from datetime import datetime
 from typing import Optional, List
@@ -30,7 +31,7 @@ class PriceEntity(BaseModel):
     id: uuid.UUID
     plan_id: uuid.UUID
     stripe_price_id: str
-    amount: float
+    amount: Decimal
     currency: str
     interval: str  # month, year
     is_active: bool = True

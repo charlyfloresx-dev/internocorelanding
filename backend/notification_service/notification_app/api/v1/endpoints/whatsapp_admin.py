@@ -19,8 +19,8 @@ from sqlalchemy import select, update
 
 from common.responses import ApiResponse
 from common.infrastructure.database import get_db
-from common.domain.entities.user_context import UserContext
-from master_app.dependencies import get_current_user
+from common.security.dependencies import require_scope
+from common.security.auth_payload import TokenPayload
 from notification_app.models.whatsapp_mapping import WhatsAppGroupMapping
 
 router = APIRouter()
@@ -63,7 +63,7 @@ class TestWhatsAppMessageRequest(BaseModel):
 
 @router.get("/mappings", response_model=ApiResponse)
 async def list_whatsapp_mappings(
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Lista todos los mapeos de grupos de WhatsApp para la empresa del usuario."""
@@ -85,7 +85,7 @@ async def list_whatsapp_mappings(
 @router.post("/mappings", response_model=ApiResponse)
 async def create_whatsapp_mapping(
     body: CreateWhatsAppMappingRequest,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -131,7 +131,7 @@ async def create_whatsapp_mapping(
 async def update_whatsapp_mapping(
     mapping_id: uuid.UUID,
     body: UpdateWhatsAppMappingRequest,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Actualiza un mapeo existente (cambiar whatsapp_group_id, display_name, o desactivar)."""
@@ -165,7 +165,7 @@ async def update_whatsapp_mapping(
 @router.delete("/mappings/{mapping_id}", response_model=ApiResponse)
 async def delete_whatsapp_mapping(
     mapping_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Elimina un mapeo de grupo de WhatsApp (hard delete)."""
@@ -195,7 +195,7 @@ async def delete_whatsapp_mapping(
 async def test_whatsapp_mapping(
     mapping_id: uuid.UUID,
     body: TestWhatsAppMessageRequest = TestWhatsAppMessageRequest(),
-    current_user: UserContext = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """

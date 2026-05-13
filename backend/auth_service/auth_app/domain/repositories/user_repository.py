@@ -14,11 +14,6 @@ class IUserRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_identity_token(self, token: str) -> Optional[UserEntity]:
-        """Busca un usuario por su token de identidad (RFID/Barcode)."""
-        pass
-
-    @abstractmethod
     async def get_user_companies(self, user_id: UUID) -> List[UserCompanyRoleEntity]:
         """Devuelve un listado de las empresas a las que el usuario tiene acceso."""
         pass

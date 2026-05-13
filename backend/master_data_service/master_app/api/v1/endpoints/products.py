@@ -22,7 +22,7 @@ async def create_product(
     request: Request,
     product_in: ProductCreate,
     photo: Optional[UploadFile] = File(None),
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Crear un nuevo producto con su versión inicial y opcionalmente una foto. """
@@ -37,7 +37,7 @@ async def create_product(
 async def get_products(
     q: Optional[str] = Query(None, description="Buscar por SKU o Nombre"),
     warehouse_id: Optional[uuid.UUID] = Query(None, description="Resolver precios para este almacén"),
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Listar productos de la compañía actual con filtro opcional. """
@@ -47,7 +47,7 @@ async def get_products(
 @router.get("/{product_id}", response_model=ApiResponse[ProductReadWithVersions])
 async def get_product(
     product_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Obtener detalle de un producto específico con sus versiones. """
@@ -60,7 +60,7 @@ async def get_product(
 async def update_product(
     product_id: uuid.UUID,
     update_in: ProductUpdate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Actualizar campos de un producto existente. """
@@ -71,7 +71,7 @@ async def update_product(
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(
     product_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Soft-delete un producto. """
@@ -84,7 +84,7 @@ async def delete_product(
 async def create_product_version(
     product_id: uuid.UUID,
     version_in: Any, # Debería ser un schema ProductVersionCreate
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: ProductService = Depends(get_product_service)
 ):
     """ Crear una nueva versión técnica para un producto existente. """
@@ -96,7 +96,7 @@ async def lookup_product(
     code: str,
     partner_id: Optional[uuid.UUID] = Query(None),
     service: ProductService = Depends(get_product_service),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     """
     Lookups a product by its SKU or barcode for POS scanning.

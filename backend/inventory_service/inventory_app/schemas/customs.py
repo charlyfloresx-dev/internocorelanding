@@ -11,7 +11,7 @@ class CustomsPedimentoBase(BaseModel):
     operation_type: CustomsOperationType
     customs_date: datetime
     is_temporary: bool = False
-    exchange_rate_dof: Optional[float] = None
+    exchange_rate_dof: Optional[Decimal] = None
     comments: Optional[str] = None
 
 class CustomsPedimentoCreate(CustomsPedimentoBase):

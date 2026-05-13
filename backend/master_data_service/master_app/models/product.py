@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 from sqlalchemy import String, Text, ForeignKey, Integer, UniqueConstraint, Boolean, Numeric, JSON, text
 from sqlalchemy.dialects import postgresql
@@ -31,9 +32,9 @@ class Product(BaseProduct):
 
     # ── Parámetros de Control de Inventario (Legacy Migration) ───────────────────
     # Alineados con MinOrderQty / MaxOrderQty / SafetyStock del código legacy C#
-    min_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
-    max_order_qty: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
-    safety_stock: Mapped[float] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
+    min_order_qty: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
+    max_order_qty: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
+    safety_stock: Mapped[Decimal] = mapped_column(Numeric(12, 4), default=0.0, server_default=text('0'), nullable=False)
 
     # ── Relaciones de Precios ─────────────────────────────────────────────────────
     prices: Mapped[List["ProductPrice"]] = relationship(
@@ -42,7 +43,7 @@ class Product(BaseProduct):
 
     # Atributos Físicos (Master Data Level)
     base_uom_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("uoms.id"), nullable=True)
-    weight_kg: Mapped[Optional[float]] = mapped_column(Numeric(10, 4), nullable=True)
+    weight_kg: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4), nullable=True)
     dimensions_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     product_type: Mapped[ProductType] = mapped_column(
@@ -77,7 +78,7 @@ class ProductVersion(MultiTenantBase):
         default=VersionStatus.DESIGN,
         nullable=False
     )
-    weight: Mapped[Optional[float]] = mapped_column(Numeric(10, 4), nullable=True)
+    weight: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4), nullable=True)
     dimensions: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     um_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("uoms.id"), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

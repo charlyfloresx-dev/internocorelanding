@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/latest", response_model=ApiResponse[Dict[str, Any]])
 async def get_latest_exchange_rates(
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     """
@@ -27,7 +27,7 @@ async def get_latest_exchange_rates(
 
 @router.post("/update-all", response_model=ApiResponse[None])
 async def trigger_automatic_update(
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     """
@@ -43,7 +43,7 @@ async def trigger_automatic_update(
 async def manual_update_rate(
     target_currency: str,
     rate: Decimal,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     """
@@ -63,7 +63,7 @@ async def manual_update_rate(
 @router.patch("/verify/{rate_id}", response_model=ApiResponse[bool])
 async def verify_suspicious_rate(
     rate_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: CurrencyService = Depends(get_currency_service)
 ):
     """

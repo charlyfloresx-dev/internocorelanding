@@ -18,6 +18,7 @@
 - [x] **Code Graph Enforcement**: Actualizar `generate_code_graph.py` para detectar y bloquear el uso de `: float` o `Mapped[float]` en directorios `/models/` y `/schemas/`.
 
 ## 3. Auditoría CQRS y Segregación
-- [ ] Auditar flujos de *Commands* (Escritura) en MES/WMS para verificar Atomicidad (Unit of Work).
-- [ ] Auditar flujos de *Queries* (Lectura) para asegurar que se utilicen proyecciones sin rastros de lógica de base de datos o side-effects.
-- [ ] Verificación de Invariantes: Ningún Command debe devolver entidades complejas, solo el Status y el ID. Las Queries nunca deben alterar el estado del sistema.
+- [x] Auditar flujos de *Commands* (Escritura) en MES para verificar Atomicidad (Unit of Work) - **COMPLETADO: Implementado WorkOrderHandler atómico**.
+- [x] Auditar flujos de *Commands* (Escritura) en WMS para verificar Atomicidad (Unit of Work) - **COMPLETADO: Implementado TransferStockHandler atómico**.
+- [x] Auditar flujos de *Queries* (Lectura) para asegurar que se utilicen proyecciones sin rastros de lógica de base de datos o side-effects - **COMPLETADO: Implementado GetInventoryQuery en WMS con proyección**.
+- [x] Verificación de Invariantes: Ningún Command debe devolver entidades complejas, solo el Status y el ID. Las Queries nunca deben alterar el estado del sistema.

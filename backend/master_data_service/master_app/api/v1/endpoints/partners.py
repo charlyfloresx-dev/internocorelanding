@@ -19,7 +19,7 @@ async def search_partners(
     q: str = Query(..., min_length=2),
     type: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     """
     Busca socios comerciales por nombre o código.
@@ -51,7 +51,7 @@ async def search_partners(
 async def search_external_contacts(
     q: str = Query(..., min_length=2),
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     """
     Busca contactos externos de proveedores por nombre o correo.
@@ -78,7 +78,7 @@ async def search_external_contacts(
 async def get_partners(
     type: Optional[str] = Query(None, description="Filter by partner type (CUSTOMER, SUPPLIER, BOTH)"),
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     stmt = select(Partner).where(
         Partner.company_id == current_user.company_id,
@@ -97,7 +97,7 @@ async def get_partners(
 async def create_partner(
     partner_in: PartnerCreate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
 ):
     # Check if code already exists for this company
     stmt = select(Partner).where(
@@ -126,7 +126,7 @@ async def create_partner(
 async def get_partner(
     partner_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"])
 ):
     stmt = select(Partner).where(
         Partner.id == partner_id,
@@ -145,7 +145,7 @@ async def update_partner(
     partner_id: uuid.UUID,
     partner_in: PartnerUpdate,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
 ):
     # Industrial Authorization Guard: Only Admins can edit master data
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -177,7 +177,7 @@ async def update_partner(
 async def delete_partner(
     partner_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
-    current_user: UserContext = Depends(get_current_user)
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"])
 ):
     # Industrial Authorization Guard: Only Admins can delete master data
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):

@@ -1,10 +1,10 @@
+from decimal import Decimal
 from pydantic import BaseModel
 from typing import Optional
 
 class Coordinates(BaseModel):
-    lat: float
-    lng: float
-
+    lat: Decimal
+    lng: Decimal
 class OwnershipInfo(BaseModel):
     owner_name: str
     property_type: Optional[str] = None

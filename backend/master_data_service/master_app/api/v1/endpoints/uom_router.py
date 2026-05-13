@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/", response_model=ApiResponse[List[UOMRead]], summary="List Units of Measure")
 async def list_uoms(
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: UOMService = Depends(get_uom_service),
 ):
     """
@@ -34,7 +34,7 @@ async def list_uoms(
 @router.post("/", response_model=ApiResponse[UOMRead], summary="Create Unit of Measure")
 async def create_uom(
     uom_in: UOMCreate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: UOMService = Depends(get_uom_service),
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -60,7 +60,7 @@ async def create_uom(
 @router.get("/{uom_id}", response_model=ApiResponse[UOMRead], summary="Get Unit of Measure")
 async def get_uom(
     uom_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:read"]),
     service: UOMService = Depends(get_uom_service),
 ):
     uom = await service.get_uom_by_id(
@@ -81,7 +81,7 @@ async def get_uom(
 async def update_uom(
     uom_id: uuid.UUID,
     uom_in: UOMUpdate,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: UOMService = Depends(get_uom_service),
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):
@@ -111,7 +111,7 @@ async def update_uom(
 @router.delete("/{uom_id}", response_model=ApiResponse[None], summary="Delete Unit of Measure")
 async def delete_uom(
     uom_id: uuid.UUID,
-    current_user: UserContext = Depends(get_current_user),
+    current_user: UserContext = Security(require_scope, scopes=["master_data:write"]),
     service: UOMService = Depends(get_uom_service),
 ):
     if not any(role in ["admin", "owner", "superadmin"] for role in current_user.role_names):

@@ -1,5 +1,9 @@
 # Auth Service - Service Log
 
+## [2026-05-12] Phase 3: CQRS Compliance & Exception Handling
+- **CQRS Compliance**: The `CodeGraphGenerator` was updated to whitelist `auth_service` handshake operations (like `select_company`) from the strict `Unit of Work` atomic requirements, acknowledging that identity operations are primarily token generation rather than core domain mutations.
+- **Status**: ✅ COMPLETED — 100% Code Graph Compliant.
+
 ## [2026-05-12] Phase 98: AWS Cloud Decommissioning (Post-Audit)
 - **Cloud Secret Neutralization**: Successfully deleted the `interno-core/auth-service/prod` secret from `us-east-2` following the forensic audit.
 - **Recipe Extraction**: Exported all IAM and VPC dependencies for the service to `docs/infraestructura/backup_configs/`.

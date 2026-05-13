@@ -1,3 +1,5 @@
+from sqlalchemy import Numeric
+from decimal import Decimal
 import uuid
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,7 +24,7 @@ class Company(AuditBase):
     
     # ── CURRENCY & TAX CONFIGURATION ──────────────────────────────────────────
     base_currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
-    default_tax_rate: Mapped[float] = mapped_column(default=0.16)
+    default_tax_rate: Mapped[Decimal] = mapped_column(default=0.16)
 
     # Relation to BusinessGroup
     business_group: Mapped[Optional["BusinessGroup"]] = relationship(

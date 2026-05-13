@@ -17,7 +17,7 @@ class StorageQuotaResponse(BaseModel):
     tier: StorageTier
     max_bytes: int
     bytes_used: int
-    usage_pct: float
+    usage_pct: Decimal
     is_over_limit: bool
     price_per_excess_gb: Optional[Decimal] = None
     excess_approval_status: Optional[QuotaApprovalStatus] = None
@@ -41,7 +41,7 @@ class BillingReportResponse(BaseModel):
     bytes_used: int
     max_bytes: int
     excess_bytes: int
-    excess_gb: float
+    excess_gb: Decimal
     price_per_excess_gb: Optional[Decimal] = None
     estimated_excess_charge: Optional[Decimal] = None
     currency: str = "USD"

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pydantic import BaseModel, Field
 from uuid import UUID
 
@@ -12,7 +13,7 @@ class SalesOrderCreate(SalesOrderBase):
     product_id: UUID
     warehouse_id: UUID
     uom_id: UUID
-    quantity: float = Field(..., gt=0)
+    quantity: Decimal = Field(..., gt=0)
 
 class SalesOrderRead(SalesOrderBase):
     id: UUID
@@ -21,7 +22,7 @@ class SalesOrderRead(SalesOrderBase):
     product_id: UUID
     warehouse_id: UUID
     uom_id: UUID
-    quantity: float
+    quantity: Decimal
     total_items: int
 
     class Config:

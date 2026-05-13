@@ -1,3 +1,4 @@
+from decimal import Decimal
 import uuid
 import enum
 from datetime import datetime
@@ -22,7 +23,7 @@ class CustomsPedimento(MultiTenantBase):
     is_temporary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     # Financial fields for customs compliance
-    exchange_rate_dof: Mapped[Optional[float]] = mapped_column(nullable=True)
+    exchange_rate_dof: Mapped[Optional[Decimal]] = mapped_column(nullable=True)
     
     comments: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 

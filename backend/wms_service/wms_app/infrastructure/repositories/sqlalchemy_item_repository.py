@@ -24,9 +24,7 @@ class SQLAlchemyItemRepository(IItemRepository):
         )
 
     async def get_by_sku(self, company_id: uuid.UUID, sku: str, version_number: int) -> Optional[ItemEntity]:
-        stmt = select(Item).where(
-            Item.company_id == company_id,
-            Item.sku == sku,
+        stmt = select(Item).where(Item.sku == sku,
             Item.version_number == version_number
         )
         result = await self.session.execute(stmt)

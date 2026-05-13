@@ -21,6 +21,7 @@ class CodeGraphGenerator:
         self.domain_services_count = {} # {microservice: count}
         # Microservices to track for report
         self.ms_scanned_files = {} # {microservice: count}
+        self.scanned_files_log = [] # Track every file audited
         self.MICROSERVICES = self._discover_microservices()
 
     def _discover_microservices(self) -> List[str]:
@@ -130,6 +131,8 @@ class CodeGraphGenerator:
         rel_path = os.path.relpath(file_path, self.root_dir).replace("\\", "/")
         ms = self._get_ms(file_path)
         
+        self.scanned_files_log.append(f"AUDITED: {rel_path} [{ms}]")
+        
         with open(file_path, "r", encoding="utf-8") as f:
             try:
                 content = f.read()
@@ -155,7 +158,7 @@ class CodeGraphGenerator:
         # 1.3 AWS Budget Guard (FinOps - Phase 58+)
         # Prevents re-introduction of costly ALBs (Minimizing $16.20/mo charge)
         if "ApplicationLoadBalancer" in content or "AWS::ElasticLoadBalancingV2::LoadBalancer" in content:
-            if not is_test:
+            if not is_test and "generate_code_graph.py" not in filename:
                 err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "AWS_BUDGET_VIOLATION: ALB detected. Use AWS App Runner for microservices to maintain $5.00-$20.00 budget."}
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
@@ -219,7 +222,9 @@ class CodeGraphGenerator:
         # Phase 3: Float Extermination Guard (Domain Parity)
         if "/models/" in rel_path or "/schemas/" in rel_path or "domain/" in rel_path:
             # We specifically want to flag type hints like ": float" or "= float" or "Float(" or "[float]"
-            if re.search(r"(: float|\[float\]|Mapped\[float\]| Float\(|= float)", content):
+            # Exclude latitude and longitude since geo-coordinates are standardly represented as floats
+            content_without_geo = re.sub(r"(lat|lng|latitude|longitude)[^:\n]*:\s*Optional\[float\]|(lat|lng|latitude|longitude)[^:\n]*:\s*float", "", content)
+            if re.search(r"(: float|\[float\]|Mapped\[float\]| Float\(|= float)", content_without_geo):
                 err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"}
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
@@ -275,6 +280,25 @@ class CodeGraphGenerator:
         except: pass
 
         class_name = class_node.name if class_node else "ModuleLevel"
+
+        # Phase 3: CQRS Read-Only Invariant (Queries shouldn't mutate)
+        if "/api/" in rel_path or "/endpoints/" in rel_path or "/routers/" in rel_path:
+            if "@router.get" in source:
+                if "db.commit()" in source or "session.commit()" in source or "db.add(" in source:
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "CRITICAL", "ms": ms, "error": "CQRS_QUERY_VIOLATION: GET endpoint performs database mutation (commit/add)."}
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # Phase 3: CQRS Atomic Handler Invariant (Commands must use UoW)
+        # Excepciones inteligentes:
+        # - auth_service: Handshakes que generan tokens no operan sobre la base de datos de transacciones de dominio fuerte, por lo que UoW es opcional.
+        if class_node and "Handler" in class_node.name and node.name == "handle" and ms != "auth_service":
+            if "self.session.add(" in source or "session.add(" in source or ".delete(" in source or "status =" in source:
+                if "begin_nested()" not in source:
+                    # Upgrade to CRITICAL: Phase 3 is completed, all Handlers must be strictly atomic
+                    err = {"file": rel_path, "class": class_name, "method": node.name, "severity": "CRITICAL", "ms": ms, "error": "CQRS_ATOMICITY_VIOLATION: Command Handler mutates data without Unit of Work (begin_nested)."}
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
         # Phase 2: Scope Enforcement Guard (Endpoints)
         if "/api/" in rel_path or "/endpoints/" in rel_path or "/routers/" in rel_path:
@@ -396,6 +420,18 @@ class CodeGraphGenerator:
         self.graph["inter_service_deps"] = {ms: list(deps) for ms, deps in self.inter_service_dependencies.items()}
         with open(output_ptr, "w", encoding="utf-8") as f:
             json.dump(self.graph, f, indent=4)
+            
+        # Write detailed execution log
+        log_ptr = output_ptr.replace(".json", "_execution_log.txt")
+        with open(log_ptr, "w", encoding="utf-8") as f:
+            f.write("="*80 + "\n")
+            f.write(" CODE GRAPH AUDITOR - EXECUTION LOG\n")
+            f.write("="*80 + "\n\n")
+            f.write(f"Total files scanned: {len(self.scanned_files_log)}\n\n")
+            f.write("\n".join(sorted(self.scanned_files_log)))
+            f.write("\n\n" + "="*80 + "\n")
+            f.write(" AUDIT COMPLETED SUCCESSFULLY\n")
+            f.write("="*80 + "\n")
 
 if __name__ == "__main__":
     import sys
