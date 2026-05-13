@@ -35,7 +35,7 @@ print("="*50 + "\n")
 # ------------------------------------------------------------------------
 try:
     from common.infrastructure.models.base import Base
-    import app.models
+    import wms_app.models
 except ImportError as e:
     print(f"❌ Error de Importación en auditoría: {e}")
     raise

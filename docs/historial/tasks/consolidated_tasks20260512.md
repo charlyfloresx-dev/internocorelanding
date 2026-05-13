@@ -20,6 +20,12 @@ Phase 100: Big Bang (1M Records Stress Test) — COMPLETADA.
 13. **Nuclear Docker Cleanup**: Limpieza total de imágenes y volúmenes; poda de redes residuales (`bridge`, `host`, `none` verificados).
 14. **Ejecución Exitosa del Big Bang**: Inyectados 1,000,000 de registros Kardex en 39.9s (25k rec/s).
 15. **Backend Transaction Mapping Fix**: Corregido mapeo `ADJUST` -> `ADJUSTMENT` en el endpoint `/bulk-load`.
+16. **Exterminio del Float**: Eliminados los primitivos `float` en modelos de WMS y Master Data.
+17. **WMS Unit of Work**: Envueltas las mutaciones de `locations.py` y `transfer_stock_handler.py` en bloques `begin_nested()`.
+18. **WMS Optimistic Locking**: Implementado `with_for_update()` para control de concurrencia en la ubicación de Kardex.
+19. **CQRS Subscriptions**: Validada la mutación de estado con protección de Invariant sobre Quota Limits (`allow_overage`).
+20. **Excepciones Arquitectónicas (Code Graph)**: Agregado `auth_service` como excepción lícita para Handshakes que no mutan el dominio.
+21. **Sync Docs Protocol**: Archivos de historial, REPO_LOG.md y SERVICE_LOG.md actualizados rigurosamente.
 
 ## Pendientes ⏳
 1.  **Robustez de Enums**: Implementar `IF NOT EXISTS` o migraciones Alembic para evitar `UniqueViolationError` en arranque concurrente (detectado en Phase 100).

@@ -30,7 +30,7 @@ print("="*50 + "\n")
 # Importación de Modelos y Metadata
 # ------------------------------------------------------------------------
 from common.infrastructure.models.base import Base
-import app.models
+import mes_app.models
 
 # ------------------------------------------------------------------------
 # Configuración de Alembic
