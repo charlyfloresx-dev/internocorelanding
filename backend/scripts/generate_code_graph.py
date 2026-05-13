@@ -240,6 +240,13 @@ class CodeGraphGenerator:
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
+        # 6. SQLAlchemy Auto-Reconnect Guard (Phase 4.2)
+        if "database.py" in filename or "session.py" in filename:
+            if "create_async_engine" in content and "pool_pre_ping=True" not in content:
+                err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "RESILIENCE_VIOLATION: create_async_engine lacks pool_pre_ping=True. Risk of Stale Connections during DB failover."}
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
         # 4. Cross-Service Dependency Tracking
         if ms in self.MICROSERVICES:
             for imp_module in imports.values():

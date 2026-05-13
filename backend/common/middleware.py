@@ -325,6 +325,7 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                         "message": str(e),
                         "meta": {
                             "trace_id": transaction_id,
+                            "code": getattr(e, 'code', "INTERNAL_DOMAIN_ERROR"),
                             "details": getattr(e, 'details', {})
                         }
                     }, cls=InternoCoreEncoder),

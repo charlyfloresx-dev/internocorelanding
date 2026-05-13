@@ -1,4 +1,68 @@
 {
+  "errors": {
+    "INSUFFICIENT_STOCK": {
+      "title": "INSUFFICIENT STOCK",
+      "message": "Not enough inventory to process this exit."
+    },
+    "QUOTA_EXCEEDED": {
+      "title": "LIMIT REACHED",
+      "message": "You have exceeded your subscription limits."
+    },
+    "RESTRICTED_ACCESS": {
+      "title": "RESTRICTED ACCESS",
+      "message": "You do not have enough permissions to perform this action."
+    },
+    "NOT_FOUND": {
+      "title": "NOT FOUND",
+      "message": "The requested record does not exist."
+    },
+    "VALIDATION_ERROR": {
+      "title": "VALIDATION ERROR",
+      "message": "The provided data is invalid."
+    },
+    "BUSINESS_RULE_VIOLATION": {
+      "title": "BUSINESS RULE VIOLATION",
+      "message": "The action violates business logic."
+    },
+    "status": {
+      "401": {
+        "title": "SESSION EXPIRED",
+        "message": "Your security token is invalid or has expired. Re-authentication required."
+      },
+      "402": {
+        "title": "PAYMENT REQUIRED",
+        "message": "Your subscription requires payment or is restricted."
+      },
+      "403": {
+        "title": "ACCESS DENIED",
+        "message": "You do not have sufficient permissions for this tenant or resource."
+      },
+      "404": {
+        "title": "RESOURCE NOT FOUND",
+        "message": "The requested Ledger or catalog does not exist on this node."
+      },
+      "409": {
+        "title": "IDEMPOTENCY CONFLICT",
+        "message": "The action has already been processed or the code is duplicated. Solution: Refresh the page or change the code to retry."
+      },
+      "422": {
+        "title": "RULE VIOLATION",
+        "message": "The data does not comply with industrial business logic."
+      },
+      "500": {
+        "title": "CRITICAL SYSTEM FAILURE",
+        "message": "Internal error in the microservice. The SRE team has been alerted."
+      },
+      "0": {
+        "title": "CONNECTIVITY FAILURE",
+        "message": "Could not establish connection with the backend. Check your network."
+      },
+      "default": {
+        "title": "UNEXPECTED ERROR",
+        "message": "An uncatalogued anomaly occurred in the communication."
+      }
+    }
+  },
   "menu": {
     "dashboard": "Dashboard",
     "inventory": "Inventory",

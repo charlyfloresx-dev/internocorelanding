@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.join(_BACKEND, "master_data_service"))
 HCM_URL = "postgresql+asyncpg://user:password@localhost:5433/hcm_db"
 MASTER_URL = "postgresql+asyncpg://user:password@localhost:5433/master_data_db"
 
-hcm_engine = create_async_engine(HCM_URL)
-master_engine = create_async_engine(MASTER_URL)
+hcm_engine = create_async_engine(pool_pre_ping=True, HCM_URL)
+master_engine = create_async_engine(pool_pre_ping=True, MASTER_URL)
 
 HCMSession = async_sessionmaker(hcm_engine, class_=AsyncSession, expire_on_commit=False)
 MasterSession = async_sessionmaker(master_engine, class_=AsyncSession, expire_on_commit=False)

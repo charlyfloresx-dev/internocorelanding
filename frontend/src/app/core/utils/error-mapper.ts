@@ -1,66 +1,91 @@
 // temp_future/src/app/core/utils/error-mapper.ts
 import { HttpErrorResponse } from '@angular/common/http';
+import { ApiResponse } from '../models/domain.types';
 
 export interface IndustrialError {
   title: string;
   message: string;
   type: 'error' | 'warning' | 'info';
+  code?: string;
+  details?: any;
+  trace_id?: string;
 }
 
 export class ErrorMapper {
   static map(error: HttpErrorResponse): IndustrialError {
     const status = error.status;
-    const backendMessage = error.error?.message || error.error?.detail;
+    const backendData = error.error as ApiResponse<any> | undefined;
+    const backendMessage = backendData?.message || error.error?.detail;
+    const meta = backendData?.meta || {};
+    const code = meta.code;
+    const traceId = meta.trace_id;
+    const details = meta.details;
+
+    // 1. Semantic Error Mapping (Based on Backend 'code')
+    if (code) {
+      switch (code) {
+        case 'INSUFFICIENT_STOCK':
+        case 'QUOTA_EXCEEDED':
+        case 'RESTRICTED_ACCESS':
+        case 'NOT_FOUND':
+        case 'VALIDATION_ERROR':
+        case 'BUSINESS_RULE_VIOLATION':
+          return {
+            title: `errors.${code}.title`,
+            message: backendMessage || `errors.${code}.message`,
+            type: (code === 'INSUFFICIENT_STOCK' || code === 'VALIDATION_ERROR') ? 'error' : 'warning',
+            code,
+            details,
+            trace_id: traceId
+          };
+        default:
+          break; // Fallback to HTTP status mapping if not explicitly mapped above
+      }
+    }
+
+    // 2. HTTP Status Fallback Mapping
+    let industrialError: IndustrialError;
+    const statusKey = `errors.status.${status}`;
+    const defaultKey = `errors.status.default`;
 
     switch (status) {
       case 401:
-        return {
-          title: 'SESIÓN EXPIRADA',
-          message: 'Su token de seguridad no es válido o ha expirado. Re-autenticación requerida.',
-          type: 'error'
-        };
+      case 402:
       case 403:
-        return {
-          title: 'ACCESO DENEGADO',
-          message: 'No tiene permisos suficientes para este tenant o recurso.',
-          type: 'error'
-        };
-      case 404:
-        return {
-          title: 'RECURSO NO ENCONTRADO',
-          message: 'El Ledger o catálogo solicitado no existe en este nodo.',
-          type: 'warning'
-        };
-      case 409:
-        return {
-          title: 'CONFLICTO DE IDEMPOTENCIA',
-          message: 'La acción ya fue procesada o el código está duplicado. Solución: Refresca la página o cambia el código para reintentar.',
-          type: 'warning'
-        };
       case 422:
-        return {
-          title: 'VIOLACIÓN DE REGLA',
-          message: backendMessage || 'Los datos no cumplen con la lógica de negocio industrial.',
-          type: 'error'
-        };
       case 500:
-        return {
-          title: 'FALLO CRÍTICO DE SISTEMA',
-          message: 'Error interno en el microservicio. El equipo SRE ha sido alertado.',
-          type: 'error'
-        };
       case 0:
-        return {
-          title: 'FALLO DE CONECTIVIDAD',
-          message: 'No se pudo establecer conexión con el backend. Verifique su red.',
+        industrialError = {
+          title: `${statusKey}.title`,
+          message: backendMessage || `${statusKey}.message`,
           type: 'error'
         };
+        break;
+      case 404:
+      case 409:
+        industrialError = {
+          title: `${statusKey}.title`,
+          message: backendMessage || `${statusKey}.message`,
+          type: 'warning'
+        };
+        break;
       default:
-        return {
-          title: 'ERROR INESPERADO',
-          message: backendMessage || 'Ocurrió una anomalía no catalogada en la comunicación.',
+        industrialError = {
+          title: `${defaultKey}.title`,
+          message: backendMessage || `${defaultKey}.message`,
           type: 'error'
         };
     }
+
+    // Inject backend context if available
+    industrialError.code = code || industrialError.code;
+    industrialError.details = details || industrialError.details;
+    industrialError.trace_id = traceId || industrialError.trace_id;
+
+    if (code && !industrialError.message.includes('0.message')) {
+        industrialError.message = backendMessage || industrialError.message;
+    }
+
+    return industrialError;
   }
 }

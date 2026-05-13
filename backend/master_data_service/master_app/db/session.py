@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from common.config import settings
 
 # 2. Motor asíncrono de SQLAlchemy
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
+engine = create_async_engine(pool_pre_ping=True, settings.DATABASE_URL, echo=False)
 
 
 # 3. Fábrica de sesiones asíncronas

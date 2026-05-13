@@ -285,6 +285,8 @@ export interface ApiResponse<T> {
   message: string;
   meta: {
     trace_id?: string;
+    code?: string;
+    details?: any;
     latency?: string;
     pagination?: {
       limit: number;

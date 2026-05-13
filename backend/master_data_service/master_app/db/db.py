@@ -2,7 +2,7 @@ from master_app.core.config import settings
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from common.models import Base
 
-engine = create_async_engine(settings.ASYNC_DATABASE_URL)
+engine = create_async_engine(pool_pre_ping=True, settings.ASYNC_DATABASE_URL)
 async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 # Import all models here so that Base has them registered and Alembic can detect them.

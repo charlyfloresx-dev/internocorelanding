@@ -8,6 +8,16 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-12] Phase 4.2: Resilience Auditing & "Sentinel" Frontend
+- **Backend Exception Semantics**: Patched `InternoCoreGlobalMiddleware` to inject domain exception `code` into the JSON response `meta` object.
+- **Frontend Error Mapper i18n**: Refactored `error-mapper.ts` to utilize the internal `TranslationService`, mapping semantic backend codes (e.g., `INSUFFICIENT_STOCK`) to specific UX responses and standardized HTTP fallbacks.
+- **Idempotency Interceptor**: Created and registered `idempotency.interceptor.ts`. It injects a `UUIDv4` into the `Idempotency-Key` header for critical POST/PUT/DELETE actions, guaranteeing protection against connection spikes or double clicks.
+- **Chaos Testing (Kill Switch)**: Verified graceful degradation of the UI and proper error routing (HTTP 500 & 0) when the PostgreSQL backend goes down.
+- **SQLAlchemy Auto-Reconnect**: Injected `pool_pre_ping=True` across all microservice async engine instances via programmatic sweep, ensuring "Stale Connections" are cleanly dropped upon DB reboot.
+- **Status**: ✅ Phase 4.2 COMPLETED — Frontend Sentinel Active & Connection Resilience Hardened.
+
+---
+
 ### [2026-05-12] Phase 4.1: Industrial Infrastructure Consolidation & Ignition Ready
 - **Multi-Stage Containerization**: Refactored Monolith and Microservices Dockerfiles from single-stage to Multi-Stage alpine/distroless environments. Extracted C libraries/build tools (`gcc`, `build-essential`) leaving only the runtime binaries, drastically reducing the image footprint and attack surface.
 - **Zero-Trust Connectivity**: Hardened Alembic migrations and application entrypoints to force `ssl=require` on Postgres connections. Ensured Secret Manager (AWS) dynamic resolution via `boto3` when `ENV_MODE=production`.

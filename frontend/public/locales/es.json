@@ -1,4 +1,68 @@
 {
+  "errors": {
+    "INSUFFICIENT_STOCK": {
+      "title": "STOCK INSUFICIENTE",
+      "message": "No hay inventario suficiente para procesar esta salida."
+    },
+    "QUOTA_EXCEEDED": {
+      "title": "LÍMITE ALCANZADO",
+      "message": "Ha excedido los límites de su suscripción."
+    },
+    "RESTRICTED_ACCESS": {
+      "title": "ACCESO RESTRINGIDO",
+      "message": "No tiene permisos suficientes para realizar esta acción."
+    },
+    "NOT_FOUND": {
+      "title": "NO ENCONTRADO",
+      "message": "El registro solicitado no existe."
+    },
+    "VALIDATION_ERROR": {
+      "title": "ERROR DE VALIDACIÓN",
+      "message": "Los datos proporcionados son inválidos."
+    },
+    "BUSINESS_RULE_VIOLATION": {
+      "title": "VIOLACIÓN DE REGLA",
+      "message": "La acción viola la lógica de negocio."
+    },
+    "status": {
+      "401": {
+        "title": "SESIÓN EXPIRADA",
+        "message": "Su token de seguridad no es válido o ha expirado. Re-autenticación requerida."
+      },
+      "402": {
+        "title": "PAGO REQUERIDO",
+        "message": "Su suscripción requiere pago o está restringida."
+      },
+      "403": {
+        "title": "ACCESO DENEGADO",
+        "message": "No tiene permisos suficientes para este tenant o recurso."
+      },
+      "404": {
+        "title": "RECURSO NO ENCONTRADO",
+        "message": "El Ledger o catálogo solicitado no existe en este nodo."
+      },
+      "409": {
+        "title": "CONFLICTO DE IDEMPOTENCIA",
+        "message": "La acción ya fue procesada o el código está duplicado. Solución: Refresca la página o cambia el código para reintentar."
+      },
+      "422": {
+        "title": "VIOLACIÓN DE REGLA",
+        "message": "Los datos no cumplen con la lógica de negocio industrial."
+      },
+      "500": {
+        "title": "FALLO CRÍTICO DE SISTEMA",
+        "message": "Error interno en el microservicio. El equipo SRE ha sido alertado."
+      },
+      "0": {
+        "title": "FALLO DE CONECTIVIDAD",
+        "message": "No se pudo establecer conexión con el backend. Verifique su red."
+      },
+      "default": {
+        "title": "ERROR INESPERADO",
+        "message": "Ocurrió una anomalía no catalogada en la comunicación."
+      }
+    }
+  },
   "menu": {
     "dashboard": "Panel de Control",
     "inventory": "Inventarios",

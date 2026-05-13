@@ -9,7 +9,7 @@ from master_app.models.movement_concept import MovementConcept, MovementType
 from common.config import settings
 
 # Database setup
-engine = create_async_engine(settings.database_url)
+engine = create_async_engine(pool_pre_ping=True, settings.database_url)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 SYSTEM_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000000")

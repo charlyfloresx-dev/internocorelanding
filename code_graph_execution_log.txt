@@ -2,7 +2,7 @@
  CODE GRAPH AUDITOR - EXECUTION LOG
 ================================================================================
 
-Total files scanned: 833
+Total files scanned: 834
 
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
@@ -602,6 +602,7 @@ AUDITED: backend/scripts/debug_concepts_v2.py [scripts]
 AUDITED: backend/scripts/debug_inventory_post.py [scripts]
 AUDITED: backend/scripts/diag_middleware.py [scripts]
 AUDITED: backend/scripts/diag_token.py [scripts]
+AUDITED: backend/scripts/enable_pre_ping.py [scripts]
 AUDITED: backend/scripts/fast_seed.py [scripts]
 AUDITED: backend/scripts/fetch_api_data.py [scripts]
 AUDITED: backend/scripts/final_smoke_test.py [scripts]
