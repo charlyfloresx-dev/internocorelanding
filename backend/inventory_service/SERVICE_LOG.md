@@ -1,6 +1,12 @@
 # Service Log — Inventory Service
 
 ## 🕒 Última Actividad (2026-05-16)
+**Industrial Ecosystem Cold-Start & Seed Hardening (Phase 108)**
+- **Isolated Seeding Engine**: Refactored `unified_industrial_seed.py` to trigger sub-seeds via `subprocess.run`. This provides total environmental isolation, ensuring that the Inventory DB connection is correctly initialized without interference from the Auth DB context.
+- **Cold-Start Certification**: Verified the successful re-population of shadow warehouses and product variants into the `inventory_db` following a nuclear infrastructure prune.
+- **Relational Integrity**: Confirmed that seeded inventory items (ECM-600) correctly reference the global company IDs established in the Auth layer.
+
+## 🕒 Última Actividad (2026-05-16)
 **Inventory Baseline & Schema Stabilization (Phase 107)**
 - **Migration Flattening**: Consolidated all legacy migrations into a single `000_inventory_baseline.py` to ensure a clean, idempotent bootstrap.
 - **Audit & Multi-Tenancy Hardening**: Injected missing audit and multitenant columns into all 15 core inventory tables, ensuring consistency with the global Code Knowledge Graph.

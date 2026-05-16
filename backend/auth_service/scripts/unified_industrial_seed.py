@@ -409,23 +409,13 @@ async def seed_master_data(session):
     await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-TIJ-RECV-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, zone_type="RECEIVING", storage_type="DRY", max_capacity_units=500.0, version_id=1, is_active=True), "Ubicacion: LOC-TIJ-RECV-01")
 
     # [Phase 84] Setup Transfer Prices (Enterprise -> Logistics MX -> US)
-    # [Phase 84] Setup Transfer Prices (Enterprise -> Logistics MX -> US)
     try:
+        from inventory_service.scripts.flows.setup_transfer_prices import setup_prices
         log.info("[3.5/5] Pricing Context: Configurando Precios de Transferencia...")
         # Redirect DATABASE_URL for the sub-script
         master_url = settings.ASYNC_DATABASE_URL.replace("/dbname", "/master_data_db")
-        env = os.environ.copy()
-        env["DATABASE_URL"] = master_url
-        
-        import subprocess
-        result = subprocess.run(
-            [sys.executable, "inventory_service/scripts/flows/setup_transfer_prices.py"],
-            env=env, capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            log.warning(f"Sub-seed failed: {result.stderr}")
-        else:
-            log.info("   ✅ Precios de transferencia OK.")
+        os.environ["DATABASE_URL"] = master_url
+        await setup_prices()
     except Exception as e:
         log.warning(f"Failed to run transfer prices seed: {e}")
 
@@ -449,22 +439,13 @@ async def seed_inventory(session):
 
     # [Phase 84] Seed Variants (5 products x 3 variants)
     try:
+        from inventory_service.scripts.flows.seed_variants import seed_variants
         log.info("[4.5/5] Variants Context: Generando Variantes de Producto...")
         # Redirect DATABASE_URL and CORE_DATABASE_URL for the sub-script
         inv_url = settings.ASYNC_DATABASE_URL.replace("/dbname", "/inventory_db")
-        env = os.environ.copy()
-        env["DATABASE_URL"] = inv_url
-        env["CORE_DATABASE_URL"] = inv_url
-        
-        import subprocess
-        result = subprocess.run(
-            [sys.executable, "inventory_service/scripts/flows/seed_variants.py"],
-            env=env, capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            log.warning(f"Sub-seed failed: {result.stderr}")
-        else:
-            log.info("   ✅ Variantes de producto OK.")
+        os.environ["DATABASE_URL"] = inv_url
+        os.environ["CORE_DATABASE_URL"] = inv_url
+        await seed_variants()
     except Exception as e:
         log.warning(f"Failed to run variants seed: {e}")
 
