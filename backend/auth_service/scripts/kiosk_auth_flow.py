@@ -74,7 +74,9 @@ def print_token_info(token, status_label):
     print(f"   Company ID:  {decoded.get('cid')}")
     print(f"   Supervisor:  {decoded.get('is_supervisor')}")
     print(f"   WarehouseID: {decoded.get('wid')}")
-    print(f"   Perms:       {decoded.get('permissions')}")
+    print(f"   Perms (JWT): {decoded.get('permissions')}")
+    print(f"   Scopes(JWT): {decoded.get('scopes')}") # <--- Verifying JWT consistency
+
 
 if __name__ == "__main__":
     print("\n" + "="*70)
@@ -88,4 +90,4 @@ if __name__ == "__main__":
     test_pin_flow("003709A", "1234")
     
     # 3. Prueba de ID + PIN (New Sync ID)
-    test_pin_flow("EMP-001", "1234")
+    test_pin_flow("301", "1234")

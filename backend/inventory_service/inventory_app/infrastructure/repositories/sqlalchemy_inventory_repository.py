@@ -6,6 +6,7 @@ import asyncio
 from decimal import Decimal
 from sqlalchemy import select, func, and_, or_, text, desc, case
 from sqlalchemy.ext.asyncio import AsyncSession
+import sqlalchemy as sa
 
 from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
 from inventory_app.domain.entities.inventory_item import (
@@ -1521,6 +1522,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 available_quantity=m.available_quantity,
                 customs_pedimento_id=m.customs_pedimento_id,
                 expiry_date=m.expiry_date,
+                location=m.location,
                 created_at=m.created_at
             )
             entities.append(entity)
@@ -1560,13 +1562,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         await self.session.execute(stmt)
         # Flush is enough for the current Unit of Work
         await self.session.flush()
-        # Simplified: We just need country_code for audit
-        return {
-            "id": wh.id,
-            "company_id": wh.company_id,
-            "country_code": wh.country_code or "MX",
-            "name": wh.name
-        }
+        return None
 
     async def get_variants_by_product(self, product_id: uuid.UUID, company_id: uuid.UUID) -> List[ItemVariant]:
         stmt = select(ItemVariant).where(
@@ -1677,7 +1673,6 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         Includes current_units, max_capacity_units, max_weight_kg, volume_cm3, etc.
         Returns None if location not registered (backwards compatible = no limit).
         """
-        from inventory_app.models.location import InventoryLocation
         stmt = select(InventoryLocation).where(
             and_(
                 InventoryLocation.warehouse_id == warehouse_id,
@@ -1704,9 +1699,6 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         delta_units can be negative (for RELOC_OUT from a location).
         INVARIANT: Only called from relocate_stock and put_away flows.
         """
-        import sqlalchemy as sa
-        from inventory_app.models.location import InventoryLocation
-
         stmt = (
             sa.update(InventoryLocation)
             .where(
@@ -1805,8 +1797,6 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         Genera el listado detallado de existencias para auditoría física.
         Incluye Ubicación, SKU, Pedimento, Lote y Cantidad Disponible.
         """
-        from inventory_app.models.customs import CustomsPedimento
-        from inventory_app.models.item_variant import ItemVariant
 
         stmt = (
             select(
@@ -1826,7 +1816,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
 
             .where(
                 and_(
-                    Movement.warehouse_id == warehouse_id,
+                    Movement.warehouse_id == warehouse_id if warehouse_id else True,
                     Movement.company_id == company_id,
                     Movement.available_quantity > 0
                 )
@@ -1837,16 +1827,52 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         result = await self.session.execute(stmt)
         rows = result.all()
 
+        now = datetime.utcnow()
         return [
             {
-                "location": r.location or "SIN_UBICACION",
+                "item_id": str(uuid.uuid4()), # Placeholder or real product_id
                 "sku": r.internal_sku or "N/A",
-                "description": r.brand or "N/A",
-                "pedimento": r.pedimento_number or "SIN_PEDIMENTO",
-                "quantity": float(r.available_quantity),
-                "expiry": r.expiry_date.isoformat() if r.expiry_date else None
+                "product_name": r.brand or "N/A",
+                "pedimento_number": r.pedimento_number or "SIN_PEDIMENTO",
+                "total_available_qty": float(r.available_quantity),
+                "expiry_date": r.expiry_date.isoformat() if r.expiry_date else None,
+                "days_to_expiry": (r.expiry_date - now).days if r.expiry_date else 0,
+                "is_at_risk": (r.expiry_date - now).days < 30 if r.expiry_date else False,
+                "location": r.location or "SIN_UBICACION"
             }
             for r in rows
         ]
 
-
+    async def get_product_by_code(self, code: str, company_id: uuid.UUID) -> Optional[dict]:
+        """
+        Industrial Lookup: Búsqueda exacta por SKU o MPN.
+        Retorna estructura compatible con Product.fromJson del móvil.
+        """
+        stmt = select(ItemVariant).where(
+            and_(
+                ItemVariant.company_id == company_id,
+                or_(
+                    ItemVariant.internal_sku == code,
+                    ItemVariant.mfg_part_number == code
+                )
+            )
+        )
+        result = await self.session.execute(stmt)
+        variant = result.scalar_one_or_none()
+        
+        if not variant:
+            return None
+            
+        return {
+            "id": str(variant.product_id),
+            "sku": variant.internal_sku,
+            "name": f"{variant.brand} {variant.mfg_part_number}",
+            "code": variant.internal_sku,
+            "brand_name": variant.brand,
+            "uom_name": "PZ",
+            "price": {
+                "amount": float(variant.unit_price),
+                "currency": "MXN"
+            },
+            "current_stock": 0.0
+        }

@@ -20,6 +20,8 @@ from common.infrastructure.websocket import manager
 from common.config import settings
 from sqlalchemy import insert
 from inventory_app.models.inventory import InventoryTransaction, TransactionType
+from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
+from inventory_app.dependencies.repositories import get_inventory_repository
 
 router = APIRouter()
 
@@ -96,6 +98,21 @@ async def bulk_load_movements(
         raise HTTPException(status_code=500, detail=f"Database error during bulk load: {str(e)}")
 
 
+@router.get("/lookup", response_model=ApiResponse)
+async def lookup_product(
+    code: str,
+    company_id: uuid.UUID,
+    partner_id: uuid.UUID = None,
+    repo: IInventoryRepository = Depends(get_inventory_repository)
+):
+    product = await repo.get_product_by_code(code, company_id)
+    if not product:
+        return ApiResponse(status="error", message="Product not found", data=None)
+    
+    # Si hay partner_id, podríamos buscar precios específicos, pero por ahora devolvemos el producto
+    return ApiResponse(status="success", data=product)
+
+
 @router.get("/stock/{warehouse_id}/{product_id}", response_model=ApiResponse[StockRead])
 
 async def get_stock(
@@ -110,6 +127,18 @@ async def get_stock(
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     return ApiResponse(data=stock)
+    
+@router.get("/stock", response_model=ApiResponse)
+async def list_stock(
+    session: AsyncSession = Depends(get_session),
+    x_company_id: uuid.UUID = Header(...)
+):
+    """
+    [Mobile Support] Returns a detailed list of all stock items with pedimento and expiry info.
+    """
+    repo = SQLAlchemyInventoryRepository(session, None)
+    data = await repo.get_detailed_stock_report(None, x_company_id) # warehouse_id=None means all warehouses
+    return ApiResponse(data=data)
 
 @router.post("/movements", response_model=ApiResponse)
 async def create_movement(

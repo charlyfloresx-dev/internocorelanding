@@ -246,3 +246,25 @@ class IInventoryRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def get_location_entity(self, warehouse_id: UUID, location_code: str, company_id: UUID) -> Any:
+        """Recupera la entidad de una ubicación específica."""
+        pass
+
+    @abstractmethod
+    async def increment_location_occupancy(self, warehouse_id: UUID, location_code: str, company_id: UUID, delta_units: Decimal, delta_weight_kg: Decimal):
+        """Actualiza la ocupación de una ubicación."""
+        pass
+
+    @abstractmethod
+    async def consume_movement_balance(self, movement_id: UUID, quantity: Decimal, company_id: UUID):
+        """Decrementa el saldo disponible de un movimiento específico."""
+        pass
+
+    @abstractmethod
+    async def get_product_by_code(self, code: str, company_id: UUID) -> Optional[dict]:
+        """
+        Busca un producto o variante por SKU o Código de Barras.
+        """
+        pass
+

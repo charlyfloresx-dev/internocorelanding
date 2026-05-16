@@ -2,7 +2,7 @@
  CODE GRAPH AUDITOR - EXECUTION LOG
 ================================================================================
 
-Total files scanned: 839
+Total files scanned: 843
 
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
@@ -335,6 +335,7 @@ AUDITED: backend/inventory_service/scripts/debug_mirror_results.py [inventory_se
 AUDITED: backend/inventory_service/scripts/debug_validation.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/diag_db.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/diag_readiness.py [inventory_service]
+AUDITED: backend/inventory_service/scripts/flows/__init__.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/_shared_ids.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/flow_1_entry.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/flow_2_exit.py [inventory_service]
@@ -343,6 +344,8 @@ AUDITED: backend/inventory_service/scripts/flows/flow_4_ict_enterprise_to_logist
 AUDITED: backend/inventory_service/scripts/flows/flow_5_ict_binational.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/flow_6_purchase_variants.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/flow_7_putaway.py [inventory_service]
+AUDITED: backend/inventory_service/scripts/flows/flow_8_adjustments.py [inventory_service]
+AUDITED: backend/inventory_service/scripts/flows/flow_9_relocation.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/seed_locations.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/seed_variants.py [inventory_service]
 AUDITED: backend/inventory_service/scripts/flows/setup_transfer_prices.py [inventory_service]
@@ -596,6 +599,7 @@ AUDITED: backend/scripts/check_ip.py [scripts]
 AUDITED: backend/scripts/check_partners.py [scripts]
 AUDITED: backend/scripts/check_tables.py [scripts]
 AUDITED: backend/scripts/cleanup_root_pollution.py [scripts]
+AUDITED: backend/scripts/create_all_tables.py [scripts]
 AUDITED: backend/scripts/currency_worker.py [scripts]
 AUDITED: backend/scripts/debug_bulk.py [scripts]
 AUDITED: backend/scripts/debug_concepts.py [scripts]

@@ -3,6 +3,14 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-16] Phase 106: Industrial Auth & Menu Reconciliation
+- **Industrial JWT Scope Enrichment**: Patched `collaborator_login_command.py` to include the `scopes` claim within the JWT payload. This ensures that Kiosk/Industrial users (Login T1 Bypass) have consistent sidebar menu visibility and persistence across session refreshes.
+- **Frontend Menu Reconciliation**: Analyzed `NavigationService` and `AuthService` (Angular signals) to resolve a visibility gap where industrial permissions (`INVENTORY_READ`) were overriding sidebar scopes (`inv:movements:manage`), resulting in empty menus for collaborators.
+- **Kiosk Auth Flow Validation**: Upgraded `kiosk_auth_flow.py` validation script to perform real-time JWT decoding and scope verification, certifying identity propagation for test collaborators (Luis Torres, Ana García).
+- **Migration Sweep Expansion**: Updated `migrate_all.ps1` to include `hcm-service` in the unified database maintenance sweep.
+- **Status**: ✅ Phase 106 COMPLETED — Industrial Menu Visibility & JWT Scopes Reconciled.
+
+---
 ### [2026-05-13] Phase 105: Idempotent Monolith Infrastructure Synchronization
 - **Zero-Trust Migrations**: Refactored `init` migrations for `auth_service`, `inventory_service`, and `tickets_service` to be fully idempotent using `if not table_exists` logic. This prevents `DuplicateTableError` when deploying over shared databases with pre-existing tables.
 - **Schema Auditor v2**: Enhanced `generate_code_graph.py` with `--audit-schema` mode. The auditor now introspects the live PostgreSQL schema and compares it against SQLAlchemy models, detecting missing columns and type mismatches.

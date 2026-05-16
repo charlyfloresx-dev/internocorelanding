@@ -142,6 +142,11 @@ async def collaborator_login(
     has_inventory_access = (dept == "Warehouse" or is_supervisor)
     permissions = ["INVENTORY_READ", "INVENTORY_WRITE", "PHYSICAL_SCAN"] if has_inventory_access else []
     
+    # Scopes compatibles con el frontend (Sidebar)
+    scopes = ["inv:movements:manage"] if has_inventory_access else []
+    if is_supervisor or dept == "Warehouse":
+        scopes.append("inv:warehouse:manage")
+
     token = security._encode({
         "exp": expire,
         "sub": str(identity["collaborator_id"]),
@@ -154,17 +159,14 @@ async def collaborator_login(
         "full_name": identity.get("full_name"),
         "department": dept,
         "warehouse_permission": has_inventory_access,
-        "permissions": permissions
+        "permissions": permissions,
+        "scopes": scopes  # <--- Added for Frontend Menu Consistency
     })
     
     # Resolve company name for the header
     company_obj = await db.get(Company, identity["company_id"])
     company_name = company_obj.name if company_obj else "Interno Core"
 
-    # Scopes compatibles con el frontend (Sidebar)
-    scopes = ["inv:movements:manage"] if has_inventory_access else []
-    if is_supervisor or dept == "Warehouse":
-        scopes.append("inv:warehouse:manage")
 
     # ── Step 3: Forensic Audit Logging ────────────────────────────────────────
     try:

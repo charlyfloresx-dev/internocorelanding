@@ -1,4 +1,20 @@
-# Service Log — Interno POS Mobile App
+# Service Log — Interno Sentinel Mobile App
+
+## 🕒 Última Actividad (2026-05-13)
+
+**Phase 103: Sentinel Industrial Navigation & Company Selection Fix** ✅
+- **Uber-Style Navigation**: Deployed `MainNavigationScreen` with 5-tab `IndexedStack` (Inicio, Descubrir, Ganancias, Buzón, Menú). All tabs now route to dedicated screens.
+- **InboxScreen**: New notifications module with mock data structure, ready for backend integration.
+- **TicketsScreen**: New support tickets module with status-aware card rendering (Abierto/En Progreso/Cerrado).
+- **Company Selection Fix**: Resolved **black screen** on `CompanySelectionScreen` by:
+  - Passing `initialCompanies` list directly from the login response (avoids a second API call that was failing).
+  - Adding null-safety for field name variations (`name`/`company_name`, `id`/`company_id`).
+  - Wrapping `setState` calls with `mounted` guard and `try/catch`.
+- **QR Connected State**: Login screen now shows "Dispositivo Vinculado" with `Icons.cloud_done` and cyan background after successful QR scan, providing visual confirmation of device provisioning.
+- **MultiTenantInterceptor**: Removed all manual `Authorization` header injection from `ProductRepository` and `SaleRepository`. All auth/tenant context now flows exclusively through the interceptor chain.
+- **Repository Cleanup**: Removed duplicate `consume_movement_balance` method from `SQLAlchemyInventoryRepository` (was defined at both line 1547 and 1845).
+- **Auth Repository Path Fix**: Changed mobile `getCompanies()` endpoint from `auth/companies` to `companies` to align with monolith routing.
+- **Status**: ✅ Phase 103 COMPLETED — Navigation Industrial & Company Selection Fixed.
 
 ## 🕒 Última Actividad (2026-05-12)
 
@@ -16,7 +32,6 @@
 - **Glove-Ready Industrial UX**: Implementación de inputs de alta densidad para `Quantity` en `ScannerScreen`. Se incrementaron los tamaños de fuente (24pt) y el padding de hit-test para operarios con equipo de protección industrial.
 - **Hardware Stability (Active Pruning)**: Desarrollo de un gestor de ciclo de vida para el widget del escáner. La app ahora destruye explícitamente el controlador de `MobileScanner` y limpia el cache de texturas al navegar, resolviendo bloqueos de `BLASTBufferQueue` en dispositivos Moto g04s.
 - **Zero-Trust QR (Delegated Selection)**: El módulo de aprovisionamiento se actualizó para manejar `selection_tokens`. La app ahora soporta el flujo de "Handshake -> QR -> Selección Final".
-- **Estado Actual**: ⚠️ **ADAPTACIÓN PENDIENTE** — La app requiere una refactorización mañana para alinearse estrictamente con el handshake T1/T2 (Auth -> Select Company) del backend, asegurando la integridad multi-tenant completa.
 - **Status**: ✅ COMPLETED - Industrial UX & Hardware Stability.
 
 

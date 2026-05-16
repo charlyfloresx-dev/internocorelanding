@@ -13,7 +13,9 @@ from inventory_app.domain.entities.inventory_item import (
     MovementEntity, InventoryLevelEntity, TransactionType, 
     KardexRowEntity, WACValuationEntity
 )
-from inventory_app.schemas.stock import MovementCreate
+from inventory_app.schemas.stock import (
+    MovementCreate, StockRelocationCreate, CycleCountPayload
+)
 from inventory_app.schemas.inventory import InventoryTransactionCreate
 from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
 from inventory_app.domain.interfaces.master_data_client import IMasterDataClient
@@ -57,10 +59,9 @@ class InventoryTransactionService:
         if location.max_capacity_units > 0:
             projected_units = location.current_units + quantity
             if projected_units > location.max_capacity_units:
-                logger.warning(
-                    f"DENSITY_OVERFLOW_UNITS: La ubicación '{location_code}' ha excedido su capacidad "
-                    f"({location.current_units:.0f}/{location.max_capacity_units:.0f}). "
-                    f"Procesando {quantity:.0f} unidades adicionales bajo alerta de registro."
+                raise ValueError(
+                    f"ERR_LOCATION_OVERFLOW_UNITS: La ubicación '{location_code}' tiene capacidad para "
+                    f"{location.max_capacity_units:.0f} PZ. Intento actual: {projected_units:.0f} PZ."
                 )
 
         # ── Layer 2: Weight (Safety-Critical — NO override) ────────────────────
@@ -353,11 +354,15 @@ class InventoryTransactionService:
             company_id=company_id
         )
         
+        logger.info(f"[DEBUG] relocate_stock: Found {len(source_movements)} total movements for product {stmt.product_id} in warehouse {stmt.warehouse_id}")
+        for m in source_movements:
+            logger.info(f"[DEBUG] Movement {m.id}: location='{m.location}', qty={m.available_quantity}")
+
         # Filter by location
         source_movements = [m for m in source_movements if m.location == stmt.from_location]
         
         if not source_movements:
-            raise ValueError(f"ERR_NO_STOCK_AT_LOCATION: No se encontró stock en {stmt.from_location}.")
+            raise ValueError(f"ERR_NO_STOCK_AT_LOCATION: No se encontró stock en {stmt.from_location} para el producto {stmt.product_id} en el almacén {stmt.warehouse_id}.")
 
         total_available = sum(m.available_quantity for m in source_movements)
         if total_available < Decimal(str(stmt.quantity)):
@@ -424,6 +429,23 @@ class InventoryTransactionService:
             # Persist IN
             await self.repository.record_movement(in_mov)
             
+            # [Phase 83] Atomic Occupancy Update
+            # delta_units: positive for target, negative for source
+            await self.repository.increment_location_occupancy(
+                warehouse_id=stmt.warehouse_id,
+                location_code=stmt.to_location,
+                company_id=company_id,
+                delta_units=qty_to_take,
+                delta_weight_kg=qty_to_take # Simple weight
+            )
+            await self.repository.increment_location_occupancy(
+                warehouse_id=stmt.warehouse_id,
+                location_code=stmt.from_location,
+                company_id=company_id,
+                delta_units=-qty_to_take,
+                delta_weight_kg=-qty_to_take
+            )
+
             relocated_movements.append(in_mov)
             remaining_to_move -= qty_to_take
             

@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = Interno.Quality
+build_property.ProjectDir = C:\API\interno\archive\legacy-dotnet\src\Interno.Quality\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

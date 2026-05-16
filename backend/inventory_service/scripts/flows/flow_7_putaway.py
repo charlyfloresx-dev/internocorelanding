@@ -23,6 +23,7 @@ Run:
 import asyncio
 import os
 import sys
+import logging
 import traceback
 import uuid
 from decimal import Decimal
@@ -40,6 +41,10 @@ from inventory_app.schemas.inventory import StockRelocationCreate
 from inventory_app.models.movement import Movement
 from inventory_app.models.location import InventoryLocation
 from flows._shared_ids import resolve_flow_ids
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.getLogger("inventory_app").setLevel(logging.INFO)
+log = logging.getLogger("flow-7")
 
 
 async def run_flow_7():
@@ -78,9 +83,9 @@ async def run_flow_7():
         cmd = StockRelocationCreate(
             product_id=uuid.UUID(pending[0]["product_id"]),
             uom_id=uom_id,
-            warehouse_id=warehouse_id,
+            warehouse_id=uuid.UUID(pending[0]["warehouse_id"]),
             quantity=min(100.0, pending[0]["available_quantity"]),
-            from_location="",
+            from_location="SYS_RECEIVING",
             to_location=target_location,
             notes="Flow 7: Put-away validation"
         )
@@ -134,10 +139,10 @@ async def run_flow_7():
         # ── STEP 5: Force overflow — should raise ERR_LOCATION_OVERFLOW_UNITS ─
         print("\n[5] Prueba de Overflow Forzado: intentando 500 units en slot de 50 (02-01-01-A)...")
         overflow_cmd = StockRelocationCreate(
-            product_id=product_id,
+            product_id=uuid.UUID(pending[0]["product_id"]),
             uom_id=uom_id,
-            warehouse_id=warehouse_id,
-            quantity=500.0,
+            warehouse_id=uuid.UUID(pending[0]["warehouse_id"]),
+            quantity=Decimal("500.0"),
             from_location="SYS_RECEIVING",
             to_location="02-01-01-A",   # PICKING slot — max 50 units
             notes="Flow 7: Overflow test"

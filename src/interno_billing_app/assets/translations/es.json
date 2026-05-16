@@ -16,7 +16,9 @@
     "warehouse": "Almacén",
     "customer": "Socio Comercial",
     "general_public": "Público en General",
-    "search_partner": "Buscar Socio..."
+    "search_partner": "Buscar Socio...",
+    "select_customer": "SELECCIONAR CLIENTE",
+    "search_hint": "Buscar por nombre o RFC..."
   },
   "auth": {
     "login": "Iniciar Sesión",

@@ -631,19 +631,92 @@ async def seed_tickets(session):
 
 async def seed_industrial_identities(session):
     log.info("[+] Seeding Triple Identity contacts (Collaborators & External)...")
+    from hcm_app.core.security import hash_rfid, hash_pin
     
-    # 1. Collaborator (Plant)
-    collab = Collaborator(
-        id=uuid.UUID("11111111-0001-4001-b001-000000000001"),
+    # ── Carlos Ramírez (Enterprise/Logistics, Supervisor) ──
+    CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
+    collab_carlos = Collaborator(
+        id=CARLOS_ID,
+        internal_id="003709A",
         first_name="Carlos",
         last_name="Ramírez",
-        internal_id="EMP-001",
+        department="Warehouse",
+        is_direct=True,
+        supervisor_id=None,
+        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
+        rfid_tag=hash_rfid("960091919"),
+        pin_code=hash_pin("1234"),
         company_id=ENTERPRISE_ID,
         tenant_id=ENTERPRISE_ID,
+        group_id=GROUP_ID,
+        user_id=CHARLY_ID,
         is_active=True,
         version_id=1
     )
-    await _safe_add(session, collab, "Collaborator: Carlos Ramírez")
+    await _safe_add(session, collab_carlos, "Collaborator: Carlos Ramírez (Enterprise)")
+
+    CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
+    collab_carlos_us = Collaborator(
+        id=CARLOS_US_ID,
+        internal_id="003709A",
+        first_name="Carlos",
+        last_name="Ramírez",
+        department="Warehouse",
+        is_direct=True,
+        supervisor_id=None,
+        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
+        rfid_tag=hash_rfid("960091919"),
+        pin_code=hash_pin("1234"),
+        company_id=LOGISTICS_US_ID,
+        tenant_id=LOGISTICS_US_ID,
+        group_id=GROUP_ID,
+        user_id=CHARLY_ID,
+        is_active=True,
+        version_id=1
+    )
+    await _safe_add(session, collab_carlos_us, "Collaborator: Carlos Ramírez (Logistics US)")
+
+    # ── Luis Torres (Logistics US/MX, Supervisor) ──
+    LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
+    collab_luis_us = Collaborator(
+        id=LUIS_US_ID,
+        internal_id="801",
+        first_name="Luis (USA)",
+        last_name="Torres",
+        department="Logistics",
+        is_direct=True,
+        supervisor_id=None,
+        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
+        rfid_tag=hash_rfid("2327559684"),
+        pin_code=None,
+        company_id=LOGISTICS_US_ID,
+        tenant_id=LOGISTICS_US_ID,
+        group_id=GROUP_ID,
+        is_active=True,
+        version_id=1
+    )
+    await _safe_add(session, collab_luis_us, "Collaborator: Luis Torres (Logistics US)")
+
+    # ── Ana García (Logistics MX, Subordinada de Luis) ──
+    ANA_ID = uuid.UUID("11111111-0003-4001-a001-000000000003")
+    collab_ana = Collaborator(
+        id=ANA_ID,
+        internal_id="301",
+        first_name="Ana",
+        last_name="García",
+        department="Warehouse",
+        is_direct=True,
+        supervisor_id=LUIS_US_ID, # Just for testing hierarchy
+        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
+        rfid_tag=None,
+        pin_code=hash_pin("1234"),
+        company_id=LOGISTICS_MX_ID,
+        tenant_id=LOGISTICS_MX_ID,
+        group_id=GROUP_ID,
+        is_active=True,
+        version_id=1
+    )
+    await _safe_add(session, collab_ana, "Collaborator: Ana García (Logistics MX)")
 
     # 2. External Contact (Provider)
     contact_data = {
@@ -741,6 +814,14 @@ async def run_unified_seed():
         await session.commit()
         log.info("[+] Secciones 1-4 comprometidas exitosamente.")
         
+    # [Phase 84] Customs compliance seed
+    try:
+        from scripts.seed_customs import seed_customs_balances
+        log.info("[4.5/5] Customs Compliance: Generando Pedimentos y Saldos Anexo 24...")
+        await seed_customs_balances()
+    except Exception as e:
+        log.warning(f"Failed to run customs seed: {e}")
+        
     # [Phase 83] Run the industrial locations layout and initial stock flows
     try:
         import sys
@@ -757,6 +838,12 @@ async def run_unified_seed():
         from flows.flow_1_entry import run_flow_1
         log.info("[+] Seeding Initial Stock (Flow 1)...")
         await run_flow_1()
+
+        # [Phase 84] Normalize locations (Industrial Hardening)
+        async with AsyncSessionLocal() as session:
+            log.info("[+] Normalizando ubicaciones (SYS_RECEIVING)...")
+            await session.execute(text("UPDATE inventory_movements SET location = 'SYS_RECEIVING' WHERE location IS NULL OR location = ''"))
+            await session.commit()
     except Exception as e:
         log.warning(f"Failed to run external seed flows: {e}")
 

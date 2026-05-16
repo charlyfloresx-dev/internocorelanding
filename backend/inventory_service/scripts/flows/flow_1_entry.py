@@ -71,7 +71,8 @@ async def run_flow_1():
                 user_id=ids["user_id"],
                 available_quantity=Decimal("150.0"),
                 customs_pedimento_id=ids["pedimento_id"],
-                expiry_date=datetime.now(timezone.utc) + timedelta(days=365)
+                expiry_date=datetime.now(timezone.utc) + timedelta(days=365),
+                location="SYS_RECEIVING"
             )
 
             print("\n[IN] Registrando entrada de inventario...")

@@ -1,5 +1,12 @@
 # Auth Service - Service Log
 
+## [2026-05-16] Phase 106: Industrial Auth & Menu Reconciliation
+- **Industrial JWT Scope Enrichment**: Patched `collaborator_login_command.py` to include the `scopes` claim within the JWT payload. This ensures that Kiosk/Industrial users (Login T1 Bypass) have consistent sidebar menu visibility and persistence across session refreshes.
+- **Role-to-Scope Mapping**: Validated that `resolve_scopes` in `select_company_command.py` and the calculated scopes in `collaborator_login_command.py` are synchronized with the frontend's `NavigationService` blueprint.
+- **Kiosk Auth Validation**: Certified the Pin/RFID login flow via `kiosk_auth_flow.py`, confirming that the generated token contains the necessary scopes for inventory management modules.
+- **Status**: ✅ COMPLETED — Industrial JWT Scopes Synchronized.
+
+
 ## [2026-05-12] Phase 3: CQRS Compliance & Exception Handling
 - **CQRS Compliance**: The `CodeGraphGenerator` was updated to whitelist `auth_service` handshake operations (like `select_company`) from the strict `Unit of Work` atomic requirements, acknowledging that identity operations are primarily token generation rather than core domain mutations.
 - **Status**: ✅ COMPLETED — 100% Code Graph Compliant.
