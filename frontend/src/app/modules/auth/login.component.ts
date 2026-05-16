@@ -538,7 +538,20 @@ export class LoginComponent implements OnDestroy {
 
       try {
         console.group('Industrial Form Auth Flow [v2.2-Hardened]');
-        await this.authService.login({ email: this.email, password: this.password });
+        
+        // Smart Login Detection: If it looks like an industrial ID and not an email
+        const looksLikeIndustrial = !this.email.includes('@') && (/[a-zA-Z]/.test(this.email) || this.email.length <= 8);
+        
+        if (looksLikeIndustrial) {
+          console.log('[Login] 🔐 Industrial ID detected in Admin form. Redirecting to collaborator flow.');
+          await this.authService.collaboratorLogin({
+            internal_id: this.email,
+            pin_code: this.password
+          });
+        } else {
+          await this.authService.login({ email: this.email, password: this.password });
+        }
+        
         this.success.set(true);
         this.loading.set(false);
         console.groupEnd();

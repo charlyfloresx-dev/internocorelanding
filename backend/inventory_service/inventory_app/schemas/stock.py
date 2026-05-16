@@ -75,3 +75,13 @@ class BulkMovementItem(BaseModel):
 class BulkMovementLoad(BaseModel):
     movements: list[BulkMovementItem]
 
+class StockRelocationCreate(BaseModel):
+    warehouse_id: uuid.UUID
+    product_id: uuid.UUID
+    uom_id: uuid.UUID
+    quantity: Decimal
+    from_location: str
+    to_location: str
+    concept_id: Optional[uuid.UUID] = None
+    correlation_id: Optional[uuid.UUID] = None
+

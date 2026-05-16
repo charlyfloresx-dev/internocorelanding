@@ -34,13 +34,12 @@ class NotificationCategory(str, Enum):
     SYSTEM = "SYSTEM"
     SECURITY = "SECURITY"
 
-class Notification(Base):
-    __tablename__ = "notifications"
+from common.infrastructure.models.base import MultiTenantBase
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    
+class Notification(MultiTenantBase):
+    __tablename__ = "notifications"
+    __table_args__ = {"extend_existing": True}
+
     type = Column(String(50), index=True) # e.g., TICKET_CREATED, STOCK_BREAK
     category = Column(SQLEnum(NotificationCategory), default=NotificationCategory.INFO)
     event_id = Column(UUID(as_uuid=True), index=True, nullable=True)
@@ -55,8 +54,6 @@ class Notification(Base):
     # Contexto persistente (JSON es mejor que String Text para industrial)
     payload = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
     recipients = relationship("NotificationRecipient", back_populates="notification", cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -72,13 +69,10 @@ class Notification(Base):
             "payload": self.payload
         }
 
-class NotificationRecipient(Base):
+class NotificationRecipient(MultiTenantBase):
     __tablename__ = "notification_recipients"
+    __table_args__ = {"extend_existing": True}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    
     notification_id = Column(UUID(as_uuid=True), ForeignKey("notifications.id", ondelete="CASCADE"), index=True)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
     

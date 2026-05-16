@@ -154,23 +154,21 @@ async def _first(session, stmt):
 async def _safe_add(session, obj, label=""):
     try:
         async with session.begin_nested():
-            session.add(obj)
+            await session.merge(obj)
             await session.flush()
             
             # [Fase 84] Auditoria Forense en Seed
             await AuditService.log_action(
                 db=session,
                 user_id="SYSTEM_SEED",
-                action="SEED_CREATE",
+                action="SEED_UPSERT",
                 entity_name=obj.__class__.__name__,
                 entity_id=getattr(obj, "id", "N/A"),
                 company_id=getattr(obj, "company_id", None)
             )
-        log.info("  OK   %s", label)
-    except IntegrityError as e:
-        log.warning("  SKIP %s (already exists: %s)", label, e.orig)
+        log.info("  DONE %s (Merged)", label)
     except Exception as e:
-        log.warning("  SKIP %s (failed: %s)", label, type(e).__name__)
+        log.warning("  FAIL %s (error: %s)", label, type(e).__name__)
 
 async def seed_enumerations(session):
     log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
@@ -410,82 +408,13 @@ async def seed_master_data(session):
     await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, max_capacity_units=100.0, zone_type="QUALITY", storage_type="DRY", version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
     await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-TIJ-RECV-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, zone_type="RECEIVING", storage_type="DRY", max_capacity_units=500.0, version_id=1, is_active=True), "Ubicacion: LOC-TIJ-RECV-01")
 
-    # Catalog & Prices
-    log.info("[3/5] Master Data: 5 Productos, Precios MXN/USD y Variantes...")
-    for prod in PRODUCT_CATALOG:
-        m_prod = await session.get(Product, prod['id'])
-        if not m_prod and uom_pz:
-            await _safe_add(session, Product(id=prod['id'], sku=prod['sku'], name=prod['name'], company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, base_uom_id=uom_pz.id, product_type=ProductType.GOODS, version_id=1, is_active=True, min_order_qty=1.0, max_order_qty=1000.0, safety_stock=5.0), f"Producto: {prod['sku']}")
-
-        # Transfer Price MXN (Enterprise -> Logistics)
-        await session.execute(text("""
-            INSERT INTO product_prices (
-                id, product_id, price_list_index, amount, currency, 
-                unit_type, is_active, is_manual, version_id, company_id, tenant_id
-            ) VALUES (
-                :id, :prod_id, 4, :amount, 'MXN', 
-                'SALE', TRUE, FALSE, 1, :co_id, :co_id
-            ) ON CONFLICT DO NOTHING;
-        """), {"id": uuid.uuid4(), "prod_id": prod['id'], "amount": Decimal(str(prod['base_mxn'])), "co_id": ENTERPRISE_ID})
-
-        # Public Sale Price MXN (List 1) - used by Public in General
-        await session.execute(text("""
-            INSERT INTO product_prices (
-                id, product_id, price_list_index, amount, currency, 
-                unit_type, is_active, is_manual, version_id, company_id, tenant_id
-            ) VALUES (
-                :id, :prod_id, 1, :amount, 'MXN', 
-                'SALE', TRUE, FALSE, 1, :co_id, :co_id
-            ) ON CONFLICT DO NOTHING;
-        """), {"id": uuid.uuid4(), "prod_id": prod['id'], "amount": Decimal(str(prod['base_mxn'] * 1.2)), "co_id": ENTERPRISE_ID})
-
-        # B2B Agreement: Cliente Especial Alpha (10% discount on base)
-        alpha_id = uuid.uuid5(uuid.NAMESPACE_DNS, "partner.2")
-        await session.execute(text("""
-            INSERT INTO price_agreements (
-                id, product_id, partner_id, amount, currency, 
-                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id, is_active
-            ) VALUES (
-                :id, :prod_id, :partner_id, :amount, 'MXN', 
-                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id, TRUE
-            ) ON CONFLICT DO NOTHING;
-        """), {
-            "id": uuid.uuid4(), 
-            "prod_id": prod['id'], 
-            "partner_id": alpha_id, 
-            "amount": Decimal(str(prod['base_mxn'] * 0.9)), 
-            "co_id": ENTERPRISE_ID
-        })
-
-        # B2B Agreement: Cliente Especial Beta (20% discount on base)
-        beta_id = uuid.uuid5(uuid.NAMESPACE_DNS, "partner.3")
-        await session.execute(text("""
-            INSERT INTO price_agreements (
-                id, product_id, partner_id, amount, currency, 
-                valid_from, valid_until, source, is_manual, version_id, company_id, tenant_id, is_active
-            ) VALUES (
-                :id, :prod_id, :partner_id, :amount, 'MXN', 
-                NOW(), NULL, 'SEED', FALSE, 1, :co_id, :co_id, TRUE
-            ) ON CONFLICT DO NOTHING;
-        """), {
-            "id": uuid.uuid4(), 
-            "prod_id": prod['id'], 
-            "partner_id": beta_id, 
-            "amount": Decimal(str(prod['base_mxn'] * 0.8)), 
-            "co_id": ENTERPRISE_ID
-        })
-
-        # Transfer Price USD (Logistics MX -> Logistics US)
-        await session.execute(text("""
-            INSERT INTO product_prices (
-                id, product_id, price_list_index, amount, currency, 
-                unit_type, is_active, is_manual, version_id, company_id, tenant_id
-            ) VALUES (
-                :id, :prod_id, 4, :amount, 'USD', 
-                'SALE', TRUE, FALSE, 1, :co_id, :co_id
-            ) ON CONFLICT DO NOTHING;
-        """), {"id": uuid.uuid4(), "prod_id": prod['id'], "amount": Decimal(str(prod['mx_to_us_usd'])), "co_id": LOGISTICS_MX_ID})
-
+    # [Phase 84] Setup Transfer Prices (Enterprise -> Logistics MX -> US)
+    try:
+        from inventory_service.scripts.flows.setup_transfer_prices import setup_prices
+        log.info("[3.5/5] Pricing Context: Configurando Precios de Transferencia...")
+        await setup_prices()
+    except Exception as e:
+        log.warning(f"Failed to run transfer prices seed: {e}")
 
 async def seed_inventory(session):
     log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
@@ -505,26 +434,13 @@ async def seed_inventory(session):
         """), {"id": wh_id, "name": name, "co": cy, "code": code, "cntry": cntry})
         log.info(f"  OK   Shadow WH: {code}")
 
-    now = datetime.now(timezone.utc)
-    for prod in PRODUCT_CATALOG:
-        for var in prod['variants']:
-            await session.execute(text("""
-                INSERT INTO inventory_item_variants (
-                    id, product_id, internal_sku, brand, mfg_part_number, 
-                    unit_price, weight, is_preferred, is_active, version_id,
-                    company_id, tenant_id, created_at
-                ) VALUES (
-                    :id, :prod_id, :sku, :brand, :mpn, 
-                    :price, :weight, FALSE, TRUE, 1,
-                    :co_id, :co_id, :now
-                ) ON CONFLICT DO NOTHING;
-            """), {
-                "id": uuid.uuid4(), "prod_id": prod['id'], "sku": prod['sku'],
-                "brand": var['brand'], "mpn": var['mpn'],
-                "price": Decimal(str(var['price'])), "weight": Decimal(str(var['weight'])),
-                "co_id": ENTERPRISE_ID, "now": now
-            })
-            log.info(f"  OK   Variante: {var['mpn']}")
+    # [Phase 84] Seed Variants (5 products x 3 variants)
+    try:
+        from inventory_service.scripts.flows.seed_variants import seed_variants
+        log.info("[4.5/5] Variants Context: Generando Variantes de Producto...")
+        await seed_variants()
+    except Exception as e:
+        log.warning(f"Failed to run variants seed: {e}")
 
 
 async def seed_partners(session):
@@ -783,72 +699,109 @@ async def seed_subscriptions(session):
             )
             await _safe_add(session, ent, f"Entitlement: {mod} for {cid}")
 
+# --- DB Orchestration Helpers ---
+SERVICE_DB_MAP = {
+    "auth": "dbname", # Auth Service (Core DB)
+    "master": "master_data_db",
+    "inventory": "inventory_db",
+    "subscription": "subscription_db",
+    "hcm": "hcm_db",
+    "tickets": "tickets_db",
+    "notification": "notification_db"
+}
+
+def get_session_factory(db_name: str):
+    """Creates a dedicated engine and session for a specific microservice DB."""
+    base_url = settings.ASYNC_DATABASE_URL
+    # Logic to replace the database name in the URL safely
+    # From: postgresql+asyncpg://user:pass@localhost:5433/dbname
+    # To:   postgresql+asyncpg://user:pass@localhost:5433/db_name
+    import re
+    new_url = re.sub(r'/[a-zA-Z0-9_\-]+(\?.*)?$', f'/{db_name}\\1', base_url)
+    print(f"DEBUG: Connecting to {db_name} -> {new_url}")
+    
+    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    engine = create_async_engine(new_url, pool_pre_ping=True, echo=False)
+    return async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
 # --- Orquestador Principal ---
 async def run_unified_seed():
     log.info("=" * 55)
-    log.info("   InternoCore - Unified Industrial Seed v4")
+    log.info("   InternoCore - Unified Industrial Seed v4 [MULTI-DB]")
     log.info("=" * 55)
 
-    async with AsyncSessionLocal() as session:
-        log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
+    # 1. Auth & Global Enum (Core DB)
+    log.info("\n>>> [SECTION 1] Auth & Enumerations (Auth DB)")
+    auth_factory = get_session_factory(SERVICE_DB_MAP["auth"])
+    async with auth_factory() as session:
         await seed_enumerations(session)
-
-        log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
         await seed_auth(session)
-
-        log.info("[1.5/5] Subscriptions: Plans and Entitlements...")
-        await seed_subscriptions(session)
-
-        log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
-        await seed_partners(session)
-        await session.flush() # Ensure partners are in DB for raw SQL agreements
-        await seed_master_data(session)
-
-        log.info("[3/5] Support: Tickets base...")
-        await seed_tickets(session)
-        await seed_industrial_identities(session)
-
-        log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
-        await seed_inventory(session)
-        
         await session.commit()
-        log.info("[+] Secciones 1-4 comprometidas exitosamente.")
-        
+
+    # 2. Subscriptions
+    log.info("\n>>> [SECTION 2] Subscriptions (Subscription DB)")
+    sub_factory = get_session_factory(SERVICE_DB_MAP["subscription"])
+    async with sub_factory() as session:
+        await seed_subscriptions(session)
+        await session.commit()
+
+    # 3. Master Data
+    log.info("\n>>> [SECTION 3] Master Data (Master Data DB)")
+    master_factory = get_session_factory(SERVICE_DB_MAP["master"])
+    async with master_factory() as session:
+        await seed_partners(session)
+        await session.flush()
+        await seed_master_data(session)
+        await session.commit()
+
+    # 4. Inventory Core & Variants
+    log.info("\n>>> [SECTION 4] Inventory & Variants (Inventory DB)")
+    inv_factory = get_session_factory(SERVICE_DB_MAP["inventory"])
+    async with inv_factory() as session:
+        await seed_inventory(session)
+        await session.commit()
+
+    # 5. Support & HR
+    log.info("\n>>> [SECTION 5] Support & HCM (Dedicated DBs)")
+    tickets_factory = get_session_factory(SERVICE_DB_MAP["tickets"])
+    async with tickets_factory() as session:
+        await seed_tickets(session)
+        await session.commit()
+
+    hcm_factory = get_session_factory(SERVICE_DB_MAP["hcm"])
+    async with hcm_factory() as session:
+        await seed_industrial_identities(session)
+        await session.commit()
+
     # [Phase 84] Customs compliance seed
+    log.info("\n>>> [SECTION 6] Customs Compliance")
     try:
         from scripts.seed_customs import seed_customs_balances
-        log.info("[4.5/5] Customs Compliance: Generando Pedimentos y Saldos Anexo 24...")
         await seed_customs_balances()
     except Exception as e:
         log.warning(f"Failed to run customs seed: {e}")
         
     # [Phase 83] Run the industrial locations layout and initial stock flows
+    log.info("\n>>> [SECTION 7] WMS Industrial Layout & Initial Flows")
     try:
-        import sys
-        import os
-        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sys.path.append(backend_dir)
-        sys.path.append(os.path.join(backend_dir, "inventory_service"))
-        sys.path.append(os.path.join(backend_dir, "inventory_service", "scripts"))
+        # We need to ensure the environment knows which DB to use for these imports
+        os.environ["CORE_DATABASE_URL"] = settings.ASYNC_DATABASE_URL.replace("/dbname", "/inventory_db")
         
         from flows.seed_locations import seed_locations
-        log.info("[5/5] WMS Industrial Layout: Generando Racks y Posiciones...")
         await seed_locations()
         
         from flows.flow_1_entry import run_flow_1
-        log.info("[+] Seeding Initial Stock (Flow 1)...")
         await run_flow_1()
 
-        # [Phase 84] Normalize locations (Industrial Hardening)
-        async with AsyncSessionLocal() as session:
-            log.info("[+] Normalizando ubicaciones (SYS_RECEIVING)...")
+        # Normalize locations
+        async with inv_factory() as session:
             await session.execute(text("UPDATE inventory_movements SET location = 'SYS_RECEIVING' WHERE location IS NULL OR location = ''"))
             await session.commit()
     except Exception as e:
         log.warning(f"Failed to run external seed flows: {e}")
 
-    log.info("=" * 55)
-    log.info("   SEED COMPLETED SUCCESSFULLY")
+    log.info("\n" + "=" * 55)
+    log.info("   UNIFIED SEED COMPLETED SUCCESSFULLY")
     log.info("=" * 55)
 
 if __name__ == "__main__":

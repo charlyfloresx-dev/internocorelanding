@@ -10,11 +10,12 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dbname}
       POSTGRES_USER: ${POSTGRES_USER:-user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-internocore_db_pass_2026}
     ports:
       - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
+      - ../../infrastructure/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh
     networks:
       - interno-network
     healthcheck:
@@ -57,8 +58,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
     ports:
       - "8001:8000"
     depends_on:
@@ -86,8 +87,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/subscription_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/subscription_db
     ports:
       - "8002:8000"
     depends_on:
@@ -115,8 +116,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/master_data_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/master_data_db
     ports:
       - "8003:8000"
     depends_on:
@@ -142,8 +143,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/inventory_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/inventory_db
     ports:
       - "8006:8000"
     depends_on:
@@ -171,8 +172,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/tickets_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/tickets_db
     ports:
       - "8008:8000"
     depends_on:
@@ -199,9 +200,10 @@ services:
       - ../../backend/notification_service:/app/notification_service
       - ../../backend/common:/app/common
     environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-internocore_db_pass_2026}
       PYTHONPATH: /app:/app/notification_service
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/notification_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/notification_db
     ports:
       - "8009:8000"
     depends_on:
@@ -229,8 +231,8 @@ services:
       - ../../backend/common:/app/common
     environment:
       PYTHONPATH: /app
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
-      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/hcm_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/hcm_db
     ports:
       - "8004:8000"
     depends_on:

@@ -13,4 +13,5 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 	CREATE DATABASE viatra_db;
 	CREATE DATABASE kiosk_db;
 	CREATE DATABASE asset_manager_db;
+	CREATE DATABASE notification_db;
 EOSQL

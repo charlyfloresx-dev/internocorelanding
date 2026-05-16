@@ -1,0 +1,19 @@
+﻿DEBUG: Skipping AWS secrets loading (Env: development, SecretID: None)
+DEBUG: Skipping AWS secrets loading (Env: development, SecretID: None)
+DEBUG: Connecting to dbname -> postgresql+asyncpg://user:internocore_db_pass_2026@localhost:5433/dbname
+DEBUG: Connecting to subscription_db -> postgresql+asyncpg://user:internocore_db_pass_2026@localhost:5433/subscription_db
+DEBUG: Connecting to master_data_db -> postgresql+asyncpg://user:internocore_db_pass_2026@localhost:5433/master_data_db
+[2026-05-15 21:56:11.787018] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on Partner (8a1c6b26-173e-594c-bd17-aaa45801ed60)
+[2026-05-15 21:56:11.793636] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on Partner (14062e26-265d-5dd9-958a-5f9941510439)
+[2026-05-15 21:56:11.799924] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on Partner (fb9f0538-3545-52d9-9f7a-b7480fa6efbe)
+[2026-05-15 21:56:11.806082] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on Partner (156cf946-b2fe-59f8-af69-75ce5efaca10)
+[2026-05-15 21:56:11.822812] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on UOM (9e222ea8-d40b-427c-b91a-e839c4576dde)
+[2026-05-15 21:56:11.850078] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on MovementConcept (d1d198e1-24a8-589c-94c1-ec8dafd67ab0)
+[2026-05-15 21:56:11.857925] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on MovementConcept (9d5adb70-dc97-55bd-9419-f9754177b700)
+[2026-05-15 21:56:11.866300] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on MovementConcept (9dbdb03f-9f62-5d6b-b4e2-455f053f9bf4)
+[2026-05-15 21:56:11.874695] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on MovementConcept (ddadd5d4-389c-59a4-a746-29f8617fbf69)
+[2026-05-15 21:56:11.882651] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on MovementConcept (68138523-9d5d-55b7-84b5-c97747748a74)
+[2026-05-15 21:56:11.907118] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on Warehouse (3786afb3-76fc-5b03-9fed-2c664bf6b0d2)
+[2026-05-15 21:56:11.928738] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on InventoryLocation (69c9f22b-1048-4a4a-8ddf-17db2ffbbca7)
+[2026-05-15 21:56:11.936871] AUDIT_SAVED: User SYSTEM_SEED - SEED_UPSERT on InventoryLocation (3f474c90-c9bf-42a9-84a8-3917fc1e21db)
+DEBUG: Connecting to inventory_db -> postgresql+asyncpg://user:internocore_db_pass_2026@localhost:5433/inventory_db

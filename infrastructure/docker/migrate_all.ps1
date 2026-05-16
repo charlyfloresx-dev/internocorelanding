@@ -5,8 +5,10 @@ $services = @(
     "interno-auth-dev",
     "interno-master-data-dev",
     "interno-inventory-dev",
-    "interno-wms-service-dev",
-    "interno-hcm-dev"
+    "interno-hcm-dev",
+    "interno-tickets-dev",
+    "interno-subscription-dev",
+    "interno-notification-dev"
 )
 
 Write-Host "==========================================" -ForegroundColor Cyan

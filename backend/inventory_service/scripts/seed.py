@@ -121,12 +121,23 @@ async def seed_inventory(company_id: uuid.UUID):
             logger.error(f"❌ ERROR: {str(e)}")
             raise
 
+# Known Company IDs from Auth Service Seed
+LOGISTICS_MX_ID = uuid.UUID("ad6cc8a6-34f9-42df-8f29-28254e0ad242")
+ENTERPRISE_ID   = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")
+
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--company-id", required=True)
-    parser.add_argument("--wipe", action="store_true")
+    parser.add_argument("--company-id", required=False, help="Specific company UUID to seed")
+    parser.add_argument("--wipe", action="store_true", help="Wipe existing inventory data")
     args = parser.parse_args()
-    cid = uuid.UUID(args.company_id)
+    
+    # Selection logic: CLI argument or Defaults
+    if args.company_id:
+        company_ids = [uuid.UUID(args.company_id)]
+    else:
+        logger.info("ℹ️ No company-id provided. Seeding for default Dev Companies (MX & Enterprise).")
+        company_ids = [LOGISTICS_MX_ID, ENTERPRISE_ID]
+
     if args.wipe:
         async with AsyncSessionLocal() as session:
             logger.info("🧹 Atomic Wipe...")
@@ -135,7 +146,9 @@ async def main():
             for tab in tabs:
                 await session.execute(text(f"TRUNCATE TABLE {tab} CASCADE"))
             await session.commit()
-    await seed_inventory(cid)
+    
+    for cid in company_ids:
+        await seed_inventory(cid)
 
 if __name__ == "__main__":
     asyncio.run(main())

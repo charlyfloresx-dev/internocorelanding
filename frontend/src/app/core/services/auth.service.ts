@@ -266,10 +266,19 @@ export class AuthService {
     console.group('Auth collaboratorLogin (Kiosk)');
     this.isLoading.set(true);
     try {
+      // Map frontend params to backend CollaboratorLoginRequest schema
+      const payload = {
+        identity_identifier: params.rfid_tag || params.pin_code,
+        access_method: params.rfid_tag ? 'RFID_SCAN' : 'PIN_PAD',
+        internal_id: params.internal_id,
+        terminal_id: 'WEB_LOGIN',
+        company_id: params.company_id
+      };
+
       const resp = await lastValueFrom(
         this.http.post<any>(
-          `${this.apiUrl}/auth/collaborator/login`,
-          params
+          `${this.apiUrl}/auth/collaborator-login`,
+          payload
         )
       );
 

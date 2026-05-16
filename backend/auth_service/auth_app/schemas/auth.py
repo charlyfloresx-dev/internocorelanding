@@ -5,7 +5,7 @@ from typing import List, Optional
 
 class LoginRequest(BaseModel):
     """Datos de entrada para el login inicial (Soporta Email o RFID)."""
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password: Optional[str] = None
 
 class SelectCompanyRequest(BaseModel):

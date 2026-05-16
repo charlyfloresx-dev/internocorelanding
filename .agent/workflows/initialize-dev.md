@@ -32,7 +32,7 @@ docker run --rm --network docker_interno-network -v ${PWD}/backend:/backend -w /
 > [!TIP]
 > Use this if you only need Login, Products, and Stock.
 ```powershell
-docker compose -f infrastructure/docker/docker-compose.dev.yml up -d auth-service master-data-service inventory-service hcm-service gateway
+docker compose -f infrastructure/docker/docker-compose.dev.yml up -d auth-service subscription-service master-data-service inventory-service notification-service hcm-service gateway
 ```
 
 ### Option B: Full Industrial Stack (Everything)

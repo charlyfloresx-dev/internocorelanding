@@ -1,5 +1,12 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-16)
+**Inventory Baseline & Schema Stabilization (Phase 107)**
+- **Migration Flattening**: Consolidated all legacy migrations into a single `000_inventory_baseline.py` to ensure a clean, idempotent bootstrap.
+- **Audit & Multi-Tenancy Hardening**: Injected missing audit and multitenant columns into all 15 core inventory tables, ensuring consistency with the global Code Knowledge Graph.
+- **Deterministic Seeding**: Refactored the local `seed.py` to target default development companies automatically, facilitating cold-starts without manual configuration.
+- **Infrastructure Cleanup**: Deprecated `migrate_schema.py` and updated `entrypoint.sh` for an Alembic-first strategy.
+
 ## 🕒 Última Actividad (2026-05-13)
 **Resilience Stress-Test & Idempotency (Phase 101)**
 - **Bulk Load Idempotency**: Integrated `X-Idempotency-Key` (UUIDv4) support in `bulk-load` endpoint. Batches are now registered in `idempotency_keys` table to prevent duplication during network retries.

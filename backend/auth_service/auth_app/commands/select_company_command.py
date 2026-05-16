@@ -30,13 +30,23 @@ ROLE_SCOPE_MAP = {
         "wms:manage",
         "auth:user:manage",
         "investments:manage",
+        "master_data:read", "master_data:write",
+        "inventory:read", "inventory:write",
+        "notification:read", "notification:write"
     ],
     "warehouse_operator": [
         "inv:movements:manage", "inv:warehouse:manage",
         "master:catalog:manage",
+        "master_data:read",
+        "inventory:read", "inventory:write",
+        "notification:read"
     ],
     "collaborator": [
-        "inv:movements:manage",
+        "inv:movements:manage", "inv:warehouse:manage",
+        "master:catalog:manage",
+        "master_data:read",
+        "inventory:read",
+        "notification:read"
     ],
 }
 

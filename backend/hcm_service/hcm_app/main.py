@@ -63,9 +63,9 @@ async def lifespan(app: FastAPI):
     logger.info("Iniciando InternoCore HR-Service...")
     if not await wait_for_db(engine):
         sys.exit(1)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        logger.info("Esquema HR sincronizado.")
+    # async with engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.create_all)
+    #     logger.info("Esquema HR sincronizado.")
     yield
     logger.info("Apagando HR-Service.")
 

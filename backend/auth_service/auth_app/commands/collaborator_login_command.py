@@ -140,12 +140,22 @@ async def collaborator_login(
 
     # Permission logic
     has_inventory_access = (dept == "Warehouse" or is_supervisor)
-    permissions = ["INVENTORY_READ", "INVENTORY_WRITE", "PHYSICAL_SCAN"] if has_inventory_access else []
     
-    # Scopes compatibles con el frontend (Sidebar)
-    scopes = ["inv:movements:manage"] if has_inventory_access else []
-    if is_supervisor or dept == "Warehouse":
-        scopes.append("inv:warehouse:manage")
+    # Scopes compatibles con el frontend (Sidebar) y Backend (Security)
+    scopes = [
+        "inv:movements:manage", 
+        "inv:warehouse:manage",
+        "master:catalog:manage",
+        "master_data:read",
+        "inventory:read",
+        "notification:read"
+    ]
+    
+    # Permissions granulares (Internal logic)
+    permissions = ["PHYSICAL_SCAN", "INVENTORY_READ"]
+    if has_inventory_access:
+        permissions.append("INVENTORY_WRITE")
+        scopes.append("master_data:write")
 
     token = security._encode({
         "exp": expire,

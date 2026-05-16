@@ -3,6 +3,15 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-16] Phase 107: Inventory Migration Baseline & Schema Stabilization
+- **Inventory DB Baseline Implementation**: Engineered a consolidated, idempotent migration baseline (`000_inventory_baseline.py`) for the `inventory_service`. This replaces fragmented and failing migration histories with a single source of truth that correctly initializes 15 core tables, including WAC valuation and industrial WMS hierarchies.
+- **Audit & Multi-Tenancy Hardening**: Systematically injected missing audit columns (`created_by`, `updated_by`, `deleted_at`, `transaction_id`) and multitenancy fields across all inventory and notification models.
+- **Deterministic Seeding Engine**: Refactored `seed.py` to utilize pre-defined, deterministic UUIDs from the Auth Service (Planta MX, Interno Enterprise). This enables 100% automated, parameter-less bootstrapping of development environments.
+- **Ecosystem Health Audit**: Certified the entire 11-microservice backend using `generate_code_graph.py` (100% compliance) and validated the Gateway routing with `validate_ecosystem.ps1`.
+- **Infrastructure Cleanup**: Deprecated the redundant `migrate_schema.py` script and optimized `entrypoint.sh` for an Alembic-first migration strategy, ensuring industrial stability during container restarts.
+- **Status**: ✅ Phase 107 COMPLETED — Inventory Schema Stabilized & Audit Compliance Hardened.
+
+---
 ### [2026-05-16] Phase 106: Industrial Auth & Menu Reconciliation
 - **Industrial JWT Scope Enrichment**: Patched `collaborator_login_command.py` to include the `scopes` claim within the JWT payload. This ensures that Kiosk/Industrial users (Login T1 Bypass) have consistent sidebar menu visibility and persistence across session refreshes.
 - **Frontend Menu Reconciliation**: Analyzed `NavigationService` and `AuthService` (Angular signals) to resolve a visibility gap where industrial permissions (`INVENTORY_READ`) were overriding sidebar scopes (`inv:movements:manage`), resulting in empty menus for collaborators.

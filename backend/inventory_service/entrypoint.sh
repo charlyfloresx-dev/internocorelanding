@@ -5,12 +5,10 @@ echo "=========================================="
 echo "  InternoCore Inventory-Service Bootstrap"
 echo "=========================================="
 
-# --- PASO 1: Migraciones Alembic e Iniciales (SIEMPRE PRIMERO) ---
+# --- PASO 1: Migraciones Alembic (SIEMPRE PRIMERO) ---
 echo ""
-echo ">> [1/3] Ejecutando schema inicial de base de datos..."
-python scripts/migrate_schema.py || true
-echo ">> Ejecutando migraciones Alembic..."
-python -m alembic upgrade head || echo "⚠️ Alembic warning (can be ignored on fresh DB since create_all is used)"
+echo ">> [1/3] Ejecutando migraciones Alembic..."
+python -m alembic upgrade head || echo "⚠️ Alembic failed. Check logs."
 echo "   ✅ Migraciones aplicadas."
 
 # --- PASO 2: Seed (tolerante a fallos) ---

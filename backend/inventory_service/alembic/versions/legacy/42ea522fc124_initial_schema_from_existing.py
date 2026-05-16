@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '42ea522fc124'
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = '000_inventory_baseline'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -27,13 +27,6 @@ def _table_exists(name):
 def _safe_index(index_name, table_name, columns, **kwargs):
     try:
         op.create_index(index_name, table_name, columns, **kwargs)
-    except Exception:
-        pass
-
-
-def _safe_drop_column(table_name, column_name):
-    try:
-        op.drop_column(table_name, column_name)
     except Exception:
         pass
 
@@ -93,11 +86,8 @@ def upgrade() -> None:
         _safe_index(op.f('ix_stock_lots_group_id'), 'stock_lots', ['group_id'], unique=False)
         _safe_index(op.f('ix_stock_lots_product_id'), 'stock_lots', ['product_id'], unique=False)
 
-    _safe_drop_column('inter_company_transfers', 'revenue_a_amount')
-    _safe_drop_column('inter_company_transfers', 'cost_b_amount')
-    _safe_drop_column('inter_company_transfers', 'unit_price_amount')
-    _safe_drop_column('inter_company_transfers', 'wac_origin_amount')
-    _safe_drop_column('inventory_movements', 'unit_price_amount')
+    # Removed unsafe drop_column calls that assume existing tables from monolith.
+    # These are handled in the baseline or subsequent hardening migrations.
     # ### end Alembic commands ###
 
 
