@@ -187,14 +187,14 @@ def create_admin_god_token(
     correlation_id: Optional[str] = None,
 ) -> str:
     """
-    Technical Rescue Token (God Mode).
-    Carries bypass_tenant=True. Hard-coded 30-min life.
+    Technical Rescue Token (God Mode) — legacy, 30-min.
+    Usado por /admin/handshake (backward compat). Prefer create_god_mode_token() para nuevas integraciones.
     """
     expire = datetime.now(timezone.utc) + timedelta(minutes=30)
     return _encode({
         "exp": expire,
         "sub": str(subject),
-        "typ": "access",          # passes the typ guard on protected endpoints
+        "typ": "access",
         "bypass_tenant": True,
         "role_names": ["GOD_MODE_ADMIN"],
         "scopes": ["*"],
@@ -202,3 +202,34 @@ def create_admin_god_token(
         "status": "ADMIN",
         "correlation_id": correlation_id,
     })
+
+
+def create_god_mode_token(
+    subject: uuid.UUID,
+    company_id: Optional[uuid.UUID] = None,
+    correlation_id: Optional[str] = None,
+) -> tuple[str, str]:
+    """
+    Emergency access token para el panel frontend /admin/system-control.
+    TTL: 300 segundos (un turno de emergencia mínimo).
+    Retorna (token, jti) — el jti debe escribirse en Redis con TTL=300
+    para permitir revocación inmediata vía 'cerrar todas las sesiones'.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(seconds=300)
+    jti = str(uuid.uuid4())
+    token = _encode({
+        "exp": expire,
+        "sub": str(subject),
+        "typ": "access",
+        "company_id": str(company_id) if company_id else None,
+        "cid": str(company_id) if company_id else None,
+        "role_names": ["admin"],
+        "scopes": ["*"],
+        "modules": ["*"],
+        "status": "ACTIVE",
+        "god_mode": True,
+        "jti": jti,
+        "correlation_id": correlation_id,
+        "readonly": False,
+    })
+    return token, jti

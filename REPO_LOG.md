@@ -4,6 +4,27 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 ---
+### [2026-05-18] Phase 113: Security Hardening Sprint 1 — BOLA Fix, GOD MODE Audit, RLS Protection
+
+**Objetivo:** Remediar los 6 hallazgos críticos/altos identificados en auditoría de seguridad (pentesting estático). Blindar el SaaS multi-tenant frente a BOLA, SQL injection en RLS, price enumeration, y bypass de autenticación no auditado.
+
+- **[C-1] `common/config.py` — Eliminado default hardcodeado `"GOD_MODE_ACTIVE"`**: El `Field` de `int_admin_master_key` ya no tiene `default`. Si `CORE_ADMIN_MASTER_KEY` no está en el entorno, el proceso falla al arrancar (fail-closed). Agregado `@field_validator` que bloquea valores trivialmente conocidos y longitud < 16.
+- **[C-1b] `common/middleware.py` — Bypass GOD MODE usa `settings`**: `bypass_tenant` ya no compara contra el string literal `"GOD_MODE_ACTIVE"` — usa `_settings.int_admin_master_key`. Adicionalmente, `/admin/elevate` agregado a `is_public_route` (es un endpoint pre-auth, sin JWT).
+- **[C-1c] `subscription_guard.py` — Audit log en cada activación GOD MODE**: Cada activación del break-glass emite `logger.critical` con IP, user-agent, path, trace_id, y persiste en `audit_logs` con `AuditService` via `asyncio.create_task`. El `getattr` fallback con `"GOD_MODE_ACTIVE"` eliminado.
+- **[C-2] `common/infrastructure/database.py` — RLS hook blindado**: UUID validado estrictamente antes de interpolación en `SET LOCAL`. `except: pass` reemplazado por `connection_record.invalidate() + raise` — un fallo de RLS ya no es silencioso; invalida la conexión y lanza 500 explícito.
+- **[C-3] `inventory_service/pos.py` — BOLA eliminado**: (a) Validación de `warehouse_id` contra `token.company_id` antes de procesar ítems. (b) Query a `products` ahora incluye `AND company_id = :cid`. Ambas rutas usaban `text()` raw que bypassea el `do_orm_execute` interceptor.
+- **[H-1] `pos.py` — Price enumeration**: El 400 ya no devuelve `resolved_price` ni SKU — solo `ERR_PRICE_MISMATCH` genérico.
+- **[H-3] `pos.py` — `RequirePermission("pos.checkout")`**: Reemplaza el `SubscriptionGuard` raw. Solo usuarios con el slug `pos.checkout` en su JWT pueden procesar checkouts.
+- **[H-2] `pos.py` — Float prohibido eliminado**: `float(sale.total_amount)` → `str(sale.total_amount)` en el documento creado (preserva precisión Decimal en DB).
+- **`AuditService.log_action()`**: Firma extendida con `ip_address` y `user_agent` opcionales, mapeados a `client_ip` y `user_agent` del modelo `AuditLog`. Eliminado el `print()` de confirmación.
+- **`auth_service/core/security.py` — `create_god_mode_token()`**: Nueva función que retorna `(token, jti)` con TTL 300s, claim `god_mode: True`, y JTI único para revocación en Redis. `create_admin_god_token()` legacy conservado (30min, backward compat).
+- **`auth_service/admin.py` — `POST /api/v1/admin/elevate`**: Endpoint frontend del break-glass. Rate limit 3/hour, valida key contra `settings`, emite `create_god_mode_token()`, persiste en `audit_logs` con IP/UA/JTI. Retorna `{ access_token, expires_in: 300, metadata.jti }`.
+- **`auth_service/admin.py` — `GET /api/v1/admin/security-logs`**: Panel de alertas. Requiere JWT con `scopes=["*"]`. Queries `audit_logs WHERE action LIKE 'GOD_MODE%'` con `ignore_tenant_filter=True`.
+- **Validación live**: 5 tests automatizados contra gateway (8000): clave correcta → 200+JTI ✅, clave incorrecta → 401 ✅, sin header → 422 ✅, `/security-logs` con token → 4 eventos ✅, sin token → 401 ✅.
+- **Ecosistema**: 8/8 servicios `[ OK ]`, Code Graph 0 CRITICALs en todos los microservicios.
+- **Status**: ✅ Phase 113 COMPLETED — Sprint 1 de hardening de seguridad aplicado. BOLA, RLS injection, price enumeration y GOD MODE bypass mitigados.
+
+---
 ### [2026-05-18] Phase 112: RBAC Full-Stack — DB Seed, JWT Scopes, Angular Guards
 
 **Objetivo:** Cerrar el cortocircuito central del sistema RBAC: la infraestructura de DB, repositorios y guards existía al 100% pero las tablas estaban vacías, por lo que el sistema dependía de `ROLE_SCOPE_MAP` hardcodeado. Esta fase conecta la cadena completa: DB → JWT → Frontend → Rutas.

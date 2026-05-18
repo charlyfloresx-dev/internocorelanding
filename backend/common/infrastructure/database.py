@@ -1,5 +1,10 @@
+import uuid as _uuid
+import logging as _logging
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from common.config import settings
+
+_rls_log = _logging.getLogger("security.rls")
 
 # Unified Database Engine with industrial pooling settings
 engine = create_async_engine(settings.ASYNC_DATABASE_URL, pool_pre_ping=True, pool_size=settings.DB_POOL_SIZE,
@@ -75,12 +80,18 @@ def set_tenant_on_checkout(dbapi_connection, connection_record, connection_proxy
     cursor = dbapi_connection.cursor()
     try:
         if ctx and ctx.company_id:
-            cursor.execute(f"SET app.current_tenant = '{ctx.company_id}';")
+            # Validar UUID estrictamente antes de interpolarlo — previene inyección SQL
+            tenant_str = str(_uuid.UUID(str(ctx.company_id)))
+            cursor.execute(f"SET LOCAL app.current_tenant = '{tenant_str}';")
         else:
-            # Reseteo de seguridad: Evita que un query crudo sin contexto 
-            # herede el tenant de la request anterior en esta conexión reciclada.
+            # Reseteo de seguridad: evita que una conexión reciclada herede el tenant anterior
             cursor.execute("RESET app.current_tenant;")
     except Exception as e:
-        pass  # Evitar que la aplicación caiga en el checkout por fallos de red
+        # RLS falló — invalidar la conexión para que NO vuelva al pool contaminada
+        _rls_log.critical(
+            "[RLS_FAILURE] Tenant isolation set failed — invalidating connection. error=%s", e
+        )
+        connection_record.invalidate()
+        raise  # 500 explícito es preferible a un data leak silencioso
     finally:
         cursor.close()

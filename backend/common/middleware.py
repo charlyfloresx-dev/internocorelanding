@@ -12,6 +12,7 @@ from common.responses import ApiResponse, ApiMeta
 from common.context import request_context
 from common.domain.entities.user_context import UserContext
 from common.security.auth_payload import TokenPayload
+from common.config import settings as _settings
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,9 @@ class InternoCoreEncoder(json.JSONEncoder):
         import datetime
         if isinstance(obj, (datetime.datetime, datetime.date)):
             return obj.isoformat()
+        from decimal import Decimal
+        if isinstance(obj, Decimal):
+            return float(obj)
         return super().default(obj)
 
 class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
@@ -50,19 +54,20 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
         
         # 1. PUBLIC ROUTES IDENTIFICATION (Improved)
         is_public_route = any(x in path for x in [
-            "/auth/login", 
+            "/auth/login",
             "/auth/social-login",
             "/auth/select-company",
             "/auth/collaborator",
             "/auth/refresh",
             "/auth/request-password-reset",
             "/auth/confirm-password-reset",
+            "/admin/elevate",        # break-glass pre-auth — no JWT ni company_id requeridos
             "/public/register-company",
             "/internal/",
-            "/docs", 
-            "/openapi.json", 
-            "/redoc", 
-            "/static", 
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            "/static",
             "/health",
             "/api/v1/health",
             "/download/native",
@@ -112,7 +117,11 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                 pass
 
         # 3. SECURITY BYPASS (GOD MODE / INTERNAL TRUST)
-        bypass_tenant = request.headers.get("X-Admin-Master-Key") == "GOD_MODE_ACTIVE"
+        # Usar settings para comparar — nunca hardcodear la clave en el middleware
+        bypass_tenant = (
+            bool(request.headers.get("X-Admin-Master-Key"))
+            and request.headers.get("X-Admin-Master-Key") == _settings.int_admin_master_key
+        )
         
         # 3.2 TENANT CROSS-CHECK (Security Lockdown)
         if not bypass_tenant and not is_public_route:

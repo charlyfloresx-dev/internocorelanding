@@ -197,10 +197,23 @@ class InternoSettings(BaseSettings):
         default="INTERNO_HR_RFID_DEFAULT_SALT_CHANGE_ME",
         validation_alias=AliasChoices("CORE_HR_RFID_SALT", "RFID_STATIC_SALT")
     )
+    # REQUERIDO — sin default. Si no está en el entorno, el proceso falla al iniciar (fail-closed).
     int_admin_master_key: str = Field(
-        default="GOD_MODE_ACTIVE",
-        validation_alias=AliasChoices("CORE_ADMIN_MASTER_KEY", "ADMIN_MASTER_KEY")
+        validation_alias=AliasChoices("CORE_ADMIN_MASTER_KEY", "ADMIN_MASTER_KEY"),
+        description="Llave maestra break-glass. Mínimo 16 chars. Sin default."
     )
+
+    @field_validator("int_admin_master_key")
+    @classmethod
+    def validate_master_key_strength(cls, v: str) -> str:
+        # Bloquear el default histórico que era trivialmente conocido
+        _literal_defaults = {"god_mode_active", "admin", "password", "change_me"}
+        if v.lower() in _literal_defaults or len(v) < 16:
+            raise ValueError(
+                "CORE_ADMIN_MASTER_KEY es demasiado débil o usa un valor por defecto conocido. "
+                "Configura una clave de alta entropía (≥16 chars)."
+            )
+        return v
 
     # ── CURRENCY / BANXICO ──────────────────────────────────────────────────
     int_banxico_token: Optional[str] = Field(

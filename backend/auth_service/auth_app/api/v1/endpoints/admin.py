@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import text
 import uuid
-from typing import List
+from typing import List, Optional
 
 from auth_app.dependencies import get_db
 from auth_app.models.user import User
@@ -11,10 +12,14 @@ from auth_app.models.role import Role
 from common.config import settings
 from common.repository import BaseRepository
 from common.responses import ApiResponse
-from auth_app.core.security import create_admin_god_token
+from auth_app.core.security import create_admin_god_token, create_god_mode_token
+from common.services.audit_service import AuditService
+from common.security.subscription_guard import SubscriptionGuard
+from common.security.auth_payload import TokenPayload
+from common.security.limiter import limiter
 import logging
 
-audit_logger = logging.getLogger("auth_service.admin_audit")
+audit_logger = logging.getLogger("security.god_mode")
 
 router = APIRouter()
 
@@ -124,24 +129,145 @@ async def god_mode_handshake(
     request: Request
 ):
     """
-    [GOD MODE] Intercambia el Master Key por un JWT de Rescate Técnico.
-    El token emitido permite el bypass de tenant por 30 minutos.
+    [GOD MODE] Intercambia el Master Key por un JWT de Rescate Técnico (30 min).
+    Legacy — usar /elevate para nuevas integraciones con el panel frontend.
     """
     transaction_id = getattr(request.state, "transaction_id", str(uuid.uuid4()))
-    
-    # REGISTRO INMUTABLE (Simulado con Logger específico de Auditoría)
-    audit_logger.warning(
-        f"[AUDIT][GOD_MODE_HANDSHAKE] | User: {user_id} | TX: {transaction_id} | IP: {request.client.host}"
+    audit_logger.critical(
+        "[GOD_MODE_HANDSHAKE] user=%s ip=%s tx=%s",
+        user_id,
+        request.client.host if request.client else "unknown",
+        transaction_id,
     )
-
     token = create_admin_god_token(subject=user_id, correlation_id=transaction_id)
-    
     return ApiResponse(
         status="success",
         message="God Mode Handshake successful. Token generated.",
+        data={"access_token": token, "token_type": "bearer", "expires_in": 1800},
+    )
+
+
+@router.post("/elevate", response_model=ApiResponse)
+@limiter.limit("3/hour")
+async def god_mode_elevate(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    x_admin_master_key: str = Header(..., alias="X-Admin-Master-Key"),
+    x_company_id: Optional[str] = Header(None, alias="X-Company-ID"),
+):
+    """
+    [GOD MODE] Panel de emergencia frontend — valida la master key y emite un token
+    de 300 segundos (5 min) con scopes wildcard y JTI rastreable en Redis.
+    Rate limit: 3 intentos / hora / IP.
+    """
+    if not x_admin_master_key or x_admin_master_key != settings.int_admin_master_key:
+        audit_logger.warning(
+            "[GOD_MODE_ELEVATE_FAIL] ip=%s ua=%s",
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "")[:80],
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "ERR_INVALID_MASTER_KEY", "message": "Llave maestra inválida."},
+        )
+
+    correlation_id = str(uuid.uuid4())
+    company_id = uuid.UUID(x_company_id) if x_company_id else None
+    # Sujeto sintético para sesiones god-mode sin usuario DB
+    god_subject = uuid.UUID("00000000-0000-0000-0000-000000000000")
+
+    token, jti = create_god_mode_token(
+        subject=god_subject,
+        company_id=company_id,
+        correlation_id=correlation_id,
+    )
+
+    client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")[:255]
+
+    # Registro crítico — ambos canales (logger + DB) para máxima trazabilidad
+    audit_logger.critical(
+        "[SECURITY_ALERT] GOD_MODE_ACTIVATED via /elevate | ip=%s | ua=%s | company=%s | jti=%s | trace=%s",
+        client_ip, user_agent[:80], x_company_id, jti, correlation_id,
+    )
+    await AuditService.log_action(
+        db=db,
+        user_id="GOD_MODE_ELEVATE",
+        action="GOD_MODE_ACTIVATED",
+        entity_name="system_access",
+        entity_id=x_company_id or "GLOBAL",
+        ip_address=client_ip,
+        user_agent=user_agent,
+        new_value={
+            "jti": jti,
+            "company_id": x_company_id,
+            "correlation_id": correlation_id,
+            "expires_in": 300,
+        },
+    )
+    await db.commit()
+
+    return ApiResponse(
+        status="success",
+        message="Sesión de emergencia activada. Esta sesión está siendo estrictamente auditada.",
         data={
             "access_token": token,
             "token_type": "bearer",
-            "expires_in": 1800
-        }
+            "expires_in": 300,
+            "metadata": {
+                "scope": ["*"],
+                "role": "admin",
+                "jti": jti,
+                "warning": "Esta sesión está siendo estrictamente auditada en el log del servidor.",
+            },
+        },
     )
+
+
+@router.get("/security-logs", response_model=ApiResponse)
+async def get_security_logs(
+    request: Request,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="auth_core")),
+):
+    """
+    Panel de alertas de seguridad — eventos GOD_MODE y SECURITY_ALERT del audit trail.
+    Requiere JWT con scopes wildcard o rol admin.
+    """
+    if not (token.scopes and "*" in token.scopes):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "ERR_INSUFFICIENT_SCOPE", "message": "Se requiere scope de administrador."},
+        )
+
+    rows = await db.execute(
+        text("""
+            SELECT
+                id,
+                action        AS event_type,
+                action        AS message,
+                client_ip     AS ip_address,
+                user_agent,
+                timestamp,
+                new_value
+            FROM audit_logs
+            WHERE action LIKE 'GOD_MODE%' OR action LIKE 'SECURITY_ALERT%'
+            ORDER BY timestamp DESC
+            LIMIT :limit
+        """).execution_options(ignore_tenant_filter=True),
+        {"limit": min(limit, 200)},
+    )
+    events = [
+        {
+            "id": str(row.id),
+            "event_type": "SECURITY_ALERT",
+            "message": row.event_type,
+            "ip_address": row.ip_address or "unknown",
+            "user_agent": row.user_agent or "unknown",
+            "timestamp": row.timestamp.isoformat() if row.timestamp else None,
+            "metadata": row.new_value or {},
+        }
+        for row in rows
+    ]
+    return ApiResponse(status="success", data=events, message=f"{len(events)} security events found.")

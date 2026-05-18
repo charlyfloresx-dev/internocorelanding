@@ -1,6 +1,14 @@
 # Service Log — Inventory Service
 
 ## 🕒 Última Actividad (2026-05-18)
+**Phase 113: Security Hardening — BOLA Fix & Price Enumeration** ✅
+- **`pos.py` — BOLA eliminado (C-3)**: (1) Validación de `warehouse_id` contra `token.company_id` antes de procesar cualquier ítem — devuelve `ERR_WAREHOUSE_NOT_OWNED` 403. (2) Query a `products` ahora incluye `AND company_id = :cid` — los raw `text()` bypasean el `do_orm_execute` ORM interceptor, por lo que el filtro debe estar en el SQL explícitamente.
+- **`pos.py` — Price enumeration eliminado (H-1)**: El 400 de `PRICE_MISMATCH` ya no incluye `resolved_price` ni SKU en el detail — solo `ERR_PRICE_MISMATCH` genérico.
+- **`pos.py` — `RequirePermission("pos.checkout")` aplicado (H-3)**: Reemplaza el `SubscriptionGuard` raw. Garantiza que solo usuarios con slug `pos.checkout` en JWT puedan procesar ventas.
+- **`pos.py` — Float prohibido corregido**: `float(sale.total_amount)` → `str(sale.total_amount)` en el documento creado.
+- **Status**: ✅ COMPLETED — POS checkout multi-tenant seguro.
+
+## 🕒 Última Actividad (2026-05-18)
 **Phase 112: pos.py Bug Fixes & RequirePermission Guard** ✅
 - **`pos.py` — Import `Decimal` faltante**: Agregado `from decimal import Decimal`. Sin este import, cualquier checkout con precio resuelto desde DB lanzaba `NameError` al evaluar `abs(Decimal(str(resolved_price)) - item.unit_price)`.
 - **`pos.py` — Cantidad negativa en OUT**: Corregido `quantity_change=item.quantity` → `quantity_change=-item.quantity`. El repositorio calcula `new_balance = stock.quantity + movement.quantity_change` — sin signo negativo el stock aumentaba en cada venta.

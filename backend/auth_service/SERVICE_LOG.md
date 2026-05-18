@@ -1,5 +1,16 @@
 # Auth Service - Service Log
 
+## [2026-05-18] Phase 113: Security Hardening — GOD MODE Audit + Break-Glass Panel ✅
+
+- **`admin.py` — `POST /api/v1/admin/elevate`**: Endpoint break-glass para el panel `/admin/system-control` del frontend. Rate limit `3/hour` por IP. Valida `X-Admin-Master-Key` contra `settings` (no hardcode). Emite `create_god_mode_token()` con TTL 300s, JTI único, claim `god_mode: True`. Persiste en `audit_logs` con IP, user-agent, JTI, correlation_id. Respuesta incluye `{ access_token, expires_in: 300, metadata.jti, warning }`.
+- **`admin.py` — `GET /api/v1/admin/security-logs`**: Panel de alertas de seguridad. Requiere JWT con `scopes=["*"]`. Query `audit_logs WHERE action LIKE 'GOD_MODE%'` con `ignore_tenant_filter=True`. Retorna eventos con IP, UA, JTI, timestamp.
+- **`core/security.py` — `create_god_mode_token()`**: Nueva función separada de `create_admin_god_token()`. Retorna `(token: str, jti: str)`. TTL 300s. JTI para tracking Redis y revocación.
+- **Middleware fix**: `bypass_tenant` en `common/middleware.py` ya no compara contra `"GOD_MODE_ACTIVE"` literal. Usa `_settings.int_admin_master_key`.
+- **Validación live (5 tests vía gateway)**: key correcta → 200+JTI ✅ | key incorrecta → 401 ✅ | sin header → 422 ✅ | `/security-logs` con god-token → 4 eventos ✅ | sin token → 401 ✅.
+- **Status**: ✅ COMPLETED — Break-glass panel operativo y auditado.
+
+---
+
 ## [2026-05-18] Phase 112: RBAC Full-Stack — DB Seed & JWT Scopes
 
 - **Migración `a1b2c3d4e5f6` aplicada**: Siembra 23 Permission slugs, 4 roles sistema (UUIDs estables `10000000-...`), y 33 role_permissions. Idempotente. DB verificada: `collaborator(5)`, `warehouse_operator(7)`, `manager(21)`, `admin(0)`.

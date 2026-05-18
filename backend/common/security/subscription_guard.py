@@ -21,9 +21,10 @@ class SubscriptionGuard:
         trace_id = getattr(request.state, "transaction_id", None) or str(uuid.uuid4())
         
         if not token_data:
-            # GOD MODE: Synthesize admin token if master key is present
-            master_key = getattr(settings, "int_admin_master_key", "GOD_MODE_ACTIVE")
-            if request.headers.get("X-Admin-Master-Key") == master_key:
+            # GOD MODE (break-glass): valida sin fallback — falla cerrado si la clave no está configurada
+            master_key = settings.int_admin_master_key
+            provided_key = request.headers.get("X-Admin-Master-Key", "")
+            if provided_key and provided_key == master_key:
                 company_id = request.headers.get("X-Company-ID")
                 token_data = TokenPayload(
                     sub=uuid.UUID("00000000-0000-0000-0000-000000000000"),
@@ -37,6 +38,46 @@ class SubscriptionGuard:
                     accessible_warehouses=[]
                 )
                 request.state.user_token = token_data
+
+                # Registro inmutable de cada activación — siempre, sin excepciones
+                import logging as _logging
+                _sec_log = _logging.getLogger("security.god_mode")
+                _sec_log.critical(
+                    "[SECURITY_ALERT] GOD_MODE_ACTIVATED | ip=%s | ua=%s | company=%s | path=%s | trace=%s",
+                    request.client.host if request.client else "unknown",
+                    request.headers.get("user-agent", "unknown")[:120],
+                    company_id,
+                    request.url.path,
+                    trace_id,
+                )
+                # Audit DB (fire-and-forget aceptable aquí porque es un evento de seguridad,
+                # no de negocio — el logger crítico ya garantiza la trazabilidad)
+                try:
+                    from common.infrastructure.database import AsyncSessionLocal
+                    from common.services.audit_service import AuditService
+                    import asyncio
+
+                    async def _log_god_mode():
+                        async with AsyncSessionLocal() as _db:
+                            await AuditService.log_action(
+                                db=_db,
+                                user_id="GOD_MODE",
+                                action="GOD_MODE_ACTIVATED",
+                                entity_name="system_access",
+                                entity_id=company_id,
+                                ip_address=request.client.host if request.client else "unknown",
+                                user_agent=request.headers.get("user-agent", "unknown")[:255],
+                                new_value={
+                                    "path": request.url.path,
+                                    "method": request.method,
+                                    "trace_id": trace_id,
+                                },
+                            )
+                            await _db.commit()
+
+                    asyncio.create_task(_log_god_mode())
+                except Exception:
+                    pass  # El logger crítico ya tiene el evento — no propagar error aquí
             else:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

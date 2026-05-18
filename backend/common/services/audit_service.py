@@ -9,17 +9,19 @@ class AuditService:
     
     @staticmethod
     async def log_action(
-        db: AsyncSession, 
-        user_id: Any, 
-        action: str, 
-        entity_name: str, 
-        entity_id: Any, 
+        db: AsyncSession,
+        user_id: Any,
+        action: str,
+        entity_name: str,
+        entity_id: Any,
         details: Optional[str] = None,
         company_id: Optional[uuid.UUID] = None,
         old_value: Optional[dict] = None,
         new_value: Optional[dict] = None,
         collaborator_id: Optional[uuid.UUID] = None,
-        external_contact_id: Optional[uuid.UUID] = None
+        external_contact_id: Optional[uuid.UUID] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
     ):
         """Registra una acción en el ledger de auditoría."""
         log = AuditLog(
@@ -34,11 +36,12 @@ class AuditService:
             new_value=new_value,
             collaborator_id=collaborator_id,
             external_contact_id=external_contact_id,
-            timestamp=datetime.now()
+            client_ip=ip_address,
+            user_agent=user_agent,
+            timestamp=datetime.now(),
         )
         db.add(log)
-        await db.flush() # Ensure it's part of the current transaction
-        print(f"[{datetime.now()}] AUDIT_SAVED: User {user_id} - {action} on {entity_name} ({entity_id})")
+        await db.flush()
         return True
 
     @staticmethod

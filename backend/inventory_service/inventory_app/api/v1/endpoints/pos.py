@@ -8,6 +8,7 @@ from inventory_app.services.inventory import InventoryTransactionService
 from inventory_app.dependencies.repositories import get_inventory_service
 from common.responses import ApiResponse
 from common.security.subscription_guard import SubscriptionGuard
+from common.security.require_permission import RequirePermission
 from common.security.auth_payload import TokenPayload
 
 router = APIRouter()
@@ -16,7 +17,7 @@ router = APIRouter()
 async def pos_checkout(
     sale: SaleCreate,
     service: InventoryTransactionService = Depends(get_inventory_service),
-    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
+    token: TokenPayload = Depends(RequirePermission("pos.checkout"))
 ):
     """
     Processes a POS Sale as a set of inventory OUT movements.
@@ -26,28 +27,31 @@ async def pos_checkout(
     concept_id = "SAL-VEN"
     movement_ids = []
 
-    # ── Industrial Price Validation ──────────────────────────────────────────
-    # We validate that the prices sent by the POS match the Master Data rules.
-    # from master_app.models.product import Product (Removed cross-service import)
-    # from master_app.models.product_price import ProductPrice (Removed cross-service import)
-    # from master_app.models.price_agreement import PriceAgreement (Removed cross-service import)
-    # from master_app.models.partner import Partner (Removed cross-service import)
     from sqlalchemy import text
 
+    # ── Validación de tenant sobre warehouse_id (previene BOLA cross-tenant) ──
+    wh_check = await service.repository.session.execute(
+        text("SELECT id FROM warehouses WHERE id = :wid AND company_id = :cid"),
+        {"wid": sale.warehouse_id, "cid": token.company_id},
+    )
+    if not wh_check.scalar():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "ERR_WAREHOUSE_NOT_OWNED", "message": "El almacén no pertenece a su empresa."},
+        )
+
     # ── Document Creation (Header) ───────────────────────────────────────────
-    # We will create the document after processing items to aggregate totals.
     doc_id = uuid.uuid4()
 
     for item in sale.items:
-        # 1. Get Product metadata
-        # 1. Get Product metadata via raw SQL
+        # 1. Producto con filtro de tenant — previene lectura cross-company
         prod_res = await service.repository.session.execute(
-            text("SELECT allow_price_override FROM products WHERE id = :id"),
-            {"id": item.product_id}
+            text("SELECT allow_price_override FROM products WHERE id = :id AND company_id = :cid"),
+            {"id": item.product_id, "cid": token.company_id},
         )
         product_override = prod_res.scalar()
         if product_override is None:
-            raise HTTPException(status_code=404, detail=f"Product {item.sku} not found")
+            raise HTTPException(status_code=404, detail={"code": "ERR_PRODUCT_NOT_FOUND"})
 
         # 2. Resolve target price following "Onion Layers" hierarchy
         resolved_price = None
@@ -111,13 +115,13 @@ async def pos_checkout(
             )
             resolved_price = fb_pr_res.scalar()
 
-        # 3. Price Enforcement
+        # 3. Price Enforcement — no exponer el precio resuelto en el error (previene price enumeration)
         if resolved_price is not None:
             if abs(Decimal(str(resolved_price)) - item.unit_price) > Decimal("0.01"):
                 if not product_override:
                     raise HTTPException(
-                        status_code=400, 
-                        detail=f"PRICE_ERR: Invalid price for {item.sku}. Expected {resolved_price}, got {item.unit_price}."
+                        status_code=400,
+                        detail={"code": "ERR_PRICE_MISMATCH", "message": "El precio enviado no coincide con el precio vigente registrado."},
                     )
 
         # 4. Inventory Movement Creation
@@ -152,7 +156,7 @@ async def pos_checkout(
         "destination_name": "Final Customer",
         "total_items": len(sale.items),
         "total_weight": total_weight,
-        "total_amount": float(sale.total_amount),
+        "total_amount": str(sale.total_amount),
         "total_currency": sale.currency,
         "concept_id": concept_id,
         "external_reference": str(doc_id)

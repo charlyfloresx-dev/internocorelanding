@@ -6,6 +6,17 @@
 
 ---
 
+### [2026-05-18] - Phase 113: Security Hardening Sprint 1 ✅
+
+- **`config.py`**: Eliminado `default="GOD_MODE_ACTIVE"` del `Field`. Sin `CORE_ADMIN_MASTER_KEY` en el entorno el proceso falla al arrancar (fail-closed). `@field_validator` bloquea valores trivialmente débiles y longitud < 16.
+- **`middleware.py`**: `bypass_tenant` usa `_settings.int_admin_master_key` en lugar del string literal hardcodeado. `/admin/elevate` agregado a `is_public_route`.
+- **`infrastructure/database.py`**: RLS hook blindado — UUID validado antes de interpolación, `connection_record.invalidate() + raise` en lugar de `except: pass`.
+- **`services/audit_service.py`**: `log_action()` extendida con `ip_address` y `user_agent` opcionales → mapeados a `AuditLog.client_ip` / `AuditLog.user_agent`. Eliminado `print()`.
+- **`security/subscription_guard.py`**: GOD MODE emite `logger.critical` + `AuditService.log_action()` en cada activación. `getattr` fallback eliminado.
+- **Status**: ✅ COMPLETED — 0 CRITICALs en Code Graph.
+
+---
+
 ### [2026-05-18] - Phase 112: RequirePermission Guard ✅
 
 - **`require_permission.py`**: Nuevo guard `RequirePermission(slug, module_code="auto")` en `common/security/`. Callable class compatible con `Depends` de FastAPI. Compone sobre `SubscriptionGuard` — valida JWT + módulo de suscripción + readonly mode, luego verifica el slug granular contra `token.scopes`. Auto-resolución de `module_code` por prefix del slug (`inventory.*` → `INVENTORY_CORE`, `pos.*` → `INVENTORY_CORE`, `master_data.*` → `MASTER_DATA_CORE`, `hcm.*` → `HCM_CORE`, `admin.*` → `AUTH_CORE`). Wildcard bypass para `scopes=["*"]`. Exportado desde `common/security/__init__.py`.
