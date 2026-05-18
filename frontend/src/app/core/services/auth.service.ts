@@ -44,19 +44,15 @@ export class AuthService {
   public isUnpaid = computed(() => this.subscriptionStatus() === SubscriptionStatus.UNPAID);
 
   public isSuperAdmin = computed(() => {
-    const r = this.roles().map(x => x.toLowerCase());
-    const p = this.permissions().map(x => x.toLowerCase());
-    return r.some(role => role.includes('admin')) || p.some(perm => perm.includes('admin') || perm === '*');
+    const roles = this.roles();
+    const permissions = this.permissions();
+    return roles.some(r => r === 'admin' || r === 'owner') || permissions.includes('*');
   });
 
   public isReadOnly = computed(() => {
     const isRestricted = this.subscriptionStatus() === SubscriptionStatus.RESTRICTED;
     const isExplicitReadOnly = !!this.session()?.readonly;
-
-    return isRestricted ||
-      isExplicitReadOnly ||
-      this.roles().some(r => r.toLowerCase().includes('viewer')) ||
-      this.permissions().some(p => p.toLowerCase().includes('read'));
+    return isRestricted || isExplicitReadOnly || this.roles().some(r => r.toLowerCase().includes('viewer'));
   });
 
   public hasPermission(permission: string): boolean {
@@ -245,8 +241,20 @@ export class AuthService {
    * Fetches a delegation selection token for mobile pairing.
    */
   public async getDelegateToken(): Promise<AuthHandshake> {
+    // The QR needs the API server URL that the mobile device can reach.
+    // - Production: environment.apiUrl already points to the public domain (e.g. https://api.interno.com)
+    // - Dev local: environment.apiUrl is http://localhost:8000, but mobile can't reach "localhost",
+    //   so we swap it for the actual hostname the browser is using (e.g. 192.168.1.146)
+    let serverUrl = environment.apiUrl; // e.g. http://localhost:8000 or https://api.interno.com
+    if (serverUrl.includes('localhost')) {
+      const hostname = window.location.hostname;
+      serverUrl = serverUrl.replace('localhost', hostname);
+    }
+
     const resp = await lastValueFrom(
-      this.http.get<ApiResponse<AuthHandshake>>(`${this.apiUrl}/auth/delegate-selection`)
+      this.http.get<ApiResponse<AuthHandshake>>(`${this.apiUrl}/auth/delegate-selection`, {
+        params: { api_url: serverUrl }
+      })
     );
     if (!resp.data) throw new Error('Failed to fetch delegation token');
     return resp.data;
@@ -302,14 +310,21 @@ export class AuthService {
 
       // CASE B: Direct Login (1 company found)
       if (data.access_token) {
+        const backendScopes: string[] = data.scopes || data.permissions || [];
         const session: AuthSession = {
           access_token: data.access_token,
           refresh_token: null as any,
-          user_id: null as any,
-          company_id: params.company_id || data.company_id || (data as any).cid,
-          roles: ['collaborator'],
-          permissions: ['inv:movements:manage'],
-          user: { email: '', name: 'Colaborador' } as any,
+          user_id: data.user_id || (null as any),
+          company_id: data.company_id || params.company_id || (data as any).cid,
+          roles: data.roles || ['collaborator'],
+          permissions: backendScopes,
+          readonly: data.readonly ?? false,
+          status: data.status,
+          user: {
+            email: '',
+            name: data.user_full_name || 'Colaborador',
+            full_name: data.user_full_name || 'Colaborador',
+          } as any,
         };
 
         this.setSession(session);

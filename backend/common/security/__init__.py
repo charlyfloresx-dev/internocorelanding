@@ -1,0 +1,1 @@
+from common.security.require_permission import RequirePermission

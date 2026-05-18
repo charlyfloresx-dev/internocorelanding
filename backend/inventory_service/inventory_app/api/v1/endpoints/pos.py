@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from inventory_app.schemas.pos import SaleCreate, SaleResponse
@@ -123,7 +124,7 @@ async def pos_checkout(
         movement = InventoryTransactionCreate(
             product_id=item.product_id,
             warehouse_id=sale.warehouse_id,
-            quantity_change=item.quantity,
+            quantity_change=-item.quantity,
             transaction_type=InventoryTransactionType.OUT,
             concept_id="SAL-VEN",
             reference_id=doc_id,

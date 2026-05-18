@@ -6,6 +6,13 @@
 
 ---
 
+### [2026-05-18] - Phase 112: RequirePermission Guard ✅
+
+- **`require_permission.py`**: Nuevo guard `RequirePermission(slug, module_code="auto")` en `common/security/`. Callable class compatible con `Depends` de FastAPI. Compone sobre `SubscriptionGuard` — valida JWT + módulo de suscripción + readonly mode, luego verifica el slug granular contra `token.scopes`. Auto-resolución de `module_code` por prefix del slug (`inventory.*` → `INVENTORY_CORE`, `pos.*` → `INVENTORY_CORE`, `master_data.*` → `MASTER_DATA_CORE`, `hcm.*` → `HCM_CORE`, `admin.*` → `AUTH_CORE`). Wildcard bypass para `scopes=["*"]`. Exportado desde `common/security/__init__.py`.
+- **Status**: ✅ COMPLETED — 0 CRITICALs en Code Graph. Listo para aplicar en endpoints de alta sensibilidad.
+
+---
+
 ### [2026-04-16] - Phase 44: Infrastructure Convergence & Storage ✅
 - **Status**: ✅ COMPLETED — **Universal Cloud Abstraction**
 - **Unified Storage Provider** (`infrastructure/storage/provider.py`):

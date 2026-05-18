@@ -23,9 +23,27 @@ logger = logging.getLogger(__name__)
 
 from common.models import SecurityAuditLog
 
-
 # JWT lifetime for collaborator sessions: 8 hours (a full shift)
 COLLABORATOR_TOKEN_EXPIRE_HOURS = 8
+
+_COLLABORATOR_SLUG_FALLBACK = [
+    "inventory.stock.read", "inventory.document.create",
+    "master_data.product.read", "master_data.price.read", "pos.checkout",
+]
+
+
+async def _load_collaborator_slugs(db: AsyncSession) -> list:
+    """Returns Permission slugs for the system 'collaborator' role from DB."""
+    from sqlalchemy import text
+    result = await db.execute(text("""
+        SELECT p.slug FROM permissions p
+        JOIN role_permissions rp ON rp.permission_id = p.id
+        JOIN roles r ON r.id = rp.role_id
+        WHERE r.name = 'collaborator' AND r.company_id IS NULL AND r.is_active = true
+        ORDER BY p.slug
+    """))
+    rows = [row[0] for row in result.fetchall()]
+    return rows if rows else _COLLABORATOR_SLUG_FALLBACK
 
 
 from auth_app.core import security
@@ -68,18 +86,21 @@ async def collaborator_login(
         "pin_code": pin_code,
     }
 
+    logger.debug(f"[COLLAB-AUTH] Forwarding credentials to HR Service: method={'RFID' if rfid_tag else 'PIN'}, identifier={internal_id or rfid_tag}")
+    
     try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(
                 f"{settings.HCM_SERVICE_URL}/api/v1/internal/collaborators/verify",
                 json=payload,
                 headers={"X-Internal-Api-Key": settings.INTERNAL_API_KEY},
             )
+            logger.debug(f"[COLLAB-AUTH] HR Service Response: {response.status_code} - {response.text}")
     except Exception as exc:
-        logger.error(f"hr_service error: {exc}")
+        logger.error(f"hr_service connection error: {exc}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="HR Service no disponible.",
+            detail="HR Service no disponible para verificación física.",
         )
 
     if response.status_code == 401:
@@ -140,38 +161,30 @@ async def collaborator_login(
 
     # Permission logic
     has_inventory_access = (dept == "Warehouse" or is_supervisor)
-    
-    # Scopes compatibles con el frontend (Sidebar) y Backend (Security)
-    scopes = [
-        "inv:movements:manage", 
-        "inv:warehouse:manage",
-        "master:catalog:manage",
-        "master_data:read",
-        "inventory:read",
-        "notification:read"
-    ]
-    
-    # Permissions granulares (Internal logic)
+
+    # Scopes from DB (Permission slugs for system 'collaborator' role)
+    scopes = await _load_collaborator_slugs(db)
+
+    # Granular action codes for kiosk UI (separate from DB slugs)
     permissions = ["PHYSICAL_SCAN", "INVENTORY_READ"]
     if has_inventory_access:
         permissions.append("INVENTORY_WRITE")
-        scopes.append("master_data:write")
 
-    token = security._encode({
-        "exp": expire,
-        "sub": str(identity["collaborator_id"]),
-        "typ": "access",
-        "role": "collaborator",
-        "cid": str(identity["company_id"]),
-        "wid": str(identity.get("home_warehouse_id")) if identity.get("home_warehouse_id") else None,
-        "is_supervisor": is_supervisor, 
-        "internal_id": identity.get("internal_id"),
-        "full_name": identity.get("full_name"),
-        "department": dept,
-        "warehouse_permission": has_inventory_access,
-        "permissions": permissions,
-        "scopes": scopes  # <--- Added for Frontend Menu Consistency
-    })
+    token = security.create_final_access_token(
+        subject=uuid.UUID(str(identity["collaborator_id"])),
+        company_id=uuid.UUID(str(identity["company_id"])),
+        roles=["collaborator"],
+        scopes=scopes,
+        extra_data={
+            "wid": str(identity.get("home_warehouse_id")) if identity.get("home_warehouse_id") else None,
+            "is_supervisor": is_supervisor, 
+            "internal_id": identity.get("internal_id"),
+            "full_name": identity.get("full_name"),
+            "department": dept,
+            "warehouse_permission": has_inventory_access,
+            "permissions": permissions
+        }
+    )
     
     # Resolve company name for the header
     company_obj = await db.get(Company, identity["company_id"])

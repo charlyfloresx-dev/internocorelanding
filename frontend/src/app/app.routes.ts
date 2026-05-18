@@ -1,5 +1,6 @@
 import {Routes} from '@angular/router';
 import {authGuard, handshakeGuard} from './core/guards/auth.guard';
+import {permissionGuard} from './core/guards/permission.guard';
 
 export const routes: Routes = [
   {
@@ -103,12 +104,16 @@ export const routes: Routes = [
           },
           {
             path: 'audit',
+            canActivate: [permissionGuard],
+            data: { requiredPermission: 'inventory.audit.view' },
             loadComponent: () => import('./modules/inventory/inventory-audit.component').then(m => m.InventoryAuditComponent)
           }
         ]
       },
       {
         path: 'catalog',
+        canActivate: [permissionGuard],
+        data: { requiredPermission: ['master_data.product.write', 'master_data.product.read'] },
         children: [
           {
             path: '',
@@ -147,6 +152,8 @@ export const routes: Routes = [
       },
       {
         path: 'admin',
+        canActivate: [permissionGuard],
+        data: { requiredPermission: 'admin.user.manage' },
         children: [
           {
             path: 'users',

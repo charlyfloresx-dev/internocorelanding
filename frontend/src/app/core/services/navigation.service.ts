@@ -45,7 +45,7 @@ export class NavigationService {
       label: 'Inventarios',
       translation_key: 'menu.inventory',
       icon: 'inventory_2',
-      permissions: ['inv:movements:manage', 'inv:warehouse:manage', 'inventory:admin', 'admin', 'accountant'],
+      permissions: ['inventory.stock.read', 'inventory.document.create', 'inventory.document.approve', 'inventory.audit.view'],
       subItems: [
         { id: 'inv-dash', label: 'Dashboard Global', translation_key: 'menu.inventory_dashboard', route: '/inventory/dashboard' },
         { id: 'inv-stock', label: 'Stock por Almacén', translation_key: 'menu.inventory_stock', route: '/inventory/stock' },
@@ -73,7 +73,7 @@ export class NavigationService {
       label: 'WMS / Logística',
       translation_key: 'menu.wms',
       icon: 'conveyor_belt',
-      permissions: ['wms:admin', 'wms:manage', 'inv:warehouse:manage', 'operator', 'wh_manager'],
+      permissions: ['inventory.put_away', 'inventory.cycle_count', 'inventory.location.manage'],
       subItems: [
         { id: 'wms-receiving', label: 'Recibo', translation_key: 'menu.wms_receiving', route: '/inventory/inbound' },
         { id: 'wms-pending-putaway', label: 'Cola Put-Away', translation_key: 'menu.wms_pending_putaway', route: '/inventory/pending-putaway' },
@@ -98,7 +98,7 @@ export class NavigationService {
       label: 'Catálogo',
       translation_key: 'menu.catalog',
       icon: 'category',
-      permissions: ['master:catalog:manage', 'catalog:admin'],
+      permissions: ['master_data.product.write', 'master_data.price.write', 'master_data.partner.manage', 'master_data.warehouse.manage'],
       subItems: [
         { id: 'cat-master', label: 'Catálogo Maestro', translation_key: 'menu.catalog_master', route: '/catalog' },
         { id: 'cat-uom', label: 'Unidades de Medida', translation_key: 'menu.catalog_uom', route: '/catalog/uom' },
@@ -153,12 +153,11 @@ export class NavigationService {
     }
   }
 
-  // Helper to check if user is admin globally
+  // Helper to check if user has admin-level access (exact role or wildcard scopes)
   isAdmin = computed(() => {
     const permissions = this.authService.permissions();
     const roles = this.authService.roles();
-    return roles.some((r: string) => r.toLowerCase().includes('admin')) || 
-           permissions.some((p: string) => p.toLowerCase().includes('admin') || p === '*' || p === 'auth:user:manage');
+    return roles.some((r: string) => r === 'admin' || r === 'owner') || permissions.includes('*');
   });
 
   closeSubMenu() {

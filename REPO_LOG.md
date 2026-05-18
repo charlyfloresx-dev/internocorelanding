@@ -3,7 +3,58 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
-### [2026-05-16] Phase 108: Industrial Ecosystem Cold-Start & Seed Hardening
+---
+### [2026-05-18] Phase 112: RBAC Full-Stack — DB Seed, JWT Scopes, Angular Guards
+
+**Objetivo:** Cerrar el cortocircuito central del sistema RBAC: la infraestructura de DB, repositorios y guards existía al 100% pero las tablas estaban vacías, por lo que el sistema dependía de `ROLE_SCOPE_MAP` hardcodeado. Esta fase conecta la cadena completa: DB → JWT → Frontend → Rutas.
+
+- **Migración Seed RBAC (`a1b2c3d4e5f6`)**: Creada y aplicada en `auth_service`. Siembra 23 `Permission` slugs granulares, 4 roles sistema (`admin`, `manager`, `warehouse_operator`, `collaborator`) con UUIDs estables, y 33 filas en `role_permissions` (manager: 21, warehouse_operator: 7, collaborator: 5, admin: 0 — wildcard). Idempotente via `ON CONFLICT DO NOTHING` + existence-check por UUID. Corregida la limitación de PostgreSQL donde `NULL ≠ NULL` en unique constraints para evitar roles duplicados.
+- **`select_company_command.py` — Extirpación de `ROLE_SCOPE_MAP`**: Eliminado el mapa hardcodeado de 51 líneas. Reemplazado por `_build_scopes()` que detecta admin/owner → `["*"]`, y para otros roles usa los slugs reales de `permission_checker.get_user_permissions()`. Agregado `_load_role_slugs_by_name()` para el fallback de colaboradores industriales (HR Service path).
+- **`collaborator_login_command.py` — Scopes desde DB**: Eliminada la lista hardcodeada `["inv:movements:manage", ...]`. Reemplazada por `_load_collaborator_slugs(db)` que consulta la tabla `role_permissions` JOIN `permissions` WHERE `roles.name = 'collaborator'`. Fallback de 5 slugs mínimos si la migración no ha corrido.
+- **Validación JWT en vivo**: `full_auth_flow.py` confirma admin → `scopes: ["*"]`. `kiosk_auth_flow.py` confirma 3 colaboradores (Luis Torres RFID, Carlos Ramírez PIN multi-empresa, Ana García) → `scopes: ['inventory.document.create', 'inventory.stock.read', 'master_data.price.read', 'master_data.product.read', 'pos.checkout']`.
+- **`auth.service.ts` — 3 bugs corregidos**: (1) `isReadOnly` ya no usa `.includes('read')` en permisos (capturaba `inventory.stock.read` y bloqueaba colaboradores). (2) `isSuperAdmin` usa comparación exacta `r === 'admin' || r === 'owner'` en lugar de `.includes('admin')` (que habría clasificado a managers como super-admins). (3) `collaboratorLogin()` Case B ahora lee `data.scopes || data.permissions` en lugar de hardcodear `['inv:movements:manage']`.
+- **`navigation.service.ts` — Blueprint migrado a slugs**: Permisos del menú actualizados a slugs DB (`inventory.stock.read`, `inventory.put_away`, `master_data.product.write`). `isAdmin()` usa `r === 'admin' || r === 'owner' || permissions.includes('*')` — ya no matchea `admin.user.manage` falsamente.
+- **`RequirePermission` guard (FastAPI/common)**: Creado en `backend/common/security/require_permission.py`. Compone sobre `SubscriptionGuard` con auto-resolución de `module_code` desde el slug prefix. Corregido el bug de la spec (`module_code="auth_core"` hardcodeado). 0 CRITICALs en Code Graph.
+- **`permissionGuard` (Angular)**: Creado en `frontend/src/app/core/guards/permission.guard.ts`. `CanActivateFn` funcional, lee `route.data['requiredPermission']`, soporte OR (array de slugs), bypass `["*"]`. Aplicado en `app.routes.ts`: `/admin/*` → `admin.user.manage`, `/catalog/*` → `['master_data.product.write', 'master_data.product.read']`, `/inventory/audit` → `inventory.audit.view`. TypeScript compila sin errores.
+- **`pos.py` — 2 bugs corregidos**: Import de `Decimal` faltante (causaba `NameError` en cualquier checkout con precio resuelto). `quantity_change=item.quantity` → `quantity_change=-item.quantity` (movimientos OUT requieren cantidad negativa para que el ledger descuente stock).
+- **Ecosistema**: 8/8 servicios `[ OK ]`, Code Graph 0 CRITICALs.
+- **Status**: ✅ Phase 112 COMPLETED — RBAC operativo end-to-end. Scopes granulares en JWT, menú y rutas protegidos.
+
+---
+### [2026-05-17] Phase 111: Mobile PDA Sentinel — Hard Reset, Monolith Cleanup & Dynamic Pricing
+- **Hard Reset & Dev Stack Consolidation**: Executed a full nuclear reset of the Docker environment (`docker system prune -a --volumes`). Eliminated the stale `interno-monolith` (on-prem stack) in favor of the canonical `infrastructure/docker/docker-compose.dev.yml` microservices stack. The on-prem monolith was a leftover build that created a duplicate `postgres:15` image in Docker Desktop — it is no longer used.
+- **Full Rebuild from Zero**: All 7 service images rebuilt fresh (`interno-auth-service`, `interno-master-data-service`, `interno-inventory-service`, `interno-tickets-service`, `interno-subscription-service`, `interno-notification-service`, `interno-hcm-service`) plus Nginx gateway. All migrations applied via `migrate_all.ps1` (✅ all 7 services). Unified seed executed successfully via `unified_industrial_seed.py`.
+- **Dynamic Currency Resolution (Master Data)**: Fixed a critical hardcoded `"MXN"` in `product_service.py` `lookup_product_by_code()`. The method now reads the actual currency from:
+  1. `PriceAgreement.currency` (B2B contracts)
+  2. `ProductPrice.price.currency` (assigned list)
+  3. `ProductPrice.price.currency` (fallback to list 1)
+  Only falls back to `"MXN"` default if no price object is found at all.
+- **QR URL Sanitization (Sales Screen)**: Applied the same URL-parsing logic from `ScannerBloc` (`code.split('/').last`) directly into `sales_screen.dart`'s `onDetect` camera handler. QR codes from `qrto.org/ECM-600` now resolve to `ECM-600` correctly.
+- **Ecosystem Health**: All 8 services report `[ OK ]` via `validate_ecosystem.ps1`. Code graph shows 0 `SUBSCRIPTION_GUARD_VIOLATION` — only 23 seed-script cross-service imports (known/acceptable technical debt in `unified_industrial_seed.py`).
+- **Status**: ✅ Phase 111 COMPLETED — Dev Stack Hardened, Dynamic Pricing Active, QR Sanitization Unified.
+
+---
+ Mobile Navigation Restructure & Price Visual Refactoring
+- **Dynamic Shell Restoration**: Switched `setup_screen.dart` auto-login restoration path from `HomeScreen` to `MainNavigationScreen`. This resolves the mobile layout bug on session recovery where the bottom navigation shell (with all tab options and icons) was bypassed, leaving users on a menu-less page.
+- **Robust Warehouse Redirection**: Refactored the "Cambiar Almacén" option in `HomeScreen` to pull `company_id` from SharedPreferences and trigger a clean `pushReplacement` to `WarehouseSelectionScreen` rather than calling `Navigator.pop()`, resolving potential layout stack freezing on root-level screens.
+- **Price Visual Extensions (Web Dashboard)**: Configured the Angular `ProductPriceListComponent` inside `product-catalog.component.ts` to request a custom wide drawer (`md:w-[750px] w-full`) in all four drawer triggers. This expands the administration panels to easily display multi-tier pricing, taxes, and warehouse logistics data.
+- **Master Pricing Integrity**: Successfully pointed product lookups in the mobile repository to `products/lookup/$code` to fetch actual database pricing, resolving previous `$99.99` placeholder inconsistencies.
+- **Status**: ✅ Phase 110 COMPLETED — Mobile Navigation Restructured & Pricing Panel Layout Extended.
+
+---
+### [2026-05-17] Phase 109: Typeahead Consolidation, Product/Variant/Pricing API & Seed Unification
+- **Typeahead API Consolidation**: Debugged and fixed the frontend typeahead that was sending both POST and GET requests to `/api/v1/products?q=`. Confirmed the GET method is the correct one; the POST was a stale endpoint. Updated the Angular `MasterDataService` to use only `GET /products?q=` for product lookup.
+- **Product → Variants → Prices Backend API**: Implemented `GET /api/v1/inventory/products/{product_id}/variants` in the `inventory_service` to return item variants with pricing data. Fixed the `GET /products?q=` endpoint in `master_data_service` to return consolidated product data with SKU, variant count, and base pricing.
+- **Mobile App Integration**: Updated the Flutter `ProductRepository` to call the same consolidated typeahead endpoint (`GET /products?q=`), replacing the previous dual-call pattern. The mobile scanner now resolves SKU → Product → Variants → Prices in a single API roundtrip.
+- **Unified Industrial Seed Consolidation (Docker-Compatible)**: Major refactor of `unified_industrial_seed.py` to eliminate ALL `subprocess.run()` calls that prevented execution inside Docker containers:
+  - **Inline Item Variants**: 15 variants (5 products × 3 brands) now seeded via raw SQL `INSERT ... ON CONFLICT DO NOTHING` directly in `seed_inventory()`.
+  - **Inline Transfer Prices**: MXN and USD pricing for all 5 products seeded inline in `seed_master_data()`, eliminating the `setup_transfer_prices.py` subprocess dependency.
+  - **Inline WMS Locations**: Full Phase 83 industrial layout (3 virtual zones + LOC-AUDIT-01 + 24 rack slots + 6 picking positions = 35 locations) seeded inline.
+  - **Inline Shadow Movement Concepts**: Mirror of master_data concepts into inventory_db for cross-db query independence.
+  - **Inline Customs Compliance**: Pedimentos and initial inventory movements for 3 companies now use the inventory_db session directly.
+- **Status**: ✅ Phase 109 COMPLETED — Typeahead Unified, Seed Docker-Compatible & API Consolidated.
+
+---
 - **Subprocess Seed Isolation**: Refactored the `unified_industrial_seed.py` orchestration engine to utilize `subprocess.run` for sub-scripts. This ensures total environment isolation, preventing SQLAlchemy session pollution and `DATABASE_URL` cross-contamination between microservices.
 - **HCM Baseline Consolidation**: Engineered a unified `000_hcm_baseline.py` migration, incorporating `collaborators`, `hr_tenant_configs`, and the previously missing `external_contacts` table.
 - **Nuclear Reset Validation**: Certified the full system recovery path (Prune -> Migrate -> Seed -> Validate). Successfully seeded the "Triple Identity" layer (Carlos Ramírez, Alicia Torres) into the fresh `hcm_db`.

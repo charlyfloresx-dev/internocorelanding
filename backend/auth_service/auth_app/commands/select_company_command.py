@@ -19,58 +19,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 from fastapi import status
 
-# 🗺️ SCOPE RESOLVER: Mapea roles → scopes del sidebar (frontend)
-# Fuente de verdad: frontend/src/app/core/services/navigation.service.ts
-ROLE_SCOPE_MAP = {
-    "admin": ["*", "investments:manage", "investments:admin"],
-    "owner": ["*", "investments:manage", "investments:admin"],
-    "manager": [
-        "inv:movements:manage", "inv:warehouse:manage", "inventory:admin",
-        "master:catalog:manage", "catalog:admin",
-        "wms:manage",
-        "auth:user:manage",
-        "investments:manage",
-        "master_data:read", "master_data:write",
-        "inventory:read", "inventory:write",
-        "notification:read", "notification:write"
-    ],
-    "warehouse_operator": [
-        "inv:movements:manage", "inv:warehouse:manage",
-        "master:catalog:manage",
-        "master_data:read",
-        "inventory:read", "inventory:write",
-        "notification:read"
-    ],
-    "collaborator": [
-        "inv:movements:manage", "inv:warehouse:manage",
-        "master:catalog:manage",
-        "master_data:read",
-        "inventory:read",
-        "notification:read"
-    ],
-}
+_ADMIN_ROLES = {"admin", "owner"}
 
-def resolve_scopes(role_names: list, explicit_scopes: list) -> list:
-    """Resuelve scopes: usa los explícitos si existen, sino los deriva del rol."""
-    if explicit_scopes:
-        if "*" in explicit_scopes:
-            # Expand to ALL known scopes if super-admin
-            all_scopes = set()
-            for scopes in ROLE_SCOPE_MAP.values():
-                all_scopes.update(scopes)
-            return list(all_scopes)
-        return explicit_scopes
-    resolved = set()
-    for role in role_names:
-        key = role.lower().strip()
-        if key in ROLE_SCOPE_MAP:
-            resolved.update(ROLE_SCOPE_MAP[key])
-    if "*" in resolved:
-        all_scopes = set()
-        for scopes in ROLE_SCOPE_MAP.values():
-            all_scopes.update(scopes)
-        return list(all_scopes)
-    return list(resolved) if resolved else ["inv:movements:manage"]
+
+def _build_scopes(role_names: list, ucr_scopes: list, db_permissions: list) -> list:
+    """Returns JWT scopes from DB permission slugs. Admin/owner roles → wildcard ["*"]."""
+    if ucr_scopes and "*" in ucr_scopes:
+        return ["*"]
+    if any(r.lower() in _ADMIN_ROLES for r in (role_names or [])):
+        return ["*"]
+    return list(db_permissions) if db_permissions else []
+
+
+async def _load_role_slugs_by_name(db, role_name: str) -> list:
+    """Loads Permission slugs for a system role (company_id IS NULL) from DB."""
+    from sqlalchemy import text
+    result = await db.execute(text("""
+        SELECT p.slug FROM permissions p
+        JOIN role_permissions rp ON rp.permission_id = p.id
+        JOIN roles r ON r.id = rp.role_id
+        WHERE r.name = :role_name AND r.company_id IS NULL AND r.is_active = true
+        ORDER BY p.slug
+    """), {"role_name": role_name})
+    return [row[0] for row in result.fetchall()]
+
 
 class SelectCompanyCommand(ICommand):
     def __init__(self, user_id: UUID, company_id: UUID):
@@ -167,8 +139,10 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                             coll_perms.extend(["INVENTORY_READ", "INVENTORY_WRITE"])
                             coll_roles.append("warehouse_operator")
                         
-                        # Resolver scopes del sidebar basado en roles
-                        coll_scopes = resolve_scopes(coll_roles, [])
+                        # Load collaborator Permission slugs from DB (system role)
+                        coll_scopes = await _load_role_slugs_by_name(self.db, "collaborator")
+                        if not coll_scopes:
+                            coll_scopes = ["inventory.stock.read", "inventory.document.create", "master_data.product.read", "master_data.price.read", "pos.checkout"]
                         
                         # Generar Token de Colaborador con el ID REAL de esa empresa
                         return await self._generate_collaborator_response(
@@ -197,13 +171,14 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
         )
 
         # 3. Generar Access Token final (15 min, typ: "access")
+        scopes = _build_scopes(ucr.role_names, ucr.scopes, permissions)
         access_token = create_access_token(
             subject=str(command.user_id),
             company_id=str(command.company_id),
             data={
                 "role_names": ucr.role_names,
                 "permissions": permissions,
-                "scopes": resolve_scopes(ucr.role_names, ucr.scopes),
+                "scopes": scopes,
                 "modules": modules,
                 "status": sub_status,
                 "readonly": readonly,
@@ -254,8 +229,6 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             last = getattr(user_obj, "last_name_pat", "") or ""
             full_name = f"{first} {last}".strip()
 
-        resolved_scopes = resolve_scopes(ucr.role_names, ucr.scopes)
-
         return {
             "access_token": access_token,
             "refresh_token": raw_refresh,
@@ -265,7 +238,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "company_name": ucr.company_name or "Interno Core",
             "group_id": str(ucr.group_id) if ucr.group_id else None,
             "roles": ucr.role_names,
-            "scopes": resolved_scopes,
+            "scopes": scopes,
             "permissions": permissions,
             "user_email": user_email,
             "user_full_name": full_name or user_email,

@@ -1,5 +1,22 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-18)
+**Phase 112: pos.py Bug Fixes & RequirePermission Guard** ✅
+- **`pos.py` — Import `Decimal` faltante**: Agregado `from decimal import Decimal`. Sin este import, cualquier checkout con precio resuelto desde DB lanzaba `NameError` al evaluar `abs(Decimal(str(resolved_price)) - item.unit_price)`.
+- **`pos.py` — Cantidad negativa en OUT**: Corregido `quantity_change=item.quantity` → `quantity_change=-item.quantity`. El repositorio calcula `new_balance = stock.quantity + movement.quantity_change` — sin signo negativo el stock aumentaba en cada venta.
+- **`RequirePermission` guard disponible**: `backend/common/security/require_permission.py` exportado desde `common.security`. Listo para aplicar en endpoints de aprobación de documentos, bulk-load y auditoría forense.
+- **Status**: ✅ COMPLETED — POS checkout funcional. Guard RBAC disponible para endpoints de alta sensibilidad.
+
+## 🕒 Última Actividad (2026-05-17)
+**Phase 109: Seed Unification, Variants API & Docker-Compatible Seeding** ✅
+- **Variants API Endpoint**: Implemented `GET /api/v1/inventory/products/{product_id}/variants` to return item variants (brand, MPN, unit price, weight) for a given product. Used by both the Angular frontend typeahead and the Flutter mobile scanner.
+- **Unified Seed Consolidation (Docker-Compatible)**: Eliminated ALL `subprocess.run()` calls from `unified_industrial_seed.py`. All seeding now uses inline SQL via the inventory_db session:
+  - **15 Item Variants** (5 products × 3 brands) seeded via `INSERT INTO inventory_item_variants ... ON CONFLICT DO NOTHING`.
+  - **35 WMS Locations** (3 virtual zones + LOC-AUDIT-01 + LOC-TIJ-RECV-01 + 24 rack + 6 picking) seeded inline.
+  - **Shadow Movement Concepts** mirrored from master_data for cross-db independence.
+  - **Customs Pedimentos & Movements** for 3 companies seeded inline with location normalization.
+- **Known Issue**: `GET /products/{id}/variants` returning 403 for `collaborator` role — scope mapping needs `inventory:read` added to allowed scopes.
+
 ## 🕒 Última Actividad (2026-05-16)
 **Industrial Ecosystem Cold-Start & Seed Hardening (Phase 108)**
 - **Isolated Seeding Engine**: Refactored `unified_industrial_seed.py` to trigger sub-seeds via `subprocess.run`. This provides total environmental isolation, ensuring that the Inventory DB connection is correctly initialized without interference from the Auth DB context.

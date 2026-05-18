@@ -1,5 +1,14 @@
 # Auth Service - Service Log
 
+## [2026-05-18] Phase 112: RBAC Full-Stack — DB Seed & JWT Scopes
+
+- **Migración `a1b2c3d4e5f6` aplicada**: Siembra 23 Permission slugs, 4 roles sistema (UUIDs estables `10000000-...`), y 33 role_permissions. Idempotente. DB verificada: `collaborator(5)`, `warehouse_operator(7)`, `manager(21)`, `admin(0)`.
+- **`ROLE_SCOPE_MAP` eliminado**: `select_company_command.py` refactorizado. `_build_scopes()` detecta admin/owner → `["*"]`; otros roles usan `permission_checker.get_user_permissions()`. `_load_role_slugs_by_name()` carga slugs DB para el fallback de HR collaborator.
+- **`collaborator_login_command.py`**: Scopes hardcodeados reemplazados por `_load_collaborator_slugs(db)` (JOIN `role_permissions → permissions` WHERE `roles.name = 'collaborator'`). Fallback de 5 slugs mínimos si DB no sembrada.
+- **Validación live**: Admin → `scopes: ["*"]` ✅. Colaboradores (RFID/PIN) → 5 slugs granulares ✅. Scripts `full_auth_flow.py` y `kiosk_auth_flow.py` pasan sin error.
+- **`RequirePermission` guard (common)**: `backend/common/security/require_permission.py` — compone sobre `SubscriptionGuard`, auto-resolución de `module_code` por slug prefix. 0 Code Graph CRITICALs.
+- **Status**: ✅ COMPLETED — RBAC conectado end-to-end. Scopes granulares viajan firmados en JWT.
+
 ## [2026-05-16] Phase 106: Industrial Auth & Menu Reconciliation
 - **Industrial JWT Scope Enrichment**: Patched `collaborator_login_command.py` to include the `scopes` claim within the JWT payload. This ensures that Kiosk/Industrial users (Login T1 Bypass) have consistent sidebar menu visibility and persistence across session refreshes.
 - **Role-to-Scope Mapping**: Validated that `resolve_scopes` in `select_company_command.py` and the calculated scopes in `collaborator_login_command.py` are synchronized with the frontend's `NavigationService` blueprint.
