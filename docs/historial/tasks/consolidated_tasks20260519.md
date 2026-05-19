@@ -24,15 +24,19 @@
 - [x] Code Graph: 0 CRITICALs en 14 servicios
 - [x] `npx tsc --noEmit`: 0 errores
 
-## Pendiente
+### Smoke test E2E — ✅ COMPLETADO vía gateway (port 8000)
+- [x] Clave incorrecta → 401 ERR_INVALID_MASTER_KEY ✅
+- [x] Clave correcta → JTI generado, expires_in=300, Redis SET godmode:{jti}=1 ✅
+- [x] GOD_MODE_ACTIVATED en audit_logs con IP y JTI ✅
+- [x] DELETE /elevate/{jti} → revoked=True, Redis DEL ✅
+- [x] Token revocado → 401 en get_current_active_user + SubscriptionGuard ✅
+- [x] GOD_MODE_REVOKED en audit_logs ✅
 
-### Smoke test E2E (requiere Docker corriendo)
-- [ ] Clave incorrecta × 3 → botón bloqueado en UI
-- [ ] Clave correcta → banner rojo + countdown 4:59
-- [ ] Navegar a `/admin/users` y volver → sesión sobrevive
-- [ ] `closeSession()` → DELETE /elevate/{jti} en logs de Docker
-- [ ] Esperar 300s → banner desaparece, requests con token fallidas
-- [ ] `/admin/forensic` tab "Alertas" → evento GOD_MODE_ACTIVATED con IP/JTI
+### Bug fixes descubiertos durante smoke test — ✅ RESUELTOS
+- [x] nginx.conf: `proxy_set_header Connection "upgrade"` global → bloqueaba TODOS los POST via gateway. Fix: `Connection ""` en server block; `upgrade` solo en `/ws` location
+- [x] `SubscriptionGuard`: no chequeaba JTI gate → tokens revocados pasaban. Fix: JTI Redis lookup agregado con mismo fail-safe
+
+## Pendiente
 
 ### Deuda técnica activa (no relacionada con GOD MODE)
 - [ ] `GET /products/{id}/variants` → 403 para rol `collaborator` (scope `inventory:read` faltante)

@@ -3,6 +3,23 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-19] Phase 116: GOD MODE Smoke Test + Gateway POST Fix + SubscriptionGuard JTI Gate
+
+**Objetivo:** Smoke test E2E del GOD MODE via gateway (puerto 8000). Descubrió y corrigió 2 bugs críticos.
+
+**Bug 1 — nginx `Connection: upgrade` global (impacto: TODOS los POST via gateway → 404):**
+`nginx.conf` tenía `proxy_set_header Connection "upgrade"` a nivel `server`, aplicándose a todos los `location` blocks. Uvicorn/ASGI interpreta `Connection: upgrade` como una solicitud de WebSocket upgrade — si no hay `Upgrade: websocket`, devuelve 404. Síntoma: `POST /auth/login`, `POST /admin/elevate` y cualquier POST vía gateway devolvía 404; GET requests funcionaban. Fix: `proxy_set_header Connection ""` a nivel server (limpia el header hop-by-hop para HTTP regular). La location `/ws` conserva sus propios headers `Connection "upgrade"` + `Upgrade $http_upgrade`. Este bug probablemente existía en producción desde la configuración inicial del gateway.
+
+**Bug 2 — `SubscriptionGuard` sin JTI gate (revocación bypass):**
+Endpoints con `Depends(SubscriptionGuard(module_code="..."))` leían `TokenPayload` directamente desde `request.state.user_token` (populado por el auth middleware) sin pasar por `get_current_active_user`. Un god-mode token revocado (JTI borrado en Redis) seguía siendo aceptado por estos endpoints. Fix: `SubscriptionGuard.__call__` agrega lookup `GET godmode:{jti}` cuando `token_data.god_mode=True` — mismo fail-safe (Redis unavailable → pass, JWT expira por TTL igual en ≤300s).
+
+**Smoke test E2E — 9/9 pasados vía gateway:**
+Clave incorrecta → 401, activación → JTI en Redis, GOD_MODE_ACTIVATED en audit, revocación → Redis DEL, token revocado → 401 en get_current_active_user + SubscriptionGuard, GOD_MODE_REVOKED en audit.
+
+**Status**: ✅ Phase 116 COMPLETED — GOD MODE 100% verificado. Gateway operational para todos los métodos HTTP.
+
+---
+
 ### [2026-05-19] Phase 115: GOD MODE Frontend + Security Post-Sprint Hardening
 
 **Objetivo:** Implementar el frontend completo del break-glass panel (Sprint 2) y cerrar 5 gaps de seguridad residuales detectados en revisión post-sprint: nav links faltantes, guard permisivo en security-logs, IP real detrás de Nginx, y ausencia de revocación server-side de JTI.

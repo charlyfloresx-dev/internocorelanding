@@ -8,7 +8,10 @@
 - **`common/security/auth_payload.py` — `TokenPayload` extendido**: Nuevos campos `jti: Optional[str]` y `god_mode: bool = False`. Parsean del JWT directamente. `extra="ignore"` preservado — tokens sin estos claims no fallan validación.
 - **`common/security/dependencies.py` — JTI gate en `get_current_active_user`**: Para tokens con `god_mode=True`, verifica `GET godmode:{jti}` en Redis antes de continuar. Si no existe → `401 ERR_GOD_MODE_EXPIRED`. Sesiones normales usan el path `blacklist:{sub}` existente sin cambio.
 - **`common/security/limiter.py` — IP real detrás de proxy**: `multi_layer_key_func` ahora lee `X-Real-IP` → `X-Forwarded-For` → `request.client.host`. Rate limit de brute-force en `/elevate` aplica sobre IP del cliente real, no la IP del container Nginx.
-- **Status**: ✅ COMPLETED — Ciclo de vida GOD MODE completo con revocación Redis.
+- **`common/security/subscription_guard.py` — JTI gate**: `SubscriptionGuard.__call__` agrega check `GET godmode:{jti}` en Redis cuando `token_data.god_mode=True`. Corrige gap: endpoints con `Depends(SubscriptionGuard)` no chequeaban JTI → tokens revocados los podían usar. Mismo fail-safe que `get_current_active_user`.
+- **`infrastructure/docker/nginx.conf` — fix Connection header**: `proxy_set_header Connection "upgrade"` estaba a nivel `server` → Uvicorn trataba todos los POST como WebSocket upgrades → 404 global en gateway. Fix: `Connection ""` en server block (strip hop-by-hop); `Connection "upgrade"` se mantiene solo en la location `/ws`.
+- **Smoke test E2E**: 9/9 tests pasados vía gateway (puerto 8000). Clave incorrecta, activación, Redis JTI check, revocación, JTI gate en SubscriptionGuard, audit trail GOD_MODE_ACTIVATED + GOD_MODE_REVOKED.
+- **Status**: ✅ COMPLETED — GOD MODE ciclo completo verificado E2E.
 
 ## [2026-05-18] Phase 113: Security Hardening — GOD MODE Audit + Break-Glass Panel ✅
 

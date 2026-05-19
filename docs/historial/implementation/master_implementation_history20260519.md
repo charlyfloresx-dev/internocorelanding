@@ -36,6 +36,16 @@ Originalmente requería `scopes: ["*"]` — solo accesible desde una sesión de 
 ### 5. Rate limit e IP real
 SlowAPI `get_remote_address` lee `request.client.host` = IP del container Nginx (172.x.x.x) detrás del gateway. El rate limit de brute-force en `/elevate` (3/hora) no funcionaba por IP real. Fix: leer `X-Real-IP` / `X-Forwarded-For` que Nginx ya inyecta.
 
+### 6. Nginx `Connection: upgrade` global — bug crítico descubierto en smoke test
+**Problema:** `nginx.conf` tenía `proxy_set_header Connection "upgrade"` a nivel `server` (no solo en la location `/ws`). Esto hacía que Uvicorn/ASGI tratara TODOS los POST como WebSocket upgrades → 404 en el gateway para cualquier método POST.  
+**Síntoma:** `POST /api/v1/admin/elevate` via gateway → 404. `POST /api/v1/auth/login` via gateway → 404. GET requests funcionaban.  
+**Fix:** `proxy_set_header Connection ""` a nivel server (vacía el header hop-by-hop para HTTP regular). La location `/ws` retiene su propio `Connection "upgrade"`.  
+**Impacto:** Este bug existía desde la configuración inicial del gateway. El frontend Angular probablemente no afectado porque su resilience interceptor y el browser manejan la negociación diferente.
+
+### 7. `SubscriptionGuard` no chequeaba JTI gate
+**Problema:** Endpoints con `Depends(SubscriptionGuard(...))` leían el `TokenPayload` desde `request.state.user_token` directamente, sin pasar por `get_current_active_user`. Un token god-mode revocado (JTI borrado en Redis) seguía siendo válido en esos endpoints.  
+**Fix:** `SubscriptionGuard.__call__` agrega bloque JTI gate: si `token_data.god_mode and token_data.jti` → `GET godmode:{jti}` en Redis → 401 si no existe. Misma semántica fail-safe (Redis unavailable → pasa; JWT expirará igual en ≤300s).
+
 ---
 
 ## Archivos Creados
@@ -58,6 +68,8 @@ SlowAPI `get_remote_address` lee `request.client.host` = IP del container Nginx 
 | `frontend/src/app/shared/layouts/main-layout.component.ts` | Nav links admin |
 | `frontend/src/app/core/interceptors/multi-tenant.interceptor.ts` | Eliminado bloque isSuperAdmin obsoleto |
 | `backend/common/security/auth_payload.py` | Campos jti + god_mode |
+| `backend/common/security/subscription_guard.py` | JTI gate para tokens god_mode |
+| `infrastructure/docker/nginx.conf` | Fix Connection header (server→ws scope) |
 | `backend/common/security/dependencies.py` | JTI gate para god_mode tokens |
 | `backend/common/security/limiter.py` | IP real detrás de proxy |
 | `backend/auth_service/auth_app/api/v1/endpoints/admin.py` | Redis write en /elevate + DELETE /elevate/{jti} + guard ampliado en /security-logs |

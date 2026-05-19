@@ -89,6 +89,22 @@ class SubscriptionGuard:
                     }
                 )
 
+        # 1b. JTI Gate para tokens GOD MODE — verificar que no fue revocado
+        if token_data and token_data.god_mode and token_data.jti:
+            try:
+                from common.security.dependencies import get_redis
+                r = get_redis()
+                jti_valid = await r.get(f"godmode:{token_data.jti}")
+                if not jti_valid:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail={"code": "ERR_GOD_MODE_EXPIRED", "message": "La sesión de emergencia ha expirado o fue revocada."},
+                    )
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Redis no disponible — el JWT expirará por TTL igual
+
         # 2. Validación de Módulo (Entitlements)
         if self.module_code != "auth_core":
             # [Industrial Bypass] Admin roles (*) bypass module entitlement checks
