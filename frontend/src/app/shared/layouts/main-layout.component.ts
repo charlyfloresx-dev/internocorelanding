@@ -206,7 +206,7 @@ import {PosLinkDrawerComponent} from '../../shared/components/pos-link-drawer.co
                     <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_staff' | translate:'Personal de Planta' }}</span>
                   </a>
 
-                  <a 
+                  <a
                     routerLink="/system/config"
                     (click)="navService.closeSubMenu()"
                     routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
@@ -214,6 +214,26 @@ import {PosLinkDrawerComponent} from '../../shared/components/pos-link-drawer.co
                   >
                     <mat-icon class="text-lg">settings_suggest</mat-icon>
                     <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_system' | translate:'Configuración' }}</span>
+                  </a>
+
+                  <a
+                    routerLink="/admin/forensic"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">policy</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">Auditoría Forense</span>
+                  </a>
+
+                  <a
+                    routerLink="/admin/system-control"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-red-100 text-red-700 border-red-200 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 dark:text-red-400 hover:bg-red-50 hover:text-red-600 transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">emergency</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">Consola Emergencia</span>
                   </a>
                 </div>
               }

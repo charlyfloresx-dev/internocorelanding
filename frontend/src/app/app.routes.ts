@@ -166,6 +166,10 @@ export const routes: Routes = [
           {
             path: 'forensic',
             loadComponent: () => import('./modules/admin/forensic-dashboard.component').then(m => m.ForensicDashboardComponent)
+          },
+          {
+            path: 'system-control',
+            loadComponent: () => import('./modules/admin/system-control.component').then(m => m.SystemControlComponent)
           }
         ]
       },

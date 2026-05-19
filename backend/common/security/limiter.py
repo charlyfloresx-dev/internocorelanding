@@ -33,7 +33,12 @@ def multi_layer_key_func(request: Request) -> str:
     if company_id:
         return f"tenant:{company_id}"
 
-    # 3. Fallback a IP (Capa 1)
+    # 3. Fallback a IP real (respeta X-Real-IP / X-Forwarded-For de Nginx/ALB)
+    # request.client.host sería la IP del proxy, no del cliente — usar headers
+    for header in ("X-Real-IP", "X-Forwarded-For"):
+        value = request.headers.get(header)
+        if value:
+            return value.split(",")[0].strip()
     return get_remote_address(request)
 
 # Configuración del Limiter

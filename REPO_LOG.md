@@ -3,6 +3,40 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-19] Phase 115: GOD MODE Frontend + Security Post-Sprint Hardening
+
+**Objetivo:** Implementar el frontend completo del break-glass panel (Sprint 2) y cerrar 5 gaps de seguridad residuales detectados en revisión post-sprint: nav links faltantes, guard permisivo en security-logs, IP real detrás de Nginx, y ausencia de revocación server-side de JTI.
+
+**Sprint 2 — Angular GOD MODE (5 piezas implementadas):**
+- **`GodModeStore` (`core/stores/god-mode.store.ts`)**: Signal store volátil con `providedIn: 'root'`. Signals: `token`, `jti`, `expiresAt`, `attempts`. Computados: `isActive` (verifica `Date.now() < expiresAt`), `isLocked` (≥3 intentos), `secondsRemaining`. `activate()` programa `setTimeout(() => clear(), expiresIn * 1000)` — auto-destrucción garantizada aunque el componente no exista. NUNCA toca `localStorage` ni `sessionStorage`.
+- **`godModeInterceptor` (`core/interceptors/god-mode.interceptor.ts`)**: `HttpInterceptorFn` que reemplaza `Authorization: Bearer <god_token>` cuando `store.isActive() === true`. Registrado **al final** del array en `app.config.ts` (corrección crítica: si fuera primero, `multiTenantInterceptor` sobreescribiría el token).
+- **`SystemControlComponent` (`modules/admin/system-control.component.ts`)**: Standalone con doble confirmación, input password con toggle show/hide, contador de intentos fallidos `store.attempts() / 3`, banner rojo pulsante con countdown reactivo via `toSignal(interval(1000))`. `closeSession()` limpia el store Y llama `DELETE /admin/elevate/{jti}` (revocación server-side). Master key se limpia del signal inmediatamente tras activación exitosa.
+- **`ForensicDashboardComponent` extendido**: Nueva pestaña "Alertas de Seguridad" con `signal<SecurityEvent[]>`. Filas `animate-pulse border-red-300 bg-red-50` para eventos < 24h. Carga lazy al hacer clic en el tab. Nuevo stat-card GOD MODE en el header.
+- **Routing + Nav**: Ruta `/admin/system-control` en `app.routes.ts`. Links en sidebar `main-layout.component.ts`: `Auditoría Forense` (ícono `policy`) + `Consola Emergencia` (ícono `emergency`, colores rojos).
+
+**Hardening post-sprint (5 items):**
+- **`multi-tenant.interceptor.ts` — stale code eliminado**: Bloque `if (auth.isSuperAdmin()) { headers.set('X-Admin-Master-Key', 'GOD_MODE_ACTIVE') }` removido. Era código muerto del mecanismo break-glass anterior; inyectaba el literal hardcodeado en cada request, no el token real.
+- **`GET /security-logs` — guard ampliado**: Condición cambiada de `scopes: ["*"]` exclusivo a `scopes: ["*"]` OR `role in (admin, owner)`. Un admin normal puede ver el audit trail GOD MODE sin necesitar activar una sesión de emergencia.
+- **Rate limit IP real**: `multi_layer_key_func` en `limiter.py` ahora lee `X-Real-IP` → `X-Forwarded-For` antes del fallback a `request.client.host`. Nginx ya envía `X-Real-IP` (configurado en `nginx.conf:79`). El rate limit de brute-force en `/elevate` aplica sobre la IP del cliente, no la IP del container Nginx.
+- **Revocación JTI en Redis — ciclo completo**:
+  - `TokenPayload` extendido: campos `jti: Optional[str]` y `god_mode: bool = False` (parsean del JWT directamente).
+  - `/elevate`: tras emitir el token, escribe `SET godmode:{jti} 1 EX 300` en Redis. Si Redis falla, loguea warning — el JWT igual expira por TTL (fail-safe).
+  - `get_current_active_user` en `dependencies.py`: para tokens con `god_mode=True`, verifica `GET godmode:{jti}` en Redis. Si no existe → `401 ERR_GOD_MODE_EXPIRED`. Las sesiones normales no pasan por esta verificación (sin degradación de performance).
+  - `DELETE /admin/elevate/{jti}`: nuevo endpoint. `DEL godmode:{jti}` en Redis + audit log `GOD_MODE_REVOKED`. Requiere rol admin/owner. Frontend lo llama desde `closeSession()` antes de limpiar el store.
+- **TypeScript 0 errores**: `npx tsc --noEmit` limpio. Code Graph 0 CRITICALs en 14 servicios.
+
+**Status**: ✅ Phase 115 COMPLETED — GOD MODE operativo end-to-end (Angular → API Gateway → Auth Service → Redis → Audit DB). Ciclo completo: activación + countdown + revocación manual/automática + audit trail.
+
+---
+### [2026-05-18] Phase 114: Mobile Offline-First Sync & UUID Architecture Enforcement
+
+**Objetivo:** Implementar sincronización offline-first local de productos e inventario en la app móvil (Flutter) manteniendo estricta adherencia a la arquitectura determinista del Backend (UUIDs).
+
+- **Sincronización Offline-First**: Implementada la sincronización paginada del catálogo de variantes (`GET /api/v1/inventory/products/{pid}/variants`) inyectando precios jerárquicos y moneda en Drift (SQLite).
+- **Hardening de UUID Determinista**: Se eliminó la adaptación incorrecta en el Backend que intentaba hacer "cast" de strings como `'ENT-PUR'` a UUIDs. Se instruyó al ecosistema móvil y scripts de testing a solicitar o usar los UUIDs deterministas asignados a la empresa, garantizando la salud del ruteo FastAPI y la base de datos PostgreSQL.
+- **Resolución de Divisas**: Las listas de precios locales resuelven y conservan correctamente la divisa original (`USD` o `MXN`) previniendo que la app asuma `"MXN"` por default gracias a un parseo unificado en `ProductSyncService`.
+
+---
 ---
 ### [2026-05-18] Phase 113: Security Hardening Sprint 1 — BOLA Fix, GOD MODE Audit, RLS Protection
 

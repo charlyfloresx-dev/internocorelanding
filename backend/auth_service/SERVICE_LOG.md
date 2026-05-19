@@ -1,5 +1,15 @@
 # Auth Service - Service Log
 
+## [2026-05-19] Phase 115: GOD MODE JTI Revocation + Security-Logs Guard + Rate Limit Fix ✅
+
+- **`admin.py` — `DELETE /api/v1/admin/elevate/{jti}`**: Nuevo endpoint de revocación anticipada. Llama `DEL godmode:{jti}` en Redis, emite `GOD_MODE_REVOKED` al audit log con IP del revocador. Requiere rol `admin` o `owner`. Retorna `{ revoked: bool }` — si el JTI ya expiró retorna `revoked: false` sin error.
+- **`admin.py` — `POST /elevate` — Redis JTI write**: Tras emitir el token, escribe `SET godmode:{jti} 1 EX 300`. Si Redis no está disponible, loguea warning y continúa (fail-safe: el JWT expira igual por TTL). Import `get_redis` de `common.security.dependencies`.
+- **`admin.py` — `GET /security-logs` — guard ampliado**: Guard cambiado de `scopes: ["*"]` exclusivo a `scopes: ["*"]` OR `role in (admin, owner)`. Admins normales pueden leer el audit trail sin necesitar activar GOD MODE.
+- **`common/security/auth_payload.py` — `TokenPayload` extendido**: Nuevos campos `jti: Optional[str]` y `god_mode: bool = False`. Parsean del JWT directamente. `extra="ignore"` preservado — tokens sin estos claims no fallan validación.
+- **`common/security/dependencies.py` — JTI gate en `get_current_active_user`**: Para tokens con `god_mode=True`, verifica `GET godmode:{jti}` en Redis antes de continuar. Si no existe → `401 ERR_GOD_MODE_EXPIRED`. Sesiones normales usan el path `blacklist:{sub}` existente sin cambio.
+- **`common/security/limiter.py` — IP real detrás de proxy**: `multi_layer_key_func` ahora lee `X-Real-IP` → `X-Forwarded-For` → `request.client.host`. Rate limit de brute-force en `/elevate` aplica sobre IP del cliente real, no la IP del container Nginx.
+- **Status**: ✅ COMPLETED — Ciclo de vida GOD MODE completo con revocación Redis.
+
 ## [2026-05-18] Phase 113: Security Hardening — GOD MODE Audit + Break-Glass Panel ✅
 
 - **`admin.py` — `POST /api/v1/admin/elevate`**: Endpoint break-glass para el panel `/admin/system-control` del frontend. Rate limit `3/hour` por IP. Valida `X-Admin-Master-Key` contra `settings` (no hardcode). Emite `create_god_mode_token()` con TTL 300s, JTI único, claim `god_mode: True`. Persiste en `audit_logs` con IP, user-agent, JTI, correlation_id. Respuesta incluye `{ access_token, expires_in: 300, metadata.jti, warning }`.

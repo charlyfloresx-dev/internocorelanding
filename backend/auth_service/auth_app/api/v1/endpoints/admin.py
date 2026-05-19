@@ -17,6 +17,7 @@ from common.services.audit_service import AuditService
 from common.security.subscription_guard import SubscriptionGuard
 from common.security.auth_payload import TokenPayload
 from common.security.limiter import limiter
+from common.security.dependencies import get_redis
 import logging
 
 audit_logger = logging.getLogger("security.god_mode")
@@ -207,6 +208,14 @@ async def god_mode_elevate(
     )
     await db.commit()
 
+    # Registrar JTI en Redis — clave de vida para revocación server-side
+    # Si Redis no está disponible, el token igual expira por TTL del JWT (fail-safe)
+    try:
+        r = get_redis()
+        await r.set(f"godmode:{jti}", "1", ex=300)
+    except Exception as redis_err:
+        audit_logger.warning("[GOD_MODE] Redis write failed — JTI not registered, revocation unavailable: %s", redis_err)
+
     return ApiResponse(
         status="success",
         message="Sesión de emergencia activada. Esta sesión está siendo estrictamente auditada.",
@@ -224,6 +233,50 @@ async def god_mode_elevate(
     )
 
 
+@router.delete("/elevate/{jti}", response_model=ApiResponse)
+async def revoke_god_mode(
+    jti: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="auth_core")),
+):
+    """
+    Revocación anticipada de una sesión GOD MODE por JTI.
+    Requiere token activo con rol admin/owner o scopes wildcard.
+    """
+    is_authorized = (token.scopes and "*" in token.scopes) or token.role.lower() in ("admin", "owner")
+    if not is_authorized:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "ERR_INSUFFICIENT_SCOPE", "message": "Se requiere rol admin para revocar sesiones."},
+        )
+
+    try:
+        r = get_redis()
+        deleted = await r.delete(f"godmode:{jti}")
+    except Exception as redis_err:
+        audit_logger.error("[GOD_MODE_REVOKE] Redis error: %s", redis_err)
+        raise HTTPException(status_code=503, detail={"code": "ERR_REDIS_UNAVAILABLE", "message": "No se pudo contactar Redis."})
+
+    client_ip = request.client.host if request.client else "unknown"
+    audit_logger.critical(
+        "[SECURITY_ALERT] GOD_MODE_REVOKED | jti=%s | revoked_by=%s | ip=%s | found=%s",
+        jti, str(token.sub), client_ip, bool(deleted),
+    )
+    await AuditService.log_action(
+        db=db, user_id=str(token.sub), action="GOD_MODE_REVOKED",
+        entity_name="system_access", entity_id=jti,
+        ip_address=client_ip, new_value={"jti": jti, "was_active": bool(deleted)},
+    )
+    await db.commit()
+
+    return ApiResponse(
+        status="success",
+        data={"jti": jti, "revoked": bool(deleted)},
+        message="Sesión de emergencia revocada." if deleted else "JTI no encontrado (ya expiró o fue revocado).",
+    )
+
+
 @router.get("/security-logs", response_model=ApiResponse)
 async def get_security_logs(
     request: Request,
@@ -235,10 +288,14 @@ async def get_security_logs(
     Panel de alertas de seguridad — eventos GOD_MODE y SECURITY_ALERT del audit trail.
     Requiere JWT con scopes wildcard o rol admin.
     """
-    if not (token.scopes and "*" in token.scopes):
+    is_god_mode  = bool(token.scopes and "*" in token.scopes)
+    is_admin_role = token.role.lower() in ("admin", "owner") or any(
+        r.lower() in ("admin", "owner") for r in (token.role_names or [])
+    )
+    if not (is_god_mode or is_admin_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "ERR_INSUFFICIENT_SCOPE", "message": "Se requiere scope de administrador."},
+            detail={"code": "ERR_INSUFFICIENT_SCOPE", "message": "Se requiere rol admin o sesión GOD MODE."},
         )
 
     rows = await db.execute(

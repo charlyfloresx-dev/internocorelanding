@@ -13,7 +13,7 @@ class TokenPayload(BaseModel):
     4. Kill Switch: status != 'EXPIRED' permite sesión.
     """
     sub: Union[uuid.UUID, str] = Field(..., validation_alias=AliasChoices("sub", "user_id"), description="ID de usuario (JWT standard 'sub')")
-    company_id: Optional[Union[uuid.UUID, str]] = Field(None, description="ID de la empresa/tenant principal")
+    company_id: Optional[Union[uuid.UUID, str]] = Field(None, validation_alias=AliasChoices("company_id", "cid"), description="ID de la empresa/tenant principal")
     group_id: Optional[Union[uuid.UUID, str]] = Field(None, description="ID del grupo empresarial al que pertenece la empresa")
     role: str = Field("OPERATOR", validation_alias=AliasChoices("role", "role_name"), description="Rol principal (OWNER, ADMIN, OPERATOR)")
     role_names: List[str] = Field([], validation_alias=AliasChoices("role_names", "roles"), description="Lista extendida de nombres de roles")
@@ -31,6 +31,8 @@ class TokenPayload(BaseModel):
     correlation_id: Optional[str] = Field(None, description="ID de correlación para trazabilidad forense")
     full_name: Optional[str] = Field(None, description="Nombre completo del sujeto (para hidratación de UI)")
     token: Optional[str] = Field(None, description="Token crudo para propagación entre servicios")
+    jti: Optional[str] = Field(None, description="JWT ID — usado para revocación server-side de sesiones GOD MODE")
+    god_mode: bool = Field(False, description="True si el token proviene de /elevate (break-glass)")
 
     model_config = ConfigDict(
         extra="ignore", 

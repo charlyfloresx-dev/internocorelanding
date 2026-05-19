@@ -96,11 +96,6 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
     }
   }
 
-  // 5. Inject Master Key if Super Admin (God Mode)
-  if (auth.isSuperAdmin()) {
-    headers = headers.set('X-Admin-Master-Key', 'GOD_MODE_ACTIVE');
-  }
-
   const authReq = req.clone({ headers });
   const startTime = Date.now();
 

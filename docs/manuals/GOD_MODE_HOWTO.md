@@ -85,7 +85,50 @@ POST /api/v1/admin/elevate
 
 ### Frontend
 - Rol `admin` u `owner` en el JWT activo (el `permissionGuard` bloquea el acceso a `/admin/system-control`)
-- Tener la `CORE_ADMIN_MASTER_KEY` — **nunca se almacena en el frontend ni en archivos de configuración del cliente**
+- Conocer la `CORE_ADMIN_MASTER_KEY` — **nunca se almacena en el frontend ni en archivos de configuración del cliente**
+
+---
+
+## ¿De Dónde Sale la Clave Maestra?
+
+La `CORE_ADMIN_MASTER_KEY` es un secreto de infraestructura. El operador la ingresa manualmente en el momento de la emergencia. Nunca viaja en el código fuente ni en archivos del cliente.
+
+### Entorno de desarrollo local
+
+```bash
+# Leer del .env del proyecto
+grep CORE_ADMIN_MASTER_KEY C:\API\interno\.env
+```
+
+El valor actual es `ROTATED_MASTER_KEY_GOD_MODE`. El equipo de desarrollo lo conoce porque tiene acceso al repo.
+
+### Entorno de producción (AWS)
+
+La clave vive en **AWS Secrets Manager**. Recuperarla antes de una emergencia:
+
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id interno-core/auth-service/prod \
+  --region us-east-2 \
+  --query 'SecretString' \
+  --output text | python3 -c "import sys,json; print(json.load(sys.stdin)['admin_master_key'])"
+```
+
+Copiar el valor. No guardarlo en ningún lugar — ingresarlo directamente en el panel y desecharlo.
+
+### Equipos con múltiples administradores
+
+Guardar en un gestor de secretos compartido (1Password Teams, Bitwarden, HashiCorp Vault). Ejemplo en 1Password:
+
+```
+Vault: "Interno Core — Infraestructura"
+Item:  "GOD MODE — Master Key (Producción)"
+Field: password → <CORE_ADMIN_MASTER_KEY>
+```
+
+Solo los roles `owner` o `infrastructure` tienen acceso al vault. Al necesitarla, el operador abre 1Password, copia la clave, activa el panel, y ejecuta la operación. No la guarda en ningún otro lugar.
+
+> **Rotar la clave después de cualquier uso en producción.** Actualizar en AWS Secrets Manager y en 1Password simultáneamente, luego reiniciar el contenedor `interno-auth-dev` para que tome el nuevo valor.
 
 ---
 
@@ -99,15 +142,22 @@ https://tu-dominio.com/admin/system-control
 
 Solo usuarios con rol `admin` o `owner` pueden acceder. Los demás son redirigidos a `/dashboard`.
 
-### 2. Ingresar la Clave Maestra
+### 2. Obtener la Clave
+
+Según el entorno (ver sección anterior):
+- **Local:** leer del `.env`
+- **Producción:** recuperar de AWS Secrets Manager o 1Password
+- Tenerla lista para pegar — no la copies a un bloc de notas
+
+### 3. Ingresar la Clave Maestra
 
 En el componente **"Consola de Emergencia"**:
 
-1. Escribe la `CORE_ADMIN_MASTER_KEY` en el campo de texto (tipo password — los caracteres están ocultos)
+1. Pega la `CORE_ADMIN_MASTER_KEY` en el campo de texto (tipo password — los caracteres están ocultos)
 2. Pulsa **"Activar sesión de emergencia"**
 3. Confirma en el diálogo: **"¿Está seguro de que desea elevar privilegios globales?"**
 
-> Si ingresas la clave incorrecta 3 veces consecutivas, la UI se bloquea localmente. Recarga la página para intentar de nuevo (el rate limit del backend aplica por IP, no por recarga).
+> Si ingresas la clave incorrecta 3 veces consecutivas, la UI se bloquea localmente. Recarga la página para intentar de nuevo (el rate limit del backend aplica por IP, no por recarga de página).
 
 ### 3. Sesión Activa
 
