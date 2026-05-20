@@ -15,7 +15,6 @@ if os.getcwd() not in sys.path:
 
 from inventory_app.db.session import AsyncSessionLocal
 from inventory_app.models.inventory import InventoryLevel
-from inventory_app.models.item_variant import ItemVariant
 from inventory_app.models.movement import Movement
 from inventory_app.models.customs_pedimento import CustomsPedimento, CustomsOperationType
 from inventory_app.models.document import InventoryDocument, DocumentStatus
@@ -48,27 +47,22 @@ async def seed_inventory(company_id: uuid.UUID):
                     ))
 
             # --- 2. PRODUCTOS (FUERA DE CUALQUIER BUCLE DE ALMACÉN) ---
+            # Note: inventory_item_variants now lives in master_data_db — seeded there.
             skus = ["PIZZA-BOX-01", "BOX-INDUSTRIAL-44"]
-            variant_map = {}
+            product_map = {}
             for sku in skus:
-                v_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"variant.{company_id}.{sku}")
                 p_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"item.{company_id}.{sku}")
-                variant_map[sku] = (v_id, p_id)
-                
-                v_res = await session.execute(select(ItemVariant).where(ItemVariant.id == v_id))
-                if not v_res.scalar():
-                    logger.info(f"[+] SEEDING_VARIANT: SKU={sku}, ID={v_id}")
-                    session.add(ItemVariant(
-                        id=v_id, company_id=company_id, tenant_id=company_id,
-                        product_id=p_id, internal_sku=sku, is_active=True, created_by=SYSTEM_USER_ID,
-                        brand="INDUSTRIAL-CORP", mfg_part_number=f"MPN-{sku}"
-                    ))
-                else:
-                    logger.warning(f"[!] VARIANT_ALREADY_EXISTS: ID={v_id}. Skipping.")
-                
+                product_map[sku] = p_id
+
                 # Nivel de stock determinista (Solo en TIJ para esta prueba)
-                lvl_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"stock.{wh_map['WH-TIJ']}.{v_id}")
-                lvl_res = await session.execute(select(InventoryLevel).where(InventoryLevel.id == lvl_id))
+                lvl_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"stock.{wh_map['WH-TIJ']}.{p_id}")
+                lvl_res = await session.execute(
+                    select(InventoryLevel).where(
+                        InventoryLevel.company_id == company_id,
+                        InventoryLevel.warehouse_id == wh_map["WH-TIJ"],
+                        InventoryLevel.product_id == p_id,
+                    )
+                )
                 if not lvl_res.scalar():
                     session.add(InventoryLevel(
                         id=lvl_id, company_id=company_id, tenant_id=company_id,
@@ -79,7 +73,7 @@ async def seed_inventory(company_id: uuid.UUID):
             # 3. Transacciones FIFO (Lotes con IDs fijos)
             for i in range(1, 4):
                 sku = skus[i % len(skus)]
-                v_id, p_id = variant_map[sku]
+                p_id = product_map[sku]
                 ped_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"ped.{company_id}.{i}")
                 p_number = f"PED-{str(company_id)[:4]}-{i}"
                 
@@ -141,8 +135,8 @@ async def main():
     if args.wipe:
         async with AsyncSessionLocal() as session:
             logger.info("🧹 Atomic Wipe...")
-            tabs = ["inventory_movements", "inventory_levels", "inventory_documents", 
-                    "inventory_item_variants", "inventory_warehouses", "customs_pedimentos"]
+            tabs = ["inventory_movements", "inventory_levels", "inventory_documents",
+                    "inventory_warehouses", "customs_pedimentos"]
             for tab in tabs:
                 await session.execute(text(f"TRUNCATE TABLE {tab} CASCADE"))
             await session.commit()

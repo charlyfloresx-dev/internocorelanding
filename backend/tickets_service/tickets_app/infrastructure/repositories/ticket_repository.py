@@ -65,6 +65,7 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             assigned_to_id=data.get("assigned_to_id"),
             collaborator_id=data.get("collaborator_id"),
             external_contact_id=data.get("external_contact_id"),
+            assigned_department_id=data.get("assigned_department_id"),
             station_id=data.get("station_id"),
         )
 
@@ -111,7 +112,7 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         return list(result.scalars().all())
 
     async def list_by_visibility(
-        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None
+        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None, department_id: Optional[UUID] = None
     ) -> list[Ticket]:
         stmt = select(Ticket).options(
             selectinload(Ticket.comments),
@@ -124,23 +125,17 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         )
         
         if not is_admin:
-            if is_supervisor:
-                if department_area:
-                    stmt = stmt.where(
-                        (Ticket.area == department_area) | 
-                        (Ticket.created_by == user_id) | 
-                        (Ticket.assigned_to_id == user_id)
-                    )
-                else:
-                    stmt = stmt.where(
-                        (Ticket.created_by == user_id) | 
-                        (Ticket.assigned_to_id == user_id)
-                    )
-            else:
-                stmt = stmt.where(
-                    (Ticket.created_by == user_id) | 
-                    (Ticket.assigned_to_id == user_id)
-                )
+            from sqlalchemy import or_
+            conds = [
+                Ticket.created_by == user_id,
+                Ticket.assigned_to_id == user_id
+            ]
+            if department_area:
+                conds.append(Ticket.area == department_area)
+            if department_id:
+                conds.append(Ticket.assigned_department_id == department_id)
+                
+            stmt = stmt.where(or_(*conds))
 
         result = await self._session.execute(stmt)
         return list(result.scalars().all())

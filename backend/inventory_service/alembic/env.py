@@ -22,6 +22,7 @@ if config.config_file_name is not None:
 # ─── Metadata ─────────────────────────────────────────────────────────────────
 from common.models import Base
 # Importamos todos los modelos para que autogenerate los detecte
+import common.models.audit
 import inventory_app.models.inventory
 import inventory_app.models.inter_company_transfer
 import inventory_app.models.warehouse

@@ -40,7 +40,7 @@ class ITicketRepository(ABC):
 
     @abstractmethod
     async def list_by_visibility(
-        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None
+        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None, department_id: Optional[UUID] = None
     ) -> List["Ticket"]:  # noqa: F821
         """Lista tickets aplicando reglas jerárquicas de visibilidad."""
         ...

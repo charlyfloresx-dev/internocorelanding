@@ -45,6 +45,7 @@ def upgrade() -> None:
             sa.Column('first_name', sa.String(length=100), nullable=False),
             sa.Column('last_name', sa.String(length=100), nullable=False),
             sa.Column('department', sa.String(length=50), nullable=True),
+            sa.Column('translation_key', sa.String(length=100), nullable=True),
             sa.Column('job_title', sa.String(length=100), nullable=True),
             sa.Column('is_direct', sa.Boolean(), server_default='true', nullable=False),
             sa.Column('home_warehouse_id', sa.UUID(), nullable=True),
@@ -68,7 +69,6 @@ def upgrade() -> None:
             sa.Column('user_id', sa.UUID(), nullable=True),
             sa.Column('emergency_contact', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
             *audit_columns,
-            sa.ForeignKeyConstraint(['supervisor_id'], ['collaborators.id'], ondelete='SET NULL'),
             sa.PrimaryKeyConstraint('id'),
             sa.UniqueConstraint('internal_id', 'company_id', name='uq_collaborator_internal_id_company')
         )

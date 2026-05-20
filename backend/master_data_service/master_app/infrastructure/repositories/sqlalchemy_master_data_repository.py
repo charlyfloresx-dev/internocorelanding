@@ -12,6 +12,7 @@ from master_app.models.product import Product, ProductVersion
 from master_app.models.product_brand import ProductBrand
 from master_app.models.product_category import ProductCategory
 from master_app.models.uom import UOM
+from master_app.models.item_variant import ItemVariant
 from common.domain import ProductStatus, VersionStatus
 from master_app.models.product_price import ProductPrice
 from datetime import datetime, timezone
@@ -27,87 +28,82 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
     # Product
     # =========================================================================
     async def get_products(self, company_id: uuid.UUID, group_id: Optional[uuid.UUID] = None, q: Optional[str] = None, warehouse_id: Optional[uuid.UUID] = None) -> List[Any]:
+        import copy
         filters = [Product.company_id == company_id]
         if group_id:
             filters = [or_(Product.company_id == company_id, Product.group_id == group_id)]
-        
-        price_warehouse_filter = or_(ProductPrice.warehouse_id == warehouse_id, ProductPrice.warehouse_id == None) if warehouse_id else ProductPrice.warehouse_id == None
 
-        from sqlalchemy import text, table, column
-        # Define variant table dynamically to avoid cross-service import dependencies
-        variants = table("inventory_item_variants",
-            column("id"),
-            column("product_id"),
-            column("mfg_part_number"),
-            column("brand")
+        price_warehouse_filter = (
+            or_(ProductPrice.warehouse_id == warehouse_id, ProductPrice.warehouse_id == None)
+            if warehouse_id else ProductPrice.warehouse_id == None
         )
 
         stmt = (
             select(Product)
             .where(*filters)
-            .outerjoin(variants, variants.c.product_id == Product.id)
-
+            .outerjoin(
+                ItemVariant,
+                and_(ItemVariant.product_id == Product.id, ItemVariant.company_id == company_id),
+            )
             .outerjoin(ProductPrice, and_(
                 ProductPrice.product_id == Product.id,
                 ProductPrice.valid_until == None,
                 ProductPrice.is_active == True,
-                price_warehouse_filter
+                price_warehouse_filter,
             ))
             .add_columns(
-                ProductPrice._amount, 
+                ProductPrice._amount,
                 ProductPrice._currency,
-                variants.c.mfg_part_number,
-                variants.c.brand,
-                variants.c.id.label("variant_id")
+                ItemVariant.mfg_part_number,
+                ItemVariant.brand,
+                ItemVariant.id.label("variant_id"),
+                ItemVariant.unit_price.label("variant_price"),
+                ItemVariant.internal_sku,
             )
         )
-        
+
         if q:
             keyword = f"%{q}%"
             stmt = stmt.where(or_(
                 Product.sku.ilike(keyword),
                 Product.name.ilike(keyword),
-                variants.c.mfg_part_number.ilike(keyword)
+                ItemVariant.internal_sku.ilike(keyword),
+                ItemVariant.mfg_part_number.ilike(keyword),
             ))
 
-            
         if warehouse_id:
             stmt = stmt.order_by(Product.id, ProductPrice.warehouse_id.desc().nullslast())
 
         result = await self.db.execute(stmt)
-        
         products = []
         processed_keys = set()
-        
+
         for row in result.all():
-            p_orig = row[0]
-            # Create a shallow copy to avoid modifying the same object for different variants
-            import copy
-            p = copy.copy(p_orig)
-            
+            p = copy.copy(row[0])
             p_id = p.id
+
             mpn = row[3]
             brand = row[4]
             variant_id = row[5]
-            
-            # Key for uniqueness: Product ID + Variant ID (to show different variants)
-            # We also keep the price logic
+            v_price = Decimal(str(row[6])) if row[6] is not None else None
+            m_price = Decimal(str(row[1])) if row[1] is not None else None
+            v_internal_sku = row[7]
+
+            p.last_price = v_price if v_price is not None else (m_price or Decimal("0.0"))
+            p.currency = row[2] or "MXN"
+
             key = (p_id, variant_id)
             if key in processed_keys:
-                continue 
-                
-            p.last_price = Decimal(str(row[1])) if row[1] is not None else None
-            p.currency = row[2] or "MXN"
-            
-            # Enrich Name with Variant Info if it exists
-            if mpn:
-                p.name = f"{p.name} ({brand} {mpn})"
-                # Optionally, override SKU to be specific if MPN is what they need
-                # but for inventory documents, usually SKU is the product and MPN is the variant attribute.
-            
+                continue
+
+            if variant_id and v_internal_sku:
+                # Return the variant's internal_sku so the UI shows the matched code
+                p.sku = v_internal_sku
+                p.name = f"{p.name} ({brand} {mpn})" if mpn else p.name
+
             products.append(p)
             processed_keys.add(key)
-            
+
         return products
 
 
@@ -118,80 +114,67 @@ class SQLAlchemyMasterDataRepository(IMasterDataRepository):
 
     async def get_product_by_sku(self, sku: str, company_id: uuid.UUID) -> Optional[Any]:
         """
-        Unifies lookup by SKU (Main Product) or MFG/Internal SKU (Variant).
-        Always joins with ProductPrice to ensure 'last_price' is available.
+        Unifies lookup by SKU (Main Product), internal_sku, or mfg_part_number (Variant).
+        Returns product with last_price and enriched fields. When matched via variant,
+        product.sku is overridden with the variant's internal_sku.
         """
-        from sqlalchemy import text, table, column
-        variants = table("inventory_item_variants",
-            column("id"),
-            column("product_id"),
-            column("internal_sku"),
-            column("mfg_part_number"),
-            column("brand"),
-            column("unit_price")
-        )
-
-        # Base statement with Price Join and Variant info
         stmt = (
             select(Product)
-            .outerjoin(variants, variants.c.product_id == Product.id)
+            .outerjoin(
+                ItemVariant,
+                and_(ItemVariant.product_id == Product.id, ItemVariant.company_id == company_id),
+            )
             .outerjoin(ProductPrice, and_(
                 ProductPrice.product_id == Product.id,
                 ProductPrice.valid_until == None,
-                ProductPrice.is_active == True
+                ProductPrice.is_active == True,
             ))
             .outerjoin(ProductBrand, Product.brand_id == ProductBrand.id)
             .outerjoin(ProductCategory, Product.category_id == ProductCategory.id)
             .outerjoin(UOM, Product.base_uom_id == UOM.id)
             .where(Product.company_id == company_id)
+            .where(or_(
+                Product.sku == sku,
+                ItemVariant.internal_sku == sku,
+                ItemVariant.mfg_part_number == sku,
+            ))
             .add_columns(
-                ProductPrice._amount,
-                ProductPrice._currency,
-                variants.c.mfg_part_number,
-                variants.c.brand,
-                variants.c.internal_sku,
-                variants.c.unit_price, # Cargar precio de la variante
-                ProductBrand.name.label("brand_name"),
-                ProductCategory.name.label("category_name"),
-                UOM.name.label("uom_name")
+                ProductPrice._amount,           # row[1]
+                ProductPrice._currency,         # row[2]
+                ItemVariant.mfg_part_number,    # row[3]
+                ItemVariant.brand,              # row[4]
+                ItemVariant.internal_sku,       # row[5]
+                ItemVariant.unit_price,         # row[6]
+                ProductBrand.name.label("brand_name"),      # row[7]
+                ProductCategory.name.label("category_name"),# row[8]
+                UOM.name.label("uom_name"),                 # row[9]
             )
         )
 
-        # Filter by SKU (Main) or Variant Identifiers
-        stmt = stmt.where(or_(
-            Product.sku == sku,
-            variants.c.internal_sku == sku,
-            variants.c.mfg_part_number == sku
-        ))
-
-        # We take the first match (if multiple, prioritize main product if it matched)
         result = await self.db.execute(stmt)
         row = result.first()
-
         if not row:
             return None
 
         product = row[0]
-        
-        # Prioridad de precio: 1. Variante, 2. Precio Maestro, 3. 0.0
+
         variant_price = Decimal(str(row[6])) if row[6] is not None else None
         master_price = Decimal(str(row[1])) if row[1] is not None else None
-        
-        product.last_price = variant_price if variant_price is not None else (master_price or 0.0)
+        product.last_price = variant_price if variant_price is not None else (master_price or Decimal("0.0"))
         product.currency = row[2] or "MXN"
-        
+
         mpn = row[3]
         v_brand = row[4]
-        v_sku = row[5]
-        
-        # Enriched fields
-        product.brand_name = row[7] if row[7] else v_brand # fallback to variant brand
+        v_internal_sku = row[5]
+
+        product.brand_name = row[7] if row[7] else v_brand
         product.category_name = row[8]
         product.uom_name = row[9]
 
-        # Enrich name if it's a variant match
-        if sku == mpn or sku == v_sku:
-            variant_label = f"({v_brand} {mpn})" if v_brand and mpn else f"({mpn or v_sku})"
+        if v_internal_sku and (sku == mpn or sku == v_internal_sku):
+            # Return the variant's internal_sku as the identifying SKU
+            product.sku = v_internal_sku
+            variant_label = f"({v_brand} {mpn})" if v_brand and mpn else f"({mpn or v_internal_sku})"
             if variant_label not in product.name:
                 product.name = f"{product.name} {variant_label}"
 

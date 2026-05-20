@@ -1,28 +1,17 @@
-"""
-InternoCore - Unified Industrial Seed v4
-==========================================
-Orden de carga:
-  1. Auth Core:      BusinessGroup -> Company -> Roles -> User Charly
-  2. Master Data:    UOMs -> MovementConcepts -> Warehouse -> Location -> Product -> Prices
-  3. Inventory:      Shadow Warehouses -> Product Variants (5 productos x 3 variantes)
-
-Diseno: Savepoints anidados por seccion para idempotencia industrial.
-        Cada seccion puede fallar de forma aislada sin revertir las demas.
-
-Fuentes integradas:
-  - seed_variants.py         (5 productos, 3 variantes c/u)
-  - setup_transfer_prices.py (precios MXN + USD por producto)
-"""
-import asyncio
+# Content from backend/scripts/unified_industrial_seed.py (Fixed version)
 import uuid
 import logging
 import os
 import sys
+import asyncio
 
 # 1. Configurar PYTHONPATH para incluir TODAS las carpetas de servicios
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Si se corre desde backend/scripts, el root es un nivel arriba
-ROOT_DIR = os.path.dirname(BASE_DIR)
+# Si se corre desde backend/auth_service/scripts, el root esta dos niveles arriba
+if "auth_service" in BASE_DIR:
+    ROOT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
+else:
+    ROOT_DIR = os.path.dirname(BASE_DIR)
 services = [
     "auth_service", 
     "master_data_service", 
@@ -39,6 +28,7 @@ for s in services:
     path = os.path.join(ROOT_DIR, s)
     if path not in sys.path:
         sys.path.append(path)
+
 from decimal import Decimal
 from datetime import datetime, timezone
 from sqlalchemy import select, text, and_
@@ -83,7 +73,6 @@ TECH_TWO_ID   = uuid.UUID("22222222-bbaa-46e6-a7f0-aeb4b92b6d38")
 DEMO_ID       = uuid.UUID("d3d3d3d3-bbaa-46e6-a7f0-aeb4b92b6d38")
 
 # Catálogo de Productos y Variantes (SSOT — 5 productos x 3 variantes)
-# Fuente: seed_variants.py + setup_transfer_prices.py
 PRODUCT_CATALOG = [
     {
         "name": "Engine Control Module (ECM)",
@@ -157,7 +146,6 @@ async def _safe_add(session, obj, label=""):
             await session.merge(obj)
             await session.flush()
             
-            # [Fase 84] Auditoria Forense en Seed
             await AuditService.log_action(
                 db=session,
                 user_id="SYSTEM_SEED",
@@ -171,9 +159,8 @@ async def _safe_add(session, obj, label=""):
         log.warning("  FAIL %s (error: %s)", label, type(e).__name__)
 
 async def seed_enumerations(session):
-    log.info("[0/5] Global Enumerations: Statuses, Priorities and Categories...")
+    log.info("[0/5] Global Enumerations...")
     enums_to_seed = [
-        # Tickets & Support
         {"type": "TICKET_STATUS", "key": "OPEN", "label": "Abierto", "t_key": "enums.ticket_status.open", "sort": 1},
         {"type": "TICKET_STATUS", "key": "IN_PROGRESS", "label": "En Progreso", "t_key": "enums.ticket_status.in_progress", "sort": 2},
         {"type": "TICKET_STATUS", "key": "RESOLVED", "label": "Resuelto", "t_key": "enums.ticket_status.resolved", "sort": 3},
@@ -182,57 +169,13 @@ async def seed_enumerations(session):
         {"type": "TICKET_PRIORITY", "key": "MEDIUM", "label": "Media", "t_key": "enums.ticket_priority.medium", "sort": 2},
         {"type": "TICKET_PRIORITY", "key": "HIGH", "label": "Alta", "t_key": "enums.ticket_priority.high", "sort": 3},
         {"type": "TICKET_PRIORITY", "key": "CRITICAL", "label": "Crítica", "t_key": "enums.ticket_priority.critical", "sort": 4},
-        
-        # Assets & CMMS
-        {"type": "ASSET_STATUS", "key": "OPERATIONAL", "label": "Operativo", "t_key": "enums.asset_status.operational", "sort": 1},
-        {"type": "ASSET_STATUS", "key": "UNDER_MAINTENANCE", "label": "En Mantenimiento", "t_key": "enums.asset_status.maintenance", "sort": 2},
-        {"type": "ASSET_STATUS", "key": "OUT_OF_SERVICE", "label": "Fuera de Servicio", "t_key": "enums.asset_status.out_of_service", "sort": 3},
-        {"type": "WORK_ORDER_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.wo_status.draft", "sort": 1},
-        {"type": "WORK_ORDER_STATUS", "key": "SCHEDULED", "label": "Programada", "t_key": "enums.wo_status.scheduled", "sort": 2},
-        {"type": "WORK_ORDER_STATUS", "key": "IN_PROGRESS", "label": "En Ejecución", "t_key": "enums.wo_status.in_progress", "sort": 3},
-        {"type": "WORK_ORDER_STATUS", "key": "COMPLETED", "label": "Completada", "t_key": "enums.wo_status.completed", "sort": 4},
-
-        # Inventory Movements
         {"type": "INVENTORY_MOVEMENT_TYPE", "key": "ENTRADA", "label": "Entrada", "t_key": "inventory.movement.entrada", "sort": 1},
         {"type": "INVENTORY_MOVEMENT_TYPE", "key": "SALIDA", "label": "Salida", "t_key": "inventory.movement.salida", "sort": 2},
         {"type": "INVENTORY_MOVEMENT_TYPE", "key": "TRASPASO", "label": "Traspaso", "t_key": "inventory.movement.traspaso", "sort": 3},
-        
-        # Product & Catalog Enums
-        {"type": "PRODUCT_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.product_status.draft", "sort": 1},
         {"type": "PRODUCT_STATUS", "key": "ACTIVE", "label": "Activo", "t_key": "enums.product_status.active", "sort": 2},
-        {"type": "PRODUCT_STATUS", "key": "INACTIVE", "label": "Inactivo", "t_key": "enums.product_status.inactive", "sort": 3},
         {"type": "PRODUCT_TYPE", "key": "GOODS", "label": "Material / Producto", "t_key": "enums.product_type.goods", "sort": 1},
-        {"type": "PRODUCT_TYPE", "key": "SERVICE", "label": "Servicio", "t_key": "enums.product_type.service", "sort": 2},
-        
-        # Currency & Finance
         {"type": "CURRENCY", "key": "MXN", "label": "Pesos Mexicanos", "t_key": "enums.currency.mxn", "sort": 1},
         {"type": "CURRENCY", "key": "USD", "label": "Dólares Americanos", "t_key": "enums.currency.usd", "sort": 2},
-        
-        # Partner Types
-        {"type": "PARTNER_TYPE", "key": "CUSTOMER", "label": "Cliente", "t_key": "enums.partner_type.customer", "sort": 1},
-        {"type": "PARTNER_TYPE", "key": "SUPPLIER", "label": "Proveedor", "t_key": "enums.partner_type.supplier", "sort": 2},
-        
-        # Warehouse Types
-        {"type": "WAREHOUSE_TYPE", "key": "PHYSICAL", "label": "Almacén Físico", "t_key": "enums.wh_type.physical", "sort": 1},
-        {"type": "WAREHOUSE_TYPE", "key": "VIRTUAL", "label": "Almacén Virtual", "t_key": "enums.wh_type.virtual", "sort": 2},
-        {"type": "WAREHOUSE_TYPE", "key": "TRANSIT", "label": "Tránsito", "t_key": "enums.wh_type.transit", "sort": 3},
-        {"type": "WAREHOUSE_TYPE", "key": "EXT_PARTNER", "label": "Gestionado por Terceros", "t_key": "enums.wh_type.ext", "sort": 4},
-        
-        # Inventory Document & Transfer Statuses
-        {"type": "DOCUMENT_STATUS", "key": "DRAFT", "label": "Borrador", "t_key": "enums.doc_status.draft", "sort": 1},
-        {"type": "DOCUMENT_STATUS", "key": "PROCESSED", "label": "Procesado", "t_key": "enums.doc_status.processed", "sort": 2},
-        {"type": "DOCUMENT_STATUS", "key": "CANCELLED", "label": "Cancelado", "t_key": "enums.doc_status.cancelled", "sort": 3},
-        {"type": "TRANSFER_STATUS", "key": "PENDING", "label": "Pendiente", "t_key": "enums.trf_status.pending", "sort": 1},
-        {"type": "TRANSFER_STATUS", "key": "SHIPPED", "label": "Enviado", "t_key": "enums.trf_status.shipped", "sort": 2},
-        {"type": "TRANSFER_STATUS", "key": "DELIVERED", "label": "Recibido", "t_key": "enums.trf_status.delivered", "sort": 3},
-        {"type": "TRANSFER_STATUS", "key": "CANCELLED", "label": "Cancelado", "t_key": "enums.trf_status.cancelled", "sort": 4},
-        
-        # Product Version & Unit Types
-        {"type": "VERSION_STATUS", "key": "DESIGN", "label": "Diseño / Especificación", "t_key": "enums.ver_status.design", "sort": 1},
-        {"type": "VERSION_STATUS", "key": "EXPERIMENTAL", "label": "Prototipo / Experimental", "t_key": "enums.ver_status.experimental", "sort": 2},
-        {"type": "VERSION_STATUS", "key": "PUBLISHED", "label": "Publicado / Vigente", "t_key": "enums.ver_status.published", "sort": 3},
-        {"type": "UNIT_TYPE", "key": "BASE", "label": "Unidad Base (Contenedor)", "t_key": "enums.unit_type.base", "sort": 1},
-        {"type": "UNIT_TYPE", "key": "SALE", "label": "Unidad de Venta (Pieza)", "t_key": "enums.unit_type.sale", "sort": 2}
     ]
     for e in enums_to_seed:
         stmt = select(Enumeration).where(Enumeration.type == e["type"], Enumeration.key == e["key"], Enumeration.company_id == None)
@@ -244,27 +187,14 @@ async def seed_enumerations(session):
                 company_id=None, tenant_id=None, is_active=True, version_id=1, created_by=CHARLY_ID
             ), f"Enum: {e['type']}.{e['key']}")
 
-# --- Secciones de Seed ---
 async def seed_auth(session):
-    log.info("[1/5] Auth Core: BusinessGroup / Companies / Roles / Usuarios...")
-
+    log.info("[1/5] Auth Core...")
     if not await session.get(BusinessGroup, GROUP_ID):
-        await _safe_add(session, BusinessGroup(
-            id=GROUP_ID, name="Interno Global Operations", version_id=1, is_active=True
-        ), "BusinessGroup")
+        await _safe_add(session, BusinessGroup(id=GROUP_ID, name="Interno Global Operations", version_id=1, is_active=True), "BusinessGroup")
 
-    for co_id, co_name, co_tax in [
-        (ENTERPRISE_ID, "Interno Enterprise", 0.16),
-        (LOGISTICS_MX_ID, "Planta MX", 0.16),
-        (LOGISTICS_US_ID, "Planta US", 0.0),
-        (DEMO_ID, "Demo Operativo S.A.", 0.16)
-    ]:
+    for co_id, co_name, co_tax in [(ENTERPRISE_ID, "Interno Enterprise", 0.16), (LOGISTICS_MX_ID, "Planta MX", 0.16), (LOGISTICS_US_ID, "Planta US", 0.0), (DEMO_ID, "Demo Operativo S.A.", 0.16)]:
         if not await session.get(Company, co_id):
-            await _safe_add(session, Company(
-                id=co_id, name=co_name,
-                status="ACTIVE", parent_group_id=GROUP_ID, version_id=1, is_active=True,
-                default_tax_rate=co_tax
-            ), f"Empresa: {co_name} (IVA: {co_tax*100}%)")
+            await _safe_add(session, Company(id=co_id, name=co_name, status="ACTIVE", parent_group_id=GROUP_ID, version_id=1, is_active=True, default_tax_rate=co_tax), f"Empresa: {co_name}")
 
     role_admin = await _first(session, select(Role).where(Role.name == "admin"))
     if not role_admin:
@@ -273,543 +203,71 @@ async def seed_auth(session):
         role_admin = await _first(session, select(Role).where(Role.name == "admin"))
 
     if not await session.get(User, CHARLY_ID):
-        charly = User(
-            id=CHARLY_ID,
-            first_name="Charly",
-            last_name_pat="Flores",
-            version_id=1,
-            is_active=True
-        )
-        await _safe_add(session, charly, "Usuario (Perfil): Charly Flores")
-
-        # Credenciales de Auth
-        charly_cred = UserCredential(
-            id=uuid.uuid4(),
-            user_id=CHARLY_ID,
-            email="charly@interno.com",
-            credential_type="PASSWORD",
-            hashed_password=hash_password("charly123"),
-            version_id=1,
-            is_active=True
-        )
-        await _safe_add(session, charly_cred, "Usuario (Auth): charly@interno.com")
-
+        charly = User(id=CHARLY_ID, first_name="Charly", last_name_pat="Flores", version_id=1, is_active=True)
+        await _safe_add(session, charly, "Usuario: Charly")
+        charly_cred = UserCredential(id=uuid.uuid4(), user_id=CHARLY_ID, email="charly@interno.com", credential_type="PASSWORD", hashed_password=hash_password("charly123"), version_id=1, is_active=True)
+        await _safe_add(session, charly_cred, "Auth: charly@interno.com")
         if role_admin:
-            for sys_co_id in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID]:
-                await _safe_add(session, UserCompanyRole(
-                    user_id=CHARLY_ID, company_id=sys_co_id,
-                    role_id=role_admin.id, tenant_id=sys_co_id,
-                    scopes=["*"], is_new=False, version_id=1
-                ), f"RBAC: Charly -> admin en {sys_co_id}")
-            
-            # Assignment for Demo Tenant (Operative Scopes)
-            await _safe_add(session, UserCompanyRole(
-                user_id=CHARLY_ID, company_id=DEMO_ID,
-                role_id=role_admin.id, tenant_id=DEMO_ID,
-                scopes=["master:catalog:manage", "inv:movements:manage", "tickets:manage", "tickets:view"], 
-                is_new=True, version_id=1
-            ), f"RBAC: Charly -> Operative Admin en DEMO")
-
-    # Seed Technicians
-    role_tech = await _first(session, select(Role).where(Role.name == "technician"))
-    if not role_tech:
-        role_tech = Role(id=uuid.uuid4(), name="technician", is_system_role=True, tenant_id=ENTERPRISE_ID, version_id=1, is_active=True)
-        await _safe_add(session, role_tech, "Rol: technician")
-        role_tech = await _first(session, select(Role).where(Role.name == "technician"))
-
-    techs = [
-        (TECH_ONE_ID, "Roberto", "Mecánico", "roberto@interno.com"),
-        (TECH_TWO_ID, "Ana", "Operadora", "ana@interno.com")
-    ]
-    
-    for tid, fname, lname, email in techs:
-        if not await session.get(User, tid):
-            user_obj = User(
-                id=tid, first_name=fname, last_name_pat=lname, version_id=1, is_active=True
-            )
-            await _safe_add(session, user_obj, f"Usuario: {fname} {lname}")
-            
-            cred_obj = UserCredential(
-                id=uuid.uuid4(), user_id=tid, email=email, credential_type="PASSWORD",
-                hashed_password=hash_password("tech123"), version_id=1, is_active=True
-            )
-            await _safe_add(session, cred_obj, f"Usuario (Auth): {email}")
-            
-            if role_tech:
-                for sys_co_id in [LOGISTICS_MX_ID, LOGISTICS_US_ID]:
-                    await _safe_add(session, UserCompanyRole(
-                        user_id=tid, company_id=sys_co_id, role_id=role_tech.id,
-                        tenant_id=sys_co_id, scopes=["*"], is_new=False, version_id=1
-                    ), f"RBAC: {fname} -> technician en {sys_co_id}")
-
-
-async def seed_master_data(session):
-    log.info("[2/5] Master Data: Catalogos, Almacenes y Ubicaciones...")
-
-    uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
-    if not uom_pz:
-        uom_pz = UOM(id=uuid.uuid4(), code="PZ", name="Pieces", abbreviation="PZ", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True)
-        await _safe_add(session, uom_pz, "UOM: PZ (Pieces)")
-        uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
-
-    # Cleanup: Deactivate legacy English concepts to avoid bilingual clutter
-    legacy_codes = ["PUR-REC", "SAL-DIS", "INT-TRA"]
-    await session.execute(text("""
-        UPDATE movement_concepts 
-        SET is_active = FALSE 
-        WHERE code = ANY(:codes) AND company_id = :co_id
-    """), {"codes": legacy_codes, "co_id": ENTERPRISE_ID})
-
-    
-    concepts_to_seed = [
-        ("Compra", MovementType.ENTRY, "ENT-PUR", True, False, "inventory.concept.purchase"),
-        ("Ajuste Positivo", MovementType.ENTRY, "ENT-ADJ", False, False, "inventory.concept.adj_pos"),
-        ("Venta", MovementType.OUTPUT, "SAL-VEN", True, False, "inventory.concept.sale"),
-        ("Ajuste Negativo", MovementType.OUTPUT, "SAL-ADJ", False, False, "inventory.concept.adj_neg"),
-        ("Traspaso Interno", MovementType.TRANSFER, "TRF-INT", False, True, "inventory.concept.transfer"),
-    ]
-
-    for cname, ctype, ccode, req_ext, req_wh, t_key in concepts_to_seed:
-        c_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.concept.{ENTERPRISE_ID}.{ccode}")
-        existing_c = await session.get(MovementConcept, c_id)
-        if not existing_c:
-            await _safe_add(session, MovementConcept(
-                id=c_id, 
-                name=cname, 
-                code=ccode, 
-                type=ctype, 
-                requires_external_entity=req_ext,
-                requires_target_warehouse=req_wh,
-                translation_key=t_key,
-                company_id=ENTERPRISE_ID, 
-                tenant_id=ENTERPRISE_ID, 
-                group_id=GROUP_ID, 
-                version_id=1, 
-                is_active=True
-            ), f"Concept: {cname} (NEW)")
-        else:
-            # Update existing
-            existing_c.translation_key = t_key
-            existing_c.requires_external_entity = req_ext
-            existing_c.requires_target_warehouse = req_wh
-            log.info("  UPDATE Concept: %s", cname)
-
-
-    # Warehouses
-    wh_ent_id = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.ENT-MAIN")
-    wh_ent = await _first(session, select(MasterWarehouse).where(MasterWarehouse.id == wh_ent_id))
-    if not wh_ent:
-        wh_ent = MasterWarehouse(id=wh_ent_id, name="ALMACEN CENTRAL", code="WH-001", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True)
-        await _safe_add(session, wh_ent, "Almacen Master: WH-001")
-        wh_ent = await _first(session, select(MasterWarehouse).where(MasterWarehouse.id == wh_ent_id))
-
-    # --- Master Locations ---
-    from inventory_app.models.location import InventoryLocation as WmsLocation
-    await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-AUDIT-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, max_capacity_units=100.0, zone_type="QUALITY", storage_type="DRY", version_id=1, is_active=True), "Ubicacion: LOC-AUDIT-01")
-    await _safe_add(session, WmsLocation(id=uuid.uuid4(), code="LOC-TIJ-RECV-01", warehouse_id=wh_ent.id, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, zone_type="RECEIVING", storage_type="DRY", max_capacity_units=500.0, version_id=1, is_active=True), "Ubicacion: LOC-TIJ-RECV-01")
-
-    # [Phase 84] Setup Transfer Prices (Enterprise -> Logistics MX -> US)
-    try:
-        from inventory_service.scripts.flows.setup_transfer_prices import setup_prices
-        log.info("[3.5/5] Pricing Context: Configurando Precios de Transferencia...")
-        # Redirect DATABASE_URL for the sub-script
-        master_url = settings.ASYNC_DATABASE_URL.replace("/dbname", "/master_data_db")
-        os.environ["DATABASE_URL"] = master_url
-        await setup_prices()
-    except Exception as e:
-        log.warning(f"Failed to run transfer prices seed: {e}")
-
-async def seed_inventory(session):
-    log.info("[4/5] Inventory Context: Shadow Warehouses y Variantes...")
-    
-    # Sincronizar Warehouses al schema de inventario
-    for wh_id, name, code, cy, cntry in [
-        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.ENT-MAIN"), "Almacen Central", "WH-001", ENTERPRISE_ID, "MX"),
-        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-MX-TJ"), "Planta MX", "LOG-MX-TJ", LOGISTICS_MX_ID, "MX"),
-        (uuid.uuid5(uuid.NAMESPACE_DNS, "interno.warehouse.LOG-US-SD"), "Planta US", "LOG-US-SD", LOGISTICS_US_ID, "US"),
-    ]:
-        await session.execute(text("""
-            INSERT INTO inventory_warehouses (
-                id, name, company_id, tenant_id, code, type, is_active, version_id, is_transit, created_at, country_code
-            ) VALUES (
-                :id, :name, :co, :co, :code, 'PHYSICAL', TRUE, 1, FALSE, NOW(), :cntry
-            ) ON CONFLICT DO NOTHING;
-        """), {"id": wh_id, "name": name, "co": cy, "code": code, "cntry": cntry})
-        log.info(f"  OK   Shadow WH: {code}")
-
-    # [Phase 84] Seed Variants (5 products x 3 variants)
-    try:
-        from inventory_service.scripts.flows.seed_variants import seed_variants
-        log.info("[4.5/5] Variants Context: Generando Variantes de Producto...")
-        # Redirect DATABASE_URL and CORE_DATABASE_URL for the sub-script
-        inv_url = settings.ASYNC_DATABASE_URL.replace("/dbname", "/inventory_db")
-        os.environ["DATABASE_URL"] = inv_url
-        os.environ["CORE_DATABASE_URL"] = inv_url
-        await seed_variants()
-    except Exception as e:
-        log.warning(f"Failed to run variants seed: {e}")
-
-
-async def seed_partners(session):
-    log.info("[+] Seeding Business Partners...")
-    partners = [
-        Partner(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.general"),
-            code="GEN-001",
-            name="Público en General",
-            type="CUSTOMER",
-            company_id=ENTERPRISE_ID,
-            tenant_id=ENTERPRISE_ID,
-            is_active=True
-        ),
-        Partner(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.1"),
-            code="SUP-IND-01",
-            name="Aceros de México S.A.",
-            type="SUPPLIER",
-            company_id=ENTERPRISE_ID,
-            tenant_id=ENTERPRISE_ID,
-            is_active=True
-        ),
-        Partner(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.2"),
-            code="CUS-DEMO-01",
-            name="Cliente Especial Alpha",
-            type="CUSTOMER",
-            company_id=ENTERPRISE_ID,
-            tenant_id=ENTERPRISE_ID,
-            is_active=True
-        ),
-        Partner(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, "partner.3"),
-            code="CUS-DEMO-02",
-            name="Cliente Especial Beta",
-            type="CUSTOMER",
-            company_id=ENTERPRISE_ID,
-            tenant_id=ENTERPRISE_ID,
-            is_active=True
-        )
-    ]
-    for p in partners:
-        await _safe_add(session, p, f"Partner: {p.code} - {p.name}")
-
-async def seed_tickets(session):
-    log.info("[+] Seeding Support Tickets...")
-    tickets = []
-    # 5 Tickets for IT
-    for i in range(1, 6):
-        tickets.append(Ticket(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"ticket.it.{i}"),
-            reference_code=f"IT-2026-{str(i).zfill(3)}",
-            title=f"Mantenimiento de Servidor {i}",
-            description=f"Revisión rutinaria de logs y actualizaciones de seguridad en el servidor de aplicación {i}.",
-            ticket_type=TicketType.MAINTENANCE,
-            priority=TicketPriority.MEDIUM,
-            status=TicketStatus.NEW,
-            area="Sistemas (IT)",
-            company_id=ENTERPRISE_ID,
-            tenant_id=ENTERPRISE_ID,
-            is_active=True,
-            version_id=1
-        ))
-        
-    # 1 Ticket assigned to Charly directly
-    tickets.append(Ticket(
-        id=uuid.uuid5(uuid.NAMESPACE_DNS, "ticket.sec.001"),
-        reference_code="SEC-2026-001",
-        title="Auditoría de Roles y Permisos (Urgente)",
-        description="Revisar que los accesos al entorno de producción de NexoSuite estén restringidos solo al personal autorizado.",
-        ticket_type=TicketType.SUPPORT,
-        priority=TicketPriority.CRITICAL,
-        status=TicketStatus.IN_PROGRESS,
-        area="Seguridad de la Información",
-        assigned_to_id=CHARLY_ID,
-        company_id=ENTERPRISE_ID,
-        tenant_id=ENTERPRISE_ID,
-        is_active=True,
-        version_id=1
-    ))
-
-    # [Phase 89] Ticket for External Provider (Alicia Torres)
-    # Token: industrial_demo_token_alicia_2026
-    tickets.append(Ticket(
-        id=uuid.UUID("33333333-0003-4003-b003-000000000003"),
-        reference_code="EXT-2026-001",
-        title="Instalación de Sensor de Proximidad RACK-01",
-        description="Se requiere instalación y calibración del sensor de proximidad en el rack de auditoría.",
-        ticket_type=TicketType.MAINTENANCE,
-        priority=TicketPriority.HIGH,
-        status=TicketStatus.ASSIGNED,
-        area="Mantenimiento Externo",
-        external_contact_id=uuid.UUID("22222222-0002-4002-b002-000000000002"),
-        external_token="industrial_demo_token_alicia_2026",
-        company_id=ENTERPRISE_ID,
-        tenant_id=ENTERPRISE_ID,
-        is_active=True,
-        version_id=1
-    ))
-    
-    for t in tickets:
-        await _safe_add(session, t, f"Ticket: {t.reference_code}")
-
-async def seed_industrial_identities(session):
-    log.info("[+] Seeding Triple Identity contacts (Collaborators & External)...")
-    from hcm_app.core.security import hash_rfid, hash_pin
-    
-    # ── Carlos Ramírez (Enterprise/Logistics, Supervisor) ──
-    CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
-    collab_carlos = Collaborator(
-        id=CARLOS_ID,
-        internal_id="003709A",
-        first_name="Carlos",
-        last_name="Ramírez",
-        department="Warehouse",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
-        rfid_tag=hash_rfid("960091919"),
-        pin_code=hash_pin("1234"),
-        company_id=ENTERPRISE_ID,
-        tenant_id=ENTERPRISE_ID,
-        group_id=GROUP_ID,
-        user_id=CHARLY_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_carlos, "Collaborator: Carlos Ramírez (Enterprise)")
-
-    CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
-    collab_carlos_us = Collaborator(
-        id=CARLOS_US_ID,
-        internal_id="003709A",
-        first_name="Carlos",
-        last_name="Ramírez",
-        department="Warehouse",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
-        rfid_tag=hash_rfid("960091919"),
-        pin_code=hash_pin("1234"),
-        company_id=LOGISTICS_US_ID,
-        tenant_id=LOGISTICS_US_ID,
-        group_id=GROUP_ID,
-        user_id=CHARLY_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_carlos_us, "Collaborator: Carlos Ramírez (Logistics US)")
-
-    # ── Luis Torres (Logistics US/MX, Supervisor) ──
-    LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
-    collab_luis_us = Collaborator(
-        id=LUIS_US_ID,
-        internal_id="801",
-        first_name="Luis (USA)",
-        last_name="Torres",
-        department="Logistics",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
-        rfid_tag=hash_rfid("2327559684"),
-        pin_code=None,
-        company_id=LOGISTICS_US_ID,
-        tenant_id=LOGISTICS_US_ID,
-        group_id=GROUP_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_luis_us, "Collaborator: Luis Torres (Logistics US)")
-
-    # ── Ana García (Logistics MX, Subordinada de Luis) ──
-    ANA_ID = uuid.UUID("11111111-0003-4001-a001-000000000003")
-    collab_ana = Collaborator(
-        id=ANA_ID,
-        internal_id="301",
-        first_name="Ana",
-        last_name="García",
-        department="Warehouse",
-        is_direct=True,
-        supervisor_id=LUIS_US_ID, # Just for testing hierarchy
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
-        rfid_tag=None,
-        pin_code=hash_pin("1234"),
-        company_id=LOGISTICS_MX_ID,
-        tenant_id=LOGISTICS_MX_ID,
-        group_id=GROUP_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_ana, "Collaborator: Ana García (Logistics MX)")
-
-    # 2. External Contact (Provider)
-    contact_data = {
-        "full_name": "Ing. Alicia Torres",
-        "email": "charly.flores.x@gmail.com",
-        "phone": "+52 55 1234 5678",
-        "company_id": ENTERPRISE_ID,
-        "tenant_id": ENTERPRISE_ID,
-        "is_active": True,
-        "version_id": 1
-    }
-    
-    # Try to find existing
-    stmt = select(ExternalContact).where(ExternalContact.id == uuid.UUID("22222222-0002-4002-b002-000000000002"))
-    existing = (await session.execute(stmt)).scalar_one_or_none()
-    
-    if existing:
-        for k, v in contact_data.items():
-            setattr(existing, k, v)
-        print(f"  UPDATE External Contact: {existing.full_name}")
-    else:
-        contact = ExternalContact(id=uuid.UUID("22222222-0002-4002-b002-000000000002"), **contact_data)
-        session.add(contact)
-        print(f"  CREATE External Contact: {contact.full_name}")
+            for sys_co_id in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID, DEMO_ID]:
+                await _safe_add(session, UserCompanyRole(user_id=CHARLY_ID, company_id=sys_co_id, role_id=role_admin.id, tenant_id=sys_co_id, scopes=["*"], is_new=False, version_id=1), f"RBAC Charly -> {sys_co_id}")
 
 async def seed_subscriptions(session):
-    log.info("[1.5/5] Subscriptions: Plans, Subscriptions and Entitlements...")
-    
-    # 1. Seed Plans
-    enterprise_plan = Plan(
-        id=uuid.UUID("11111111-1111-4111-b111-000000000001"),
-        name="Industrial Enterprise",
-        description="Full access to all InternoCore modules",
-        price=999.0,
-        currency="USD",
-        modules=["AUTH_CORE", "INVENTORY_CORE", "MASTER_DATA_CORE", "HCM_CORE", "WMS_CORE", "MES_CORE", "TICKETS_CORE"]
-    )
-    await _safe_add(session, enterprise_plan, "Plan: Industrial Enterprise")
-
-    # 2. Seed Subscriptions & Entitlements for key companies
-    companies_to_seed = [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID, DEMO_ID]
-    
-    for cid in companies_to_seed:
-        sub = Subscription(
-            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"sub-{cid}"),
-            company_id=cid,
-            tenant_id=cid,
-            plan_id=enterprise_plan.id,
-            status=SubscriptionStatus.ACTIVE,
-            start_date=datetime.now(timezone.utc),
-            status_updated_at=datetime.now(timezone.utc)
-        )
-        await _safe_add(session, sub, f"Subscription for {cid}")
-
-        # Seed Entitlements (Truth Table)
+    log.info("[1.5/5] Subscriptions...")
+    enterprise_plan = Plan(id=uuid.UUID("11111111-1111-4111-b111-000000000001"), name="Industrial Enterprise", modules=["AUTH_CORE", "INVENTORY_CORE", "MASTER_DATA_CORE", "HCM_CORE", "WMS_CORE", "MES_CORE", "TICKETS_CORE"])
+    await _safe_add(session, enterprise_plan, "Plan: Enterprise")
+    for cid in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID, DEMO_ID]:
+        sub = Subscription(id=uuid.uuid5(uuid.NAMESPACE_DNS, f"sub-{cid}"), company_id=cid, tenant_id=cid, plan_id=enterprise_plan.id, status=SubscriptionStatus.ACTIVE, start_date=datetime.now(timezone.utc))
+        await _safe_add(session, sub, f"Sub: {cid}")
         for mod in enterprise_plan.modules:
-            ent = Entitlement(
-                id=uuid.uuid5(uuid.NAMESPACE_DNS, f"ent-{cid}-{mod}"),
-                company_id=cid,
-                tenant_id=cid,
-                module_code=mod,
-                is_enabled=True,
-                source_subscription_id=sub.id
-            )
-            await _safe_add(session, ent, f"Entitlement: {mod} for {cid}")
+            await _safe_add(session, Entitlement(id=uuid.uuid5(uuid.NAMESPACE_DNS, f"ent-{cid}-{mod}"), company_id=cid, tenant_id=cid, module_code=mod, is_enabled=True, source_subscription_id=sub.id), f"Ent: {mod}")
 
-# --- DB Orchestration Helpers ---
-SERVICE_DB_MAP = {
-    "auth": "dbname", # Auth Service (Core DB)
-    "master": "master_data_db",
-    "inventory": "inventory_db",
-    "subscription": "subscription_db",
-    "hcm": "hcm_db",
-    "tickets": "tickets_db",
-    "notification": "notification_db"
-}
+async def seed_master_data(session):
+    log.info("[2/5] Master Data...")
+    uom_pz = await _first(session, select(UOM).where(UOM.code == "PZ"))
+    if not uom_pz:
+        await _safe_add(session, UOM(id=uuid.uuid4(), code="PZ", name="Pieces", abbreviation="PZ", company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True), "UOM: PZ")
+    
+    concepts = [("Compra", MovementType.ENTRY, "ENT-PUR", "inventory.concept.purchase"), ("Venta", MovementType.OUTPUT, "SAL-VEN", "inventory.concept.sale")]
+    for name, ctype, code, tkey in concepts:
+        cid = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.concept.{ENTERPRISE_ID}.{code}")
+        if not await session.get(MovementConcept, cid):
+            await _safe_add(session, MovementConcept(id=cid, name=name, code=code, type=ctype, translation_key=tkey, company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, version_id=1, is_active=True), f"Concept: {code}")
+
+async def seed_industrial_identities(session):
+    log.info("[5/5] Industrial Identities (Collaborators)...")
+    from hcm_app.core.security import hash_rfid, hash_pin
+    CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
+    await _safe_add(session, Collaborator(
+        id=CARLOS_ID, internal_id="003709A", first_name="Carlos", last_name="Ramírez", department="Warehouse", 
+        rfid_tag=hash_rfid("960091919"), pin_code=hash_pin("1234"), company_id=ENTERPRISE_ID, tenant_id=ENTERPRISE_ID, group_id=GROUP_ID, is_active=True, version_id=1
+    ), "Collab: Carlos (003709A)")
+
+# Orchestration
+SERVICE_DB_MAP = {"auth": "dbname", "master": "master_data_db", "subscription": "subscription_db", "hcm": "hcm_db", "inventory": "inventory_db", "tickets": "tickets_db"}
 
 def get_session_factory(db_name: str):
-    """Creates a dedicated engine and session for a specific microservice DB."""
     base_url = settings.ASYNC_DATABASE_URL
-    # Logic to replace the database name in the URL safely
-    # From: postgresql+asyncpg://user:pass@localhost:5433/dbname
-    # To:   postgresql+asyncpg://user:pass@localhost:5433/db_name
     import re
     new_url = re.sub(r'/[a-zA-Z0-9_\-]+(\?.*)?$', f'/{db_name}\\1', base_url)
-    print(f"DEBUG: Connecting to {db_name} -> {new_url}")
-    
     from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    engine = create_async_engine(new_url, pool_pre_ping=True, echo=False)
+    engine = create_async_engine(new_url, pool_pre_ping=True)
     return async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
-# --- Orquestador Principal ---
-async def run_unified_seed():
-    log.info("=" * 55)
-    log.info("   InternoCore - Unified Industrial Seed v4 [MULTI-DB]")
-    log.info("=" * 55)
-
-    # 1. Auth & Global Enum (Core DB)
-    log.info("\n>>> [SECTION 1] Auth & Enumerations (Auth DB)")
-    auth_factory = get_session_factory(SERVICE_DB_MAP["auth"])
-    async with auth_factory() as session:
-        await seed_enumerations(session)
-        await seed_auth(session)
-        await session.commit()
-
-    # 2. Subscriptions
-    log.info("\n>>> [SECTION 2] Subscriptions (Subscription DB)")
-    sub_factory = get_session_factory(SERVICE_DB_MAP["subscription"])
-    async with sub_factory() as session:
-        await seed_subscriptions(session)
-        await session.commit()
-
-    # 3. Master Data
-    log.info("\n>>> [SECTION 3] Master Data (Master Data DB)")
-    master_factory = get_session_factory(SERVICE_DB_MAP["master"])
-    async with master_factory() as session:
-        await seed_partners(session)
-        await session.flush()
-        await seed_master_data(session)
-        await session.commit()
-
-    # 4. Inventory Core & Variants
-    log.info("\n>>> [SECTION 4] Inventory & Variants (Inventory DB)")
-    inv_factory = get_session_factory(SERVICE_DB_MAP["inventory"])
-    async with inv_factory() as session:
-        await seed_inventory(session)
-        await session.commit()
-
-    # 5. Support & HR
-    log.info("\n>>> [SECTION 5] Support & HCM (Dedicated DBs)")
-    tickets_factory = get_session_factory(SERVICE_DB_MAP["tickets"])
-    async with tickets_factory() as session:
-        await seed_tickets(session)
-        await session.commit()
-
-    hcm_factory = get_session_factory(SERVICE_DB_MAP["hcm"])
-    async with hcm_factory() as session:
-        await seed_industrial_identities(session)
-        await session.commit()
-
-    # [Phase 84] Customs compliance seed
-    log.info("\n>>> [SECTION 6] Customs Compliance")
-    try:
-        from scripts.seed_customs import seed_customs_balances
-        await seed_customs_balances()
-    except Exception as e:
-        log.warning(f"Failed to run customs seed: {e}")
-        
-    # [Phase 83] Run the industrial locations layout and initial stock flows
-    log.info("\n>>> [SECTION 7] WMS Industrial Layout & Initial Flows")
-    try:
-        # We need to ensure the environment knows which DB to use for these imports
-        os.environ["CORE_DATABASE_URL"] = settings.ASYNC_DATABASE_URL.replace("/dbname", "/inventory_db")
-        
-        from flows.seed_locations import seed_locations
-        await seed_locations()
-        
-        from flows.flow_1_entry import run_flow_1
-        await run_flow_1()
-
-        # Normalize locations
-        async with inv_factory() as session:
-            await session.execute(text("UPDATE inventory_movements SET location = 'SYS_RECEIVING' WHERE location IS NULL OR location = ''"))
+async def run():
+    for db_key, db_name in SERVICE_DB_MAP.items():
+        factory = get_session_factory(db_name)
+        async with factory() as session:
+            if db_key == "auth":
+                await seed_enumerations(session)
+                await seed_auth(session)
+            elif db_key == "subscription":
+                await seed_subscriptions(session)
+            elif db_key == "master":
+                await seed_master_data(session)
+            elif db_key == "hcm":
+                await seed_industrial_identities(session)
             await session.commit()
-    except Exception as e:
-        log.warning(f"Failed to run external seed flows: {e}")
-
-    log.info("\n" + "=" * 55)
-    log.info("   UNIFIED SEED COMPLETED SUCCESSFULLY")
-    log.info("=" * 55)
+    log.info("SEED COMPLETED")
 
 if __name__ == "__main__":
-    asyncio.run(run_unified_seed())
+    asyncio.run(run())

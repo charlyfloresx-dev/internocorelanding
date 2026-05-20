@@ -16,7 +16,18 @@
     "warehouse": "Warehouse",
     "customer": "Business Partner",
     "general_public": "General Public",
-    "search_partner": "Search Partner..."
+    "search_partner": "Search Partner...",
+    "select_customer": "SELECT CUSTOMER",
+    "search_hint": "Search by name or tax ID...",
+    "confirm_sale": "Confirm Sale",
+    "total_to_pay": "Total to Pay",
+    "payment_method": "Payment Method",
+    "complementary_data": "Complementary Data",
+    "card_auth_number": "Terminal authorization number",
+    "transfer_folio": "Transfer folio",
+    "process_and_print": "PROCESS AND PRINT TICKET",
+    "printing_ticket": "Printing Ticket...",
+    "thermal_printer_sim": "Simulating thermal printer connection..."
   },
   "auth": {
     "login": "Login",

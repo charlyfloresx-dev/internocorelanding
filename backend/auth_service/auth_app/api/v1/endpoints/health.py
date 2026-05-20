@@ -23,3 +23,14 @@ async def get_demo_health(db: AsyncSession = Depends(get_db)):
             "users": user_count.scalar()
         }
     }
+
+
+@router.get("")
+async def get_health():
+    """
+    Standard health check endpoint to verify connectivity.
+    """
+    return {
+        "status": "success",
+        "message": "Conectado al servidor de InternoCore"
+    }

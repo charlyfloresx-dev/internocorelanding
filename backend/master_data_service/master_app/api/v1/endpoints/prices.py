@@ -120,7 +120,7 @@ class PriceResolutionResult(BaseModel):
 # ── ENDPOINTS ──────────────────────────────────────────────────────────────
 
 @router.get(
-    "/",
+    "",
     response_model=ApiResponse[List[ProductPriceRead]],
     summary="List all company prices"
 )
@@ -812,3 +812,38 @@ async def import_prices_csv(
         message=f"Importacion finalizada. {processed} nuevas versiones creadas, {len(errors)} omitidas."
     )
 
+
+@router.get(
+    "/products/{product_id}/price-at",
+    summary="[Internal] Point-in-time price lookup for document reprint"
+)
+async def get_product_price_at_date(
+    product_id: uuid.UUID,
+    as_of: datetime = Query(..., description="ISO datetime — resolves the price active at this moment"),
+    list_index: int = Query(1, ge=1, le=10),
+    unit_type: str = Query("SALE"),
+    current_user: UserContext = Security(require_scope(["master_data:read"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Returns the price that was active for a product at a given point in time.
+    Uses the soft-close pattern: created_at <= as_of AND (valid_until IS NULL OR valid_until > as_of).
+    Returns null price if no matching record exists (document pre-dates pricing setup).
+    """
+    result = await db.execute(
+        select(ProductPrice).where(
+            and_(
+                ProductPrice.product_id == product_id,
+                ProductPrice.company_id == current_user.company_id,
+                ProductPrice.price_list_index == list_index,
+                ProductPrice.unit_type == unit_type,
+                ProductPrice.is_active == True,
+                ProductPrice.created_at <= as_of,
+                (ProductPrice.valid_until.is_(None) | (ProductPrice.valid_until > as_of)),
+            )
+        ).order_by(ProductPrice.created_at.desc()).limit(1)
+    )
+    price = result.scalar_one_or_none()
+    if price is None:
+        return ApiResponse(data=None, message="No price record found for the given date")
+    return ApiResponse(data={"amount": str(price._amount), "currency": price._currency})

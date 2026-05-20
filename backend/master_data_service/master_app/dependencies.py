@@ -40,22 +40,26 @@ async def get_current_user_payload(request: Request, token: Annotated[str, Depen
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
-        user_id = payload.get("sub", "00000000-0000-0000-0000-000000000000")
-        company_id = payload.get("company_id")
+        from common.security.auth_payload import TokenPayload
+        token_data = TokenPayload(**payload)
+        
+        user_id = token_data.sub
+        company_id = token_data.company_id
         
         # Verify X-Company-Id matches token if provided
         header_company_id = request.headers.get("X-Company-ID")
-        if header_company_id and header_company_id != company_id:
+        if header_company_id and company_id and str(header_company_id).lower() != str(company_id).lower():
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Tenant context mismatch"
+                detail=f"Tenant context mismatch: Header={header_company_id}, Token={company_id}"
             )
 
         user_context = UserContext(
-            user_id=user_id, 
-            company_id=uuid.UUID(str(company_id)),
-            group_id=uuid.UUID(str(payload.get("group_id"))) if payload.get("group_id") else None,
-            role_names=payload.get("role_names", []),
+            user_id=str(user_id), 
+            company_id=uuid.UUID(str(company_id)) if company_id else None,
+            group_id=uuid.UUID(str(token_data.group_id)) if token_data.group_id else None,
+            role_names=token_data.role_names,
+            scopes=token_data.scopes,
             token=token
         )
         request_context.set(user_context)

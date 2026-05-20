@@ -146,7 +146,18 @@ async def pos_checkout(
         total_weight += float(getattr(tx, 'weight', 0) or 0)
             
     # 3. Create Document grouping record
-    folio_id = str(doc_id)[:5].upper()
+    try:
+        # Generate a sequential folio based on existing documents
+        count_res = await service.repository.session.execute(
+            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = 'OUT'"),
+            {"cid": token.company_id}
+        )
+        seq_num = (count_res.scalar() or 0) + 1
+        folio_id = f"{seq_num:06d}"
+    except Exception as e:
+        # Fallback to UUID fragment if table not available or error
+        folio_id = str(doc_id)[:5].upper()
+
     doc_entity = {
         "id": doc_id,
         "folio": f"POS-{folio_id}",

@@ -38,7 +38,12 @@ class Collaborator(MultiTenantBase):
 
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    department: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    department_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", backref="collaborators", lazy="selectin"
+    )
     translation_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     job_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
@@ -55,12 +60,12 @@ class Collaborator(MultiTenantBase):
 
     supervisor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("collaborators.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
     supervisor: Mapped[Optional["Collaborator"]] = relationship(
         "Collaborator",
+        primaryjoin="Collaborator.id == Collaborator.supervisor_id",
         remote_side="Collaborator.id",
         foreign_keys=[supervisor_id],
         lazy="select",

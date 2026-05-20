@@ -8,8 +8,18 @@ from datetime import datetime, timezone
 if os.getcwd() not in sys.path:
     sys.path.insert(0, os.getcwd())
 
-from inventory_app.db.session import AsyncSessionLocal
+import re
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import text
+
+# inventory_item_variants lives in master_data_db since Phase 119
+def _master_session_factory():
+    from inventory_app.core.config import settings
+    url = re.sub(r'/[a-zA-Z0-9_\-]+(\?.*)?$', r'/master_data_db\1', settings.DATABASE_URL)
+    engine = create_async_engine(url, pool_pre_ping=True, echo=False)
+    return async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+AsyncSessionLocal = _master_session_factory()
 
 # ─── CONFIGURACIÓN ───
 CO_ENTERPRISE_ID = uuid.UUID("9cd9986b-89da-48b7-8733-26a2a1225b01")

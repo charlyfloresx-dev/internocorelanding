@@ -253,6 +253,7 @@ async def seed_concepts_and_warehouses(session, company_id: uuid.UUID, country: 
 async def seed_partners(session, company_id: uuid.UUID):
     logger.info(f"  [MD] Cargando Partners para company: {company_id}")
     partners_to_seed = [
+        {"code": "CUST-0000", "name": "Público General", "type": PartnerType.CUSTOMER, "tax_id": "RFC-CUST-000"},
         {"code": "SUP-GLO", "name": "Supplier Global Solutions", "type": PartnerType.SUPPLIER, "tax_id": "RFC-SUP-001"},
         {"code": "SUP-LOC", "name": "Local Industrial Supplies", "type": PartnerType.SUPPLIER, "tax_id": "RFC-SUP-002"},
         {"code": "CUS-INT", "name": "Internal Corp Client", "type": PartnerType.CUSTOMER, "tax_id": "RFC-CUS-001"},

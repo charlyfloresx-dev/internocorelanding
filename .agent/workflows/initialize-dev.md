@@ -10,22 +10,7 @@ Use this workflow to start the full microservices stack for development.
 docker compose -f infrastructure/docker/docker-compose.dev.yml down -v --remove-orphans
 ```
 
-## 2. Infrastructure Startup (The Basics)
-// turbo
-```powershell
-docker compose -f infrastructure/docker/docker-compose.dev.yml up -d postgres-db redis
-```
-
-## 3. Database Schema Creation & Initialization
-// turbo
-> [!IMPORTANT]
-> Run schema creation and unified seed BEFORE starting the microservices to prevent partial table creation by individual services (e.g. HCM service creating incomplete collaborator tables).
-```powershell
-docker run --rm --network docker_interno-network -v ${PWD}/backend:/backend -w /backend --env DATABASE_URL=postgresql+asyncpg://user:password@interno-db-dev:5432/dbname --env CORE_DATABASE_URL=postgresql+asyncpg://user:password@interno-db-dev:5432/dbname --env PYTHONPATH=/backend interno-auth-service:latest python scripts/create_all_tables.py
-docker run --rm --network docker_interno-network -v ${PWD}/backend:/backend -w /backend --env DATABASE_URL=postgresql+asyncpg://user:password@interno-db-dev:5432/dbname --env CORE_DATABASE_URL=postgresql+asyncpg://user:password@interno-db-dev:5432/dbname --env PYTHONPATH=/backend interno-auth-service:latest python scripts/unified_industrial_seed.py
-```
-
-## 4. Application Startup
+## 2. Application Startup
 
 ### Option A: Core Stack (Lightweight - For Frontend/Mobile Dev)
 // turbo
@@ -35,7 +20,7 @@ docker run --rm --network docker_interno-network -v ${PWD}/backend:/backend -w /
 docker compose -f infrastructure/docker/docker-compose.dev.yml up -d auth-service subscription-service master-data-service inventory-service notification-service hcm-service gateway
 ```
 
-### Option B: Full Industrial Stack (Everything)
+### Option B: Full Industrial Stack (Everything - Recommended)
 // turbo
 ```powershell
 docker compose -f infrastructure/docker/docker-compose.dev.yml up -d --build
@@ -47,6 +32,15 @@ docker compose -f infrastructure/docker/docker-compose.dev.yml up -d --build
 > Use this if you need to process Tickets, SLAs, or Email notifications.
 ```powershell
 docker compose -f infrastructure/docker/docker-compose.dev.yml -f infrastructure/docker/docker-compose.workers.yml up -d
+```
+
+## 3. Database Migration & Initialization
+// turbo
+> [!IMPORTANT]
+> The containers must be UP before running the migrations. This step runs the unified Alembic migration sweep across all active services and executes the industrial seed.
+```powershell
+powershell -ExecutionPolicy Bypass -File infrastructure/docker/migrate_all.ps1
+docker run --rm --network docker_interno-network -v ${PWD}/backend:/backend -w /backend --env-file .env --env DATABASE_URL=postgresql+asyncpg://user:internocore_db_pass_2026@interno-db-dev:5432/dbname --env CORE_DATABASE_URL=postgresql+asyncpg://user:internocore_db_pass_2026@interno-db-dev:5432/dbname --env PYTHONPATH=/backend interno-auth-service:latest python scripts/unified_industrial_seed.py
 ```
 
 ## 5. Verify Status

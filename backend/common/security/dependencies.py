@@ -85,10 +85,48 @@ async def get_current_active_user(
 
     return current_user
 
+def _scope_satisfies(user_scopes: set[str], required_scope: str) -> bool:
+    """
+    Check if any user scope satisfies a required scope.
+
+    Supports three matching modes:
+      1. Exact match:     user has "master_data.product.read" and required is "master_data.product.read"
+      2. Wildcard:        user has "*" → satisfies everything
+      3. Namespace match: required is coarse "master_data:read" (colon-separated),
+                          satisfied by any granular user scope like "master_data.product.read".
+                          The "manage" suffix satisfies both :read and :write.
+    """
+    if "*" in user_scopes:
+        return True
+    if required_scope in user_scopes:
+        return True
+
+    # Namespace matching for coarse scopes (e.g. "master_data:read")
+    if ":" in required_scope:
+        namespace, action = required_scope.split(":", 1)
+        for us in user_scopes:
+            if not us.startswith(namespace + "."):
+                continue
+            # e.g. user has "master_data.product.read", required is "master_data:read"
+            slug_suffix = us.rsplit(".", 1)[-1]  # "read", "write", "manage", etc.
+            if slug_suffix == action:
+                return True
+            # "manage" implies both read and write
+            if slug_suffix == "manage" and action in ("read", "write"):
+                return True
+        return False
+
+    return False
+
+
 def require_scope(required_scopes: list[str]):
     """
     Dependency factory to enforce scope-based access control.
-    Example: @router.post("/", dependencies=[Security(require_scope(["inv:write"]))])
+    Supports both exact granular slugs ("master_data.product.read") and
+    coarse namespace scopes ("master_data:read") which match any granular
+    slug in that namespace.
+
+    Example: @router.get("/", dependencies=[Security(require_scope(["master_data:read"]))])
     """
     async def _require_scope(
         current_user: TokenPayload = Depends(get_current_active_user)
@@ -96,15 +134,18 @@ def require_scope(required_scopes: list[str]):
         # Admin / God Mode Bypass
         if "GOD_MODE_ADMIN" in (current_user.role_names or []) or "*" in (current_user.scopes or []):
             return current_user
-            
+
         user_scopes = set(current_user.scopes or [])
-        required = set(required_scopes)
-        
-        if not required.issubset(user_scopes):
-            missing = required - user_scopes
+
+        missing = [
+            rs for rs in required_scopes
+            if not _scope_satisfies(user_scopes, rs)
+        ]
+
+        if missing:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Missing scopes: {list(missing)}"
+                detail=f"Insufficient permissions. Missing scopes: {missing}"
             )
         return current_user
 

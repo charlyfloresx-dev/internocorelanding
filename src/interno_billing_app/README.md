@@ -4,15 +4,15 @@
 
 ---
 
-## 🚀 Estado Actual: Fase 103 — Sentinel Industrialización Móvil
+## 🚀 Estado Actual: Fase 115 — POS Payment Confirmation & Simulated Ticketing
 
-La aplicación soporta el flujo completo de **Aprovisionamiento Automático**, **Checkout Atómico** y **Navegación Industrial Uber-Style**:
+La aplicación soporta el flujo completo de **Aprovisionamiento Automático**, **Checkout Atómico**, **Navegación Industrial Uber-Style**, **Resolución de Variantes en Tiempo Real** y **Confirmación de Pago (Tickets)**:
 
 *   **Zero-Trust Provisioning**: Vinculación instantánea mediante escaneo de QR desde el portal web. Botón de estado "Dispositivo Vinculado" visible tras configuración exitosa.
 *   **Auto-Login + Company/Warehouse Selection**: Flujo completo de Handshake → Selección de Empresa → Selección de Almacén → Dashboard.
 *   **Uber-Style Navigation**: 5 tabs principales: Inicio, Descubrir, Ganancias, Buzón (Notificaciones), Menú (Tickets de Soporte).
-*   **Escaneo Industrial**: Resolución de SKUs en milisegundos contra el `inventory_service` (variantes incluidas).
-*   **Checkout Atómico**: Registro de ventas como movimientos de salida (`OUT`) en el `inventory_service`.
+*   **Escaneo Industrial**: Resolución de SKUs en milisegundos contra el `inventory_service` (variantes incluidas) localmente vía SQLite Drift.
+*   **Checkout Atómico y Pagos**: Pantalla dedicada de confirmación de pagos con métodos (Efectivo/Tarjeta/Transferencia), referenciación a App/Terminal, y simulación de impresión térmica.
 *   **Resilience Interceptor**: Reintentos exponenciales con idempotency keys bajo redes inestables.
 *   **Setup Mode**: Acceso oculto para re-configuración (Long-press en logo de Login).
 
@@ -128,6 +128,15 @@ LoginScreen → CompanySelectionScreen → WarehouseSelectionScreen → MainNavi
 2.  **Persistencia Local**: Implementar un buffer offline para el carrito de compras.
 3.  **Dashboard de Terminales**: Visualización de ventas por dispositivo en el portal administrativo.
 4.  **Descubrir / Ganancias**: Completar módulos placeholder con catálogo de productos y reportería de ingresos.
+
+## 🎨 Diseño y Experiencia de Usuario (Uber-Style Minimalist)
+
+El módulo de **Ventas (Point of Sale - POS)** de InternoCore Sentinel Mobile ha sido rediseñado bajo un esquema visual de **altísimo contraste y minimalismo absoluto (monocromático blanco y negro puro)**, inspirado 1:1 en la interfaz de conductor de Uber:
+
+*   **Fondo de Cámara Fluido:** El fondo muestra el scanner en tiempo real, desplazando el listado hacia arriba y hacia abajo programáticamente al pulsar el botón de viñetas en el extremo derecho del panel negro.
+*   **Controles Táctiles Industriales:** Botones circulares de `30px` con un touch-target de `44x44px` aptos para guantes de seguridad gruesos.
+*   **Especificación Detallada:** Consulta la documentación de congelación de diseño y experiencia de usuario en:
+    *   [Especificación de Interfaz Uber POS](../../docs/design_system/uber_pos_layout.md)
 
 ---
 

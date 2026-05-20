@@ -1,88 +1,124 @@
 # Consolidated Tasks — 2026-05-18
 
-## Resumen de la Jornada
-Implementación full-stack del sistema RBAC granular (Phase 112). Se cerró el cortocircuito entre la infraestructura de DB existente y el JWT/Frontend. Todos los roles sistémicos están sembrados, los scopes viajan firmados en el JWT, el menú filtra por slugs, y las rutas Angular validan permisos antes de renderizar.
+## Resumen de la Jornada (Phases 112 & 113)
+Jornada de robustecimiento integral de seguridad y control de acceso en InternoCore. Se completó la implementación del **sistema RBAC granular** (Phase 112) y el **Sprint 1 de Security Hardening** (Phase 113), remediando 6 hallazgos críticos/altos identificados en la auditoría de pentesting estático. Además, se integró el panel backend y flujo de auditoría forense para **GOD MODE** con control de rate limits y logs detallados.
 
 ---
 
 ## ✅ Completado
 
-### 1. Migración Seed RBAC — `a1b2c3d4e5f6`
-- **Archivo:** `backend/auth_service/alembic/versions/a1b2c3d4e5f6_seed_system_roles_permissions.py`
-- **Qué hace:** Siembra 23 Permission slugs, 4 roles sistema con UUIDs estables, y 33 role_permissions.
-- **Aplicada:** `docker exec interno-auth-dev alembic upgrade head` → revisión `a1b2c3d4e5f6 (head)` ✅
-- **Idempotencia:** `ON CONFLICT DO NOTHING` en permissions + existence-check por UUID en roles (workaround para `NULL ≠ NULL` en unique constraints de PostgreSQL).
-- **Cleanup:** Manager duplicado pre-existente eliminado (`a45d5142-...`, 0 usuarios, 0 permisos).
+### 1. Sprint 1 — Fixes Críticos (Security Hardening)
 
-### 2. `select_company_command.py` — Extirpación de `ROLE_SCOPE_MAP`
-- **Eliminado:** 51 líneas de mapa hardcodeado + función `resolve_scopes()`.
-- **Reemplazado por:**
-  - `_build_scopes(role_names, ucr_scopes, db_permissions)` → `["*"]` para admin/owner, slugs DB para otros.
-  - `_load_role_slugs_by_name(db, role_name)` → raw SQL para el path de collaborador industrial (HR fallback).
+| # | Fix | Archivo | Resultado |
+|---|---|---|---|
+| C-1 | Eliminar default `GOD_MODE_ACTIVE` + validator | `common/config.py` | ✅ Fail-closed si `CORE_ADMIN_MASTER_KEY` ausente |
+| C-1b | Middleware bypass usa `settings` | `common/middleware.py` | ✅ Eliminado hardcode + `/admin/elevate` en whitelist |
+| C-1c | Audit log en activación GOD MODE | `common/security/subscription_guard.py` | ✅ `logger.critical` + `AuditService` en cada activación |
+| C-2 | RLS hook blindado | `common/infrastructure/database.py` | ✅ UUID validation + `invalidate()` + raise |
+| C-3 | BOLA en POS — warehouse + product sin tenant | `inventory_service/api/v1/endpoints/pos.py` | ✅ `ERR_WAREHOUSE_NOT_OWNED` + `company_id` en queries |
+| H-1 | Price enumeration via error message | `pos.py:120` | ✅ `ERR_PRICE_MISMATCH` genérico |
+| H-3 | Missing `RequirePermission("pos.checkout")` | `pos.py:19` | ✅ Guard aplicado |
+| - | Float prohibido en `total_amount` | `pos.py:155` | ✅ `str(sale.total_amount)` |
 
-### 3. `collaborator_login_command.py` — Scopes desde DB
-- **Eliminado:** Lista hardcodeada `["inv:movements:manage", "inv:warehouse:manage", ...]`.
-- **Reemplazado por:** `_load_collaborator_slugs(db)` (consulta DB con fallback de 5 slugs mínimos).
+### 2. GOD MODE Frontend & Backend Integration
 
-### 4. Validación JWT Live
-- `full_auth_flow.py`: admin → `scopes: ["*"]` ✅
-- `kiosk_auth_flow.py`: 3 colaboradores → 5 slugs DB exactos ✅
+| Componente | Archivo | Estado |
+|---|---|---|
+| `create_god_mode_token()` (300s, jti) | `auth_service/core/security.py` | ✅ Creado token firmado y efímero |
+| `AuditService.log_action()` + `ip_address`/`user_agent` | `common/services/audit_service.py` | ✅ Registro forense extendido |
+| `POST /api/v1/admin/elevate` (rate limit 3/h) | `auth_service/api/v1/endpoints/admin.py` | ✅ Endpoint de elevación controlado |
+| `GET /api/v1/admin/security-logs` | `auth_service/api/v1/endpoints/admin.py` | ✅ Endpoint de auditoría expuesto |
 
-### 5. `auth.service.ts` — 3 bugs corregidos
-- `isReadOnly`: eliminado `.includes('read')` en permissions (falso positivo con slugs granulares).
-- `isSuperAdmin`: `r === 'admin' || r === 'owner'` + `permissions.includes('*')`.
-- `collaboratorLogin()` Case B: lee `data.scopes || data.permissions` en lugar de hardcodear.
+### 3. Sistemas RBAC Granular (Phase 112)
 
-### 6. `navigation.service.ts` — Blueprint a slugs DB
-- Inventory: `inventory.stock.read`
-- WMS: `inventory.put_away`, `inventory.cycle_count`
-- Catalog: `master_data.product.write`
-- `isAdmin()`: match exacto de rol o `["*"]`.
+*   **Migración Seed RBAC (`a1b2c3d4e5f6`):**
+    *   Siembra de 23 Permission slugs, 4 roles de sistema con UUIDs estables y 33 role_permissions.
+    *   Garantía de idempotencia mediante `ON CONFLICT DO NOTHING` en permisos e inspección previa por UUID en roles.
+    *   Eliminación de rol Manager duplicado heredado.
+*   **`select_company_command.py` (Extirpación de `ROLE_SCOPE_MAP`):**
+    *   Eliminadas 51 líneas de mapa hardcodeado.
+    *   Reemplazado por carga dinámica y `_build_scopes` (retorna `["*"]` para administradores y slugs reales de la DB para otros roles).
+*   **`collaborator_login_command.py` (Scopes desde DB):**
+    *   Eliminada la lista estática anterior de permisos de colaborador.
+    *   Implementado `_load_collaborator_slugs` desde la base de datos real con fallback de seguridad.
+*   **Alineamiento del Frontend Angular:**
+    *   `auth.service.ts`: Corregidos bugs de permisos (eliminado falso positivo de sub-texto `read` en slugs y blindado chequeo de `isSuperAdmin`).
+    *   `navigation.service.ts`: Mapeo completo de menús de UI a slugs DB reales (`inventory.stock.read`, `inventory.put_away`, `master_data.product.write`, etc.).
+    *   `permission.guard.ts` y `app.routes.ts`: Validaciones estrictas Angular en navegación lateral y vistas del sistema.
 
-### 7. `RequirePermission` guard (FastAPI/common)
-- **Archivo:** `backend/common/security/require_permission.py`
-- Auto-resolución de `module_code` por slug prefix.
-- Compone sobre `SubscriptionGuard`.
-- 0 Code Graph CRITICALs.
+### 4. Sincronización Offline-First en App Móvil (Phase 114)
 
-### 8. `permissionGuard` (Angular)
-- **Archivo:** `frontend/src/app/core/guards/permission.guard.ts`
-- `CanActivateFn` funcional con OR-semantics.
-- Aplicado en `app.routes.ts`: `/admin/*`, `/catalog/*`, `/inventory/audit`.
-- TypeScript compila sin errores.
+*   **Paginación y Resolución de Variantes:**
+    *   Soporte robusto a variables y precios específicos en el payload sincronizado desde la API maestra.
+    *   Resolución correcta de moneda (US vs MXN) previniendo hardcodes y caídas de tipo de dato.
+*   **Alineamiento Arquitectónico API-Flutter:**
+    *   El API mantiene su tipado estricto `UUID` para conceptos de movimiento en vez de ensuciar el ruteo interno con cast desde códigos manuales.
+    *   Los scripts y app cliente se han adaptado para consultar los UUIDs deterministas (como el concepto `ENT-PUR`) e introducirlos limpiamente en los payloads.
+    *   Generación exitosa de folios de entrada industrial mediante `scanner_bloc.dart` y validado por test scripts end-to-end.
 
-### 9. `pos.py` — 2 bugs corregidos
-- Import `Decimal` faltante → `NameError` en cualquier checkout.
-- `quantity_change=item.quantity` → `quantity_change=-item.quantity`.
+### 5. Tests en Vivo (Gateway Puerto 8000)
+
+| Test | Resultado |
+|---|---|
+| `POST /elevate` — key correcta → 200 + token 300s + JTI | ✅ Completado exitosamente |
+| `POST /elevate` — key incorrecta → 401 Unauthorized | ✅ Bloqueado |
+| `POST /elevate` — sin header → 422 Unprocessable (fail-closed) | ✅ Bloqueado |
+| `GET /security-logs` — con god-token → 200 + Logs de auditoría | ✅ Auditado correctamente |
+| `GET /security-logs` — sin token → 401 Unauthorized | ✅ Bloqueado |
+| **Generación Documento (App/API)** — Payload strict UUID | ✅ Generado `DOC-` satisfactoriamente |
+| **Code Graph Integrity** | ✅ 0 errores CRITICALs en 14 servicios |
+| **Ecosystem Status** | ✅ 8/8 servicios reportan `[ OK ]` |
 
 ---
 
 ## 🔧 Archivos Modificados
 
-| Archivo | Cambio |
+| Archivo | Cambio principal |
 |---|---|
-| `backend/auth_service/alembic/versions/a1b2c3d4e5f6_seed_system_roles_permissions.py` | NUEVO — seed RBAC |
-| `backend/auth_service/auth_app/commands/select_company_command.py` | Extirpación ROLE_SCOPE_MAP |
-| `backend/auth_service/auth_app/commands/collaborator_login_command.py` | Scopes desde DB |
-| `backend/common/security/require_permission.py` | NUEVO — guard FastAPI |
-| `backend/common/security/__init__.py` | Export RequirePermission |
-| `backend/inventory_service/inventory_app/api/v1/endpoints/pos.py` | Fix Decimal + qty negativa |
-| `frontend/src/app/core/services/auth.service.ts` | isReadOnly + isSuperAdmin + collaboratorLogin |
-| `frontend/src/app/core/services/navigation.service.ts` | Slugs DB + isAdmin exacto |
-| `frontend/src/app/core/guards/permission.guard.ts` | NUEVO — guard Angular |
-| `frontend/src/app/app.routes.ts` | canActivate en admin/catalog/audit |
-| `frontend/SERVICE_LOG.md` | NUEVO |
+| `backend/common/config.py` | Sin default en `int_admin_master_key` + validadores de seguridad. |
+| `backend/common/middleware.py` | Bypass de tenant usa settings y whitelist de elevación. |
+| `backend/common/security/subscription_guard.py` | Logs de auditoría críticos para GOD MODE sin fallback inseguro. |
+| `backend/common/security/require_permission.py` | NUEVO — Guard FastAPI para control de scopes granulares. |
+| `backend/common/infrastructure/database.py` | RLS Hook blindado con validación estricta de UUID e invalidación. |
+| `backend/master_data_service/master_app/infrastructure/repositories/sqlalchemy_master_data_repository.py` | Exposición de precios de variantes y moneda de inventario en endpoints. |
+| `frontend/src/app/core/guards/permission.guard.ts` | NUEVO — Angular Guard para validación estricta basada en roles/permisos. |
+| `src/interno_billing_app/lib/core/services/product_sync_service.dart` | Parseo correcto de precios/monedas anidadas de la DB al cache local. |
+| `src/interno_billing_app/lib/features/scanner/presentation/bloc/scanner_bloc.dart` | Envío estricto de UUID en lugar de códigos duros. |
 
 ---
 
-## 📋 Pendientes (deuda técnica activa)
+## 📋 Pendientes & Acciones Planificadas
 
-- [ ] Aplicar `RequirePermission("inventory.document.approve")` en el endpoint de aprobación de documentos de inventario.
-- [ ] Aplicar `RequirePermission("inventory.audit.view")` en `GET /inventory/audit` (backend).
-- [ ] Aplicar `RequirePermission("inventory.bulk_load")` en `POST /inventory/bulk-load`.
-- [ ] Point-in-Time Price Lookup para reimprimir documentos históricos (`as_of_date` en `product_service.py`).
-- [ ] Tabla `audit_logs` faltante en `hcm_db` / `subscription_db` (AuditService falla silenciosamente).
-- [ ] Columna `internal_id_pattern` faltante en `hr_tenant_configs`.
-- [ ] `default_tax_rate` Planta US: actualmente 0.16, debería ser 0.0.
-- [ ] Sesión 4 RBAC: CRUD Owner de usuarios + rol + UI `/admin/staff`.
-- [ ] Rate limit por endpoint en WMS, MES, HR, Subscription.
+### 1. Sprint 2 — robustecimiento (Próxima Semana)
+
+- [ ] **Validación de Respuestas de API:** Validar la respuesta del servicio HR con un esquema Pydantic robusto (`select_company_command.py:129`).
+- [ ] **Limpieza de Bypass RLS:** Remover el bypass comodín por `ucr_scopes` en la capa de base de datos (`select_company_command.py:27`).
+- [ ] **Alineamiento Asíncrono:** Convertir el log de auditoría `PAST_DUE` de fire-and-forget a awaited/esperado (`subscription_guard.py:94`).
+- [ ] **Mapeo de Rutas de Inventario con RequirePermission:**
+    - [ ] Aplicar `RequirePermission("inventory.document.approve")` en el endpoint de aprobación.
+    - [ ] Aplicar `RequirePermission("inventory.audit.view")` en `GET /inventory/audit` (backend).
+    - [ ] Aplicar `RequirePermission("inventory.bulk_load")` en `POST /inventory/bulk-load`.
+- [ ] **UI del Panel GOD MODE (Frontend Angular):**
+    - [ ] Componente `GodModeTrigger` + `GodModeStore` (Signal Store para control de estado).
+    - [ ] Componente `AuditAlertsDashboard` (Tabla de logs forenses de `/security-logs`).
+    - [ ] Aplicar `permissionGuard` en `/admin/system-control` (solo accesible para Owner/Admin).
+- [ ] **Endurecimiento de Infraestructura de Elevación:** Rate limit controlado por Redis para `/admin/elevate` (actualmente en memoria vía slowapi).
+
+### 2. Sprint 3 — Deuda Técnica de Seguridad (2 semanas)
+
+| ID | Acción | Archivo / Contexto | Esfuerzo | Estado |
+|---|---|---|---|:---:|
+| **12** | **Endpoint de revocación de tokens de colaborador** (Redis blocklist) | `auth_service` | 2h | [ ] Pendiente |
+| **13** | **Reducir TTL de token colaborador a 8h** (mayor frecuencia de rotación de sesión) | `collaborator_login_command.py` | 10 min | [ ] Pendiente |
+| **14** | **Validación de longitud mínima de PIN de seguridad** | `collaborator_login_command.py` | 10 min | [ ] Pendiente |
+| **15** | **Fuga de PII en logs:** Reemplazar `full_name` por `user_id` en info logs | `select_company_command.py` | 15 min | [ ] Pendiente |
+
+### 3. Deuda Técnica General y Continuidad
+
+- [ ] **Point-in-Time Price Lookup:** Soporte para reimpresión exacta de documentos históricos con precios vigentes en la fecha de emisión (`as_of_date` en `product_service.py`).
+- [ ] **Infraestructura de Logs Silenciosa:** Resolver tablas `audit_logs` faltantes en `hcm_db` y `subscription_db` (actualmente capturadas y silenciadas para evitar fallos de transacción).
+- [ ] **Configuración HR:** Añadir columna `internal_id_pattern` faltante en la tabla `hr_tenant_configs`.
+- [ ] **Sincronización Fiscal de Planta US:** Ajustar `default_tax_rate` in Planta US to `0.0` (actualmente sembrado en `0.16` por herencia de IVA MX).
+- [ ] **RBAC Sesión 4:** Construcción del panel CRUD de Staff / Colaboradores (`/admin/staff`) para administración de usuarios y asignación de roles.
+- [ ] **Rate Limiting Distribuido:** Aplicar políticas de rate limit controladas en Redis para endpoints en WMS, MES, HR y Subscription.
+- [x] **Sincronización Offline-First en App Móvil:** Implementar el plan de sincronización de catálogo de productos y precios locales en la app móvil ([mobile_product_sync_plan.md](file:///c:/API/interno/docs/historial/tasks/mobile_product_sync_plan.md)) utilizando Drift/SQLite para garantizar operación 100% offline y latencia de 0ms en escaneo.

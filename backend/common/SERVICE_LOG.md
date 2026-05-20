@@ -6,6 +6,16 @@
 
 ---
 
+### [2026-05-20] - Phase 114: Namespace Scope Matching Security Bridge ✅
+
+- **`security/dependencies.py`**: Added `_scope_satisfies` helper inside `require_scope` dependency. Resolves authorization mismatches where endpoints require coarse scopes (e.g. `master_data:read`) but tokens carry granular database permission slugs (e.g. `master_data.product.read`).
+  - Supports namespace matching (e.g., prefix `master_data` matching suffix `read` or `write`).
+  - Automatically maps `manage` suffix to both `read` and `write`.
+  - Maintains strict exact matches and wildcard `*` fallback for admin roles.
+- **Status**: ✅ COMPLETED — Tested and validated E2E.
+
+---
+
 ### [2026-05-18] - Phase 113: Security Hardening Sprint 1 ✅
 
 - **`config.py`**: Eliminado `default="GOD_MODE_ACTIVE"` del `Field`. Sin `CORE_ADMIN_MASTER_KEY` en el entorno el proceso falla al arrancar (fail-closed). `@field_validator` bloquea valores trivialmente débiles y longitud < 16.

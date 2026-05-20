@@ -239,7 +239,9 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                     accessible_warehouses=warehouses_val,
                     readonly=is_readonly if 'is_readonly' in locals() else False,
                     scopes=getattr(request.state.user_token, "scopes", []) if hasattr(request.state, "user_token") and request.state.user_token else [],
-                    status=getattr(request.state.user_token, "status", "ACTIVE") if hasattr(request.state, "user_token") and request.state.user_token else "ACTIVE"
+                    status=getattr(request.state.user_token, "status", "ACTIVE") if hasattr(request.state, "user_token") and request.state.user_token else "ACTIVE",
+                    jti=getattr(request.state.user_token, "jti", None) if hasattr(request.state, "user_token") and request.state.user_token else None,
+                    god_mode=getattr(request.state.user_token, "god_mode", False) if hasattr(request.state, "user_token") and request.state.user_token else bypass_tenant
                 )
                 token_ctx = request_context.set(user_ctx)
             except (ValueError, TypeError):

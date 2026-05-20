@@ -19,6 +19,8 @@ class SaleCreate(BaseModel):
     customer_id: Optional[uuid.UUID] = None # Optional for POS
     total_amount: Decimal
     currency: str = "MXN"
+    payment_method: Optional[str] = None
+    app_reference: Optional[str] = None
 
 class SaleResponse(BaseModel):
     sale_id: uuid.UUID

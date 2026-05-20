@@ -145,29 +145,44 @@ import json
 @router.get("/delegate-selection", response_model=ApiResponse[CompanyAccessDto])
 async def delegate_selection(
     request: Request,
+    api_url: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     security_ctx: SecurityContext = Depends(get_current_tenant_context),
 ):
     """
     Returns a short-lived selection token and a local QR for mobile delegation.
+    The frontend should pass ?api_url=http://<host>:8000 so the QR uses
+    the correct network address for the mobile device.
     """
     user_id = security_ctx.user_id
     selection_token = security.create_selection_token(user_id)
     companies = await auth_service.get_user_companies(user_id)
 
     # Industrial QR Payload [Phase 94]
-    from auth_app.core.qr_utils import generate_qr_b64, get_lan_ip
-    from auth_app.core.config import settings
+    from auth_app.core.qr_utils import generate_qr_b64
     
-    # 1. Use manual IP if provided in .env (Priority for mobile sync)
-    if getattr(settings, "INT_API_EXTERNAL_URL", None):
+    # Priority:
+    # 1. If api_url is provided and is NOT localhost, use it (e.g. Cloud, custom remote domain).
+    # 2. If it is localhost or empty, and INT_API_EXTERNAL_URL is configured in settings, use that!
+    # 3. If api_url is provided, use it as fallback.
+    # 4. Request headers fallback.
+    if api_url and "localhost" not in api_url and "127.0.0.1" not in api_url:
+        base_url = api_url.rstrip('/')
+    elif getattr(settings, "INT_API_EXTERNAL_URL", None):
         base_url = settings.INT_API_EXTERNAL_URL.rstrip('/')
+    elif api_url:
+        base_url = api_url.rstrip('/')
     else:
-        # Fallback to LAN IP
-        lan_ip = get_lan_ip()
-        port = request.url.port or 8000
-        base_url = f"http://{lan_ip}:{port}"
+        origin = request.headers.get("origin")
+        if origin:
+            host = request.headers.get("host", "localhost:8000")
+            scheme = request.url.scheme
+            base_url = f"{scheme}://{host}"
+        else:
+            host = request.headers.get("host", "localhost:8000")
+            scheme = request.url.scheme
+            base_url = f"{scheme}://{host}"
 
     qr_data = {
         "baseUrl": base_url,
@@ -199,9 +214,9 @@ async def delegate_selection(
             companies=companies,
             is_new=False,
             qr_b64=qr_b64,
-            base_url=base_url + "/api/v1" # Backwards compatibility for UI display
+            base_url=base_url + "/api/v1"
         ),
-        message="Delegation QR generated locally. Please scan with mobile device.",
+        message="QR de delegación generado. Escanee con el dispositivo móvil.",
     )
 
 

@@ -70,11 +70,11 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 setup_cors(app)
 
 from inventory_app.api.v1.endpoints import (
-    transactions, 
-    reconciliation, 
-    boms, 
-    dashboard, 
-    inventory_search, 
+    transactions,
+    reconciliation,
+    boms,
+    dashboard,
+    inventory_search,
     dashboard_consolidated,
     demo_reset,
     onboarding,
@@ -83,7 +83,8 @@ from inventory_app.api.v1.endpoints import (
     variants,
     audit,
     locations,   # [Phase 83] WMS Location Management & Density Guard
-    pos
+    pos,
+    documents
 )
 
 # Registro de Routers
@@ -106,6 +107,7 @@ app.include_router(
 )
 app.include_router(variants.router, prefix="/api/v1/inventory", tags=["Industrial Variants (Supplier Mappings)"])
 app.include_router(locations.router, prefix="/api/v1/inventory", tags=["WMS — Location Management (Density Guard)"])  # [Phase 83] P0 Fix
+app.include_router(documents.router, prefix="/api/v1/inventory", tags=["Document Reprint (Point-in-Time Prices)"])
 
 
 @app.get("/health")

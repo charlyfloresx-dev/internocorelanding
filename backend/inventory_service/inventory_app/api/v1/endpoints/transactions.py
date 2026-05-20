@@ -76,9 +76,6 @@ async def create_document(
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     client_request_id: Optional[str] = None
 ):
-    """
-    Batch endpoint to create multiple inventory transactions under a single folio/document.
-    """
     # 1. Process items/transactions
     results = []
     total_weight = 0
@@ -138,7 +135,16 @@ async def create_document(
             logger.warning(f"TX_PRICE_MISSING: Transaction {tx.id} has no price.")
 
     # 2. Persist Document Metadata for Dashboard/Listing
-    folio_id = str(doc.correlation_id)[:5].upper()
+    from sqlalchemy import text
+    try:
+        count_res = await service.repository.session.execute(
+            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = :dtype"),
+            {"cid": token.company_id, "dtype": str(doc.type)}
+        )
+        seq_num = (count_res.scalar() or 0) + 1
+        folio_id = f"{seq_num:06d}"
+    except Exception as e:
+        folio_id = str(doc.correlation_id)[:5].upper()
     
     # Enrichment: Get warehouse name from Master Data
     origin_name = "Almacén Central"

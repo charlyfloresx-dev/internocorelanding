@@ -51,33 +51,22 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
     from inventory_app.models.customs_pedimento import CustomsPedimento
 
     # Almacen
-    # Almacen via Raw SQL
+    # Almacen via Raw SQL (Querying inventory_warehouses shadow table in inventory_db)
     wh_res = await session.execute(
-        text("SELECT id FROM warehouses WHERE code = 'WH-001' AND company_id = :cid"),
+        text("SELECT id FROM inventory_warehouses WHERE code = 'WH-001' AND company_id = :cid"),
         {"cid": CO_ENTERPRISE_ID}
     )
     wh_id = wh_res.scalar()
     if not wh_id:
-        raise RuntimeError("Almacen WH-001 no encontrado. Ejecuta primero: python scripts/unified_industrial_seed.py")
+        raise RuntimeError("Almacen WH-001 no encontrado en inventory_warehouses. Ejecuta primero: python scripts/unified_industrial_seed.py")
 
     # UOM
-    # UOM via Raw SQL
-    uom_res = await session.execute(
-        text("SELECT id FROM uoms WHERE code = 'PZ'")
-    )
-    uom_id = uom_res.scalar()
-    if not uom_id:
-        raise RuntimeError("UOM PZ no encontrada. Ejecuta primero: python scripts/unified_industrial_seed.py")
+    # UOM PZ uses a stable deterministic UUID from unified_industrial_seed.py
+    uom_id = uuid.UUID("9e222ea8-d40b-427c-b91a-e839c4576dde")
 
     # Producto
-    # Producto via Raw SQL
-    prod_res = await session.execute(
-        text("SELECT id FROM products WHERE sku = 'ECM-600' AND company_id = :cid"),
-        {"cid": CO_ENTERPRISE_ID}
-    )
-    prod_id = prod_res.scalar()
-    if not prod_id:
-        raise RuntimeError("Producto ECM-600 no encontrado. Ejecuta primero: python scripts/unified_industrial_seed.py")
+    # Producto ECM-600 uses a stable deterministic UUID from PRODUCT_DATA
+    prod_id = uuid.UUID("e0e0e0e0-e0e0-40e0-a0e0-000000000001")
 
     # Ubicacion
     # Ubicacion via Raw SQL
@@ -98,21 +87,12 @@ async def resolve_flow_ids(session: AsyncSession) -> dict:
         raise RuntimeError("No se encontro Pedimento para Enterprise. Ejecuta primero: python backend/scripts/seed_customs.py")
 
     # Conceptos
-    # Conceptos via Raw SQL
-    # from master_app.models.movement_concept import MovementConcept (Removed cross-service import)
+    # Conceptos via Raw SQL (Querying inventory_movement_concepts shadow table in inventory_db)
     concepts_res = await session.execute(
-        text("SELECT id, code FROM movement_concepts WHERE group_id = :gid"),
-        {"gid": uuid.UUID("eb8f7e2c-3f4a-4b5c-8d7e-1f2a3b4c5d6e")}
+        text("SELECT id, code FROM inventory_movement_concepts WHERE company_id = :cid"),
+        {"cid": CO_ENTERPRISE_ID}
     )
     concepts = {row[1]: row[0] for row in concepts_res.fetchall()}
-    
-    # Fallback to local codes if group inheritance not found in DB yet
-    if not concepts:
-        concepts_res = await session.execute(
-            text("SELECT id, code FROM movement_concepts WHERE company_id = :cid"),
-            {"cid": CO_ENTERPRISE_ID}
-        )
-        concepts = {row[1]: row[0] for row in concepts_res.fetchall()}
 
     return {
         "company_id":   CO_ENTERPRISE_ID,

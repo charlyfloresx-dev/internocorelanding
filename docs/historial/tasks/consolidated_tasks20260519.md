@@ -39,8 +39,8 @@
 ## Pendiente
 
 ### Deuda técnica activa (no relacionada con GOD MODE)
-- [ ] `GET /products/{id}/variants` → 403 para rol `collaborator` (scope `inventory:read` faltante)
-- [ ] `audit_logs` faltante en hcm_db / subscription_db (AuditService falla silenciosamente)
+- [x] `GET /products/{id}/variants` → 403 para rol `collaborator` — fix en `collaborator_login_command.py` (2026-05-20)
+- [x] `audit_logs` faltante en hcm_db / subscription_db — migraciones `001_add_audit_logs` creadas en ambos servicios (2026-05-20)
 - [ ] Point-in-Time Price Lookup para documentos históricos
 - [ ] `internal_id_pattern` faltante en `hr_tenant_configs`
 - [ ] WMS y MES no desplegados en dev stack

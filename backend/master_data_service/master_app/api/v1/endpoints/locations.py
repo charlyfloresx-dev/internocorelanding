@@ -17,7 +17,7 @@ from common.responses import ApiResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[LocationResponse]])
+@router.get("", response_model=ApiResponse[List[LocationResponse]])
 async def get_locations(
     warehouse_id: Optional[uuid.UUID] = Query(None),
     session: AsyncSession = Depends(get_db),

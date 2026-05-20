@@ -17,20 +17,20 @@ def _check_internal_api_key(x_internal_api_key: str = Header(..., alias="X-Inter
     Only auth_service should call this endpoint.
     """
     if x_internal_api_key != settings.INTERNAL_API_KEY:
-        logger.warning("⛔ Unauthorized internal API call blocked.")
+        logger.warning("⛔ Llamada interna no autorizada bloqueada.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid internal API key.",
+            detail="Clave de API interna inválida.",
         )
 
 
 @router.post(
     "/verify",
     response_model=CollaboratorMultiVerifyResponse,
-    summary="Verify Collaborator Identity (Internal)",
+    summary="Verificar Identidad de Colaborador (Interno)",
     description=(
-        "Internal endpoint called by auth_service to validate an RFID or PIN credential. "
-        "Protected by X-Internal-Api-Key header. Never expose this route publicly."
+        "Endpoint interno invocado por auth_service para validar credenciales RFID o PIN. "
+        "Protegido por header X-Internal-Api-Key. No exponer públicamente."
     ),
 )
 async def verify_collaborator_endpoint(
@@ -42,6 +42,6 @@ async def verify_collaborator_endpoint(
     if not result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Collaborator not found or credentials invalid.",
+            detail="Colaborador no encontrado o credenciales inválidas.",
         )
     return result

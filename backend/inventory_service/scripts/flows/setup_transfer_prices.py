@@ -31,19 +31,28 @@ async def setup_prices():
             print(f"\n📦 Producto: {prod['name']}")
             
             # 1. Asegurar que el producto existe en Master Data
-            await conn.execute(text("""
-                INSERT INTO products (
-                    id, name, sku, code, status, product_type,
-                    requires_batch, requires_expiration, is_taxable, allow_price_override,
-                    created_at, company_id, tenant_id, is_active, version_id
-                )
-                VALUES (
-                    :id, :name, :sku, :sku, 'ACTIVE', 'GOODS',
-                    FALSE, FALSE, TRUE, TRUE,
-                    NOW(), :co_id, :co_id, TRUE, 1
-                )
-                ON CONFLICT (id) DO NOTHING;
-            """), {"id": prod['id'], "name": prod['name'], "sku": prod['sku'], "co_id": CO_ENTERPRISE_ID})
+            existing = await conn.execute(text("""
+                SELECT id FROM products WHERE sku = :sku AND company_id = :co_id
+            """), {"sku": prod['sku'], "co_id": CO_ENTERPRISE_ID})
+            row = existing.first()
+            
+            if row:
+                prod_id = row[0]
+                print(f"   ↳ Producto existente encontrado con ID: {prod_id}")
+            else:
+                prod_id = prod['id']
+                await conn.execute(text("""
+                    INSERT INTO products (
+                        id, name, sku, code, status, product_type,
+                        requires_batch, requires_expiration, is_taxable, allow_price_override,
+                        created_at, company_id, tenant_id, is_active, version_id
+                    )
+                    VALUES (
+                        :id, :name, :sku, :sku, 'ACTIVE', 'GOODS',
+                        FALSE, FALSE, TRUE, TRUE,
+                        NOW(), :co_id, :co_id, TRUE, 1
+                    )
+                """), {"id": prod_id, "name": prod['name'], "sku": prod['sku'], "co_id": CO_ENTERPRISE_ID})
 
             # 2. Precio de Transferencia: Enterprise -> Logistics MX (Price List 4 - MXN)
             # +10% sobre base (Base assumption: ECM 450 -> 495)
@@ -57,6 +66,25 @@ async def setup_prices():
             }
             price_mxn = base_prices[prod['sku']]
             
+            # Seed Price List 1 (General/Public) in MXN for default lookups
+            await conn.execute(text("""
+                INSERT INTO product_prices (
+                    id, product_id, price_list_index, amount, currency, 
+                    unit_type, is_active, is_manual, version_id, company_id, tenant_id
+                )
+                VALUES (
+                    :id, :prod_id, 1, :amount, 'MXN', 
+                    'SALE', TRUE, FALSE, 1, :co_id, :co_id
+                )
+                ON CONFLICT (company_id, product_id, price_list_index, unit_type, warehouse_id, currency) 
+                DO UPDATE SET amount = EXCLUDED.amount;
+            """), {
+                "id": uuid.uuid4(),
+                "prod_id": prod_id,
+                "amount": Decimal(str(price_mxn)),
+                "co_id": CO_ENTERPRISE_ID
+            })
+
             await conn.execute(text("""
                 INSERT INTO product_prices (
                     id, product_id, price_list_index, amount, currency, 
@@ -70,11 +98,11 @@ async def setup_prices():
                 DO UPDATE SET amount = EXCLUDED.amount;
             """), {
                 "id": uuid.uuid4(),
-                "prod_id": prod['id'],
+                "prod_id": prod_id,
                 "amount": Decimal(str(price_mxn)),
                 "co_id": CO_ENTERPRISE_ID
             })
-            print(f"   ↳ [MX] Enterprise -> Logistics MX: ${price_mxn} MXN")
+            print(f"   ↳ [MX] Enterprise -> Logistics MX (List 1 & 4): ${price_mxn} MXN")
 
             # 3. Precio de Transferencia: Logistics MX -> Logistics US (Price List 5 - USD)
             # +20% sobre precio MXN y conversión a USD (~20)
@@ -87,6 +115,25 @@ async def setup_prices():
                 "SUS-100": 18.48
             }
             price_usd = mx_to_us_prices[prod['sku']]
+
+            # Seed Price List 1 (General/Public) in USD for default lookups
+            await conn.execute(text("""
+                INSERT INTO product_prices (
+                    id, product_id, price_list_index, amount, currency, 
+                    unit_type, is_active, is_manual, version_id, company_id, tenant_id
+                )
+                VALUES (
+                    :id, :prod_id, 1, :amount, 'USD', 
+                    'SALE', TRUE, FALSE, 1, :co_id, :co_id
+                )
+                ON CONFLICT (company_id, product_id, price_list_index, unit_type, warehouse_id, currency) 
+                DO UPDATE SET amount = EXCLUDED.amount;
+            """), {
+                "id": uuid.uuid4(),
+                "prod_id": prod_id,
+                "amount": Decimal(str(price_usd)),
+                "co_id": CO_LOGISTICS_MX_ID
+            })
 
             await conn.execute(text("""
                 INSERT INTO product_prices (
@@ -101,11 +148,11 @@ async def setup_prices():
                 DO UPDATE SET amount = EXCLUDED.amount;
             """), {
                 "id": uuid.uuid4(),
-                "prod_id": prod['id'],
+                "prod_id": prod_id,
                 "amount": Decimal(str(price_usd)),
                 "co_id": CO_LOGISTICS_MX_ID  # Propiedad de Logistics MX para vender a US
             })
-            print(f"   ↳ [US] Logistics MX -> Logistics US: ${price_usd} USD")
+            print(f"   ↳ [US] Logistics MX -> Logistics US (List 1 & 4): ${price_usd} USD")
 
     await engine.dispose()
     print("\n✅ Precios de transferencia configurados.")

@@ -1,5 +1,45 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-18) — Phase 115
+**Phase 115: POS Payment Confirmation & Simulated Ticketing** ✅
+- **Payment Method & App Reference**: Añadidos enums (`PaymentMethod`, `AppReference`) e integrados en el esquema `SaleRequest` del cliente y el backend, ampliando la información capturada durante el POS Checkout.
+- **Payment Confirmation Screen**: Creada una nueva pantalla `PaymentConfirmationScreen` que consolida el total a pagar, permite elegir el método de pago (Efectivo, Tarjeta, Transferencia) y añadir referencias complementarias.
+- **Simulación de Ticket**: Implementado diálogo asíncrono para simular el proceso de impresión térmica antes de finalizar la transacción.
+- **Status**: ✅ Phase 115 COMPLETED.
+
+## 🕒 Última Actividad (2026-05-18) — Phase 114
+**Phase 114: Mobile Offline-First Sync & Pricing Engine** ✅
+- **Sincronización Offline-First (Drift)**: Implementada la sincronización paginada del catálogo de variantes y productos hacia la base de datos local SQLite (Drift). El POS móvil ahora puede escanear y registrar productos sin conexión a internet.
+- **Resolución de Monedas (USD/MXN)**: `ProductSyncService` ahora respeta y persiste la divisa original configurada en el backend, evitando el hardcode de `MXN` por defecto en todos los tickets.
+- **Hardening de UUID Determinista**: Se eliminó el uso de códigos quemados tipo string (`ENT-PUR`) y la app ahora envía y opera exclusivamente con el UUID del concepto determinista, cumpliendo las reglas Zero-Trust del Backend.
+- **Status**: ✅ Phase 114 COMPLETED.
+
+## 🕒 Última Actividad (2026-05-17) — Phase 111
+
+**Phase 111: Hard Reset Dev Stack & Mobile PDA Bugfixes** ✅
+- **Hard Reset & Dev Stack**: Se ejecutó un reset nuclear del entorno Docker (`docker system prune -a --volumes`). Se eliminó el stack on-prem monolítico que estaba causando la imagen duplicada de `postgres:15` en Docker Desktop. El ecosistema ahora corre exclusivamente desde `infrastructure/docker/docker-compose.dev.yml` (7 microservicios + Nginx gateway + Postgres + Redis).
+- **QR URL Sanitization (Sales Screen)**: Se aplicó la misma lógica de parseo de URLs que ya existía en `ScannerBloc` directamente al handler `onDetect` de la cámara en `sales_screen.dart`. Códigos QR del tipo `qrto.org/ECM-600` ahora se normalizan a `ECM-600` antes de cualquier búsqueda, eliminando el problema de "código no encontrado" en pantalla de ventas.
+- **Fallback QR bloqueado (sin agregar al carrito)**: Los códigos QR/barcodes sin registro en catálogo local ni en API ahora muestran un `SnackBar` rojo de advertencia y NO se agregan al carrito. Eliminado el fallback que creaba artículos fantasma con precio `$99.99`.
+- **Header dinámico de ítems**: La zona central del header de `sales_screen.dart` ahora muestra `X artículo(s)` cuando hay ítems en el carrito, en lugar del texto estático `Escaneando...`.
+- **Dynamic Currency Resolution (Backend)**: Corregido el hardcode `"MXN"` en `product_service.py`. El backend ahora devuelve la moneda real del precio (de `PriceAgreement.currency` o `ProductPrice.price.currency`), lo que la app recibe y puede mostrar correctamente.
+- **Status**: ✅ Phase 111 COMPLETED.
+
+
+- **Dynamic Shell Restoration**: Changed `setup_screen.dart` auto-login restoration path from `HomeScreen` to `MainNavigationScreen`. This ensures that when an operator opens the app and re-authenticates automatically, the bottom navigation shell (with all tab options and icons) is fully rendered instead of leaving them on a standalone, menu-less page.
+- **Compilation Fix (Const Scope)**: Added the missing import for `main_navigation_screen.dart` in `setup_screen.dart` and aligned constructor scopes, correcting the `Not a constant expression` build error that aborted Gradle execution.
+- **Premium Dual-Line Product Cart**: Refactored the scanned items list in `sales_screen.dart` to display the premium product name (`item['name']`) in large bold white text with a smaller, low-contrast barcode subtitle (`item['code']`). This prevents raw scanned QR configuration dumps from rendering as the main title, introducing smart `TextOverflow.ellipsis` guards.
+- **Robust Warehouse Redirection**: Refactored the "Cambiar Almacén" list tile in `HomeScreen` to retrieve the `company_id` from SharedPreferences and trigger a clean `pushReplacement` to `WarehouseSelectionScreen` rather than an unmanaged `Navigator.pop()`, resolving potential layout stack freezing.
+- **Price Visual Extensions (Web Dashboard)**: Configured the Angular `ProductPriceListComponent` inside `product-catalog.component.ts` to request a custom wide drawer (`md:w-[750px] w-full`) in all four drawer triggers. This expands the administration panels to easily display multi-tier pricing, taxes, and warehouse logistics data.
+- **Master Pricing Integrity**: Successfully pointed product lookups in the mobile repository to `products/lookup/$code` to fetch actual database pricing, resolving previous `$99.99` placeholder inconsistencies.
+
+**Phase 109: Typeahead Consolidation & Product/Variant/Pricing API** ✅
+- **Unified Typeahead**: Consolidated the product search flow to use a single `GET /api/v1/products?q=` endpoint. Eliminated the redundant POST call that was causing duplicate network requests on every keystroke.
+- **Variants API Integration**: Implemented `GET /api/v1/inventory/products/{product_id}/variants` for fetching item variants with brand, MPN, unit price, and weight data. The mobile scanner now supports full SKU → Product → Variants → Pricing resolution.
+- **ProductRepository Cleanup**: Removed manual `Authorization` header injection (already handled by `MultiTenantInterceptor`). Unified the search method to `searchProducts(query)` using GET-only pattern.
+- **Backend Seed Docker-Compatible**: The `unified_industrial_seed.py` has been fully inlined (no subprocess calls), enabling execution inside Docker containers. This ensures the 15 item variants, 35 WMS locations, and transfer prices are always available for the mobile scanner.
+- **Known Issue**: `GET /api/v1/inventory/products/{id}/variants` returning 403 for collaborator role — JWT scope `inventory:read` needs to be added to the endpoint's allowed scopes (pending fix).
+- **Status**: ✅ Phase 109 COMPLETED — Mobile Typeahead & Variant Resolution Consolidated.
+
 ## 🕒 Última Actividad (2026-05-13)
 
 **Phase 103: Sentinel Industrial Navigation & Company Selection Fix** ✅

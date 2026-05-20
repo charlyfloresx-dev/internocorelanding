@@ -72,3 +72,39 @@ Para instrumentar este comportamiento en los flujos principales (Wizard y Catál
    * Registrar acción en `AuditLog` como `PRICE_LOOKUP_FAILED`.
    * (Futuro) Crear ticket automático urgente en `tickets_service`.
 3. **Inmutabilidad Transaccional:** Al marcar un `InventoryDocument` como `CONFIRMED`, el cálculo derivado del contrato para ese instante en el tiempo queda **congelado** independientemente de si el contrato expira un segundo después.
+
+---
+
+## 6. ⏱️ Regla Soft-Close — Inmutabilidad de `ProductPrice`
+
+> **Regla irrompible:** Los registros de `product_prices` son **inmutables**. Nunca se hace `UPDATE` ni `DELETE`. Cuando un precio cambia, se aplica el patrón Soft-Close.
+
+### Mecanismo
+| Acción | Operación en DB |
+|--------|----------------|
+| Precio nuevo | `INSERT` con `valid_until = NULL` |
+| Precio anterior | `UPDATE valid_until = NOW()` (sellado) |
+| Precio eliminado | `UPDATE is_active = False` + `UPDATE valid_until = NOW()` |
+
+### Regla de resolución en runtime
+El precio **vigente** es siempre el registro con `valid_until IS NULL` **y** `is_active = True`. Implementado en `product_service.py`:
+```python
+ProductPrice.valid_until.is_(None)  # Solo precio vigente
+ProductPrice.is_active == True
+```
+
+### Regla de resolución histórica (Point-in-Time)
+Al reconstruir un documento (factura, pedido, remisión), se usa el precio que estaba vigente **en la fecha de emisión del documento**, no el precio actual:
+```python
+# as_of_date = documento.created_at
+and_(
+    ProductPrice.created_at <= as_of_date,
+    or_(
+        ProductPrice.valid_until.is_(None),
+        ProductPrice.valid_until > as_of_date
+    )
+)
+```
+
+> **Ejemplo:** Si un documento se emitió el 2026-01-15 con ECM-600 a $495 MXN y hoy el precio es $550 MXN, al reimprimir el documento se mostrará $495 MXN (precio de la fecha del documento).
+

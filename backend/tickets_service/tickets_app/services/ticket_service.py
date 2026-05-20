@@ -36,6 +36,7 @@ class TicketService:
             "assigned_to_id": cmd.assigned_to_id,
             "collaborator_id": cmd.collaborator_id,
             "external_contact_id": cmd.external_contact_id,
+            "assigned_department_id": getattr(cmd, "assigned_department_id", None),
             "external_assigned_at": datetime.utcnow() if cmd.external_contact_id else None,
         }
         
@@ -321,10 +322,11 @@ class TicketService:
         user_id: uuid.UUID,
         is_admin: bool,
         is_supervisor: bool,
-        department_area: Optional[str] = None
+        department_area: Optional[str] = None,
+        department_id: Optional[uuid.UUID] = None
     ) -> List["Ticket"]:  # noqa: F821
         return await self.repo.list_by_visibility(
-            company_id, user_id, is_admin, is_supervisor, department_area
+            company_id, user_id, is_admin, is_supervisor, department_area, department_id
         )
 
     async def get_tickets(self, company_id: uuid.UUID) -> List["Ticket"]:  # noqa: F821
@@ -352,17 +354,28 @@ class TicketService:
             updates["status"] = TicketStatus.ASSIGNED
             new_status = TicketStatus.ASSIGNED.value
         elif cmd.action.value == "REASSIGN":
-            if not (cmd.new_assigned_to_id or getattr(cmd, "new_collaborator_id", None) or getattr(cmd, "new_external_contact_id", None)):
+            if not (cmd.new_assigned_to_id or getattr(cmd, "new_collaborator_id", None) or getattr(cmd, "new_external_contact_id", None) or getattr(cmd, "assigned_department_id", None)):
                 raise ValueError("Se requiere al menos un destinatario para REASSIGN")
             
-            updates["assigned_to_id"] = cmd.new_assigned_to_id
-            updates["collaborator_id"] = getattr(cmd, "new_collaborator_id", None)
-            updates["external_contact_id"] = getattr(cmd, "new_external_contact_id", None)
-            updates["status"] = TicketStatus.ASSIGNED
-            new_status = TicketStatus.ASSIGNED.value
+            if getattr(cmd, "assigned_department_id", None):
+                updates["assigned_department_id"] = cmd.assigned_department_id
+                updates["assigned_to_id"] = None
+                updates["collaborator_id"] = None
+                updates["external_contact_id"] = None
+                updates["status"] = TicketStatus.ASSIGNED
+                new_status = TicketStatus.ASSIGNED.value
+                new_value_audit = f"dept_{cmd.assigned_department_id}"
+            else:
+                updates["assigned_department_id"] = None
+                updates["assigned_to_id"] = cmd.new_assigned_to_id
+                updates["collaborator_id"] = getattr(cmd, "new_collaborator_id", None)
+                updates["external_contact_id"] = getattr(cmd, "new_external_contact_id", None)
+                updates["status"] = TicketStatus.ASSIGNED
+                new_status = TicketStatus.ASSIGNED.value
+                new_value_audit = str(cmd.new_assigned_to_id)
             
             # Auditoría: hash del operador
-            hash_str = f"{user_id}_{ticket_id}_{cmd.new_assigned_to_id}"
+            hash_str = f"{user_id}_{ticket_id}_{new_value_audit}"
             import hashlib
             updates["deduplication_hash"] = hashlib.sha256(hash_str.encode()).hexdigest()
             
@@ -371,7 +384,7 @@ class TicketService:
                 company_id=company_id,
                 change_type="assignment_triage",
                 old_value=str(ticket.assigned_to_id) if ticket.assigned_to_id else None,
-                new_value=str(cmd.new_assigned_to_id),
+                new_value=new_value_audit,
                 changed_by_id=user_id
             )
         else:
@@ -398,7 +411,7 @@ class TicketService:
         
         # Dispatch status changed event (acts as TicketAssignedEvent for now)
         from tickets_app.schemas.integration_events import TicketStatusChangedEvent
-        recipient_id = cmd.new_assigned_to_id if cmd.action.value == "REASSIGN" else ticket.assigned_to_id
+        recipient_id = getattr(cmd, "new_assigned_to_id", None) if cmd.action.value == "REASSIGN" else ticket.assigned_to_id
         if not recipient_id:
             recipient_id = ticket.created_by
             
@@ -498,6 +511,17 @@ class TicketService:
                 changed_by_id=user_id
             )
             updates["assigned_to_id"] = cmd.assigned_to_id
+
+        if getattr(cmd, "assigned_department_id", None) and cmd.assigned_department_id != ticket.assigned_department_id:
+            await self.repo.add_history_entry(
+                ticket_id=ticket_id,
+                company_id=company_id,
+                change_type="assignment_change",
+                old_value=str(ticket.assigned_department_id) if ticket.assigned_department_id else None,
+                new_value=str(cmd.assigned_department_id),
+                changed_by_id=user_id
+            )
+            updates["assigned_department_id"] = cmd.assigned_department_id
 
         if cmd.title:
             updates["title"] = cmd.title

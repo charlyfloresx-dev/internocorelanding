@@ -15,13 +15,13 @@ class Ticket(MultiTenantBase):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     
     ticket_type: Mapped[TicketType] = mapped_column(
-        sqlalchemy_Enum(TicketType), default=TicketType.SUPPORT, index=True
+        sqlalchemy_Enum(TicketType, values_callable=lambda e: [m.value for m in e]), default=TicketType.SUPPORT, index=True
     )
     priority: Mapped[TicketPriority] = mapped_column(
-        sqlalchemy_Enum(TicketPriority), default=TicketPriority.MEDIUM, index=True
+        sqlalchemy_Enum(TicketPriority, values_callable=lambda e: [m.value for m in e]), default=TicketPriority.MEDIUM, index=True
     )
     status: Mapped[TicketStatus] = mapped_column(
-        sqlalchemy_Enum(TicketStatus), default=TicketStatus.NEW, index=True
+        sqlalchemy_Enum(TicketStatus, values_callable=lambda e: [m.value for m in e]), default=TicketStatus.NEW, index=True
     )
     
     assigned_to_id: Mapped[Optional[uuid.UUID]] = mapped_column(
@@ -35,6 +35,10 @@ class Ticket(MultiTenantBase):
     external_contact_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
     ) # ID del Contacto Externo (Proveedor)
+
+    assigned_department_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        sqlalchemy_UUID(as_uuid=True), index=True, nullable=True
+    ) # ID del Departamento asignado (Asignación flexible a departamento)
 
     external_assigned_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

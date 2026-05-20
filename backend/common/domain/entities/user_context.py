@@ -15,6 +15,8 @@ class UserContext(BaseModel):
     readonly: bool = False
     scopes: List[str] = []
     status: str = "ACTIVE"
+    jti: Optional[str] = None
+    god_mode: bool = False
     
     # RBAC & Geographic (Phase 33.5)
     role: str = "OPERATOR"

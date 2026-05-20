@@ -60,6 +60,7 @@ services:
       PYTHONPATH: /app
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
       CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/${POSTGRES_DB:-dbname}
+      INT_API_EXTERNAL_URL: http://192.168.1.146:8000
     ports:
       - "8001:8000"
     depends_on:

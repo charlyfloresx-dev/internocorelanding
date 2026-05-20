@@ -17,6 +17,13 @@ from app.models.group import TravelerGroup
 
 from common.security.idempotency import idempotent
 
+def to_uuid(val) -> Optional[uuid.UUID]:
+    if val is None:
+        return None
+    if isinstance(val, uuid.UUID):
+        return val
+    return uuid.UUID(str(val))
+
 router = APIRouter(prefix="/api/v1/payments", tags=["Fintech & Payments"])
 
 class CheckoutSessionRequest(BaseModel):
@@ -175,7 +182,7 @@ async def get_payment_history(
     # Por ahora limitamos la carga a los pagos recientes,
     # TODO: Implementar un .get_user_payments_history real en el repo
     payments = await payment_repo.list_all(user.company_id)
-    user_payments = [p for p in payments if p.user_id == uuid.UUID(user.sub)]
+    user_payments = [p for p in payments if p.user_id == to_uuid(user.sub)]
     
     return [
         {

@@ -146,12 +146,15 @@ class CodeGraphGenerator:
 
         # Definitions for filters
         is_config = filename.endswith("config.py") and "logging_config" not in filename
-        # Exclude test files AND root-level diagnostic/utility scripts (not production code)
+        # Exclude test files, root-level diagnostic/utility scripts, and known cross-service
+        # seed orchestrators that intentionally import from multiple services by design.
+        SEED_ORCHESTRATORS = {"unified_industrial_seed.py"}
         is_test = (
             filename.startswith("test_")
             or "/tests/" in rel_path
             or "/scripts/" in rel_path
             or rel_path.startswith("scripts/")   # root-level dev utilities
+            or filename in SEED_ORCHESTRATORS    # dev-only seed scripts, not production code
         )
 
         # 1. ENV Violation (Ignore config files and core folder as they are the source of truth)

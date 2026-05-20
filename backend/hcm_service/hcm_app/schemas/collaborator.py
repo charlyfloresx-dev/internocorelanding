@@ -14,6 +14,9 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
+from hcm_app.schemas.department import DepartmentRead
+
+
 # ── Nested/Embedded Schemas ────────────────────────────────────────────────────
 
 class EmergencyContact(BaseModel):
@@ -59,7 +62,8 @@ class CollaboratorRead(BaseModel):
     first_name: str
     last_name: str
     full_name: str
-    department: Optional[str] = None
+    department_id: Optional[uuid.UUID] = None
+    department: Optional[DepartmentRead] = None
     job_title: Optional[str] = None
     translation_key: Optional[str] = None
     is_active: bool = True
@@ -114,7 +118,7 @@ class CollaboratorCreate(BaseModel):
     last_name: str = Field(..., max_length=100)
 
     # Classification
-    department: Optional[str] = Field(None, max_length=50)
+    department_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = Field(None, max_length=100)
     is_direct: bool = True
     home_warehouse_id: Optional[uuid.UUID] = None
@@ -160,7 +164,7 @@ class CollaboratorCreate(BaseModel):
 class CollaboratorUpdate(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
-    department: Optional[str] = None
+    department_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = None
     translation_key: Optional[str] = None
     is_direct: Optional[bool] = None

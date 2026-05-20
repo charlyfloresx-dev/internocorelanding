@@ -2,6 +2,7 @@ import uuid
 import httpx
 import logging
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional
 from inventory_app.domain.interfaces.master_data_client import IMasterDataClient
 
@@ -214,6 +215,30 @@ class MasterDataClient(IMasterDataClient):
         except Exception as e:
             logger.error(f"Error checking product readiness: {str(e)}")
             return False
+
+    async def get_product_price_at_date(
+        self,
+        product_id: uuid.UUID,
+        company_id: uuid.UUID,
+        as_of: datetime,
+        list_index: int = 1,
+    ) -> Optional[dict]:
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    f"{self.base_url}/prices/products/{product_id}/price-at",
+                    params={"as_of": as_of.isoformat(), "list_index": list_index},
+                    headers=self._get_headers(company_id),
+                )
+                if response.status_code == 200:
+                    payload = response.json()
+                    data = payload.get("data")
+                    if data:
+                        return {"amount": Decimal(str(data["amount"])), "currency": data["currency"]}
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching point-in-time price for {product_id}: {str(e)}")
+            return None
 
     async def check_pricing_readiness(self, company_id: uuid.UUID) -> bool:
         """

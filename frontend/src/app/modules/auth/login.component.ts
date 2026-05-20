@@ -534,8 +534,6 @@ export class LoginComponent implements OnDestroy {
         return;
       }
 
-      this.toastService.success(this.translationService.translate('auth.login.welcome', 'Welcome back'), 'Success');
-
       try {
         console.group('Industrial Form Auth Flow [v2.2-Hardened]');
         
@@ -554,12 +552,28 @@ export class LoginComponent implements OnDestroy {
         
         this.success.set(true);
         this.loading.set(false);
+        this.toastService.success(this.translationService.translate('auth.login.welcome', 'Welcome back'), 'Success');
         console.groupEnd();
-      } catch (err) {
+      } catch (err: any) {
         console.error('API Login failed:', err);
-        this.error.set(this.translationService.translate('auth.login.backend_error', 'Could not establish connection with backend.'));
+        
+        let errorMsg = 'Could not establish connection with backend.';
+        let toastTitle = 'Connectivity';
+        let toastMsg = 'Network failure';
+        
+        if (err && err.status === 401) {
+          errorMsg = err.error?.message || 'Incorrect email or password';
+          toastTitle = 'Authentication';
+          toastMsg = errorMsg;
+        } else if (err && err.status === 403) {
+          errorMsg = err.error?.message || 'Access Forbidden';
+          toastTitle = 'Security';
+          toastMsg = errorMsg;
+        }
+        
+        this.error.set(this.translationService.translate('auth.login.backend_error', errorMsg));
         this.loading.set(false);
-        this.toastService.error(this.translationService.translate('auth.login.network_failure', 'Network failure'), 'Connectivity');
+        this.toastService.error(this.translationService.translate('auth.login.network_failure', toastMsg), toastTitle);
         console.groupEnd();
       }
     }, 1000);

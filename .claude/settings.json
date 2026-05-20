@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python backend/scripts/generate_code_graph.py)",
+      "PowerShell(cd C:\\\\API\\\\interno; powershell -ExecutionPolicy Bypass -File scripts/validate_ecosystem.ps1 2>&1)",
+      "Bash(Get-ChildItem -Path \"C:\\\\API\\\\interno\\\\backend\" -Recurse -Filter \"base.py\")",
+      "PowerShell(powershell -ExecutionPolicy Bypass -File C:\\\\API\\\\interno\\\\scripts\\\\validate_ecosystem.ps1 2>&1 | Select-Object -Last 30)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/auth/admin/elevate -H 'X-Admin-Master-Key: ROTATED_MASTER_KEY_GOD_MODE' -H 'X-Company-ID: 00000000-0000-0000-0000-000000000001' -H 'Content-Type: application/json')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:8001/api/v1/admin/elevate -H 'X-Admin-Master-Key: ROTATED_MASTER_KEY_GOD_MODE' -H 'X-Company-ID: 00000000-0000-0000-0000-000000000001' -H 'Content-Type: application/json')",
+      "Bash(python -c ' *)",
+      "Bash(curl -s -X POST http://localhost:8001/api/v1/admin/elevate -H 'X-Admin-Master-Key: WRONG_KEY_12345678' -H 'Content-Type: application/json')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/admin/elevate -H 'X-Admin-Master-Key: ROTATED_MASTER_KEY_GOD_MODE' -H 'Content-Type: application/json')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/admin/elevate -H 'X-Admin-Master-Key: WRONG_KEY_THIS_IS_WRONG_123' -H 'Content-Type: application/json')",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}' -X POST http://localhost:8000/api/v1/admin/elevate -H 'Content-Type: application/json')",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}' http://localhost:8000/api/v1/admin/security-logs -H 'X-Company-ID: 00000000-0000-0000-0000-000000000001')",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

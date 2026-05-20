@@ -175,6 +175,7 @@ async def collaborator_login(
         company_id=uuid.UUID(str(identity["company_id"])),
         roles=["collaborator"],
         scopes=scopes,
+        modules=["auth_core", "inventory_core"],
         extra_data={
             "wid": str(identity.get("home_warehouse_id")) if identity.get("home_warehouse_id") else None,
             "is_supervisor": is_supervisor, 

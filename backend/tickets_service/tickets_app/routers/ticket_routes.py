@@ -29,6 +29,13 @@ from tickets_app.infrastructure.repositories.escalation_repository import SQLAlc
 from tickets_app.infrastructure.inventory_client import HttpInventoryClient
 from tickets_app.services.escalation_service import EscalationConfigService
 
+def to_uuid(val) -> Optional[uuid.UUID]:
+    if val is None:
+        return None
+    if isinstance(val, uuid.UUID):
+        return val
+    return uuid.UUID(str(val))
+
 router = APIRouter(tags=["tickets"])
 
 @router.get("/technicians/workload")
@@ -42,7 +49,7 @@ async def get_technicians_workload(
     Útil para el triaje inteligente en el Dashboard.
     """
     service = TicketService(SQLAlchemyTicketRepository(db))
-    workload = await service.get_technician_workload(uuid.UUID(user.company_id))
+    workload = await service.get_technician_workload(to_uuid(user.company_id))
     return ApiResponse(data=workload, message="Carga de trabajo obtenida")
 
 
@@ -185,7 +192,7 @@ async def create_ticket(
     if str(cmd.company_id) != str(user.company_id):
          raise HTTPException(status_code=403, detail="No tienes permiso para crear tickets en esta compañía")
     
-    ticket = await service.create_ticket(cmd, uuid.UUID(user.sub))
+    ticket = await service.create_ticket(cmd, to_uuid(user.sub))
     
     # Broadcast en tiempo real
     await manager.broadcast_to_company(
@@ -204,24 +211,35 @@ async def list_tickets(
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
-    tickets = await service.get_tickets(uuid.UUID(user.company_id))
+    tickets = await service.get_tickets(to_uuid(user.company_id))
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
 
 @router.get("/mine", response_model=ApiResponse)
 async def list_my_tickets(
+    department_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     """
     Retorna tickets creados por o asignados al usuario actual en su empresa activa.
+    Soporta filtrado por departamento/área del operador de forma polimórfica.
     """
     service = TicketService(SQLAlchemyTicketRepository(db))
+    
+    dept_id = department_id
+    if not dept_id and hasattr(user, "department_id") and user.department_id:
+        try:
+            dept_id = to_uuid(user.department_id)
+        except Exception:
+            pass
+
     # Usamos list_by_visibility con flags de usuario normal para filtrar lo propio
     tickets = await service.get_tickets_with_visibility(
-        company_id=uuid.UUID(user.company_id),
-        user_id=uuid.UUID(user.sub),
+        company_id=to_uuid(user.company_id),
+        user_id=to_uuid(user.sub),
         is_admin=False,
-        is_supervisor=False
+        is_supervisor=False,
+        department_id=dept_id
     )
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
 
@@ -237,9 +255,9 @@ async def triage_ticket(
     try:
         ticket = await service.triage_ticket(
             ticket_id=ticket_id,
-            company_id=uuid.UUID(user.company_id),
+            company_id=to_uuid(user.company_id),
             cmd=cmd,
-            user_id=uuid.UUID(user.sub),
+            user_id=to_uuid(user.sub),
             is_supervisor=is_supervisor
         )
         
@@ -265,7 +283,7 @@ async def get_ticket(
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
-    ticket = await service.get_ticket(ticket_id, uuid.UUID(user.company_id))
+    ticket = await service.get_ticket(ticket_id, to_uuid(user.company_id))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     return ApiResponse(data=TicketRead.model_validate(ticket))
@@ -278,7 +296,7 @@ async def update_ticket(
     user: TokenPayload = Depends(require_scope(["ticket:write"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
-    ticket = await service.update_ticket(ticket_id, uuid.UUID(user.company_id), cmd, uuid.UUID(user.sub))
+    ticket = await service.update_ticket(ticket_id, to_uuid(user.company_id), cmd, to_uuid(user.sub))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
         
@@ -302,16 +320,16 @@ async def add_comment(
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
     # Validar acceso al ticket primero
-    ticket = await service.get_ticket(ticket_id, uuid.UUID(user.company_id))
+    ticket = await service.get_ticket(ticket_id, to_uuid(user.company_id))
     if not ticket:
          raise HTTPException(status_code=404, detail="Ticket no encontrado")
     
     comment_cmd = TicketCommentCreate(
         ticket_id=ticket_id,
-        company_id=uuid.UUID(user.company_id),
+        company_id=to_uuid(user.company_id),
         content=cmd.content
     )
-    comment = await service.add_comment(comment_cmd, uuid.UUID(user.sub))
+    comment = await service.add_comment(comment_cmd, to_uuid(user.sub))
     return ApiResponse(data=TicketCommentRead.model_validate(comment), message="Comentario agregado")
 
 @router.get("/{ticket_id}/comments", response_model=ApiResponse)
@@ -321,7 +339,7 @@ async def list_comments(
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     service = TicketService(SQLAlchemyTicketRepository(db))
-    ticket = await service.get_ticket(ticket_id, uuid.UUID(user.company_id))
+    ticket = await service.get_ticket(ticket_id, to_uuid(user.company_id))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     
@@ -341,8 +359,8 @@ async def consume_ticket_resources(
     """
     cmd = ConsumeResourcesCommand(
         ticket_id=ticket_id,
-        company_id=uuid.UUID(user.company_id),
-        user_id=uuid.UUID(user.sub),
+        company_id=to_uuid(user.company_id),
+        user_id=to_uuid(user.sub),
         resources=resources
     )
     handler = TicketCommandHandler(SQLAlchemyTicketRepository(db), HttpInventoryClient())
@@ -368,7 +386,7 @@ async def seed_escalation_rules(
     repo = SQLAlchemyEscalationRepository(db)
     service = EscalationConfigService(repo)
     
-    await service.seed_default_rules(uuid.UUID(user.company_id))
+    await service.seed_default_rules(to_uuid(user.company_id))
     await db.commit()
     
     return ApiResponse(data=None, message="Matriz de escalación dinamizada y sembrada exitosamente")
@@ -386,7 +404,7 @@ async def get_escalation_rules(
     repo = SQLAlchemyEscalationRepository(db)
     service = EscalationConfigService(repo)
     
-    rules = await service.get_escalation_path(uuid.UUID(user.company_id), area)
+    rules = await service.get_escalation_path(to_uuid(user.company_id), area)
     return ApiResponse(
         data=[EscalationRuleRead.model_validate(r) for r in rules], 
         message=f"Reglas de escalación para {area} obtenidas"
@@ -418,7 +436,7 @@ async def delete_ticket(
     y cumplir con las políticas de auditoría forense.
     """
     service = TicketService(SQLAlchemyTicketRepository(db))
-    ticket = await service.soft_delete_ticket(ticket_id, uuid.UUID(user.company_id), uuid.UUID(user.sub))
+    ticket = await service.soft_delete_ticket(ticket_id, to_uuid(user.company_id), to_uuid(user.sub))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket eliminado (soft-delete)")

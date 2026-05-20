@@ -17,6 +17,13 @@ from app.models.group import TravelerGroup
 from app.models.itinerary import ItineraryItem
 from common.value_objects import Money
 
+def to_uuid(val) -> Optional[uuid.UUID]:
+    if val is None:
+        return None
+    if isinstance(val, uuid.UUID):
+        return val
+    return uuid.UUID(str(val))
+
 router = APIRouter(prefix="/api/v1/booking", tags=["Booking & Inventory"])
 
 # --- SCHEMAS ---
@@ -81,7 +88,7 @@ async def create_package(
             description=request.description,
             total_price=total_price,
             company_id=user.company_id,
-            user_id=uuid.UUID(user.sub),
+            user_id=to_uuid(user.sub),
             max_capacity=request.max_capacity
         )
         
@@ -133,7 +140,7 @@ async def download_itinerary(
 
     # 5. Generar PDF
     pdf_buffer = await PDFGenerator.generate_travel_itinerary(
-        group, items, payments, uuid.UUID(user.sub) # Usando user_id como nombre literal por ahora
+        group, items, payments, to_uuid(user.sub) # Usando user_id como nombre literal por ahora
     )
 
     filename = f"Itinerario_{group.name.replace(' ', '_')}.pdf"
@@ -174,7 +181,7 @@ async def get_booking_status(
     # Buscamos si hay pagos exitosos para este grupo y usuario
     payment_repo = PaymentRepository(db)
     payments = await payment_repo.list_all(user.company_id)
-    has_paid = any(p.user_id == uuid.UUID(user.sub) and p.group_id == active_group.id for p in payments)
+    has_paid = any(p.user_id == to_uuid(user.sub) and p.group_id == active_group.id for p in payments)
     
     # En la demo, si el grupo está CONFIRMED, desbloqueamos para todos
     is_confirmed = has_paid or active_group.status == "CONFIRMED"

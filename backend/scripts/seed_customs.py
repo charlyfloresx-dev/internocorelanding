@@ -37,10 +37,13 @@ async def seed_customs_balances():
         log.info("Iniciando inyección de cumplimiento aduanero (Anexo 24)...")
         
         # Obtener un UOM ID genérico (Piezas)
-        res_uom = await session.execute(text("SELECT id FROM uoms WHERE code = 'PZ' LIMIT 1"))
-        uom_id = res_uom.scalar()
+        try:
+            res_uom = await session.execute(text("SELECT id FROM uoms WHERE code = 'PZ' LIMIT 1"))
+            uom_id = res_uom.scalar()
+        except Exception:
+            uom_id = uuid.UUID("9e222ea8-d40b-427c-b91a-e839c4576dde")
         if not uom_id:
-             uom_id = uuid.uuid4() # Fallback
+             uom_id = uuid.UUID("9e222ea8-d40b-427c-b91a-e839c4576dde")
 
         for cid, name in [
             (ENTERPRISE_ID, "Enterprise"),

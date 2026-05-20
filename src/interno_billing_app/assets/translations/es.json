@@ -18,7 +18,16 @@
     "general_public": "Público en General",
     "search_partner": "Buscar Socio...",
     "select_customer": "SELECCIONAR CLIENTE",
-    "search_hint": "Buscar por nombre o RFC..."
+    "search_hint": "Buscar por nombre o RFC...",
+    "confirm_sale": "Confirmar Venta",
+    "total_to_pay": "Total a Pagar",
+    "payment_method": "Método de Pago",
+    "complementary_data": "Datos Complementarios",
+    "card_auth_number": "No. de autorización de terminal",
+    "transfer_folio": "Folio de transferencia",
+    "process_and_print": "PROCESAR Y EMITIR TICKET",
+    "printing_ticket": "Imprimiendo Ticket...",
+    "thermal_printer_sim": "Simulando conexión con impresora térmica..."
   },
   "auth": {
     "login": "Iniciar Sesión",

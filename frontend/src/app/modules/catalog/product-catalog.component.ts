@@ -446,7 +446,8 @@ export class ProductCatalogComponent implements OnInit {
     this.drawerService.open(ProductPriceListComponent, {
       title: 'Nuevo Producto',
       subtitle: 'Configuración Maestra de Item',
-      icon: 'add_box'
+      icon: 'add_box',
+      width: 'md:w-[750px] w-full'
     }, { activeTab: 'INFO' });
   }
 
@@ -465,7 +466,8 @@ export class ProductCatalogComponent implements OnInit {
     this.drawerService.open(ProductPriceListComponent, {
       title: 'Gestión de Precios',
       subtitle: product.sku + ' - ' + product.name,
-      icon: 'payments'
+      icon: 'payments',
+      width: 'md:w-[750px] w-full'
     }, { product, activeTab: 'GLOBAL' });
   }
 
@@ -481,7 +483,8 @@ export class ProductCatalogComponent implements OnInit {
     this.drawerService.open(ProductPriceListComponent, {
       title: 'Editar Producto',
       subtitle: product.sku + ' - ' + product.name,
-      icon: 'edit_note'
+      icon: 'edit_note',
+      width: 'md:w-[750px] w-full'
     }, { product, activeTab: 'INFO' });
   }
 
@@ -489,7 +492,8 @@ export class ProductCatalogComponent implements OnInit {
     this.drawerService.open(ProductPriceListComponent, {
       title: 'Logística de Producto',
       subtitle: product.sku + ' - ' + product.name,
-      icon: 'local_shipping'
+      icon: 'local_shipping',
+      width: 'md:w-[750px] w-full'
     }, { product, activeTab: 'LOGISTICA' });
   }
 

@@ -105,6 +105,8 @@ async def lookup_product(
     partner_id: uuid.UUID = None,
     repo: IInventoryRepository = Depends(get_inventory_repository)
 ):
+    if "/" in code:
+        code = code.split("/")[-1]
     product = await repo.get_product_by_code(code, company_id)
     if not product:
         return ApiResponse(status="error", message="Product not found", data=None)

@@ -1858,7 +1858,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             )
         )
         result = await self.session.execute(stmt)
-        variant = result.scalar_one_or_none()
+        variant = result.scalars().first()
         
         if not variant:
             return None

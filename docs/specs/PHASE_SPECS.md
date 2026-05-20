@@ -2,6 +2,19 @@
 
 Detalle de ejecución para las fases de arquitectura pendientes.
 
+## ✅ Phase 117: Namespace Scope Matching Security Bridge (Collaborator Auth stabilized)
+**Estado:** ✅ COMPLETO — 2026-05-20
+**Objetivo:** Resolver el bloqueo 403 Forbidden en el flujo de autorización de colaboradores de planta al consultar endpoints de Datos Maestros (`/warehouses`, `/concepts`) integrando resolución de namespaces de seguridad.
+
+### Acciones Realizadas
+1. **Resolución de Namespaces de Seguridad (`dependencies.py`)**: Implementado un comparador inteligente de scopes en `common.security.dependencies.require_scope`. Ahora, un scope granular en la base de datos y token del colaborador (ej: `master_data.product.read`) satisface automáticamente la validación gruesa exigida por el endpoint (ej: `master_data:read`).
+2. **Soporte para Permisos `manage`**: El comparador interpreta automáticamente el sufijo `.manage` como un super-permiso que cubre tanto acciones de lectura (`read`) como escritura (`write`).
+3. **Remediación de Identidad en Planta (`internal_id` Discrepancy)**: Identificado que el intento fallido de autenticación del operador Carlos Ramírez en el panel web se debió a un desajuste de ID (`003709` vs el valor correcto `003709A` en la base de datos HCM). Al usar la credencial correcta `003709A` o `301`, la autenticación y posterior consumo de catálogos responde con **`200 OK`**.
+4. **Limpieza de Archivos**: Eliminados scripts temporales de depuración (`debug_roles.py`, `test_scope_fix.py`) para mantener el espacio de trabajo limpio.
+5. **Validación Automatizada**: El validador del ecosistema local (`validate_ecosystem.ps1`) y el generador de gráfico de código (`generate_code_graph.py`) reportan **100% de cumplimiento y 0 errores**.
+
+---
+
 ## ✅ Phase 94: Industrial Mobile POS Cockpit Stabilization (Moto g04s)
 **Estado:** ✅ COMPLETO — 2026-05-10
 **Objetivo:** Finalizar la estabilización industrial del POS móvil sobre el hardware Moto g04s, logrando una interfaz de usuario premium, ultra-rápida y a prueba de fallos con estética minimalista sólida.

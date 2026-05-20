@@ -1,6 +1,7 @@
 import uuid
 from abc import ABC, abstractmethod
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional, List
 
 class IMasterDataClient(ABC):
@@ -71,3 +72,16 @@ class IMasterDataClient(ABC):
         """
         raise NotImplementedError()
 
+    @abstractmethod
+    async def get_product_price_at_date(
+        self,
+        product_id: uuid.UUID,
+        company_id: uuid.UUID,
+        as_of: datetime,
+        list_index: int = 1,
+    ) -> Optional[dict]:
+        """
+        Returns {"amount": Decimal, "currency": str} for the price active at as_of,
+        or None if no price record exists for that point in time.
+        """
+        raise NotImplementedError()

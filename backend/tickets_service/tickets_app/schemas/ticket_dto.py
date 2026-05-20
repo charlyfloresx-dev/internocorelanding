@@ -25,6 +25,7 @@ class TicketCreate(TicketBase):
     assigned_to_id: Optional[UUID] = None      # Identidad Digital (Usuario)
     collaborator_id: Optional[UUID] = None    # Identidad Física (Colaborador)
     external_contact_id: Optional[UUID] = None # Identidad Externa (Proveedor)
+    assigned_department_id: Optional[UUID] = None # Identidad Relacional (Departamento)
     is_external: bool = False                  # Flag de asignación a terceros
 
     @model_validator(mode="after")
@@ -47,6 +48,7 @@ class TicketTriageAction(str, Enum):
 class TicketTriage(BaseModel):
     action: TicketTriageAction
     new_assigned_to_id: Optional[UUID] = None
+    assigned_department_id: Optional[UUID] = None
     comment: Optional[str] = None
 
 class TicketUpdate(BaseModel):
@@ -57,6 +59,7 @@ class TicketUpdate(BaseModel):
     assigned_to_id: Optional[UUID] = None
     collaborator_id: Optional[UUID] = None
     external_contact_id: Optional[UUID] = None
+    assigned_department_id: Optional[UUID] = None
     is_external: Optional[bool] = None
     # --- Fase 5: Campos actualizables ---
     real_time_spent: Optional[int] = None      # Minutos reales invertidos
@@ -114,6 +117,7 @@ class TicketRead(TicketBase):
     assigned_to_id: Optional[UUID] = None
     collaborator_id: Optional[UUID] = None
     external_contact_id: Optional[UUID] = None
+    assigned_department_id: Optional[UUID] = None
     module_origin: Optional[str] = None
     area: Optional[str] = None
     estimated_time: Optional[int] = None

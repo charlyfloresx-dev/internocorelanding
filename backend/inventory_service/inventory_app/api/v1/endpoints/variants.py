@@ -1,68 +1,75 @@
+"""
+Variant endpoints — thin proxy to master_data_service.
+inventory_item_variants table lives in master_data_db as of Phase 118.
+"""
 import uuid
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
+from fastapi import APIRouter, Depends, Request, File, UploadFile, HTTPException, status
+from fastapi.responses import JSONResponse
+import httpx
 
-from inventory_app.db.session import get_db
-from inventory_app.schemas.variant import ItemVariantRead, ItemVariantCreate, VariantListResponse
-from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
-from inventory_app.services.variant_service import VariantService
 from common.responses import ApiResponse
 from common.security.subscription_guard import SubscriptionGuard
 from common.security.auth_payload import TokenPayload
-from inventory_app.dependencies.repositories import get_variant_service
+from common.config import settings
 
 router = APIRouter()
 
-@router.get("/products/{product_id}/variants", response_model=VariantListResponse)
+_MD_URL = settings.MASTER_DATA_SERVICE_URL
+
+
+def _proxy_headers(token: TokenPayload) -> dict:
+    return {
+        "X-Company-ID": str(token.company_id),
+        "Authorization": f"Bearer {getattr(token, '_raw_token', '')}",
+    }
+
+
+@router.get("/products/{product_id}/variants")
 async def get_product_variants(
     product_id: uuid.UUID,
+    request: Request,
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
-    service: VariantService = Depends(get_variant_service),
 ):
-    """
-    Retrieves all variants (Supplier Item Mappings) for a master product.
-    """
-    variants = await service.get_variants_by_product(product_id, token.company_id)
-    return ApiResponse(status="success", data=variants)
+    auth = request.headers.get("Authorization", "")
+    headers = {"X-Company-ID": str(token.company_id), "Authorization": auth}
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.get(
+            f"{_MD_URL}/api/v1/products/{product_id}/variants",
+            headers=headers,
+        )
+    return JSONResponse(status_code=resp.status_code, content=resp.json())
 
-@router.post("/variants", response_model=ApiResponse)
+
+@router.post("/variants")
 async def upsert_variant(
-    variant_in: ItemVariantCreate,
-    photo: Optional[UploadFile] = File(None),
+    request: Request,
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
-    service: VariantService = Depends(get_variant_service),
 ):
-    """
-    Creates or updates a Product Variant (Supplier mapping).
-    """
-    variant = await service.upsert_variant(variant_in, token.company_id, photo=photo)
-    
-    return ApiResponse(
-        status="success",
-        message="Variant saved successfully",
-        data=ItemVariantRead.model_validate(variant)
-    )
+    auth = request.headers.get("Authorization", "")
+    headers = {"X-Company-ID": str(token.company_id), "Authorization": auth}
+    body = await request.body()
+    content_type = request.headers.get("content-type", "application/json")
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.post(
+            f"{_MD_URL}/api/v1/variants",
+            headers={**headers, "content-type": content_type},
+            content=body,
+        )
+    return JSONResponse(status_code=resp.status_code, content=resp.json())
 
-@router.delete("/variants/{variant_id}", response_model=ApiResponse)
+
+@router.delete("/variants/{variant_id}")
 async def delete_variant(
     variant_id: uuid.UUID,
-    session: AsyncSession = Depends(get_db),
+    request: Request,
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
 ):
-    """
-    Deletes a Product Variant.
-    """
-    from inventory_app.models.item_variant import ItemVariant
-    from sqlalchemy import delete
-    
-    stmt = delete(ItemVariant).where(
-        ItemVariant.id == variant_id,
-        ItemVariant.company_id == token.company_id
-    )
-    result = await session.execute(stmt)
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Variant not found")
-        
-    await session.commit()
-    return ApiResponse(status="success", message="Variant deleted")
+    auth = request.headers.get("Authorization", "")
+    headers = {"X-Company-ID": str(token.company_id), "Authorization": auth}
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        resp = await client.delete(
+            f"{_MD_URL}/api/v1/variants/{variant_id}",
+            headers=headers,
+        )
+    return JSONResponse(status_code=resp.status_code, content=resp.json())

@@ -81,3 +81,10 @@ class WarehouseType(str, Enum):
     TRANSIT = "TRANSIT"
     RESOURCE = "RESOURCE"  # Machine/station acting as WIP warehouse
     EXT_PARTNER = "EXT_PARTNER" # Customer/Supplier managed location
+
+class PaymentMethod(str, Enum):
+    CASH = "CASH"
+    CARD = "CARD"
+    TRANSFER = "TRANSFER"
+    STRIPE = "STRIPE"
+    WALLET = "WALLET"

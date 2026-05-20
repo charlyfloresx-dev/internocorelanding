@@ -56,8 +56,54 @@ class ProductService:
 
     async def lookup_product_by_code(self, code: str, company_id: UUID, partner_id: Optional[UUID] = None) -> Any:
         """Lookup product by SKU or Barcode for POS Scanning, with dynamic price resolution."""
+        # Sanitize URL prefixes (e.g. qrto.org/MPN-GAR-701)
+        if "/" in code:
+            code = code.split("/")[-1]
+            
         product = await self.repo.get_product_by_sku(code, company_id)
         if not product:
+            # Fallback robusto para microservicios locales:
+            # Si el producto no se encuentra en el catálogo maestro local (por ejemplo, porque es un variant
+            # que vive únicamente en la base de datos de inventarios), realizamos un lookup HTTP al servicio de inventario.
+            import httpx
+            from common.config import settings
+            try:
+                headers = {
+                    "X-Company-ID": str(company_id),
+                    "X-Admin-Master-Key": "GOD_MODE_ACTIVE"
+                }
+                from common.context import request_context
+                user_ctx = request_context.get()
+                if user_ctx and user_ctx.token:
+                    headers["Authorization"] = f"Bearer {user_ctx.token}"
+                
+                inv_service_url = settings.INVENTORY_SERVICE_URL
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.get(
+                        f"{inv_service_url}/api/v1/inventory/lookup",
+                        params={"code": code, "company_id": str(company_id)},
+                        headers=headers
+                    )
+                    if resp.status_code == 200:
+                        variant_data = resp.json()
+                        if variant_data.get("status") == "success" and variant_data.get("data"):
+                            variant_info = variant_data["data"]
+                            parent_product_id = variant_info.get("id")
+                            if parent_product_id:
+                                from uuid import UUID as py_UUID
+                                product = await self.repo.get_product_by_id(py_UUID(parent_product_id), company_id)
+                                if product:
+                                    # Enriquecemos el producto con la información de la variante y su precio exacto
+                                    brand = variant_info.get("brand_name") or ""
+                                    product.name = f"{product.name} ({brand} {code})"
+                                    
+                                    resolved_price = variant_info.get("price", {}).get("amount")
+                                    if resolved_price:
+                                        product.price = {"amount": Decimal(str(resolved_price)), "currency": "MXN"}
+                                        return product
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Error fetching variant from inventory service: {e}")
             return None
             
         # Inject pre-signed URL
@@ -80,6 +126,7 @@ class ProductService:
         from sqlalchemy import select, and_
         
         resolved_price = None
+        resolved_currency = "MXN"
         
         # 1. B2B Agreement
         if partner_id:
@@ -95,7 +142,8 @@ class ProductService:
             agreement = ag_res.scalars().first()
             if agreement:
                 resolved_price = agreement.amount
-
+                resolved_currency = agreement.currency
+ 
         # 2. Assigned List / Global
         if resolved_price is None:
             target_list = 1
@@ -104,19 +152,24 @@ class ProductService:
                 p_res = await self.repo.db.execute(p_stmt)
                 target_list = p_res.scalars().first() or 1
                 
+            # Soft-Close Rule: valid_until IS NULL = precio vigente.
+            # Si se reconstruye un documento histórico, pasar as_of_date y usar:
+            #   valid_from <= :fecha AND (valid_until IS NULL OR valid_until > :fecha)
             pr_stmt = select(ProductPrice).where(
                 and_(
                     ProductPrice.product_id == product.id,
                     ProductPrice.company_id == company_id,
                     ProductPrice.price_list_index == target_list,
                     ProductPrice.warehouse_id.is_(None),
-                    ProductPrice.is_active == True
+                    ProductPrice.is_active == True,
+                    ProductPrice.valid_until.is_(None)  # Solo precio vigente
                 )
             ).order_by(ProductPrice.created_at.desc())
             pr_res = await self.repo.db.execute(pr_stmt)
             price_obj = pr_res.scalars().first()
             if price_obj:
                 resolved_price = price_obj.price.amount
+                resolved_currency = price_obj.price.currency
             elif target_list != 1:
                 # Fallback to List 1
                 fb_stmt = select(ProductPrice).where(
@@ -125,20 +178,22 @@ class ProductService:
                         ProductPrice.company_id == company_id,
                         ProductPrice.price_list_index == 1,
                         ProductPrice.warehouse_id.is_(None),
-                        ProductPrice.is_active == True
+                        ProductPrice.is_active == True,
+                        ProductPrice.valid_until.is_(None)  # Solo precio vigente
                     )
                 ).order_by(ProductPrice.created_at.desc())
                 fb_res = await self.repo.db.execute(fb_stmt)
                 fb_price = fb_res.scalars().first()
                 if fb_price:
                     resolved_price = fb_price.price.amount
-
+                    resolved_currency = fb_price.price.currency
+ 
         if resolved_price:
             # Set price on the transient product object
-            product.price = {"amount": Decimal(str(resolved_price)), "currency": "MXN"}
+            product.price = {"amount": Decimal(str(resolved_price)), "currency": resolved_currency}
         else:
             product.price = {"amount": 0.0, "currency": "MXN"}
-
+ 
         return product
 
 

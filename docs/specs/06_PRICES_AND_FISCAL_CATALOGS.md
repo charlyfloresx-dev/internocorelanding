@@ -51,7 +51,51 @@ class ProductPrice(MultiTenantBase):
     amount: Mapped[float] = mapped_column(Numeric(12, 4))   # Neto
     currency: Mapped[str] = mapped_column(String(3))       # MXN / USD
     unit_type: Mapped[str] = mapped_column(String(20))     # BASE / SALE
+    valid_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # NULL = precio VIGENTE | Con valor = precio histórico cerrado (Soft-Close)
 ```
+
+---
+
+## ⏱️ Regla Soft-Close: Inmutabilidad de Precios
+
+> **Regla crítica de negocio:** Un precio en `product_prices` **NUNCA se modifica ni se borra**. Cuando cambia el valor de una columna, se aplica el patrón Soft-Close:
+
+### Flujo de actualización de precio
+1. Se sella el registro anterior con `valid_until = NOW()`.
+2. Se inserta un **nuevo** registro con los datos actualizados y `valid_until = NULL`.
+3. El precio vigente siempre es el registro con `valid_until IS NULL`.
+
+### Consulta de precio vigente (runtime)
+```sql
+SELECT amount, currency
+FROM product_prices
+WHERE product_id = :pid
+  AND company_id = :cid
+  AND price_list_index = :list
+  AND is_active = true
+  AND valid_until IS NULL          -- ← REGLA SOFT-CLOSE
+ORDER BY created_at DESC
+LIMIT 1;
+```
+
+### Consulta histórica Point-in-Time (reconstrucción de documentos)
+> Al reabrir o reimprimir un documento, siempre se reconstruye con el precio vigente **en la fecha del documento**, no el precio actual.
+
+```sql
+SELECT amount, currency
+FROM product_prices
+WHERE product_id = :pid
+  AND company_id = :cid
+  AND price_list_index = :list
+  AND is_active = true
+  AND created_at <= :document_date   -- precio ya existía cuando se emitió
+  AND (valid_until IS NULL OR valid_until > :document_date)  -- no había expirado
+ORDER BY created_at DESC
+LIMIT 1;
+```
+
+
 
 ---
 

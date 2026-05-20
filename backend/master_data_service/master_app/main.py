@@ -17,6 +17,7 @@ from master_app.api.v1.endpoints import concepts
 from master_app.api.v1.endpoints import warehouses
 from master_app.api.v1.endpoints.partners import router as partner_router
 from master_app.api.v1.endpoints.gis_validator import router as gis_router
+from master_app.api.v1.endpoints import currency as currency_router
 
 # Audit Setup (Moved to lifespan to avoid circular dependencies)
 
@@ -47,8 +48,7 @@ app = FastAPI(
     title="Master Data Service",
     description="Single Source of Truth for Products, UOMs, and Business Partners.",
     version="1.0.0",
-    lifespan=lifespan,
-    redirect_slashes=False
+    lifespan=lifespan
 )
 
 # 2. Global Middleware
@@ -73,6 +73,7 @@ app.include_router(concepts.router, prefix="/api/v1/concepts", tags=["Movement C
 app.include_router(warehouses.router, prefix="/api/v1/warehouses", tags=["Warehouses"])
 app.include_router(partner_router, prefix="/api/v1/partners", tags=["Partners"])
 app.include_router(gis_router, prefix="/api/v1/gis", tags=["GIS Property Validation"])
+app.include_router(currency_router.router, prefix="/api/v1/currencies", tags=["Currencies"])
 
 from master_app.api.v1.endpoints import enums as enums_router
 app.include_router(enums_router.router, prefix="/api/v1/enums", tags=["System Enums"])
@@ -82,3 +83,6 @@ app.include_router(enumerations.router, prefix="/api/v1/enumerations", tags=["Sy
 
 from master_app.api.v1.endpoints import locations
 app.include_router(locations.router, prefix="/api/v1/locations", tags=["Warehouse Structure (SSOT)"])
+
+from master_app.api.v1.endpoints import variants as variants_router
+app.include_router(variants_router.router, prefix="/api/v1", tags=["Item Variants (Supplier Mappings)"])
