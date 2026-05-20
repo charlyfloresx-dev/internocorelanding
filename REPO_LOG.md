@@ -3,6 +3,62 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-20] Phase 119: Variant Table Migration to master_data_db + Point-in-Time Document Reprint
+
+**Objetivo:** Dos entregables en paralelo: (1) mover `inventory_item_variants` de `inventory_db` a `master_data_db` para habilitar typeahead con JOIN directo, y (2) implementar el endpoint de reimpresión de documentos con precios point-in-time (soft-close query).
+
+**Decisión Arquitectónica — Table Migration (inventory_db → master_data_db):**
+`inventory_item_variants` era catálogo de datos maestros (cross-reference de proveedores/MPN) que vivía equivocadamente en `inventory_db`. Al estar aislada del `master_data_service`, el método `get_products` usaba un check `has_variants_table` dinámico que siempre devolvía `False` (la tabla estaba en otro DB). Mover la tabla a `master_data_db` permite JOIN nativo en ORM y elimina el anti-patrón.
+
+**Cambios implementados:**
+- **Migración master_data** (`alembic/versions/002_add_inventory_item_variants.py`): Crea tabla en `master_data_db` con guard `_table_exists`.
+- **Migración inventory** (`alembic/versions/002_drop_inventory_item_variants.py`): Drop de la tabla en `inventory_db`. Downgrade intencional `pass` (migración one-way).
+- **Modelo ORM** (`master_app/models/item_variant.py`): `ItemVariant` movido a `master_data_service`.
+- **CRUD endpoints** (`master_app/api/v1/endpoints/variants.py`): GET/POST/DELETE con `Security(require_scope(...))`, foto upload via `get_storage_provider()`, upsert por `(company_id, internal_sku, mfg_part_number)`.
+- **Proxy inventory** (`inventory_app/api/v1/endpoints/variants.py`): Los 3 endpoints ahora hacen HTTP proxy a `master_data_service` en vez de tocar BD directamente.
+- **Repository refactor** (`sqlalchemy_master_data_repository.py`): `get_products` y `get_product_by_sku` reescritos con ORM JOIN sobre `ItemVariant`. Cuando match viene de variante: `p.sku = variant.internal_sku`, nombre enriquecido con `({brand} {mpn})`, precio del campo `unit_price` de la variante.
+- **Seed fixes**: `inventory_service/scripts/seed.py` limpiado de `ItemVariant`; `unified_industrial_seed.py` mueve variant seeding de Section 4 (inventory_db) a Section 3 (master_data_db); `flows/seed_variants.py` apunta a `master_data_db`.
+
+**Point-in-Time Document Reprint:**
+- **Nuevo endpoint** `GET /api/v1/inventory/documents/{folio}`: Retorna cabecera + líneas del documento con precio al momento de creación.
+- **Soft-close query** en `master_data_service`: `GET /prices/products/{id}/price-at?as_of=<datetime>` usando `created_at <= as_of AND (valid_until IS NULL OR valid_until > as_of)`.
+- **`MasterDataClient`** ampliado con `get_product_price_at_date()` y `get_product_internal_metadata()`.
+
+**Typeahead result (verificado):**
+```
+GET /api/v1/products/?q=MPN-GAR
+→ "Turbocharger Assembly (Garrett MPN-GAR-701)" | sku: TRB-700 | price: 1200 MXN ✅
+```
+
+**Deuda técnica resuelta:**
+- `has_variants_table` anti-patrón eliminado.
+- Variant seeding desacoplado de `inventory_db`.
+
+**Status**: ✅ Phase 119 COMPLETED — Code Graph 0 errors, ecosystem 8/8 OK.
+
+---
+### [2026-05-20] Phase 118: Polymorphic Department Ticket Assignments & Visibility Filters
+
+**Objetivo:** Implementar la Fase 2 del plan de asignación polimórfica de tickets a nivel de departamentos, permitiendo asignación directa a áreas operativas, reseteo inteligente de asignaciones individuales en re-triaje, y visibilidad segmentada para operadores de piso.
+
+- **Modificación del Modelo de Tickets (`ticket.py`)**: Añadido el campo opcional `assigned_department_id` (UUID) indexado para soportar direccionamiento a departamentos sin requerir un ID de colaborador individual.
+- **Esquemas Pydantic / DTOs (`ticket_dto.py`)**: Actualizados los esquemas `TicketCreate`, `TicketUpdate`, `TicketRead` y `TicketTriage` para incluir de forma segura `assigned_department_id`.
+- **Servicio de Triaje (`triage_ticket` / `ticket_service.py`)**: En el flujo `REASSIGN`, si se proporciona un `assigned_department_id`, el sistema automáticamente limpia las asignaciones individuales previas (`assigned_to_id = None`, `collaborator_id = None`, `external_contact_id = None`), devolviendo el ticket a la cola general del departamento en estatus `ASSIGNED` de forma atómica.
+- **Filtro de Visibilidad por Área (`list_by_visibility` / `ticket_repository.py`)**: Ampliada la consulta de visibilidad para aceptar `department_id: Optional[UUID] = None`. Los operadores que pertenecen a un departamento específico ahora pueden visualizar en su bandeja `/mine` todos los tickets que tengan asignada su área/departamento correspondiente.
+- **Control de Rutas API (`ticket_routes.py`)**: El endpoint de tickets personales (`GET /mine`) ahora acepta un parámetro query opcional `department_id` para propagar el filtrado de área de forma transparente.
+
+---
+### [2026-05-20] Phase 117: Namespace Scope Matching Security Bridge (Collaborator Auth stabilized)
+
+**Objetivo:** Resolver el bloqueo `403 Forbidden` en el flujo de autorización de colaboradores de planta al consultar endpoints de Datos Maestros (`/warehouses`, `/concepts`) integrando resolución de namespaces de seguridad.
+
+- **Resolución de Namespaces de Seguridad (`dependencies.py`)**: Implementado un comparador inteligente de scopes en `common.security.dependencies.require_scope`. Ahora, un scope granular en la base de datos y token del colaborador (ej: `master_data.product.read`) satisface automáticamente la validación gruesa exigida por el endpoint (ej: `master_data:read`).
+- **Soporte para Permisos `manage`**: El comparador interpreta automáticamente el sufijo `.manage` como un super-permiso que cubre tanto acciones de lectura (`read`) como escritura (`write`).
+- **Remediación de Identidad en Planta (`internal_id` Discrepancy)**: Identificado que el intento fallido de autenticación del operador Carlos Ramírez en el panel web se debió a un desajuste de ID (`003709` vs el valor correcto `003709A` en la base de datos HCM). Al usar la credencial correcta `003709A` o `301`, la autenticación y posterior consumo de catálogos responde con **`200 OK`**.
+- **Limpieza de Archivos**: Eliminados scripts temporales de depuración (`debug_roles.py`, `test_scope_fix.py`) para mantener el espacio de trabajo limpio.
+- **Validación Automatizada**: El validador del ecosistema local (`validate_ecosystem.ps1`) y el generador de gráfico de código (`generate_code_graph.py`) reportan **100% de cumplimiento y 0 errores**.
+
+---
 ### [2026-05-19] Phase 116: GOD MODE Smoke Test + Gateway POST Fix + SubscriptionGuard JTI Gate
 
 **Objetivo:** Smoke test E2E del GOD MODE via gateway (puerto 8000). Descubrió y corrigió 2 bugs críticos.

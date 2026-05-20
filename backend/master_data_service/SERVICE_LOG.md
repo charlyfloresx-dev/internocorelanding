@@ -1,4 +1,19 @@
-### [2026-05-12] Phase 4.1: Industrial Infrastructure Consolidation & Security Remediation ✅
+### [2026-05-20] Phase 119: inventory_item_variants SSOT Migration + Point-in-Time Prices ✅
+- **Table Migration**: `inventory_item_variants` recibida desde `inventory_db`. La tabla vive ahora en `master_data_db` (alembic `002_add_inventory_item_variants.py`). Permite JOIN ORM nativo en typeahead sin cruzar DBs.
+- **ORM Model**: `master_app/models/item_variant.py` creado con `UniqueConstraint(company_id, internal_sku, mfg_part_number)`.
+- **CRUD Variants** (`api/v1/endpoints/variants.py`): `GET /products/{id}/variants`, `POST /variants` (upsert + foto), `DELETE /variants/{id}`. Guard: `Security(require_scope(["master_data:read/write"]))`.
+- **Repository Refactor** (`sqlalchemy_master_data_repository.py`): `get_products` y `get_product_by_sku` reescritos. ORM LEFT JOIN con `ItemVariant`. Cuando match por variante: `sku = variant.internal_sku`, nombre enriquecido `({brand} {mpn})`, precio = `variant.unit_price`. Anti-patrón `has_variants_table` eliminado.
+- **Point-in-Time Price Endpoint**: `GET /prices/products/{id}/price-at?as_of=<datetime>` — soft-close query (`created_at <= as_of AND (valid_until IS NULL OR valid_until > as_of)`).
+- **Typeahead verificado**: `?q=MPN-GAR` → `"Turbocharger Assembly (Garrett MPN-GAR-701)"` | price: `1200 MXN` ✅
+- **Status**: ✅ COMPLETED — Variant SSOT en master_data_db. Code Graph 0 errores.
+
+### [2026-05-17] Phase 109: Typeahead Consolidation & Transfer Price Seeding ✅
+- **Typeahead API Fix**: Debugged and confirmed that the frontend was sending both POST and GET to `GET /api/v1/products?q=`. The GET endpoint is the correct one. Ensured the product search returns consolidated data including SKU, variant count, and base pricing.
+- **Transfer Price Seeding (Inline)**: Eliminated the `setup_transfer_prices.py` subprocess dependency. Transfer prices (MXN enterprise pricing + USD cross-border pricing) for all 5 industrial products are now seeded directly in `unified_industrial_seed.py` via raw SQL, making the seed fully Docker-compatible.
+- **Product Master Data**: Confirmed products are correctly seeded in `products` table with `product_type='GOODS'`, `status='ACTIVE'`, and proper multi-tenant fields.
+- **Status**: ✅ COMPLETED — **Typeahead Unified & Pricing Seeded Inline**
+
+
 - **Auditor Defense Remediation**: Re-engineered 63 endpoints to enforce strict `Security(require_scope, scopes=...)` validation, recovering from an accidental `git checkout` reversion and returning the service to a pristine 100% compliance rate.
 - **Dynamic Method Scanning**: Implemented an automated injection script that distinguishes between HTTP verbs (GET vs POST/PUT/DELETE) to correctly map `master_data:read` or `master_data:write` permissions globally.
 - **Status**: ✅ COMPLETED — **Security Enforcement Fully Restored**

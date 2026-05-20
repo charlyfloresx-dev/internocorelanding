@@ -1,5 +1,20 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-20)
+**Phase 119: inventory_item_variants Moved to master_data_db + Document Reprint Endpoint** ✅
+- **Table Drop** (`alembic/versions/002_drop_inventory_item_variants.py`): `inventory_item_variants` eliminada de `inventory_db`. La tabla es ahora SSOT de `master_data_service`. Downgrade = `pass` (migración one-way intencional).
+- **Variant endpoints → HTTP Proxy** (`api/v1/endpoints/variants.py`): Los 3 endpoints (GET/POST/DELETE) ahora hacen proxy HTTP a `master_data_service` via `httpx`, propagando `Authorization` y `X-Company-ID`. No tocan BD local.
+- **Document Reprint endpoint** (`api/v1/endpoints/documents.py`): `GET /api/v1/inventory/documents/{folio}` — retorna cabecera + líneas con precios al momento de creación. Usa `MasterDataClient.get_product_price_at_date()` para soft-close lookup.
+- **MasterDataClient** ampliado con `get_product_price_at_date(product_id, company_id, as_of, list_index)`.
+- **Seed cleanup**: `scripts/seed.py` — import `ItemVariant` y seeding de variantes eliminados; check `InventoryLevel` cambiado a unique-constraint lookup `(company_id, warehouse_id, product_id)`; `inventory_item_variants` removida del `--wipe` list.
+- **Status**: ✅ COMPLETED — inventory_service libre de `inventory_item_variants`. Code Graph 0 errores.
+
+## 🕒 Última Actividad (2026-05-18)
+**Phase 114: Mobile Offline-First Sync & UUID Architecture Enforcement** ✅
+- **UUID Determinism Enforced**: Removed flexible UUID resolution adapter for `concept_id` in `inventory.py` service and `transactions.py` API endpoints. The Backend now strictly enforces system UUIDs instead of resolving string codes (like `'ENT-PUR'`).
+- **Audit & Validation**: Verified the end-to-end industrial transaction flow using testing scripts that dynamically fetch concepts, proving strict schema compliance without 500 errors.
+- **Status**: ✅ COMPLETED — Inventory API strict contract preserved.
+
 ## 🕒 Última Actividad (2026-05-18)
 **Phase 113: Security Hardening — BOLA Fix & Price Enumeration** ✅
 - **`pos.py` — BOLA eliminado (C-3)**: (1) Validación de `warehouse_id` contra `token.company_id` antes de procesar cualquier ítem — devuelve `ERR_WAREHOUSE_NOT_OWNED` 403. (2) Query a `products` ahora incluye `AND company_id = :cid` — los raw `text()` bypasean el `do_orm_execute` ORM interceptor, por lo que el filtro debe estar en el SQL explícitamente.
