@@ -1,10 +1,21 @@
 # HCM Service (ex HR Service) — SERVICE LOG
 
-> **Service:** HCM Service — Human Capital Management (Port 8009)
+> **Service:** HCM Service — Human Capital Management (Port 8004)
 > **Status:** Operational / Industrial Identity Source of Truth
 > **Compliance:** Multi-tenant Isolation Verified
 
 ---
+
+### [2026-05-20] - Phase 118: Department Model + Ticket Routing Support ✅
+- **Nuevo Modelo `Department`** (`models/department.py`): Entidad `Department(MultiTenantBase)` con `name`, `code`, `description`. Migración Alembic `a6054c79a22f_add_department_model.py`.
+- **CRUD Endpoint** (`api/v1/endpoints/departments.py`): `GET/POST /departments`, `GET/PATCH/DELETE /departments/{id}`. Guard: `Security(require_scope(["hcm:read/write"]))`.
+- **Router** (`api/v1/api.py`): Departamentos incluidos con prefix `/departments`.
+- **Schemas** (`schemas/department.py`): `DepartmentCreate`, `DepartmentRead`.
+- **Collaborator** (`models/collaborator.py` + `schemas/collaborator.py`): Actualizado para soportar `department_id` opcional en asignación de tickets.
+- **Migración audit_logs** (`001_add_audit_logs.py`): Tabla `audit_logs` creada en `hcm_db` — resuelve `AuditService` fire-and-forget silencioso para eventos `GOD_MODE_ACTIVATED` y `ACCESS_DENIED_402`.
+- **Migración id_pattern** (`001_add_id_pattern.py`): Columna `internal_id_pattern` añadida a `hr_tenant_configs` — resuelve deuda técnica MEDIA.
+- **Seed industrial** (`scripts/seed_manufacturing_collaborators.py`): Seed de 15 colaboradores industriales de manufactura con roles PLC, Mantenimiento, Logística.
+- **Status**: ✅ COMPLETED — Code Graph 0 errores.
 
 ### [2026-05-16] - Phase 108: Industrial Ecosystem Cold-Start & Seed Hardening
 - **Baseline Consolidation**: Engineered `000_hcm_baseline.py`, a unified migration that replaces all fragmented histories. This baseline includes the `collaborators`, `hr_tenant_configs`, and the new `external_contacts` tables.

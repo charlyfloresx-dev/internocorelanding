@@ -1,5 +1,16 @@
 # Notification Service – Log
 
+## 🕒 Última Actividad (2026-05-20)
+**Phase 118: WhatsApp Industrial Client + WebSocket + Notification Service Refactor** ✅
+- **`app/infrastructure/whatsapp_client.py`**: Cliente Twilio industrial. Envía alertas a grupos virtuales y destinatarios individuales con retry exponencial. Soporte para templates industriales (stock alert, downtime, incident).
+- **`app/services/notification_service.py`**: Servicio central refactorizado con dispatch matrix: `HIGH` priority → fuerza `IN_APP + EMAIL + PUSH`. Soporte para `company_notification_model` para personalización por tenant.
+- **`app/core/websocket.py`**: Manager de WebSocket con room management por `company_id`. Permite broadcast en tiempo real de alertas industriales al panel Angular.
+- **`app/models/company_notification_model.py`**: Modelo de configuración de notificaciones por empresa (plantillas, canales, preferencias).
+- **`app/models/whatsapp_mapping.py`**: Mapeo de `user_id` → número WhatsApp por empresa.
+- **`app/routers/whatsapp_routes.py`**: Rutas de configuración WhatsApp actualizadas con autenticación y validación.
+- **Migración Alembic** (`000_notification_baseline.py`): Baseline de todas las tablas del servicio de notificaciones.
+- **Status**: ✅ COMPLETED — WhatsApp + WebSocket operativos. Code Graph 0 errores.
+
 ## 🕒 Última Actividad (2026-04-28)
 **Pipeline de Notificaciones WhatsApp (Fase 72)**
 - **Twilio Integration**: Integración con Twilio para el envío de alertas industriales.

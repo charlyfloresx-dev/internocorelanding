@@ -268,7 +268,9 @@ WHERE created_at <= :document_date
 - DB propia: `hcm_db` (separada de dbname).
 - `CORE_HCM_RFID_SALT` para hashing de tarjetas RFID.
 - **Vinculación:** `user_id` en `Collaborator` conecta con auth_service.
-- **Bug conocido:** columna `internal_id_pattern` faltante en `hr_tenant_configs`.
+- **`Department` model** (Phase 118): Entidad `Department` con CRUD `/departments`. Habilita routing de tickets a área de planta.
+- **`audit_logs`** en `hcm_db`: creada (Phase 118) — `AuditService` funcional.
+- **`internal_id_pattern`** en `hr_tenant_configs`: columna añadida (Phase 118).
 
 ### inventory_service (8006)
 - Kardex inmutable. `inventory_transactions`, `inventory_levels`, `inventory_documents`.
@@ -408,9 +410,7 @@ python backend/scripts/generate_code_graph.py
 
 | Prioridad | Item |
 |---|---|
-| ALTA | Tabla `audit_logs` faltante en hcm_db/subscription_db (AuditService falla silenciosamente — plan listo en `.claude/plans/`) |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
-| MEDIA | Columna `internal_id_pattern` faltante en `hr_tenant_configs` |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
 | MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |

@@ -16,6 +16,15 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-05-20] Phase 118: Polymorphic Department Ticket Assignments & Visibility Filters ✅
+- **Modelo `Ticket`** (`models/ticket.py`): Campo `assigned_department_id` (UUID, index, nullable) añadido para routing a departamentos sin FK dura a hcm_db.
+- **Schemas** (`schemas/ticket_dto.py`): `TicketCreate`, `TicketUpdate`, `TicketRead`, `TicketTriage` actualizados con `assigned_department_id: Optional[UUID]`.
+- **Triaje inteligente** (`services/ticket_service.py`): En acción `REASSIGN` con `assigned_department_id`, limpieza atómica de `assigned_to_id`, `collaborator_id`, `external_contact_id`. Ticket retorna a cola del departamento en estado `ASSIGNED`.
+- **Filtro de visibilidad** (`infrastructure/repositories/ticket_repository.py`): `list_by_visibility` acepta `department_id: Optional[UUID]`. Operadores de piso ven tickets asignados a su área en `/mine`.
+- **Ruta API** (`routers/ticket_routes.py`): `GET /mine` acepta query param `department_id` opcional.
+- **Migración Alembic** (`001_add_assigned_department_id.py`): Columna + índice en `tickets_db`.
+- **Status**: ✅ COMPLETED — Code Graph 0 errores.
+
 ### [2026-05-02] Phase 79: Resiliencia del Motor de Eventos
 - **Outbox Debouncing**: Implementado blindaje contra tormentas de eventos. `add_outbox_event` verifica si existe un evento idéntico (`event_type` + `payload`) creado en los últimos 10 segundos, limitando ráfagas generadas por el UI.
 - **Timezone Standardization**: Se estandarizó la columna `processed_at` del `OutboxEvent` a `DateTime(timezone=True)` resolviendo errores críticos de cálculo de fechas en PostgreSQL (`asyncpg.exceptions.DataError`).

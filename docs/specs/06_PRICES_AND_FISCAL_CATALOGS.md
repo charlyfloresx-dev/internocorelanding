@@ -95,6 +95,8 @@ ORDER BY created_at DESC
 LIMIT 1;
 ```
 
+> **✅ Implementado en Phase 119** — Endpoint `GET /api/v1/prices/products/{id}/price-at?as_of=<ISO8601>` en `master_data_service`. Consumido por `MasterDataClient.get_product_price_at_date()` desde `inventory_service` para el endpoint de reimpresión `GET /api/v1/inventory/documents/{folio}`.
+
 
 
 ---

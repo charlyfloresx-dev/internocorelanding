@@ -2,6 +2,40 @@
 
 Detalle de ejecución para las fases de arquitectura pendientes.
 
+## ✅ Phase 119: inventory_item_variants SSOT Migration + Point-in-Time Document Reprint
+**Estado:** ✅ COMPLETO — 2026-05-20
+**Objetivo:** Mover `inventory_item_variants` de `inventory_db` a `master_data_db` para habilitar typeahead con JOIN directo y eliminar el anti-patrón `has_variants_table`. Implementar endpoint de reimpresión de documentos con precios al momento de creación (soft-close query).
+
+### Acciones Realizadas
+1. **Migración master_data** (`002_add_inventory_item_variants.py`): Tabla `inventory_item_variants` creada en `master_data_db` con guard `_table_exists`.
+2. **Migración inventory** (`002_drop_inventory_item_variants.py`): DROP de la tabla en `inventory_db`. Migración one-way (downgrade = `pass`).
+3. **ORM + CRUD en master_data_service**: Modelo `ItemVariant`, endpoints GET/POST/DELETE con foto upload y guard `Security(require_scope)`.
+4. **Repository Refactor**: `get_products` y `get_product_by_sku` reescritos con ORM LEFT JOIN. Cuando match es por variante: `sku = variant.internal_sku`, nombre enriquecido, precio = `variant.unit_price`.
+5. **Proxy HTTP en inventory_service**: 3 endpoints de variantes convertidos a thin proxy `httpx` hacia master_data_service.
+6. **Point-in-Time Reprint**: `GET /api/v1/inventory/documents/{folio}` con `MasterDataClient.get_product_price_at_date()`. Soft-close query en `GET /prices/products/{id}/price-at`.
+7. **Seed Cleanup**: `seed.py` inventory, `unified_industrial_seed.py` y `flows/seed_variants.py` actualizados para apuntar a `master_data_db`.
+
+### Verificación
+```
+GET /api/v1/products/?q=MPN-GAR → "Turbocharger Assembly (Garrett MPN-GAR-701)" | 1200 MXN ✅
+Code Graph: 0 errores | Ecosystem: 8/8 OK
+```
+
+---
+
+## ✅ Phase 118: Polymorphic Department Ticket Assignments & Visibility Filters
+**Estado:** ✅ COMPLETO — 2026-05-20
+**Objetivo:** Permitir asignación de tickets a departamentos completos (`assigned_department_id`), reseteo inteligente de asignaciones individuales en re-triaje, y visibilidad segmentada para operadores de piso.
+
+### Acciones Realizadas
+1. **Modelo `Ticket`** (`ticket.py`): Campo `assigned_department_id` (UUID, index, nullable) añadido.
+2. **Schemas Pydantic** (`ticket_dto.py`): `TicketCreate`, `TicketUpdate`, `TicketRead`, `TicketTriage` actualizados.
+3. **Triaje inteligente** (`ticket_service.py`): En `REASSIGN` con `assigned_department_id`, limpieza atómica de `assigned_to_id`, `collaborator_id`, `external_contact_id`.
+4. **Filtro de visibilidad** (`ticket_repository.py`): `list_by_visibility` acepta `department_id` — operadores ven tickets de su área en `/mine`.
+5. **Migración Alembic** (`001_add_assigned_department_id.py`): Columna y índice en `tickets_db`.
+
+---
+
 ## ✅ Phase 117: Namespace Scope Matching Security Bridge (Collaborator Auth stabilized)
 **Estado:** ✅ COMPLETO — 2026-05-20
 **Objetivo:** Resolver el bloqueo 403 Forbidden en el flujo de autorización de colaboradores de planta al consultar endpoints de Datos Maestros (`/warehouses`, `/concepts`) integrando resolución de namespaces de seguridad.

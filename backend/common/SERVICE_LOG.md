@@ -6,13 +6,29 @@
 
 ---
 
-### [2026-05-20] - Phase 114: Namespace Scope Matching Security Bridge ✅
+### [2026-05-20] - Phase 117: Namespace Scope Matching Security Bridge ✅
 
 - **`security/dependencies.py`**: Added `_scope_satisfies` helper inside `require_scope` dependency. Resolves authorization mismatches where endpoints require coarse scopes (e.g. `master_data:read`) but tokens carry granular database permission slugs (e.g. `master_data.product.read`).
   - Supports namespace matching (e.g., prefix `master_data` matching suffix `read` or `write`).
   - Automatically maps `manage` suffix to both `read` and `write`.
   - Maintains strict exact matches and wildcard `*` fallback for admin roles.
 - **Status**: ✅ COMPLETED — Tested and validated E2E.
+
+---
+
+### [2026-05-19] - Phase 116: SubscriptionGuard JTI Gate ✅
+
+- **`security/subscription_guard.py`**: Added Redis JTI lookup for god_mode tokens. `SubscriptionGuard.__call__` now checks `GET godmode:{jti}` when `token_data.god_mode=True`. Token revoked in Redis → 401. Redis unavailable → pass (fail-open, JWT TTL ≤300s as fallback).
+- **`domain/entities/user_context.py` / `security/auth_payload.py`**: Fields `jti: Optional[str]` and `god_mode: bool` added to `TokenPayload`. Required for JTI gate and god_mode interceptor in Angular frontend.
+- **Status**: ✅ COMPLETED — SubscriptionGuard + get_current_active_user both gate on JTI. Smoke test 9/9 passed.
+
+---
+
+### [2026-05-19] - Phase 115: TokenPayload god_mode fields ✅
+
+- **`security/auth_payload.py`**: Fields `jti: Optional[str]` and `god_mode: bool = False` added to `TokenPayload`. Enables Angular `godModeInterceptor` and SubscriptionGuard JTI gate to function correctly.
+- **`config.py`**: No changes — god_mode credentials validated via existing `CORE_ADMIN_MASTER_KEY`.
+- **Status**: ✅ COMPLETED — JWT payload extended without breaking existing token consumers.
 
 ---
 

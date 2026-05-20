@@ -1,5 +1,10 @@
 # Subscription Service – Log
 
+## 🕒 Última Actividad (2026-05-20)
+**Phase 119: audit_logs Migration** ✅
+- **Migración** (`alembic/versions/001_add_audit_logs.py`): Tabla `audit_logs` creada en `subscription_db`. Resuelve `AuditService.log_action()` fallando silenciosamente para eventos `GOD_MODE_ACTIVATED` y `ACCESS_DENIED_402` en endpoints de suscripción. Guard `_table_exists` para idempotencia.
+- **Status**: ✅ COMPLETED — AuditService completamente funcional en `subscription_db`.
+
 ## Overview
 The Subscription Service (port **8002**) manages tenant lifecycle, plans, entitlements, and Stripe billing integration.
 
