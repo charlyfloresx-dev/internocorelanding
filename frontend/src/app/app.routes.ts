@@ -36,6 +36,8 @@ export const routes: Routes = [
       },
       {
         path: 'monitor/tickets',
+        canActivate: [permissionGuard],
+        data: { requiredPermission: ['tickets:read', 'tickets.view', 'tickets.assign', 'admin.user.manage'] },
         loadComponent: () => import('./modules/monitor/tickets/tickets-dashboard.component').then(m => m.TicketsDashboardComponent)
       },
       {

@@ -45,7 +45,7 @@ export class NavigationService {
       label: 'Inventarios',
       translation_key: 'menu.inventory',
       icon: 'inventory_2',
-      permissions: ['inventory.stock.read', 'inventory.document.create', 'inventory.document.approve', 'inventory.audit.view'],
+      permissions: ['inventory.stock.read', 'inventory.document.create', 'inventory.document.approve', 'inventory.audit.view', 'inventory:read', 'inventory:write'],
       subItems: [
         { id: 'inv-dash', label: 'Dashboard Global', translation_key: 'menu.inventory_dashboard', route: '/inventory/dashboard' },
         { id: 'inv-stock', label: 'Stock por Almacén', translation_key: 'menu.inventory_stock', route: '/inventory/stock' },
@@ -98,7 +98,7 @@ export class NavigationService {
       label: 'Catálogo',
       translation_key: 'menu.catalog',
       icon: 'category',
-      permissions: ['master_data.product.write', 'master_data.price.write', 'master_data.partner.manage', 'master_data.warehouse.manage'],
+      permissions: ['master_data.product.write', 'master_data.price.write', 'master_data.partner.manage', 'master_data.warehouse.manage', 'master_data:read', 'master_data:write'],
       subItems: [
         { id: 'cat-master', label: 'Catálogo Maestro', translation_key: 'menu.catalog_master', route: '/catalog' },
         { id: 'cat-uom', label: 'Unidades de Medida', translation_key: 'menu.catalog_uom', route: '/catalog/uom' },
