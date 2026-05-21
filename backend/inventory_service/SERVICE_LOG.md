@@ -1,5 +1,12 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-21)
+**Phase 120: Iron Wall Fix — company_id from JWT only** ✅
+- **`api/v1/endpoints/inventory.py`** (10 endpoints): Eliminado `x_company_id: UUID = Header(...)` de `/movements`, `/reconcile`, `/reserve`, `/release`, `/transfers/dispatch`, `/transfers/receive`, `/stock/{warehouse_id}/{product_id}`, `/stock`, `/audit-export`, `/cycle-count`. Reemplazado por `token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))`. El `company_id` proviene exclusivamente del JWT verificado — el cliente no puede suplantar tenant.
+- **`api/v1/endpoints/dashboard.py`** (9 endpoints): Mismo patrón aplicado a `/summary`, `/movements`, `/stock`, `/force-release`, `/reports/kardex`, `/reports/valuation`, `/reports/abc`, `/mission-control`, `/consolidated`.
+- **`/bulk-load`** conserva `X-Internal-Secret` — endpoint de uso inter-servicio exclusivamente.
+- **Impacto de seguridad:** Eliminada vulnerabilidad IDOR que permitía a cualquier tenant acceder a datos de otro tenant.
+
 ## 🕒 Última Actividad (2026-05-20)
 **Phase 119: inventory_item_variants Moved to master_data_db + Document Reprint Endpoint** ✅
 - **Table Drop** (`alembic/versions/002_drop_inventory_item_variants.py`): `inventory_item_variants` eliminada de `inventory_db`. La tabla es ahora SSOT de `master_data_service`. Downgrade = `pass` (migración one-way intencional).

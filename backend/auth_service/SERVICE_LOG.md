@@ -1,5 +1,9 @@
 # Auth Service - Service Log
 
+## [2026-05-21] Phase 120: Admin Endpoints Hardening ✅
+- **`api/v1/endpoints/companies.py`**: CRUD completo de empresas (`POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`) ahora requiere `X-Admin-Master-Key`. Anteriormente accesibles sin autenticación — un actor externo podía crear o eliminar empresas.
+- **`api/v1/endpoints/seed.py`**: `POST /seed/run` ahora requiere `X-Admin-Master-Key`. Previene ejecución arbitraria del script de seeding en ambientes con la API expuesta.
+
 ## [2026-05-19] Phase 115: GOD MODE JTI Revocation + Security-Logs Guard + Rate Limit Fix ✅
 
 - **`admin.py` — `DELETE /api/v1/admin/elevate/{jti}`**: Nuevo endpoint de revocación anticipada. Llama `DEL godmode:{jti}` en Redis, emite `GOD_MODE_REVOKED` al audit log con IP del revocador. Requiere rol `admin` o `owner`. Retorna `{ revoked: bool }` — si el JTI ya expiró retorna `revoked: false` sin error.

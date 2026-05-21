@@ -6,6 +6,9 @@
 
 ---
 
+### [2026-05-21] - Phase 120: Audit Trail Completado en bulk_upload ✅
+- **`api/v1/endpoints/collaborators.py` — `bulk_upload`**: Añadida llamada `AuditService.log_action(action="COLLABORATOR_BULK_UPLOAD")` con métricas `{created, updates, errors}` antes del `db.commit()`. Anteriormente la carga masiva de colaboradores no quedaba registrada en audit_logs. El evento se registra incluso si hay errores parciales (imported N, errors M).
+
 ### [2026-05-20] - Phase 118: Department Model + Ticket Routing Support ✅
 - **Nuevo Modelo `Department`** (`models/department.py`): Entidad `Department(MultiTenantBase)` con `name`, `code`, `description`. Migración Alembic `a6054c79a22f_add_department_model.py`.
 - **CRUD Endpoint** (`api/v1/endpoints/departments.py`): `GET/POST /departments`, `GET/PATCH/DELETE /departments/{id}`. Guard: `Security(require_scope(["hcm:read/write"]))`.

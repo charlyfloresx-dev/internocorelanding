@@ -1,12 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from common.infrastructure.database import get_db
+from common.config import settings
 from subscription_app.models.wallet import GuestWallet, WalletTransaction
 
 router = APIRouter()
+
+
+async def verify_admin_master_key(x_admin_key: str = Header(..., alias="X-Admin-Master-Key")):
+    if not settings or not settings.int_admin_master_key or x_admin_key != settings.int_admin_master_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Acceso Denegado: Admin Master Key inválida o no configurada."
+        )
 
 class CreditAwardRequest(BaseModel):
     guest_session_id: str
@@ -14,7 +23,7 @@ class CreditAwardRequest(BaseModel):
     reason: str
     reference_id: str = None
 
-@router.post("/award")
+@router.post("/award", dependencies=[Depends(verify_admin_master_key)])
 async def award_credit(req: CreditAwardRequest, db: AsyncSession = Depends(get_db)):
     # 1. Provide Wallet
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == req.guest_session_id))
@@ -81,7 +90,7 @@ async def get_history(guest_session_id: str, db: AsyncSession = Depends(get_db))
     )
     return {"history": txs.scalars().all()}
 
-@router.post("/deduct")
+@router.post("/deduct", dependencies=[Depends(verify_admin_master_key)])
 async def deduct_credit(req: DeductCreditRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GuestWallet).where(GuestWallet.guest_session_id == req.guest_session_id))
     wallet = result.scalar_one_or_none()

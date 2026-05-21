@@ -37,6 +37,7 @@ export class AuthService {
   public currentUser = computed(() => this.session()?.user ?? null);
   public roles = computed(() => this.session()?.roles ?? []);
   public permissions = computed(() => this.session()?.permissions ?? []);
+  public modules = computed(() => this.session()?.modules ?? []);
   public activeCompanyId = computed(() => this.session()?.company_id || null);
 
   public subscriptionStatus = computed(() => this.session()?.status || SubscriptionStatus.ACTIVE);
@@ -59,6 +60,12 @@ export class AuthService {
     const current = this.permissions();
     if (this.isSuperAdmin()) return true;
     return current.includes(permission) || current.includes('*');
+  }
+
+  public hasModule(moduleCode: string): boolean {
+    if (this.isSuperAdmin()) return true;
+    const mods = this.modules();
+    return mods.includes(moduleCode) || mods.includes('*');
   }
 
   constructor(private router: Router) {

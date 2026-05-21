@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
@@ -7,15 +7,25 @@ from uuid import UUID
 from auth_app.dependencies import get_db
 from auth_app.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from common.responses import ApiResponse
+from common.config import settings
 from auth_app.models import Company
 from common.repository import BaseRepository
 
 router = APIRouter()
 
+
+async def verify_admin_master_key(x_admin_key: str = Header(..., alias="X-Admin-Master-Key")):
+    if not settings or not settings.int_admin_master_key or x_admin_key != settings.int_admin_master_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Acceso Denegado: Admin Master Key inválida o no configurada."
+        )
+
 @router.post(
-    "/", 
-    response_model=ApiResponse, 
-    status_code=status.HTTP_201_CREATED
+    "/",
+    response_model=ApiResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(verify_admin_master_key)]
 )
 async def create_company(
     request: Request,
@@ -46,8 +56,9 @@ async def create_company(
     )
 
 @router.get(
-    "/{company_id}", 
-    response_model=ApiResponse
+    "/{company_id}",
+    response_model=ApiResponse,
+    dependencies=[Depends(verify_admin_master_key)]
 )
 async def read_company(
     request: Request,
@@ -71,8 +82,9 @@ async def read_company(
     )
 
 @router.get(
-    "/", 
-    response_model=ApiResponse
+    "/",
+    response_model=ApiResponse,
+    dependencies=[Depends(verify_admin_master_key)]
 )
 async def read_companies(
     request: Request,
@@ -92,8 +104,9 @@ async def read_companies(
     )
 
 @router.put(
-    "/{company_id}", 
-    response_model=ApiResponse
+    "/{company_id}",
+    response_model=ApiResponse,
+    dependencies=[Depends(verify_admin_master_key)]
 )
 async def update_company(
     request: Request,
@@ -132,9 +145,10 @@ async def update_company(
     )
 
 @router.delete(
-    "/{company_id}", 
+    "/{company_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ApiResponse
+    response_model=ApiResponse,
+    dependencies=[Depends(verify_admin_master_key)]
 )
 async def delete_company(
     request: Request,

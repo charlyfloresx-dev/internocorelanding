@@ -116,6 +116,7 @@ export interface AuthSession {
   user: AuthUser;
   roles: string[];
   permissions: string[];
+  modules?: string[];
   status?: SubscriptionStatus;
   readonly?: boolean;
 }

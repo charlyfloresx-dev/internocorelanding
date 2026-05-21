@@ -9,6 +9,7 @@ from inventory_app.schemas.dashboard import (
 )
 from common.responses import ApiResponse
 from common.security.auth_payload import TokenPayload
+from common.security.subscription_guard import SubscriptionGuard
 
 router = APIRouter()
 
@@ -24,12 +25,12 @@ async def get_inventory_summary(
     request: Request,
     warehouse_id: Optional[uuid.UUID] = None,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     Returns aggregated counts for the top dashboard cards.
     """
-    summary = await repo.get_inventory_summary(x_company_id, warehouse_id)
+    summary = await repo.get_inventory_summary(token.company_id, warehouse_id)
     return ApiResponse(data=summary)
 
 @router.get("/movements", response_model=ApiResponse[List[MovementDocumentRow]])
@@ -42,14 +43,14 @@ async def list_movements(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     Returns a paginated & filtered list of inventory documents.
     Supports optional date range: date_from / date_to (ISO 8601).
     """
     movements, total = await repo.list_movements(
-        company_id=x_company_id,
+        company_id=token.company_id,
         limit=limit,
         offset=offset,
         movement_type=type,
@@ -63,13 +64,13 @@ async def list_movements(
 async def get_dashboard_stock(
     request: Request,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     Returns the consolidated view of physical and transit stock.
     Accessible by all valid tenant users.
     """
-    rows = await repo.get_dashboard_stock(x_company_id)
+    rows = await repo.get_dashboard_stock(token.company_id)
     return ApiResponse(data=rows)
 
 @router.post("/force-release", response_model=ApiResponse, dependencies=[Depends(require_owner_role)])
@@ -77,7 +78,7 @@ async def force_release_reservation(
     cmd: ForceReleaseCmd,
     request: Request,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     [EMERGENCY] Releases stuck reserved_quantity.
@@ -88,7 +89,7 @@ async def force_release_reservation(
             warehouse_id=cmd.warehouse_id,
             product_id=cmd.product_id,
             release_qty=cmd.release_qty,
-            company_id=x_company_id
+            company_id=token.company_id
         )
         return ApiResponse(
             message="Reservation forcibly released", 
@@ -107,7 +108,7 @@ async def get_kardex_report(
     request: Request = None,
     response: Response = None,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     Kardex: Running balance for a specific SKU/Warehouse.
@@ -120,7 +121,7 @@ async def get_kardex_report(
     rows = await repo.get_kardex(
         product_id=product_id,
         warehouse_id=warehouse_id,
-        company_id=x_company_id,
+        company_id=token.company_id,
         limit=limit
     )
     return ApiResponse(data=rows, meta={"count": len(rows), "product_id": str(product_id), "trace_id": trace_id})
@@ -133,7 +134,7 @@ async def get_wac_valuation_report(
     request: Request = None,
     response: Response = None,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     WAC Valuation: Weighted Average Cost snapshot from the immutable Movement ledger.
@@ -146,7 +147,7 @@ async def get_wac_valuation_report(
     result = await repo.get_wac_valuation(
         product_id=product_id,
         warehouse_id=warehouse_id,
-        company_id=x_company_id,
+        company_id=token.company_id,
         as_of_date=as_of_date
     )
     if not result:
@@ -169,7 +170,7 @@ async def get_abc_rotation_report(
     request: Request = None,
     response: Response = None,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: Union[uuid.UUID, str] = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     ABC Rotation: Classifies every SKU by 30-day exit velocity.
@@ -182,7 +183,7 @@ async def get_abc_rotation_report(
         response.headers["X-Trace-ID"] = trace_id
 
     rows = await repo.get_abc_rotation(
-        company_id=x_company_id,
+        company_id=token.company_id,
         warehouse_id=warehouse_id
     )
 # ─── MISSION CONTROL ENDPOINTS ───────────────────────────────────────────────────
@@ -191,7 +192,7 @@ async def get_abc_rotation_report(
 async def get_dashboard_mission_control(
     warehouse_id: uuid.UUID,
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: uuid.UUID = Header(...),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     request: Request = None,
     response: Response = None
 ):
@@ -199,8 +200,8 @@ async def get_dashboard_mission_control(
     Consolidatado de métricas de inventario para el Dashboard de Mission Control.
     Integra telemetría de SQL y metadatos de Master Data.
     """
-    trace_id = (request.headers.get("x-correlation-id") or 
-                request.headers.get("x-trace-id") or 
+    trace_id = (request.headers.get("x-correlation-id") or
+                request.headers.get("x-trace-id") or
                 str(uuid.uuid4()))
     if response:
         response.headers["X-Trace-ID"] = trace_id
@@ -208,13 +209,13 @@ async def get_dashboard_mission_control(
     # DI for Handler
     from inventory_app.infrastructure.clients.master_data import MasterDataClient
     from inventory_app.api.v1.handlers.dashboard_handler import GetInventoryDashboardHandler
-    
+
     md_client = MasterDataClient()
     handler = GetInventoryDashboardHandler(repo, md_client)
-    
+
     dashboard_data = await handler.execute(
         warehouse_id=warehouse_id,
-        company_id=x_company_id,
+        company_id=token.company_id,
         trace_id=trace_id
     )
     
@@ -223,7 +224,7 @@ async def get_dashboard_mission_control(
 @router.get("/consolidated", response_model=ApiResponse[List[DashboardDTO]])
 async def get_dashboard_mission_control_consolidated(
     repo: IInventoryRepository = Depends(get_inventory_repository),
-    x_company_id: uuid.UUID = Header(...),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     request: Request = None,
     response: Response = None
 ):
@@ -231,20 +232,20 @@ async def get_dashboard_mission_control_consolidated(
     Returns telemetry for ALL warehouses of the company in a single request.
     Optimizes frontend performance and reduces request storm.
     """
-    trace_id = (request.headers.get("x-correlation-id") or 
-                request.headers.get("x-trace-id") or 
+    trace_id = (request.headers.get("x-correlation-id") or
+                request.headers.get("x-trace-id") or
                 str(uuid.uuid4()))
     if response:
         response.headers["X-Trace-ID"] = trace_id
 
     from inventory_app.infrastructure.clients.master_data import MasterDataClient
     from inventory_app.api.v1.handlers.dashboard_handler import GetInventoryDashboardHandler
-    
+
     md_client = MasterDataClient()
     handler = GetInventoryDashboardHandler(repo, md_client)
-    
+
     consolidated_data = await handler.execute_consolidated(
-        company_id=x_company_id,
+        company_id=token.company_id,
         trace_id=trace_id
     )
     

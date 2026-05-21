@@ -44,6 +44,8 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
+        canActivate: [permissionGuard],
+        data: { requiredPermission: ['inventory.stock.read', 'inventory:read', 'inventory.document.create', 'inventory.document.approve', 'inventory.audit.view'] },
         children: [
           {
             path: 'dashboard',

@@ -24,6 +24,7 @@ from hcm_app.schemas.collaborator import (
     EligibilityResponse,
     EligibilityDetail,
 )
+from common.services.audit_service import AuditService
 
 router = APIRouter()
 
@@ -46,6 +47,27 @@ async def create_collaborator(
         data_dict = collaborator_data.model_dump()
         
         result_entity = await service.create_collaborator(data_dict, token.company_id, photo)
+
+        await AuditService.log_action(
+            db=db,
+            user_id=token.sub,
+            action="COLLABORATOR_CREATED",
+            entity_name="collaborators",
+            entity_id=result_entity.id,
+            company_id=token.company_id,
+            new_value={"internal_id": result_entity.internal_id, "full_name": result_entity.full_name},
+        )
+        if collaborator_data.rfid_tag:
+            await AuditService.log_action(
+                db=db,
+                user_id=token.sub,
+                action="RFID_ASSIGNED",
+                entity_name="collaborators",
+                entity_id=result_entity.id,
+                company_id=token.company_id,
+                details=f"RFID assigned to collaborator {result_entity.internal_id}",
+            )
+
         await db.commit()
 
         from common import get_storage_provider
@@ -101,7 +123,18 @@ async def bulk_upload(
         repo = SQLAlchemyCollaboratorRepository(db)
         service = CollaboratorService(repo)
         results = await service.bulk_upload(file, token.company_id, token.user_id)
-        
+
+        await AuditService.log_action(
+            db=db,
+            user_id=token.sub,
+            action="COLLABORATOR_BULK_UPLOAD",
+            entity_name="collaborators",
+            entity_id=None,
+            company_id=token.company_id,
+            details=f"Bulk upload: {results['created']} created, {results['updates']} updated, {len(results['errors'])} errors",
+            new_value={"created": results["created"], "updates": results["updates"]},
+        )
+
         await db.commit() # Unit of Work at endpoint level
         
         return ApiResponse(

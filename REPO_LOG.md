@@ -3,6 +3,46 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-21] Phase 120: Backend Security Hardening + Frontend Scope/Module Alignment
+
+**Objetivo:** Auditoría de seguridad transversal + corrección de vulnerabilidades Tier 1. Dos vectores de ataque en backend + alineación completa de scopes/módulos en frontend Angular.
+
+**Vector 1 — Iron Wall Violation (inventory_service):**
+`inventory.py` (10 endpoints) y `dashboard.py` (9 endpoints) usaban `x_company_id: uuid.UUID = Header(...)` — un header que el cliente controla libremente. Esto viola el Muro de Hierro: cualquier tenant podía acceder a datos de otro tenant simplemente enviando un `X-Company-ID` diferente (IDOR). Fix: todos los endpoints migrados a `token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))` — el `company_id` ahora viene exclusivamente del JWT verificado.
+
+Endpoints corregidos en `inventory.py`: `/movements`, `/reconcile`, `/reserve`, `/release`, `/transfers/dispatch`, `/transfers/receive`, `/stock/{warehouse_id}/{product_id}`, `/stock`, `/audit-export`, `/cycle-count`.
+
+Endpoints corregidos en `dashboard.py`: `/summary`, `/movements`, `/stock`, `/force-release`, `/reports/kardex`, `/reports/valuation`, `/reports/abc`, `/mission-control`, `/consolidated`.
+
+**Vector 2 — Endpoints admin sin autenticación:**
+- `auth_service/companies.py`: CRUD completo de empresas (POST/GET/PUT/DELETE) accesible sin ningún guard. Añadida `verify_admin_master_key` a los 5 endpoints.
+- `auth_service/seed.py`: `/seed/run` accesible sin guard. Añadida `verify_admin_master_key`.
+- `subscription_service/wallet.py`: `/wallet/award` y `/wallet/deduct` (mutaciones de saldo de guest) accesibles sin guard. Añadida `verify_admin_master_key`. Los endpoints de lectura (`/balance`, `/history`) se dejaron abiertos intencionalmente.
+
+**Vector 3 — Audit trail incompleto en hcm_service:**
+`bulk_upload` en `collaborators.py` no registraba el evento en `audit_logs`. Añadida llamada `AuditService.log_action(action="COLLABORATOR_BULK_UPLOAD")` con métricas de created/updated/errors antes del `db.commit()`.
+
+**Frontend — Módulos (JWT `modules` claim):**
+El JWT de backend incluye un array `modules` (e.g. `["INVENTORY_CORE", "HCM_CORE"]`) que el frontend no capturaba ni exponía. Cambios:
+- `domain.types.ts`: Añadido `modules?: string[]` a `AuthSession`.
+- `auth.service.ts`: Añadido `modules = computed(() => this.session()?.modules ?? [])` y `hasModule(moduleCode)` (con bypass para SuperAdmin).
+
+**Frontend — Bug 403/401 conflation (multi-tenant.interceptor.ts):**
+El interceptor trataba `403 Forbidden` (scope insuficiente) igual que `401 Unauthorized` (token expirado), disparando `auth.logout()` ante cualquier respuesta 403. Un colaborador sin permiso para un endpoint específico era expulsado del sistema. Fix: separar lógicas — 401 → RTR; 403 → `toast.error('Acceso denegado...')` sin logout.
+
+**Frontend — Route guard en /inventory:**
+La ruta padre `/inventory` no tenía `canActivate`, permitiendo acceso directo a cualquier ruta hija a usuarios sin scopes de inventario. Añadido `canActivate: [permissionGuard]` con `requiredPermission: ['inventory.stock.read', 'inventory:read', 'inventory.document.create', 'inventory.document.approve', 'inventory.audit.view']` — aceptando ambos formatos de scope (dot-format de colaboradores y colon-format de usuarios invitados).
+
+**Notas de diseño:**
+- `/bulk-load` en inventory_service conserva `X-Internal-Secret` — endpoint de comunicación inter-servicio, no expuesto al cliente.
+- `master_data_service` tenía todos sus endpoints ya protegidos con `require_scope`. No requirió cambios.
+- `subscription_service/admin.py` ya tenía `verify_admin_master_key` en todos los endpoints force-*. No requirió cambios.
+
+**Verificación:** Code Graph 0 errores, ecosistema 8/8 OK.
+
+**Status**: ✅ Phase 120 COMPLETED
+
+---
 ### [2026-05-20] Phase 119: Variant Table Migration to master_data_db + Point-in-Time Document Reprint
 
 **Objetivo:** Dos entregables en paralelo: (1) mover `inventory_item_variants` de `inventory_db` a `master_data_db` para habilitar typeahead con JOIN directo, y (2) implementar el endpoint de reimpresión de documentos con precios point-in-time (soft-close query).

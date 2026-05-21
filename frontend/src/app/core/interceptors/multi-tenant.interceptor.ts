@@ -144,11 +144,10 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
       const isMockSession = auth.session()?.access_token?.includes('mock') || auth.session()?.user?.email?.includes('demo');
       const isAdminRoute = req.url.toLowerCase().includes('/admin/');
       
-      if ((error.status === 401 || error.status === 403) && !isMockSession && !isAuthRoute && !isAdminRoute) {
-        // --- 🔄 TOKEN REFRESH FLOW (RTR) ---
-        if (error.status === 401 && !url.includes('/auth/refresh')) {
+      // --- 🔄 TOKEN REFRESH FLOW (RTR) — 401 only ---
+      if (error.status === 401 && !isMockSession && !isAuthRoute && !isAdminRoute) {
+        if (!url.includes('/auth/refresh')) {
           if (auth.isRefreshing()) {
-            // Already refreshing, queue this request
             return auth.refreshTokenSubject.pipe(
               filter(token => token !== null),
               take(1),
@@ -160,7 +159,6 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
               })
             );
           } else {
-            // Initiating the first refresh
             auth.isRefreshing.set(true);
             auth.refreshTokenSubject.next(null);
 
@@ -170,7 +168,7 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
                 if (resp.status === 'success' && resp.data) {
                   auth.setSession(resp.data);
                   auth.refreshTokenSubject.next(resp.data.access_token);
-                  
+
                   const retryReq = req.clone({
                     headers: req.headers.set('Authorization', `Bearer ${resp.data.access_token}`)
                   });
@@ -187,10 +185,15 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
               })
             );
           }
+        } else {
+          // Refresh token itself expired — full logout
+          auth.logout();
         }
+      }
 
-        // Force logout on other security exceptions
-        auth.logout();
+      // --- 🚫 PERMISSION DENIED — 403: toast only, no logout ---
+      if (error.status === 403 && !isAuthRoute) {
+        toast.error('Acceso denegado. Permisos insuficientes para esta operación.', 'Sin Permisos');
       }
       return throwError(() => error);
     })

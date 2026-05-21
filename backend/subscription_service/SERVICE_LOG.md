@@ -1,5 +1,9 @@
 # Subscription Service – Log
 
+## 🕒 Última Actividad (2026-05-21)
+**Phase 120: Wallet Endpoints Hardening** ✅
+- **`api/v1/endpoints/wallet.py`**: `POST /wallet/award` y `POST /wallet/deduct` (mutaciones de saldo de guest wallet) ahora requieren `X-Admin-Master-Key`. Anteriormente accesibles sin autenticación — cualquier actor podía otorgar o deducir crédito a cualquier guest. Los endpoints de consulta (`/balance`, `/history`) se conservan públicos (datos de sesión de guest, sin impacto financiero).
+
 ## 🕒 Última Actividad (2026-05-20)
 **Phase 119: audit_logs Migration** ✅
 - **Migración** (`alembic/versions/001_add_audit_logs.py`): Tabla `audit_logs` creada en `subscription_db`. Resuelve `AuditService.log_action()` fallando silenciosamente para eventos `GOD_MODE_ACTIVATED` y `ACCESS_DENIED_402` en endpoints de suscripción. Guard `_table_exists` para idempotencia.

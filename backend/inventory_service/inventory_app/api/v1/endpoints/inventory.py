@@ -22,6 +22,8 @@ from sqlalchemy import insert
 from inventory_app.models.inventory import InventoryTransaction, TransactionType
 from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
 from inventory_app.dependencies.repositories import get_inventory_repository
+from common.security.subscription_guard import SubscriptionGuard
+from common.security.auth_payload import TokenPayload
 
 router = APIRouter()
 
@@ -116,16 +118,15 @@ async def lookup_product(
 
 
 @router.get("/stock/{warehouse_id}/{product_id}", response_model=ApiResponse[StockRead])
-
 async def get_stock(
     warehouse_id: uuid.UUID,
     product_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
-    stock = await service.repository.get_stock(warehouse_id, product_id, x_company_id)
+    stock = await service.repository.get_stock(warehouse_id, product_id, token.company_id)
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     return ApiResponse(data=stock)
@@ -133,30 +134,30 @@ async def get_stock(
 @router.get("/stock", response_model=ApiResponse)
 async def list_stock(
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     [Mobile Support] Returns a detailed list of all stock items with pedimento and expiry info.
     """
     repo = SQLAlchemyInventoryRepository(session, None)
-    data = await repo.get_detailed_stock_report(None, x_company_id) # warehouse_id=None means all warehouses
+    data = await repo.get_detailed_stock_report(None, token.company_id)
     return ApiResponse(data=data)
 
 @router.post("/movements", response_model=ApiResponse)
 async def create_movement(
     cmd: MovementCreate,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        movement = await service.register_movement(cmd, x_company_id)
-        
+        movement = await service.register_movement(cmd, token.company_id)
+
         # [Zero Polling] Broadcast real-time update
-        await manager.broadcast_to_company(str(x_company_id), {
+        await manager.broadcast_to_company(str(token.company_id), {
             "type": "INVENTORY_UPDATE",
-            "company_id": str(x_company_id),
+            "company_id": str(token.company_id),
             "payload": {
                 "id": str(movement.id),
                 "folio": getattr(movement, 'folio', 'MOV-' + str(movement.id)[:6]),
@@ -177,12 +178,12 @@ async def reconcile_inventory(
     product_id: uuid.UUID,
     physical_qty: Decimal,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        adjustment = await service.reconcile_stock(warehouse_id, product_id, physical_qty, x_company_id)
+        adjustment = await service.reconcile_stock(warehouse_id, product_id, physical_qty, token.company_id)
         if not adjustment:
             return ApiResponse(message="Inventory is already in sync.")
         return ApiResponse(message="Inventory adjusted successfully", data={"adjustment_id": adjustment.id})
@@ -193,12 +194,12 @@ async def reconcile_inventory(
 async def reserve_inventory(
     cmd: StockReserveCmd,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        stock = await service.repository.reserve_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, x_company_id)
+        stock = await service.repository.reserve_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, token.company_id)
         return ApiResponse(message="Stock reserved successfully", data={"available_quantity": stock.available_quantity})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -207,12 +208,12 @@ async def reserve_inventory(
 async def release_inventory(
     cmd: StockReserveCmd,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
     try:
-        stock = await service.repository.release_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, x_company_id)
+        stock = await service.repository.release_stock(cmd.warehouse_id, cmd.product_id, cmd.quantity, token.company_id)
         return ApiResponse(message="Stock released successfully", data={"available_quantity": stock.available_quantity})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -221,14 +222,14 @@ async def release_inventory(
 async def dispatch_transfer(
     cmd: TransferDispatchCmd,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session)
     service = TransferService(repo)
     try:
         movement = await service.dispatch_transfer(
-            cmd.from_warehouse_id, cmd.to_warehouse_id, cmd.product_id, 
-            cmd.quantity, x_company_id, cmd.transfer_id
+            cmd.from_warehouse_id, cmd.to_warehouse_id, cmd.product_id,
+            cmd.quantity, token.company_id, cmd.transfer_id
         )
         return ApiResponse(message="Transfer dispatched successfully", data={"movement_id": movement.id})
     except ValueError as e:
@@ -239,7 +240,7 @@ async def receive_transfer(
     cmd: TransferReceiveCmd,
     background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     """
     [Phase 63] Laissez-Faire Reception: Registers stock immediately.
@@ -249,22 +250,22 @@ async def receive_transfer(
     service = TransferService(repo)
     try:
         movement = await service.receive_transfer(
-            from_warehouse_id=cmd.from_warehouse_id, 
-            to_warehouse_id=cmd.to_warehouse_id, 
-            product_id=cmd.product_id, 
-            quantity=cmd.quantity, 
-            company_id=x_company_id, 
+            from_warehouse_id=cmd.from_warehouse_id,
+            to_warehouse_id=cmd.to_warehouse_id,
+            product_id=cmd.product_id,
+            quantity=cmd.quantity,
+            company_id=token.company_id,
             transfer_id=cmd.transfer_id,
             location=cmd.location,
             background_tasks=background_tasks
         )
         if not movement:
              return ApiResponse(message="Transfer already received", data={})
-        
+
         # [Zero Polling] Broadcast real-time update
-        await manager.broadcast_to_company(str(x_company_id), {
+        await manager.broadcast_to_company(str(token.company_id), {
             "type": "INVENTORY_UPDATE",
-            "company_id": str(x_company_id),
+            "company_id": str(token.company_id),
             "payload": {
                 "id": str(movement.id),
                 "folio": "TRF-REC-" + str(movement.id)[:6],
@@ -286,15 +287,15 @@ async def receive_transfer(
 async def export_audit_sheet(
     warehouse_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...)
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     from inventory_app.infrastructure.repositories.sqlalchemy_inventory_repository import SQLAlchemyInventoryRepository
     repo = SQLAlchemyInventoryRepository(session, None)
-    
+
     # [Zero Trust] Validate warehouse ownership
-    await repo._validate_warehouse_ownership(warehouse_id, x_company_id)
-    
-    data = await repo.get_detailed_stock_report(warehouse_id, x_company_id)
+    await repo._validate_warehouse_ownership(warehouse_id, token.company_id)
+
+    data = await repo.get_detailed_stock_report(warehouse_id, token.company_id)
     
     output = io.StringIO()
     writer = csv.writer(output)
@@ -325,18 +326,17 @@ async def submit_cycle_count(
     warehouse_id: uuid.UUID,
     payload: CycleCountPayload,
     session: AsyncSession = Depends(get_session),
-    x_company_id: uuid.UUID = Header(...),
-    x_user_id: str = Header(default="unknown")
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
     repo = SQLAlchemyInventoryRepository(session, None)
     service = InventoryService(repo, None)
-    
+
     try:
         results = await service.process_cycle_count(
             warehouse_id=warehouse_id,
             payload=payload,
-            company_id=x_company_id,
-            user_id=x_user_id
+            company_id=token.company_id,
+            user_id=str(token.sub)
         )
         return {"status": "success", "adjustments_processed": len(results)}
     except ValueError as e:
