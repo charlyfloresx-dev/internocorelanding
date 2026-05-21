@@ -2,7 +2,8 @@ import uuid
 import logging
 from typing import Optional
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, Form
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
@@ -11,6 +12,7 @@ from common.infrastructure.database import get_db
 from common.security.dependencies import require_scope
 from common.security.auth_payload import TokenPayload
 from app.models.whatsapp_mapping import WhatsAppGroupMapping
+from app.core.config import settings
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp Admin"])
 logger = logging.getLogger(__name__)
@@ -65,5 +67,75 @@ async def twilio_whatsapp_webhook(
     SmsStatus: Optional[str] = Form(None),
     MessageSid: Optional[str] = Form(None),
 ):
-    print(f"\n📥 INCOMING WHATSAPP MESSAGE: {Body} from {From}")
+    print(f"\n INCOMING WHATSAPP MESSAGE: {Body} from {From}")
     return {"status": "received"}
+
+
+# ---------------------------------------------------------------------------
+# Proxy espejo seguro — ADR-02
+# company_id se toma SIEMPRE del JWT verificado (Muro de Hierro multitenancy)
+# El cliente nunca puede consultar ni alterar sesiones de otro tenant
+# ---------------------------------------------------------------------------
+
+def _gateway_headers() -> dict:
+    return {
+        "Authorization": f"Bearer {settings.WHATSAPP_GATEWAY_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+
+async def _proxy_get(path: str) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                f"{settings.LOCAL_WHATSAPP_GATEWAY_URL.rstrip('/')}{path}",
+                headers=_gateway_headers()
+            )
+        return resp.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"WhatsApp Gateway unreachable: {str(e)}"
+        )
+
+
+async def _proxy_post(path: str) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{settings.LOCAL_WHATSAPP_GATEWAY_URL.rstrip('/')}{path}",
+                headers=_gateway_headers()
+            )
+        return resp.json()
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"WhatsApp Gateway unreachable: {str(e)}"
+        )
+
+
+@router.get("/session/status", response_model=ApiResponse)
+async def get_session_status(
+    current_user: TokenPayload = Depends(require_scope(["admin", "notifications:manage"])),
+):
+    """Retorna el estado de la sesión WhatsApp del tenant autenticado."""
+    data = await _proxy_get(f"/api/v1/whatsapp/session/{current_user.company_id}/status")
+    return ApiResponse(status="success", data=data)
+
+
+@router.get("/session/qr", response_model=ApiResponse)
+async def get_session_qr(
+    current_user: TokenPayload = Depends(require_scope(["admin", "notifications:manage"])),
+):
+    """Retorna el QR de vinculación para el tenant autenticado (estado QR_READY)."""
+    data = await _proxy_get(f"/api/v1/whatsapp/session/{current_user.company_id}/qr")
+    return ApiResponse(status="success", data=data)
+
+
+@router.post("/session/initialize", response_model=ApiResponse)
+async def initialize_session(
+    current_user: TokenPayload = Depends(require_scope(["admin", "notifications:manage"])),
+):
+    """Inicializa (o reinicia) la sesión WhatsApp del tenant autenticado."""
+    data = await _proxy_post(f"/api/v1/whatsapp/session/{current_user.company_id}/initialize")
+    return ApiResponse(status="success", data=data)

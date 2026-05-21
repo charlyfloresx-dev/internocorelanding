@@ -1,36 +1,22 @@
-# Consolidated Tasks — 2026-05-21
+# Consolidado de Tareas: 2026-05-21
 
-## Sesión: Phase 120 — Security Hardening + Frontend Scope Alignment
+Este documento registra el progreso y backlog del día, enfocado en el Housekeeping de `inventory_service` e integración del canal de WhatsApp Local Multitenant.
 
----
+## Fases de Ejecución
 
-### Backlog Completado
+### Fase 1: Housekeeping & Remediación de Deuda (inventory_service)
+- `[ ]` Tarea 1.1: Limpieza de `inventory_app/main.py` eliminando las importaciones redundantes de la línea 72-88.
+- `[ ]` Tarea 1.2: Creación del directorio `scripts/scratch/`, reubicación de los scripts de depuración de la raíz (`create_dummy_ict.py`, `check_inventory_tables.py`, etc.) y actualización del `.gitignore`.
+- `[ ]` Tarea 1.3: Corrección del archivo `inventory_app/models/__init__.py` para incluir y exponer correctamente `InventoryLocation` en el `__all__`.
+- `[ ]` Tarea 1.4: Fijar versiones (pinning) de dependencias críticas en el `requirements.txt` del servicio.
 
-#### Backend
-- [x] **Iron Wall fix — inventory_service** `inventory.py` (10 endpoints): migrar de `Header(x_company_id)` a `SubscriptionGuard` — company_id siempre del JWT.
-- [x] **Iron Wall fix — inventory_service** `dashboard.py` (9 endpoints): mismo patrón.
-- [x] **Admin guard — auth_service** `companies.py`: añadir `verify_admin_master_key` a POST/GET/PUT/DELETE.
-- [x] **Admin guard — auth_service** `seed.py`: añadir `verify_admin_master_key` a `/run`.
-- [x] **Admin guard — subscription_service** `wallet.py`: añadir `verify_admin_master_key` a `/award` y `/deduct`.
-- [x] **Audit trail — hcm_service** `collaborators.py` `bulk_upload`: añadir `AuditService.log_action("COLLABORATOR_BULK_UPLOAD")` antes del commit.
-
-#### Frontend Angular
-- [x] **`domain.types.ts`**: Añadir `modules?: string[]` a `AuthSession` — el JWT de backend incluía este claim pero el tipo no lo declaraba.
-- [x] **`auth.service.ts`**: Añadir `modules` computed signal + `hasModule(moduleCode)` method con bypass para SuperAdmin.
-- [x] **`multi-tenant.interceptor.ts`**: Corregir bug donde 403 (scope insuficiente) disparaba `auth.logout()`. Ahora: 401 → RTR, 403 → toast de denegación sin logout.
-- [x] **`app.routes.ts`**: Añadir `canActivate: [permissionGuard]` a ruta padre `/inventory` con `requiredPermission` aceptando formatos dot y colon.
-
-#### Sync-Docs
-- [x] Code Graph audit — 0 errores, todos los servicios CLEAN.
-- [x] Ecosystem validation — 8/8 servicios OK.
-- [x] REPO_LOG.md actualizado (Phase 120).
-- [x] SERVICE_LOGs actualizados: inventory_service, auth_service, hcm_service, subscription_service.
+### Fase 2: Implementación del Gateway de WhatsApp Local Multitenant
+- `[ ]` Tarea 2.1: Creación del microservicio `whatsapp_gateway` en Node.js 22 LTS / TypeScript (Session Manager + Cola FIFO + Throttling).
+- `[ ]` Tarea 2.2: Configuración del `Dockerfile` (soporte headless Chromium/Puppeteer) y actualización de `docker-compose.yml`.
+- `[ ]` Tarea 2.3: Refactor del `notification_service` (FastAPI) con patrón Adapter/Factory para `BaseWhatsAppClient`, `TwilioWhatsAppClient`, `LocalWhatsAppClient` y `WhatsAppClientFactory` dinámico por Tenant.
+- `[ ]` Tarea 2.4: Rutas proxy espejo seguras para el escaneo QR en `app/routers/whatsapp_routes.py` (con aislamiento por `current_user.company_id`).
 
 ---
 
-### Pendientes (deuda técnica identificada)
-
-- [ ] **Scope format standardization**: Backend emite dot-format (`inventory.stock.read`) para colaboradores y colon-format (`inventory:read`) para usuarios invitados. Frontend `NavigationService` solo verifica dot-format — usuarios invitados no ven ítems de nav. Decisión pendiente: estandarizar en backend o actualizar NavigationService para aceptar ambos formatos.
-- [ ] **`canActivate` en `/monitor/tickets`**: Necesita `ticket:read` o `tickets.view`. Fuera de scope hoy.
-- [ ] **`canActivate` en `/production`**: Pendiente despliegue de mes_service.
-- [ ] **Bug conocido (Phase 109)**: `GET /products/{id}/variants` retorna 403 para rol `collaborator`. Fix: agregar `inventory:read` al scope mapping del colaborador en `select_company_command.py`.
+## Log de Jornada (Fase 1 iniciada)
+- *10:38 AM:* Aprobación formal del plan. Creación del backlog en `task.md` y sincronización con el historial del repositorio.
