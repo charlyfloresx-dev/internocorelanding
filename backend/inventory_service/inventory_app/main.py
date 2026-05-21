@@ -1,17 +1,12 @@
 from common.security.cors_setup import setup_cors
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from common.config import settings
 from common.middleware import InternoCoreGlobalMiddleware
 from common.security.limiter import limiter
 from slowapi.errors import RateLimitExceeded
 from common.responses import ApiResponse
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from common.models import Base
-from inventory_app.db.session import engine
-from inventory_app.api.v1.endpoints import transactions, reconciliation, boms, inter_company_transfers
 from inventory_app.models import inventory  # Ensure models are imported for Base.metadata
 from inventory_app.models import inter_company_transfer  # ICT model - ensures table creation
 from inventory_app.core.workers.reconciliation_worker import ReconciliationWorker
@@ -73,16 +68,16 @@ from inventory_app.api.v1.endpoints import (
     transactions,
     reconciliation,
     boms,
+    inter_company_transfers,
     dashboard,
     inventory_search,
-    dashboard_consolidated,
     demo_reset,
     onboarding,
     inventory,
     customs,
     variants,
     audit,
-    locations,   # [Phase 83] WMS Location Management & Density Guard
+    locations,
     pos,
     documents
 )

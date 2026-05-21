@@ -9,9 +9,10 @@ from .customs_pedimento import CustomsPedimento
 from .bom import BOM
 from .backflush_error import BackflushError
 from .inter_company_transfer import InterCompanyTransfer
+from .location import InventoryLocation
 
 __all__ = [
     "Warehouse", "InventoryDocument", "InventoryLevel", "InventoryTransaction",
     "ItemVariant", "Movement", "Stock", "StockLot", "CustomsPedimento",
-    "BOM", "BackflushError", "InterCompanyTransfer"
+    "BOM", "BackflushError", "InterCompanyTransfer", "InventoryLocation"
 ]
