@@ -9,6 +9,7 @@ from auth_app.core.database import get_db
 from auth_app.models.user import User
 from auth_app.models.user_credential import UserCredential
 from auth_app.services.biometric_service import BiometricService
+from auth_app.dependencies.auth import get_current_tenant_context, SecurityContext
 from common.responses import ApiResponse
 
 router = APIRouter()
@@ -22,21 +23,15 @@ biometric_service = BiometricService()
 @router.post("/register/begin", summary="Iniciar registro biométrico WebAuthn")
 async def register_begin(
     payload: Dict[str, Any],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    context: SecurityContext = Depends(get_current_tenant_context)
 ):
     """
-    Recibe: { user_id: UUID }
+    Recibe: {} — user_id se toma del JWT para evitar IDOR cross-user.
     Devuelve las PublicKeyCredentialCreationOptions para el dispositivo.
     El frontend debe pasar este objeto a navigator.credentials.create({ publicKey: ... })
     """
-    user_id_str = payload.get("user_id")
-    if not user_id_str:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="user_id requerido")
-
-    try:
-        user_id = uuid.UUID(str(user_id_str))
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="user_id inválido")
+    user_id = context.user_id
 
     # Buscar el usuario global
     result = await db.execute(select(User).where(User.id == user_id))
@@ -82,26 +77,22 @@ async def register_begin(
 @router.post("/register/complete", summary="Completar registro biométrico WebAuthn")
 async def register_complete(
     payload: Dict[str, Any],
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    context: SecurityContext = Depends(get_current_tenant_context)
 ):
     """
-    Recibe: { user_id: UUID, state: dict, client_response: dict }
+    Recibe: { state: dict, client_response: dict } — user_id se toma del JWT.
     El client_response es la respuesta de navigator.credentials.create() serializada.
     """
-    user_id_str = payload.get("user_id")
+    user_id = context.user_id
     state = payload.get("state")
     client_response = payload.get("client_response")
 
-    if not all([user_id_str, state, client_response]):
+    if not all([state, client_response]):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Se requieren: user_id, state y client_response"
+            detail="Se requieren: state y client_response"
         )
-
-    try:
-        user_id = uuid.UUID(str(user_id_str))
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="user_id inválido")
 
     # Verificar y extraer la llave pública del dispositivo
     try:
