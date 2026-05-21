@@ -23,6 +23,11 @@ class NotificationSettings(InternoSettings):
     WHATSAPP_SENDER_NUMBER: str = Field(default="whatsapp:+14155238886", validation_alias="CORE_WHATSAPP_SENDER_NUMBER")
     WHATSAPP_BASE_URL: str = Field(default="https://api.twilio.com/2010-04-01/Accounts", validation_alias="CORE_WHATSAPP_BASE_URL")
 
+    # LOCAL WHATSAPP GATEWAY (Self-Hosted Multitenant)
+    DEFAULT_WHATSAPP_PROVIDER: str = Field(default="twilio", validation_alias="CORE_DEFAULT_WHATSAPP_PROVIDER")
+    LOCAL_WHATSAPP_GATEWAY_URL: str = Field(default="http://interno-whatsapp-gateway-dev:3000", validation_alias="CORE_LOCAL_WHATSAPP_GATEWAY_URL")
+    WHATSAPP_GATEWAY_API_KEY: str = Field(default="DEV_INTERNAL_KEY_123", validation_alias="CORE_WHATSAPP_GATEWAY_API_KEY")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

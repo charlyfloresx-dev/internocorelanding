@@ -1,5 +1,16 @@
 # Notification Service – Log
 
+## 🕒 Última Actividad (2026-05-21)
+**Phase 121 Fase 2: WhatsApp Local Multitenant Gateway — Adapter/Factory + Proxy Mirror Routes** ✅
+- **`app/infrastructure/base_whatsapp.py`** (NUEVO): ABC `BaseWhatsAppClient` con contratos `send_group_message(group_id, message, metadata)` y `send_template_message(group_id, template_name, params)`. Desacopla completamente Twilio del Local Gateway.
+- **`app/infrastructure/local_whatsapp_client.py`** (NUEVO): Cliente httpx async para el microservicio Node.js `whatsapp_gateway`. `company_id` tomado de `metadata["company_id"]` — error 400 si falta. POST a `{gateway_url}/api/v1/whatsapp/send` con Bearer API Key interna.
+- **`app/infrastructure/twilio_whatsapp_client.py`** (NUEVO): Wrapper existente de Twilio encapsulado bajo la interfaz `BaseWhatsAppClient`.
+- **`app/infrastructure/whatsapp_factory.py`** (NUEVO): `WhatsAppClientFactory.get_client_for_tenant(db, company_id)` — consulta `company_notification_configs`, devuelve `LocalWhatsAppClient` o `TwilioWhatsAppClient`. Soporta BYOK (credenciales del tenant en DB) con fallback global.
+- **`app/core/config.py`**: 3 nuevas variables de entorno: `CORE_DEFAULT_WHATSAPP_PROVIDER`, `CORE_LOCAL_WHATSAPP_GATEWAY_URL`, `CORE_WHATSAPP_GATEWAY_API_KEY`.
+- **`app/routers/whatsapp_routes.py`**: 3 endpoints proxy espejo con **Iron Wall ADR-02** (company_id exclusivamente del JWT): `GET /api/v1/whatsapp/session/status`, `GET /api/v1/whatsapp/session/qr`, `POST /api/v1/whatsapp/session/initialize`. Helpers DRY `_proxy_get()` / `_proxy_post()`. Scope: `["admin", "notifications:manage"]`.
+- **`backend/whatsapp_gateway/`** (NUEVO microservicio Node.js 22 LTS): `manager.ts` (Singleton + CompanyQueue anti-ban 1.5–3s), `index.ts` (Express + Bearer auth + graceful shutdown), `Dockerfile` (Chromium headless), integrado en `docker-compose.dev.yml` en red `interno-network` — **NO expuesto vía Nginx**.
+- **Status**: ✅ COMPLETED — Código completo. Gateway Node.js pendiente de despliegue y escaneo QR inicial.
+
 ## 🕒 Última Actividad (2026-05-20)
 **Phase 118: WhatsApp Industrial Client + WebSocket + Notification Service Refactor** ✅
 - **`app/infrastructure/whatsapp_client.py`**: Cliente Twilio industrial. Envía alertas a grupos virtuales y destinatarios individuales con retry exponencial. Soporte para templates industriales (stock alert, downtime, incident).

@@ -1,5 +1,10 @@
 # Auth Service - Service Log
 
+## [2026-05-21] Phase 122: Subscription Client HMAC + Dead Code Removal ✅
+- **`infrastructure/clients/subscription_client.py`**: Añadida función `_service_signature(company_id)` que computa `hmac(SECRET_KEY, company_id, sha256)`. `get_company_entitlements()` ahora envía `X-Service-Signature` en cada request a `subscription_service`. Alineado con el contrato HMAC que ahora exige el endpoint receptor.
+- **Eliminado**: `infrastructure/subscription_client.py` — legacy client con `BASE_URL` hardcodeado (`http://subscription-service:8000/internal`) que nunca fue importado por ningún módulo activo (grep confirmó 0 importadores). Único caller vivo: `infrastructure/clients/subscription_client.py`.
+- **Status**: ✅ COMPLETED — Dead code eliminado, HMAC activo en el flujo auth → subscription.
+
 ## [2026-05-21] Phase 120: Admin Endpoints Hardening ✅
 - **`api/v1/endpoints/companies.py`**: CRUD completo de empresas (`POST /`, `GET /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`) ahora requiere `X-Admin-Master-Key`. Anteriormente accesibles sin autenticación — un actor externo podía crear o eliminar empresas.
 - **`api/v1/endpoints/seed.py`**: `POST /seed/run` ahora requiere `X-Admin-Master-Key`. Previene ejecución arbitraria del script de seeding en ambientes con la API expuesta.

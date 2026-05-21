@@ -1,6 +1,11 @@
 # Subscription Service – Log
 
 ## 🕒 Última Actividad (2026-05-21)
+**Phase 122: HMAC Protection for Internal Endpoints** ✅
+- **`api/v1/endpoints/internal.py`**: Endpoints `GET /internal/status/{company_id}` y `GET /internal/entitlements/{company_id}` ahora requieren cabecera `X-Service-Signature: <HMAC-SHA256>`. Sin firma → 403 inmediato. HMAC = `hmac(SECRET_KEY, company_id, sha256)` — idéntico al patrón de `tickets_service`. El `company_id` del path se usa como mensaje del HMAC; `hmac.compare_digest` garantiza comparación en tiempo constante (timing-safe).
+- **Motivación de seguridad**: Los endpoints no estaban expuestos vía Nginx, pero eran accesibles directamente en el puerto 8002 (dev) y en la red Docker interna sin ninguna autenticación. Cualquier contenedor en `interno-network` podía consultar el estado de suscripción de cualquier tenant.
+- **Status**: ✅ COMPLETED — Endpoints internos protegidos. Code Graph 0 errores.
+
 **Phase 120: Wallet Endpoints Hardening** ✅
 - **`api/v1/endpoints/wallet.py`**: `POST /wallet/award` y `POST /wallet/deduct` (mutaciones de saldo de guest wallet) ahora requieren `X-Admin-Master-Key`. Anteriormente accesibles sin autenticación — cualquier actor podía otorgar o deducir crédito a cualquier guest. Los endpoints de consulta (`/balance`, `/history`) se conservan públicos (datos de sesión de guest, sin impacto financiero).
 

@@ -1,9 +1,20 @@
+import hmac
+import hashlib
 import httpx
 import logging
 from typing import List, Optional
 from auth_app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _service_signature(company_id: str) -> str:
+    return hmac.new(
+        settings.SECRET_KEY.encode(),
+        company_id.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
 
 class SubscriptionClient:
     def __init__(self):
@@ -16,7 +27,7 @@ class SubscriptionClient:
         Retorna fallback seguro si hay error.
         """
         url = f"{self.base_url}/internal/entitlements/{company_id}"
-        headers = {}
+        headers = {"X-Service-Signature": _service_signature(company_id)}
         if correlation_id:
             headers["X-Transaction-ID"] = correlation_id
 

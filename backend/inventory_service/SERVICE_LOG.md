@@ -1,6 +1,13 @@
 # Service Log — Inventory Service
 
 ## 🕒 Última Actividad (2026-05-21)
+**Phase 121 Fase 1: Structural Housekeeping** ✅
+- **`inventory_app/main.py`**: Eliminado bloque de imports duplicado (líneas 72-88 re-importaban los mismos 4 routers ya declarados en línea 14). Eliminados `CORSMiddleware`, `Base`, `engine` (no usados). `from fastapi import FastAPI, Request, status` consolidado.
+- **`scripts/scratch/`** (NUEVO directorio): 20 scripts de debug/utilidad temporal movidos desde la raíz del servicio. Directorio añadido a `.gitignore`. La raíz queda limpia para producción.
+- **`models/__init__.py`**: `InventoryLocation` verificada como ya correctamente expuesta. Sin cambios requeridos.
+- **`requirements.txt`**: Dependencias verificadas como ya pinneadas. Sin cambios requeridos.
+- **Status**: ✅ COMPLETED — Servicio listo para despliegue en producción sin deuda estructural.
+
 **Phase 120: Iron Wall Fix — company_id from JWT only** ✅
 - **`api/v1/endpoints/inventory.py`** (10 endpoints): Eliminado `x_company_id: UUID = Header(...)` de `/movements`, `/reconcile`, `/reserve`, `/release`, `/transfers/dispatch`, `/transfers/receive`, `/stock/{warehouse_id}/{product_id}`, `/stock`, `/audit-export`, `/cycle-count`. Reemplazado por `token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))`. El `company_id` proviene exclusivamente del JWT verificado — el cliente no puede suplantar tenant.
 - **`api/v1/endpoints/dashboard.py`** (9 endpoints): Mismo patrón aplicado a `/summary`, `/movements`, `/stock`, `/force-release`, `/reports/kardex`, `/reports/valuation`, `/reports/abc`, `/mission-control`, `/consolidated`.

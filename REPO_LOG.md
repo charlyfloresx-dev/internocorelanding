@@ -3,6 +3,77 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-21] Phase 122: Inter-Service HMAC Hardening (subscription_service Internal Endpoints)
+
+**Objetivo:** Proteger los endpoints internos de `subscription_service` con el mismo patrón HMAC-SHA256 que ya existía en `tickets_service`. Eliminación de dead code en `auth_service`.
+
+**Contexto del problema:**
+Los endpoints `GET /internal/status/{company_id}` y `GET /internal/entitlements/{company_id}` de `subscription_service` no tenían ninguna autenticación. Aunque Nginx no los expone externamente (no hay `location /internal` en nginx.conf apuntando a subscription_servers), eran accesibles directamente en el puerto 8002 (dev) y en la red Docker interna sin restricción. Cualquier contenedor en la misma red podía consultar el estado de suscripción de cualquier tenant con solo conocer (o adivinar) el company_id.
+
+**Decisión Arquitectónica — HMAC como contrato inter-servicio:**
+Se replicó el patrón existente en `tickets_service/ticket_routes.py`: HMAC-SHA256 del `company_id` con `SECRET_KEY` compartido. El llamador (`auth_service`) computa `hmac(SECRET_KEY, company_id, sha256)` y lo envía en `X-Service-Signature`. El receptor verifica con `hmac.compare_digest` (timing-safe). Sin firma → 403 inmediato, sin revelar detalle.
+
+**Cambios implementados:**
+
+- **`subscription_service/api/v1/endpoints/internal.py`**: Añadida función helper `_verify_service_signature(company_id, signature)` que computa y compara HMAC. Ambos endpoints GET ahora aceptan `x_service_signature: str = Header(None, alias="X-Service-Signature")` y llaman `_verify_service_signature` antes de tocar el repositorio.
+
+- **`auth_service/infrastructure/clients/subscription_client.py`** (el client activo — usado en `select_company_command.py` y `auth_service.py`): Añadida función `_service_signature(company_id)` + `X-Service-Signature` inyectado en el `headers` dict de `get_company_entitlements()`.
+
+- **Eliminado**: `auth_service/infrastructure/subscription_client.py` — dead code (legacy client con URL hardcodeada que nadie importaba; el único caller activo era el legacy mismo). Grep confirma: cero importadores en `auth_service`.
+
+**Workaround / Nota:**
+El endpoint `/internal/status/` no tiene caller activo (el legacy client que lo usaba fue eliminado). El endpoint queda protegido igualmente por HMAC para cualquier uso futuro.
+
+**Actualización de workflow:**
+`sync-docs.md` actualizado con paso 1.5 (verificación de endpoints internos HMAC), paso 3.6 (verificación WhatsApp Gateway), formato de commit estándar, y criterios de éxito ampliados.
+
+**Verificación:** Code Graph 0 errores, ecosistema 8/8 OK.
+
+**Status**: ✅ Phase 122 COMPLETED
+
+---
+### [2026-05-21] Phase 121: Inventory Housekeeping + WhatsApp Local Multitenant Gateway
+
+**Objetivo:** Dos entregables: (1) limpieza estructural de `inventory_service` para preparación a producción, y (2) implementación completa del ecosistema WhatsApp Gateway auto-hospedado multitenant para `notification_service`.
+
+**Fase 1 — Inventory Service Housekeeping:**
+
+Se identificaron y resolvieron 4 anomalías detectadas en auditoría de código:
+
+- **`inventory_app/main.py`**: Bloque de imports duplicado (líneas 72-88 re-importaban los mismos routers ya declarados en la línea 14 y registrados correctamente). Eliminados imports redundantes; imports de `CORSMiddleware`, `Base`, `engine` también eliminados (ya no usados tras migraciones). Declaración `from fastapi import FastAPI, Request, status` consolidada.
+
+- **`scripts/scratch/`** (directorio nuevo): 20 scripts de debug movidos desde la raíz (`check_inventory_tables.py`, `create_dummy_ict.py`, `fix_ict_ids.py`, `inspect_row.py`, `test_db_access.py`, `verify_ict.py`, `error.txt`, `test_out.txt`, et al.). Directorio añadido a `.gitignore`. La raíz del servicio queda limpia.
+
+- **`inventory_app/models/__init__.py`**: `InventoryLocation` verificada como ya presente y expuesta correctamente. No requirió cambios.
+
+- **`requirements.txt`**: Dependencias verificadas como ya pinneadas. No requirió cambios.
+
+**Fase 2 — WhatsApp Local Multitenant Gateway:**
+
+Se implementó el stack completo siguiendo ADR-02 (Proxy Espejo Seguro con Muro de Hierro).
+
+**Nuevo microservicio `backend/whatsapp_gateway/` (Node.js 22 LTS / TypeScript):**
+- `src/manager.ts` — `WhatsAppSessionManager` Singleton. `CompanyQueue` por tenant con delay aleatorio 1.5s–3.0s (anti-ban Meta). `LocalAuth` con cookies aisladas en `/app/sessions/session_<company_id>/`. QR convertido a Data URL Base64 (`qrcode.toDataURL`).
+- `src/index.ts` — Express con 4 rutas: `POST /api/v1/whatsapp/send`, `GET .../session/:id/status`, `GET .../session/:id/qr`, `POST .../session/:id/initialize`. Bearer auth middleware global. Graceful shutdown SIGTERM.
+- `Dockerfile` — Debian con Chromium headless + Puppeteer (args: `--no-sandbox`, `--disable-dev-shm-usage`, `--single-process`).
+- `docker-compose.dev.yml` — Servicio `whatsapp-gateway`, puerto `3011:3000`, volumen `whatsapp_sessions_dev:/app/sessions`, red `interno-network`. **No expuesto a través de Nginx** — aislamiento total.
+
+**Refactor `notification_service` — Adapter/Factory Pattern:**
+- `app/infrastructure/base_whatsapp.py` — ABC `BaseWhatsAppClient`: `send_group_message(group_id, message, metadata)` + `send_template_message(group_id, template_name, params)`.
+- `app/infrastructure/local_whatsapp_client.py` — httpx async client al gateway. `company_id` tomado de `metadata["company_id"]`; error 400 si falta. POST a `{gateway_url}/api/v1/whatsapp/send`.
+- `app/infrastructure/twilio_whatsapp_client.py` — Wrapper Twilio existente implementando la interfaz.
+- `app/infrastructure/whatsapp_factory.py` — `WhatsAppClientFactory.get_client_for_tenant(db, company_id)`: consulta `company_notification_configs`, resuelve `"local"` o `"twilio"`, soporta BYOK (credenciales propias del tenant en DB) con fallback a credenciales globales.
+- `app/core/config.py` — 3 nuevas variables: `DEFAULT_WHATSAPP_PROVIDER`, `LOCAL_WHATSAPP_GATEWAY_URL`, `WHATSAPP_GATEWAY_API_KEY`.
+- `app/routers/whatsapp_routes.py` — 3 endpoints proxy espejo con aislamiento JWT (ADR-02): `GET /session/status`, `GET /session/qr`, `POST /session/initialize`. El `company_id` proviene exclusivamente de `current_user.company_id` (JWT verificado) — nunca del path ni del body. Scope: `["admin", "notifications:manage"]`. Helpers DRY `_proxy_get()` / `_proxy_post()` para evitar repetición.
+
+**Workaround / Nota:**
+El gateway Node.js no está desplegado aún en el stack de dev (el código existe, pero no se ha ejecutado `docker compose up --build whatsapp-gateway`). Pendiente para la siguiente sesión junto con el escaneo QR inicial.
+
+**Verificación:** Code Graph 0 errores, ecosistema 8/8 OK.
+
+**Status**: ✅ Phase 121 COMPLETED
+
+---
 ### [2026-05-21] Phase 120: Backend Security Hardening + Frontend Scope/Module Alignment
 
 **Objetivo:** Auditoría de seguridad transversal + corrección de vulnerabilidades Tier 1. Dos vectores de ataque en backend + alineación completa de scopes/módulos en frontend Angular.

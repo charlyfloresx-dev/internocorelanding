@@ -28,3 +28,55 @@ Se aprueba una limpieza exhaustiva sobre `inventory_service` para subsanar los h
 - Ordenación estructural: reubicación de scripts huérfanos/temporales de depuración a `scripts/scratch/` y actualización del `.gitignore`.
 - Corrección de alias y exposición de `InventoryLocation` en el archivo de inicialización de modelos.
 - Fijar versiones estables en el archivo de requerimientos (`requirements.txt`) para repetibilidad garantizada.
+
+---
+
+## 3. Implementación Ejecutada (Phase 121 + 122) — Estado Final
+
+### Phase 121 Fase 1 — inventory_service Housekeeping
+
+**`inventory_app/main.py`**: Se identificó que el bloque líneas 72-88 re-importaba los mismos 4 routers (`transactions`, `reconciliation`, `boms`, `inter_company_transfers`) ya declarados en la línea 14. El bloque era redundante y fue eliminado. Adicionalmente se eliminaron imports de `CORSMiddleware`, `Base`, `engine` que no se usaban.
+
+**`scripts/scratch/`**: Directorio nuevo para archivos temporales de desarrollo. Se movieron: `check_inventory_tables.py`, `create_dummy_ict.py`, `fix_ict_ids.py`, `inspect_row.py`, `test_db_access.py`, `verify_ict.py`, `error.txt`, `test_out.txt`, y ~12 scripts adicionales. `.gitignore` actualizado con entrada `inventory_service/scripts/scratch/`.
+
+**`models/__init__.py` y `requirements.txt`**: Verificados — ya estaban correctos. No requirieron cambios.
+
+### Phase 121 Fase 2 — WhatsApp Gateway Multitenant
+
+**Microservicio Node.js (`backend/whatsapp_gateway/`):**
+
+Patrón `Singleton` para `WhatsAppSessionManager`: un proceso Node.js gestiona todas las sesiones. Cada empresa tiene su `SessionInfo` (state machine: `NOT_INITIALIZED → QR_READY → AUTHENTICATING → CONNECTED / DISCONNECTED / FAILED`). El estado `QR_READY` incluye el Data URL Base64 del QR listo para renderizar en frontend sin procesamiento adicional.
+
+`CompanyQueue`: FIFO por tenant. El método `processNext()` es non-blocking (una sola ejecución en paralelo por tenant). Delay aleatorio `Math.floor(Math.random() * (3000 - 1500 + 1) + 1500)` entre mensajes. El formato del número destino se normaliza: se limpian caracteres no-digit y se añade `@c.us` si no tiene sufijo.
+
+Puppeteer args críticos para Docker: `--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --single-process --disable-gpu` — necesarios para correr Chromium sin root y sin `/dev/shm` grande.
+
+**Adapter/Factory Pattern (notification_service):**
+
+`BaseWhatsAppClient` — ABC con `send_group_message(group_id, message, metadata)` y `send_template_message(group_id, template_name, template_params)`. El `metadata` dict transporta `company_id` al `LocalWhatsAppClient` sin romper la firma.
+
+`WhatsAppClientFactory.get_client_for_tenant(db, company_id)`: Consulta `company_notification_configs` con `is_active=True`. Si no hay config → fallback a `DEFAULT_WHATSAPP_PROVIDER` (.env). Para Twilio con BYOK: usa `account_sid` y `auth_token` del tenant. Para Twilio fallback: usa credenciales globales. Para `"local"`: devuelve `LocalWhatsAppClient()` — sencillo, sin parámetros.
+
+**ADR-02 — Proxy Espejo (whatsapp_routes.py):**
+
+Los 3 endpoints proxy (`/session/status`, `/session/qr`, `/session/initialize`) no aceptan `company_id` de ningún parámetro del cliente. El `company_id` es extraído exclusivamente de `current_user.company_id` (JWT verificado por `require_scope`). Helpers `_proxy_get(path)` y `_proxy_post(path)` encapsulan el client httpx con timeout y manejo de `HTTP_503_SERVICE_UNAVAILABLE`.
+
+### Phase 122 — HMAC Inter-Service
+
+**Motivación**: Los endpoints `/internal/*` de subscription_service no estaban expuestos vía Nginx, pero cualquier contenedor en `interno-network` podía llamarlos libremente. En producción en AWS, cualquier ECS task en la misma VPC podía consultar el estado de suscripción de cualquier tenant.
+
+**Implementación**: `hmac.new(SECRET_KEY.encode(), company_id.encode(), hashlib.sha256).hexdigest()` — idéntico al patrón de tickets_service. `hmac.compare_digest` en vez de `==` para evitar timing attacks. El helper `_verify_service_signature` es llamado como primera instrucción en cada endpoint, antes de tocar el repositorio.
+
+**Dead code**: `auth_service/infrastructure/subscription_client.py` tenía `BASE_URL = "http://subscription-service:8000/internal"` hardcodeado y `SubscriptionClient` con `get_subscription_status()` que llamaba `/internal/status`. Grep confirmó: cero archivos activos importan este módulo. Eliminado.
+
+---
+
+## 4. Verificación Final
+
+| Check | Resultado |
+|---|---|
+| Code Graph | ✅ 0 errores — 14 servicios CLEAN |
+| Ecosistema (validate_ecosystem.ps1) | ✅ 8/8 OK |
+| `GET /internal/status` sin firma | ✅ 403 Firma de servicio requerida |
+| `GET /internal/entitlements` sin firma | ✅ 403 Firma de servicio requerida |
+| WhatsApp Gateway código | ✅ Completo — pendiente despliegue y QR scan |
