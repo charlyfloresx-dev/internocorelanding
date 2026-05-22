@@ -86,6 +86,25 @@ Jornada de verificación y documentación: Phase 124 — WhatsApp E2E Verificati
 
 ---
 
+## Phase 127 — Sentinel Mobile Dashboard Enrichment & Field Alignment ✅ COMPLETADO
+
+### Capa de Datos y Modelos (Mobile)
+- `[x]` Enriquecer el DTO `Ticket` en `ticket_models.dart` para incluir `assignedToId`, `area` y `ticketType` mapeados desde JSON.
+- `[x]` Cambiar la URL de consulta de tickets a `tickets/mine` en `ticket_repository.dart` para aislar el tablero del operador.
+
+### Interfaz de Usuario (Mobile Dashboard)
+- `[x]` Agregar barra lateral de prioridad de color (Crítica = Rojo, Alta = Naranja, Media = Amarillo, Baja = Azul) en `_buildTicketItem` de `tickets_screen.dart`.
+- `[x]` Agregar badge de prioridad visual con texto estilizado.
+- `[x]` Agregar indicador de asignación ("👤 Asignado" vs "⚠️ Sin Asignar").
+- `[x]` Mostrar tag visual con el área operativa del ticket.
+
+### Verificación y Backend
+- `[x]` Validar compatibilidad de campos con el DTO `TicketRead` del microservicio `tickets_service`.
+- `[x]` Comprobación de integridad del Code Graph (0 errores) y endpoints HMAC (/tickets/internal retornando 403 sin firma).
+- `[x]` Ping maestro de servicios vía script `validate_ecosystem.ps1` exitoso.
+
+---
+
 ## Pendientes (próximas sesiones)
 
 - `[ ]` **Obtener JID de grupo WhatsApp** — registrar un `WhatsAppGroupMapping` con `group_name = "TECNICOS_PLANTA"`.

@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 119 completada (2026-05-20). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 127 completada (2026-05-22). Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---

@@ -3,6 +3,37 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-22] Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment
+
+**Objetivo:** Enriquecer el dashboard de tickets móvil agregando visualización de prioridad, asignación y área operacional, garantizando la compatibilidad con el backend `tickets_service` y alineando los endpoints de consumo.
+
+**Cambios implementados:**
+- **Mapeo de Campos en Dart (`ticket_models.dart`)**: Agregados campos `assignedToId`, `area` y `ticketType` al modelo `Ticket` mapeados desde los payloads del backend.
+- **Rutas y Endpoint en Mobile (`ticket_repository.dart`)**: Modificada la petición del listado de tickets en la app móvil para llamar a `GET tickets/mine` (obtiene tickets creados por o asignados al usuario en el tenant actual) en lugar de `GET tickets/` (que es el endpoint de administración global de la empresa).
+- **Dashboard Móvil Mejorado (`tickets_screen.dart`)**: 
+  - Añadido indicador de prioridad lateral de color con código de color de alta visibilidad (Crítica = Rojo, Alta = Naranja, Media = Amarillo, Baja = Azul).
+  - Añadido badge de prioridad con texto estilizado en la parte inferior de la tarjeta.
+  - Añadido indicador de asignación: "👤 Asignado" (o nombre del operador si está disponible) vs "⚠️ Sin Asignar".
+  - Añadido tag visual para el área operativa del ticket (ej., Producción, Almacén, Mantenimiento).
+- **Verificación de Soporte del Backend**:
+  - Validado que el DTO `TicketRead` del backend define exactamente los campos `assigned_to_id`, `area`, `ticket_type` y son expuestos correctamente.
+  - Verificado el cumplimiento de Code Graph de `tickets_service` al 100% (0 errores) y pruebas HMAC funcionales para endpoints de canal interno.
+
+**Status**: ✅ Phase 127 COMPLETED
+
+---
+### [2026-05-22] Phase 126: Multi-Tenant Isolated Ticket Consecutive Number Fix
+
+**Objetivo:** Resolver la colisión de números consecutivos de tickets en escenarios multi-tenant aislados y dar soporte a secuencias heredadas.
+
+**Cambios implementados:**
+- **Base de Datos & Migraciones**: Creada migración de Alembic `002_ref_code_composite.py` para reemplazar la restricción única global `tickets_reference_code_key` por un índice y restricción compuesta `tickets_company_id_reference_code_key` sobre `(company_id, reference_code)`. Migración ejecutada exitosamente en el contenedor `interno-tickets-dev`.
+- **Modelos SQLAlchemy (`ticket.py`)**: Removido `unique=True` de la columna `reference_code` y agregada la restricción a `__table_args__` del modelo `Ticket`.
+- **Algoritmo de Consecutivos (`infrastructure/repositories/ticket_repository.py`)**: `_generate_ref_code` ahora busca tickets mediante el patrón `%-{current_year}-%` filtrado por `company_id`. Cuenta correctamente todos los prefijos del tenant (`IT-`, `SEC-`, `EXT-`, `TKT-`) y emite folios continuos de forma atómica y aislada por empresa (ej. genera `TKT-2026-0008` tras los 7 tickets pre-sembrados).
+
+**Status**: ✅ Phase 126 COMPLETED
+
+---
 ### [2026-05-22] Phase 125: Sentinel Mobile Ticket Integration & Support Drawer Sync
 
 **Objetivo:** Integrar el módulo de soporte y tickets en la aplicación Sentinel Mobile (Flutter) con arquitectura offline-first y multitenancy dinámico (sin fricción para el usuario de planta), logrando sincronización en tiempo real con el panel de control web.

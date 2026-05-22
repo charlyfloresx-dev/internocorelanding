@@ -16,6 +16,18 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-05-22] Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment ✅
+- **Mapeo de Campos en Dart (`ticket_models.dart`)**: Agregados campos `assignedToId`, `area` y `ticketType` al modelo `Ticket` mapeados desde los payloads del backend.
+- **Rutas y Endpoint en Mobile (`ticket_repository.dart`)**: Modificada la petición del listado de tickets en la app móvil para llamar a `GET tickets/mine` en lugar de `GET tickets/` (que es el endpoint de administración global de la empresa).
+- **Dashboard Móvil Mejorado (`tickets_screen.dart`)**: 
+  - Añadido indicador de prioridad lateral de color con código de color de alta visibilidad (Crítica = Rojo, Alta = Naranja, Media = Amarillo, Baja = Azul).
+  - Añadido badge de prioridad con texto estilizado en la parte inferior de la tarjeta.
+  - Añadido indicador de asignación: "👤 Asignado" (o nombre del operador si está disponible) vs "⚠️ Sin Asignar".
+  - Añadido tag visual para el área operativa del ticket (ej., Producción, Almacén, Mantenimiento).
+- **Verificación de Soporte del Backend**:
+  - Validado que el DTO `TicketRead` del backend define exactamente los campos `assigned_to_id`, `area`, `ticket_type` y son expuestos correctamente.
+  - Verificado el cumplimiento de Code Graph de `tickets_service` al 100% (0 errores) y pruebas HMAC funcionales para endpoints de canal interno.
+
 ### [2026-05-22] Phase 126: Multi-Tenant Isolated Ticket Consecutive Number Fix ✅
 - **Base de Datos & Migraciones**: Creada migración de Alembic `002_ref_code_composite.py` para reemplazar la restricción única global `tickets_reference_code_key` por un índice y restricción compuesta `tickets_company_id_reference_code_key` sobre `(company_id, reference_code)`. Migración ejecutada exitosamente en el contenedor `interno-tickets-dev`.
 - **Modelos SQLAlchemy (`ticket.py`)**: Removido `unique=True` de la columna `reference_code` y agregada la restricción a `__table_args__` del modelo `Ticket`.

@@ -115,6 +115,23 @@ app.post('/api/v1/whatsapp/session/:company_id/initialize', async (req: Request,
   }
 });
 
+// List group chats endpoint — returns groups with their JIDs for mapping registration
+app.get('/api/v1/whatsapp/session/:company_id/chats', async (req: Request, res: Response) => {
+  const { company_id } = req.params;
+
+  if (!company_id) {
+    return res.status(400).json({ status: 'error', message: 'company_id parameter is required.' });
+  }
+
+  try {
+    const chats = await WhatsAppSessionManager.getInstance().getChats(company_id);
+    return res.status(200).json({ status: 'success', chats });
+  } catch (err: any) {
+    console.error(`[API] Error fetching chats for company ${company_id}:`, err);
+    return res.status(400).json({ status: 'error', message: err.message || String(err) });
+  }
+});
+
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('[Error] Unhandled Express Error:', err);

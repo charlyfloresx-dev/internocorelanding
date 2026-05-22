@@ -1,5 +1,33 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-22) — Phase 127
+**Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment** ✅
+- **Mapeo de Campos en Dart (`ticket_models.dart`)**: Agregados campos `assignedToId`, `area` y `ticketType` al modelo `Ticket` mapeados desde los payloads del backend.
+- **Rutas y Endpoint en Mobile (`ticket_repository.dart`)**: Modificada la petición del listado de tickets en la app móvil para llamar a `GET tickets/mine` (obtiene tickets creados por o asignados al usuario en el tenant actual) en lugar de `GET tickets/` (que es el endpoint de administración global de la empresa).
+- **Dashboard Móvil Mejorado (`tickets_screen.dart`)**: 
+  - Añadido indicador de prioridad lateral de color con código de color de alta visibilidad (Crítica = Rojo, Alta = Naranja, Media = Amarillo, Baja = Azul).
+  - Añadido badge de prioridad con texto estilizado en la parte inferior de la tarjeta.
+  - Añadido indicador de asignación: "👤 Asignado" (o nombre del operador si está disponible) vs "⚠️ Sin Asignar".
+  - Añadido tag visual para el área operativa del ticket (ej., Producción, Almacén, Mantenimiento).
+- **Status**: ✅ Phase 127 COMPLETED.
+
+## 🕒 Última Actividad (2026-05-22) — Phase 126
+**Phase 126: Multi-Tenant Isolated Ticket Consecutive Number Fix** ✅
+- **Base de Datos & Migraciones**: Verificado el soporte a nivel de base de datos para la restricción única compuesta `(company_id, reference_code)`.
+- **Lógica de Folios**: El repositorio de tickets del backend genera los números de ticket de forma continua y aislada por empresa (secuencias atómicas por tenant).
+- **Status**: ✅ Phase 126 COMPLETED.
+
+## 🕒 Última Actividad (2026-05-22) — Phase 125
+**Phase 125: Sentinel Mobile Ticket Integration & Support Drawer Sync** ✅
+- **Modelos y DTOs en Dart (`ticket_models.dart`)**: Creados modelos `Ticket`, `TicketCreateRequest` y `TicketComment` alineados con los esquemas del backend.
+- **Capa de Repositorio (`ticket_repository.dart`)**: Cliente HTTP `Dio` integrado para consumir endpoints de soporte con inyección transparente de cabeceras de autorización y tenant ID.
+- **Gestión de Estados (`tickets_bloc.dart`)**: Implementado BLoC para la carga, creación y visualización de comentarios en tiempo real.
+- **Vistas Modernas de Alto Contraste (UI Layer)**:
+  - `tickets_screen.dart`: Listado de tickets dinámico con estados vacíos e indicadores clave.
+  - `create_ticket_screen.dart`: Formulario express minimalista con asunto, prioridad y descripción.
+  - `ticket_chat_screen.dart`: Chat fluido con burbujas alineadas para operador vs soporte y auto-scroll.
+- **Status**: ✅ Phase 125 COMPLETED.
+
 ## 🕒 Última Actividad (2026-05-18) — Phase 115
 **Phase 115: POS Payment Confirmation & Simulated Ticketing** ✅
 - **Payment Method & App Reference**: Añadidos enums (`PaymentMethod`, `AppReference`) e integrados en el esquema `SaleRequest` del cliente y el backend, ampliando la información capturada durante el POS Checkout.

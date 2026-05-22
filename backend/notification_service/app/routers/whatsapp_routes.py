@@ -158,6 +158,15 @@ async def test_send_message(
         )
 
 
+@router.get("/session/chats", response_model=ApiResponse)
+async def get_available_group_chats(
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
+):
+    """Lista los grupos de WhatsApp disponibles en la sesión del tenant (para obtener JIDs de grupo)."""
+    data = await _proxy_get(f"/api/v1/whatsapp/session/{current_user.company_id}/chats")
+    return ApiResponse(status="success", data=data)
+
+
 @router.post("/session/initialize", response_model=ApiResponse)
 async def initialize_session(
     current_user: TokenPayload = Depends(require_scope(["admin", "notifications:manage"])),

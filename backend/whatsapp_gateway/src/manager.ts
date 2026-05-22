@@ -254,4 +254,19 @@ export class WhatsAppSessionManager {
     }
     return await session.queue.enqueue(to, message);
   }
+
+  public async getChats(companyId: string): Promise<{ id: string; name: string; participantCount: number | null }[]> {
+    const session = this.sessions.get(companyId);
+    if (!session || session.status !== 'CONNECTED' || !session.client) {
+      throw new Error(`Session for company ${companyId} is not CONNECTED`);
+    }
+    const chats = await session.client.getChats();
+    return chats
+      .filter(chat => chat.isGroup)
+      .map(chat => ({
+        id: chat.id._serialized,
+        name: chat.name,
+        participantCount: (chat as any).groupMetadata?.participants?.length ?? null,
+      }));
+  }
 }
