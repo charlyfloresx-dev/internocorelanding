@@ -3,6 +3,31 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-22] Phase 128: WhatsApp Group Discovery + Registration UI + E2E Group Delivery
+
+**Objetivo:** Completar el canal de notificaciones grupales de WhatsApp: descubrimiento de JIDs desde el panel Angular, registro de mappings en DB y verificación de entrega E2E a grupo real.
+
+**Cambios implementados:**
+- **`backend/whatsapp_gateway/src/manager.ts`**: Nuevo método `getChats(companyId)` — llama `client.getChats()`, filtra grupos `@g.us`, retorna `{ id, name, participantCount }`.
+- **`backend/whatsapp_gateway/src/index.ts`**: Nuevo endpoint `GET /api/v1/whatsapp/session/:company_id/chats`.
+- **`backend/notification_service/app/routers/whatsapp_routes.py`**: Nuevo proxy `GET /whatsapp/session/chats` con ADR-02 (company_id del JWT).
+- **`frontend/src/app/modules/admin/whatsapp-gateway.component.ts`**: Reemplazado placeholder "Grupos configurados" con UI funcional: botón "Descubrir grupos", lista de grupos con JID y participantes, registro inline con nombre auto-sugerido, badge "Registrado" para grupos ya mapeados, carga automática de mappings al conectar.
+- **`docs/howto/whatsapp_group_setup.md`**: How-to completo (arquitectura, 5 pasos, tabla de nombres lógicos, troubleshooting).
+- **`backend/tickets_service/scripts/test_whatsapp_chats.py`**: Script de descubrimiento y registro de mappings vía CLI.
+- **`.agent/workflows/initialize-dev.md`**: Actualizado con paso 6.4 de descubrimiento de grupos y opción C de rebuild con restart gateway.
+- **`.agent/workflows/sync-docs.md`**: Paso 3.55 de verificación de mappings de grupos.
+
+**Verificación E2E:**
+- Grupo "Coppel" (`120363042693431357@g.us`, 4 participantes) — mensaje recibido físicamente a las 2:22 PM ✓
+- Stack completo: Angular drawer → Nginx:8000 → notification_service:8009 → gateway:3011 → WhatsApp
+
+**Mapping registrado:**
+- `ALERTAS_INTERNO` → `120363425542705784@g.us` (grupo "Alertas Interno")
+- Grupo "Coppel" → `120363042693431357@g.us` (verificación E2E)
+
+**Status**: ✅ Phase 128 COMPLETED
+
+---
 ### [2026-05-22] Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment
 
 **Objetivo:** Enriquecer el dashboard de tickets móvil agregando visualización de prioridad, asignación y área operacional, garantizando la compatibilidad con el backend `tickets_service` y alineando los endpoints de consumo.

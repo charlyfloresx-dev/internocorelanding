@@ -1,6 +1,11 @@
 # Notification Service – Log
 
 ## Última Actividad (2026-05-22)
+**Phase 128: GET /whatsapp/session/chats proxy + Group Mapping UI** ✅
+- **`app/routers/whatsapp_routes.py`**: Nuevo endpoint `GET /whatsapp/session/chats` — proxy ADR-02 al gateway, company_id del JWT. Lista grupos `@g.us` disponibles en la sesión activa del tenant.
+- **E2E verificado**: Entrega a grupo "Coppel" (`120363042693431357@g.us`) confirmada físicamente a las 2:22 PM.
+
+## Última Actividad (2026-05-22)
 **Phase 124 Addendum: POST /whatsapp/test-send + E2E Delivery Verified** ✅
 - **`app/routers/whatsapp_routes.py`**: Endpoint `POST /whatsapp/test-send` añadido — proxy seguro al gateway con `require_scope(["admin"])`. `TestWhatsAppMessageRequest` con campos `to` (número o JID) y `message`. `company_id` exclusivamente del JWT (ADR-02).
 - **E2E verificado**: Mensaje entregado a `+526641667684` — `[Queue] Resolved number +526641667684 -> 263401871777841@lid` — LID resolution confirmado.

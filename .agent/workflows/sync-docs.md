@@ -55,6 +55,12 @@ powershell -ExecutionPolicy Bypass -File scripts/validate_ecosystem.ps1
 ```
 > **Validación:** Confirmar que todos los servicios reporten `[ OK ]` o estatus HTTP esperados, garantizando la salud del API Gateway.
 
+### 3.55. How-To de Grupos WhatsApp (si se agregaron/modificaron mappings)
+Si la fase incluyó registro de grupos o cambios en `WhatsAppGroupMapping`:
+- Ver guía completa: `docs/howto/whatsapp_group_setup.md`
+- Verificar que los mappings registrados aún apuntan a JIDs válidos
+- Si el número fue cambiado de grupo: redescubrir y actualizar el mapping
+
 ### 3.6. Verificación del WhatsApp Gateway (si la fase lo afectó)
 Solo ejecutar si hubo cambios en `backend/whatsapp_gateway/` o `notification_service`:
 // turbo

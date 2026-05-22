@@ -1,6 +1,12 @@
 # WhatsApp Gateway – Log
 
 ## Última Actividad (2026-05-22)
+**Phase 128: Group Discovery Endpoint + E2E Group Delivery** ✅
+- **`src/manager.ts`**: Nuevo método `getChats(companyId)` — `client.getChats()` filtrado a grupos `@g.us`, retorna `{ id, name, participantCount }`.
+- **`src/index.ts`**: Nuevo endpoint `GET /api/v1/whatsapp/session/:company_id/chats` — protegido con Bearer, retorna lista de grupos con sus JIDs.
+- **E2E verificado**: Mensaje entregado al grupo "Coppel" (`120363042693431357@g.us`, 4 participantes) a las 2:22 PM ✓✓.
+
+## Última Actividad (2026-05-22)
 **Phase 124 Addendum: LID Fix + SingletonLock Cleanup + E2E Delivery** ✅
 - **`src/manager.ts` — LID Fix**: `CompanyQueue.processNext()` ahora usa `client.getNumberId(cleanNumber)` para resolver el LID antes de `sendMessage()`. Soluciona el error `Error: No LID for user` introducido por el cambio de protocolo de WhatsApp. Para grupos `@g.us` se usa el JID directamente.
 - **`src/manager.ts` — SingletonLock Cleanup**: `initializeSession()` limpia `SingletonLock`, `SingletonSocket` y `SingletonCookie` antes de cada inicialización. Root cause: `SingletonLock` es un symlink; `fs.existsSync()` sigue el symlink y retorna `false` para symlinks rotos. Fix: `fs.lstatSync()` que opera sobre el symlink mismo.

@@ -105,11 +105,37 @@ Jornada de verificación y documentación: Phase 124 — WhatsApp E2E Verificati
 
 ---
 
+---
+
+## Phase 128 — WhatsApp Group Discovery + Registration UI + E2E Group Delivery ✅ COMPLETADO
+
+### Gateway (Node.js)
+- `[x]` `getChats(companyId)` en `manager.ts` — filtra grupos `@g.us`, retorna JID + nombre + participantes.
+- `[x]` `GET /api/v1/whatsapp/session/:company_id/chats` en `index.ts`.
+
+### Notification Service
+- `[x]` `GET /whatsapp/session/chats` proxy ADR-02 en `whatsapp_routes.py`.
+
+### Frontend Angular (Drawer WhatsApp Gateway)
+- `[x]` Botón "Descubrir grupos" → carga lista desde sesión activa con JID y participantes.
+- `[x]` Sección "Mappings registrados" → carga automática al entrar en CONNECTED.
+- `[x]` Registro inline → input con nombre auto-sugerido, OK / ✕, badge "Registrado".
+- `[x]` `FormsModule` añadido al componente standalone.
+
+### Docs
+- `[x]` `docs/howto/whatsapp_group_setup.md` — how-to completo de 5 pasos.
+- `[x]` `backend/tickets_service/scripts/test_whatsapp_chats.py` — CLI de descubrimiento y registro.
+- `[x]` `initialize-dev.md` y `sync-docs.md` actualizados.
+
+### Verificación E2E
+- `[x]` Grupo "Coppel" (`120363042693431357@g.us`, 4 participantes) — mensaje recibido físicamente a las 2:22 PM ✓✓.
+- `[x]` `ALERTAS_INTERNO` → `120363425542705784@g.us` registrado en DB.
+
+---
+
 ## Pendientes (próximas sesiones)
 
-- `[ ]` **Obtener JID de grupo WhatsApp** — registrar un `WhatsAppGroupMapping` con `group_name = "TECNICOS_PLANTA"`.
-- `[ ]` **Obtener JID de grupo WhatsApp** — registrar un `WhatsAppGroupMapping` con `group_name = "TECNICOS_PLANTA"`.
 - `[ ]` Rate limiting en endpoints de `subscription_service` y `master_data_service`.
 - `[ ]` Fix conocido: `GET /products/{id}/variants` retorna 403 para rol `collaborator` — agregar `inventory:read` al scope mapping en `select_company_command.py`.
 - `[ ]` `default_tax_rate` en Planta US debería ser 0.0 (actualmente 0.16).
-- `[ ]` Endpoint `GET /whatsapp/chats` en gateway para listar grupos disponibles sin necesidad de revisar logs.
+- `[ ]` Registrar mapping `TECNICOS_PLANTA` con JID del grupo real de técnicos de planta.
