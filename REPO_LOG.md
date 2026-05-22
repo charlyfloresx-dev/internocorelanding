@@ -3,6 +3,52 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-22] Phase 125: Sentinel Mobile Ticket Integration & Support Drawer Sync
+
+**Objetivo:** Integrar el módulo de soporte y tickets en la aplicación Sentinel Mobile (Flutter) con arquitectura offline-first y multitenancy dinámico (sin fricción para el usuario de planta), logrando sincronización en tiempo real con el panel de control web.
+
+**Cambios implementados:**
+- **Modelos y DTOs en Dart (`ticket_models.dart`)**: Modelos `Ticket`, `TicketCreateRequest`, y `TicketComment` sincronizados con los esquemas Pydantic del backend en formato, tipos de datos y mapeos.
+- **Repositorio HTTP (`ticket_repository.dart`)**: Implementado en `Dio` y registrado en `GetIt`. Inyecta el `company_id` obtenido localmente de `SharedPreferences` para aislar el multi-tenant sin pedir datos redundantes al operador (cero fricción).
+- **Gestión de Estado (`tickets_bloc.dart`)**: Inyectado como `Factory` en `injection.dart` y registrado globalmente en `main.dart` para manejar los eventos `LoadTickets`, `CreateTicket`, `LoadTicketComments`, y `AddTicketComment` con refresco automático de bandejas.
+- **Vistas "Uber-Style" de Alto Contraste (UI Layer)**:
+  - `tickets_screen.dart`: Visualiza el listado de tickets consumido del backend, con estadísticas rápidas (pendientes vs resueltos) y navegación limpia.
+  - `create_ticket_screen.dart`: Formulario de reporte express de nivel 1 de alto contraste (fondo oscuro con cyan) con validación local robusta.
+  - `ticket_chat_screen.dart`: Chat bidireccional fluido con burbujas alineadas según emisor (operador/soporte), cabecera estática con metadatos del ticket y auto-scroll.
+- **Validación del Ecosistema**: Análisis estático mediante `flutter analyze` completado con 0 errores y 0 advertencias.
+
+**Status**: ✅ Phase 125 COMPLETED
+
+---
+### [2026-05-22] Phase 124: WhatsApp E2E Verification + Test Send Endpoint + How-To Docs
+
+**Objetivo:** Confirmar la sesión WhatsApp CONNECTED end-to-end, añadir endpoint de envío de prueba al stack seguro, y documentar el proceso completo de emparejamiento y notificaciones.
+
+**Verificación E2E:**
+La sesión WhatsApp fue emparejada exitosamente desde el portal Angular (`/admin/whatsapp`). El polling de `/api/v1/whatsapp/session/status` retorna 200 OK de forma sostenida. El QR Base64 se renderiza correctamente como `data:image/png;base64,...`. Estado final: **CONNECTED** visible en el badge verde del panel.
+
+**Endpoint `POST /api/v1/whatsapp/test-send` (notification_service):**
+El schema `TestWhatsAppMessageRequest` ya existía en `whatsapp_routes.py` sin endpoint asociado. Se completó añadiendo el campo `to` (número o group JID) y el handler que actúa como proxy seguro hacia el gateway, protegido por `require_scope(["admin"])` y extrayendo `company_id` exclusivamente del JWT (Muro de Hierro ADR-02). Acepta números en formato `+52XXXXXXXXXX` (auto-normalizado a `@c.us`) o JIDs de grupo (`@g.us`).
+
+**Documentación `docs/howto/whatsapp_pairing_and_notifications.md`:**
+Guía operacional completa que cubre el ciclo de vida completo del canal WhatsApp local: arranque del gateway, emparejamiento QR (portal Angular y curl dev), envío de prueba via JWT (stack completo) y directo al gateway, configuración de `WhatsAppGroupMapping` para enrutamiento por área, integración con la Dispatch Matrix del `notification_service`, y tabla de troubleshooting con las causas raíz más comunes.
+
+**Status**: ✅ Phase 124 COMPLETED
+
+---
+### [2026-05-21] Phase 123: WhatsApp Local Gateway Completion & E2E Compliance
+
+**Objetivo:** Finalizar la Fase 2 del Gateway Multitenant local de WhatsApp, estabilizar el entorno de desarrollo y generar los reportes de estado del ecosistema (Backend/Frontend).
+
+**Cambios implementados:**
+- **Proxy Routes Confirmados (`app/routers/whatsapp_routes.py`)**: Los endpoints de inicialización de sesión, status y código QR funcionan como un Muro de Hierro seguro mediante JWT y ruteo interno, aislando el servicio Node.js.
+- **Factoría Multitenant (`whatsapp_factory.py`)**: Resolución dinámica inyectada exitosamente en el flujo principal de `notification_service.py` para usar `LocalWhatsAppClient` o `TwilioWhatsAppClient` según las preferencias del Tenant guardadas en BD, o default del `.env`.
+- **Code Graph Compliance Fix**: Se detectó una infracción de seguridad estricta (`ENV_ACCESS_VIOLATION`) en el `notification_app/infrastructure/local_whatsapp_client.py` debido a llamadas crudas a `os.getenv`. Fue refactorizado para usar inyección tipada mediante `pydantic_settings.BaseSettings`, devolviendo el ecosistema a un estado perfecto de `100% Compliance (0 err)` en los 14 servicios.
+- **Documentación de Reportes Diarios**: Generados `backend_status_report_20260521.md` (85%) y `frontend_status_report_20260521.md` (80%), evidenciando un progreso firme hacia producción, siendo el mayor bloqueo actual la falta de interfaces (UI) en Angular para visualizar el escaneo QR del Gateway de WhatsApp.
+
+**Status**: ✅ Phase 123 COMPLETED
+
+---
 ### [2026-05-21] Phase 122: Inter-Service HMAC Hardening (subscription_service Internal Endpoints)
 
 **Objetivo:** Proteger los endpoints internos de `subscription_service` con el mismo patrón HMAC-SHA256 que ya existía en `tickets_service`. Eliminación de dead code en `auth_service`.

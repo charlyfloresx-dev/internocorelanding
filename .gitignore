@@ -139,3 +139,6 @@ pgdata/
 docs/infraestructura/*accessKeys.csv
 docs/infraestructura/twilio_2FA_recovery_code.txt
 costs.csv
+
+# --- Scratch / Debug Scripts ---
+**/scripts/scratch/

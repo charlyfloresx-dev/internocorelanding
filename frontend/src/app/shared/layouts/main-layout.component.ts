@@ -17,6 +17,7 @@ import {SideDrawerComponent} from '../../shared/components/side-drawer.component
 import {SideDrawerService} from '../../core/services/side-drawer.service';
 import {TicketsFormComponent} from '../../modules/monitor/tickets/components/tickets-form.component';
 import {PosLinkDrawerComponent} from '../../shared/components/pos-link-drawer.component';
+import {WhatsAppGatewayComponent} from '../../modules/admin/whatsapp-gateway.component';
 
 @Component({
   selector: 'app-main-layout',
@@ -225,6 +226,14 @@ import {PosLinkDrawerComponent} from '../../shared/components/pos-link-drawer.co
                     <mat-icon class="text-lg">policy</mat-icon>
                     <span class="text-[10px] font-bold uppercase tracking-widest">Auditoría Forense</span>
                   </a>
+
+                  <button
+                    (click)="openWhatsAppGatewayDrawer()"
+                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">chat</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">WhatsApp Gateway</span>
+                  </button>
 
                   <a
                     routerLink="/admin/system-control"
@@ -727,6 +736,16 @@ export class MainLayoutComponent {
       subtitle: 'PROVISIÓN DE TERMINALES MÓVILES',
       icon: 'phonelink_setup',
       width: 'w-[400px]'
+    }, {});
+  }
+
+  openWhatsAppGatewayDrawer() {
+    this.navService.closeSubMenu();
+    this.drawerService.open(WhatsAppGatewayComponent, {
+      title: 'WHATSAPP GATEWAY',
+      subtitle: 'CANAL DE NOTIFICACIONES LOCAL',
+      icon: 'chat',
+      width: 'w-[520px]'
     }, {});
   }
 }

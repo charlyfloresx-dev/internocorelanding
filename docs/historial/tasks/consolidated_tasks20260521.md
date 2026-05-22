@@ -44,9 +44,24 @@ Este documento registra el progreso y backlog del día. Jornada de seguridad y a
 
 ---
 
+---
+
+## Phase 123 — WhatsApp Gateway Deployment + UI QR Angular ✅ COMPLETADO
+
+- `[x]` Fix build: `@types/qrcode` agregado a `devDependencies` en `backend/whatsapp_gateway/package.json`.
+- `[x]` Contenedor desplegado: `docker compose up -d --build whatsapp-gateway` → `interno-whatsapp-gateway-dev` corriendo en puerto 3011.
+- `[x]` `infrastructure/docker/nginx.conf` — ruta `location /api/v1/whatsapp` añadida → proxy a `notification_servers`.
+- `[x]` Nginx gateway recargado para activar la nueva ruta.
+- `[x]` Angular: `frontend/src/app/modules/admin/whatsapp-gateway.component.ts` creado — panel QR completo con máquina de estados reactiva (Signals), polling 5s, inicialización desde UI.
+- `[x]` Angular: ruta `/admin/whatsapp` registrada en `app.routes.ts` (lazy-load).
+- `[x]` Angular: ítem **WhatsApp Gateway** agregado al menú lateral admin en `main-layout.component.ts`.
+- `[x]` `.agent/workflows/initialize-dev.md` — sección 6 "WhatsApp Gateway" añadida con instrucciones de despliegue y vinculación de sesión.
+
+---
+
 ## Pendientes (próximas sesiones)
 
-- `[ ]` Desplegar y conectar `whatsapp-gateway`: `docker compose up --build whatsapp-gateway`, escanear QR via `/api/v1/whatsapp/session/qr` con JWT admin, verificar sesión CONNECTED.
+- `[x]` **Escanear QR y verificar sesión CONNECTED** — completado 2026-05-22. Estado CONNECTED confirmado en UI Angular.
 - `[ ]` Rate limiting en endpoints de `subscription_service` y `master_data_service`.
 - `[ ]` Fix conocido: `GET /products/{id}/variants` retorna 403 para rol `collaborator` — agregar `inventory:read` al scope mapping en `select_company_command.py`.
 - `[ ]` `default_tax_rate` en Planta US debería ser 0.0 (actualmente 0.16).

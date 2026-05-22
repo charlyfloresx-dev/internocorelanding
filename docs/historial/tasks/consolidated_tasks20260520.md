@@ -91,7 +91,7 @@
 
 ### Deuda técnica activa
 - [ ] `POST /api/v1/pos/checkout` — validación end-to-end con flujos de antigravity
-- [ ] CLAUDE.md sección 2: `inventory_service` figura como `dbname (shared)` → corregir a `inventory_db`
+- [x] CLAUDE.md sección 2: `inventory_service` figura como `dbname (shared)` → corregir a `inventory_db`
 - [ ] `internal_id_pattern` faltante en `hr_tenant_configs`
 - [ ] Audit calls en endpoints HCM (RFID assign, collaborator CRUD) — tabla ya existe, falta el llamado
 - [ ] WMS y MES no desplegados en dev stack

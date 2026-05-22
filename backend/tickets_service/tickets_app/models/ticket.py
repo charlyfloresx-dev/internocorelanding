@@ -1,4 +1,4 @@
-from sqlalchemy import String, Text, Integer, DateTime, Enum as sqlalchemy_Enum, UUID as sqlalchemy_UUID, ForeignKey, Numeric
+from sqlalchemy import String, Text, Integer, DateTime, Enum as sqlalchemy_Enum, UUID as sqlalchemy_UUID, ForeignKey, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from common.models import MultiTenantBase
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
@@ -9,8 +9,11 @@ from datetime import datetime
 
 class Ticket(MultiTenantBase):
     __tablename__ = "tickets"
+    __table_args__ = (
+        UniqueConstraint("company_id", "reference_code", name="tickets_company_id_reference_code_key"),
+    )
 
-    reference_code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    reference_code: Mapped[str] = mapped_column(String(20), index=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     

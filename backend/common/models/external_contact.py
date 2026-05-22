@@ -5,14 +5,7 @@ from typing import List, Optional, TYPE_CHECKING
 
 from common.infrastructure.models.base import MultiTenantBase, Base
 
-# Tabla asociativa para la relación N:N con Partners (Proveedores)
-# Se usa UUID explícito para compatibilidad industrial y evitar ambigüedad en el Monolito
-partner_contacts = Table(
-    "partner_contacts",
-    Base.metadata,
-    Column("partner_id", UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"), primary_key=True),
-    Column("external_contact_id", UUID(as_uuid=True), ForeignKey("external_contacts.id", ondelete="CASCADE"), primary_key=True)
-)
+
 
 class ExternalContact(MultiTenantBase):
     """

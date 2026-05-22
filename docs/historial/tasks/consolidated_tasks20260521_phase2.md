@@ -38,8 +38,8 @@
 - [x] `app/core/config.py` — 3 nuevas variables: `DEFAULT_WHATSAPP_PROVIDER`, `LOCAL_WHATSAPP_GATEWAY_URL`, `WHATSAPP_GATEWAY_API_KEY`.
 - [x] `notification_app/infrastructure/` — Mirrors con imports ajustados (pydantic_settings).
 
-### Tarea 2.4: Rutas Proxy Seguras (Pending)
-- [ ] `app/routers/whatsapp_routes.py` — Endpoints espejo con `current_user.company_id`.
+### Tarea 2.4: Rutas Proxy Seguras ✅
+- [x] `app/routers/whatsapp_routes.py` — Endpoints espejo con `current_user.company_id`.
 
 ## Validación de Compliance
 - ✅ `generate_code_graph.py` → **100% Compliance (0 errores)** — 14/14 servicios CLEAN.

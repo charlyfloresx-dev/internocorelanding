@@ -427,6 +427,24 @@ services:
     networks:
       - interno-network
 
+  # --- WHATSAPP GATEWAY (Pasarela de WhatsApp Local Multitenant) ---
+  whatsapp-gateway:
+    build:
+      context: ./backend
+      dockerfile: whatsapp_gateway/Dockerfile
+    container_name: interno-whatsapp-gateway
+    image: interno-backend-whatsapp-gateway:latest
+    ports:
+      - "3011:3000"
+    volumes:
+      - whatsapp_sessions:/app/sessions
+    environment:
+      - PORT=3000
+      - API_KEY=DEV_INTERNAL_KEY_123
+      - SESSIONS_PATH=/app/sessions
+    networks:
+      - interno-network
+
 networks:
   interno-network:
     driver: bridge
@@ -434,3 +452,5 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  whatsapp_sessions:
+

@@ -9,12 +9,14 @@ from app.models.notification import (
 )
 from app.models.whatsapp_mapping import WhatsAppGroupMapping
 from app.infrastructure.whatsapp_client import WhatsAppClient, WhatsAppClientError
+from app.infrastructure.base_whatsapp import BaseWhatsAppClient
+from app.infrastructure.whatsapp_factory import WhatsAppClientFactory
 from app.core.websocket import manager
 
 logger = logging.getLogger(__name__)
 
 class NotificationService:
-    def __init__(self, db: AsyncSession, whatsapp_client: Optional[WhatsAppClient] = None):
+    def __init__(self, db: AsyncSession, whatsapp_client: Optional[BaseWhatsAppClient] = None):
         self.db = db
         self._whatsapp_client = whatsapp_client
 
@@ -251,12 +253,16 @@ class NotificationService:
         self.db.add(notification)
         await self.db.flush()
 
-        # 3. Enviar vía el cliente de WhatsApp a cada destinatario
-        if not self._whatsapp_client:
-            logger.error("❌ WhatsApp: Client not configured. Message persisted but not sent.")
-            notification.status = NotificationStatus.FAILED
-            await self.db.flush()
-            return notification
+        # 3. Resolver el cliente de WhatsApp — Factory multitenant dinámico
+        wa_client = self._whatsapp_client
+        if not wa_client:
+            try:
+                wa_client = await WhatsAppClientFactory.get_client_for_tenant(self.db, str(company_id))
+            except Exception as e:
+                logger.error(f"❌ WhatsApp: Factory resolution failed for company {company_id}: {e}")
+                notification.status = NotificationStatus.FAILED
+                await self.db.flush()
+                return notification
 
         success_count = 0
         delivery_details = []
@@ -264,17 +270,17 @@ class NotificationService:
         for mapping in mappings:
             try:
                 if template_name:
-                    response = await self._whatsapp_client.send_template_message(
+                    response = await wa_client.send_template_message(
                         group_id=mapping.whatsapp_group_id,
                         template_name=template_name,
                         template_params=template_params,
                     )
                 else:
                     formatted_message = f"*{title}*\n\n{message}"
-                    response = await self._whatsapp_client.send_group_message(
+                    response = await wa_client.send_group_message(
                         group_id=mapping.whatsapp_group_id,
                         message=formatted_message,
-                        metadata={"notification_id": str(notification.id)},
+                        metadata={"notification_id": str(notification.id), "company_id": str(company_id)},
                     )
 
                 success_count += 1

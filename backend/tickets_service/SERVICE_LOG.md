@@ -16,6 +16,21 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-05-22] Phase 126: Multi-Tenant Isolated Ticket Consecutive Number Fix ✅
+- **Base de Datos & Migraciones**: Creada migración de Alembic `002_ref_code_composite.py` para reemplazar la restricción única global `tickets_reference_code_key` por un índice y restricción compuesta `tickets_company_id_reference_code_key` sobre `(company_id, reference_code)`. Migración ejecutada exitosamente en el contenedor `interno-tickets-dev`.
+- **Modelos SQLAlchemy (`ticket.py`)**: Removido `unique=True` de la columna `reference_code` y agregada la restricción a `__table_args__` del modelo `Ticket`.
+- **Algoritmo de Consecutivos (`infrastructure/repositories/ticket_repository.py`)**: `_generate_ref_code` ahora busca tickets mediante el patrón `%-{current_year}-%` filtrado por `company_id`. Cuenta correctamente todos los prefijos del tenant (`IT-`, `SEC-`, `EXT-`, `TKT-`) y emite folios continuos de forma atómica y aislada por empresa (ej. genera `TKT-2026-0008` tras los 7 tickets pre-sembrados).
+
+### [2026-05-22] Phase 125: Sentinel Mobile Ticket Integration & Support Drawer Sync ✅
+- **Dart DTOs (`ticket_models.dart`)**: Modelos `Ticket`, `TicketCreateRequest` y `TicketComment` creados para mapear los payloads del backend.
+- **Repositorio HTTP (`ticket_repository.dart`)**: Consumo HTTP integrado vía `Dio` e inyección de dependencias `GetIt`. Inyección automática de `company_id` local desde `SharedPreferences` para aislar el multitenancy con cero fricción operacional.
+- **Gestión de Estados (`tickets_bloc.dart`)**: Eventos y estados inyectados globalmente en la jerarquía de la app móvil para actualización en tiempo real de las bandejas `/mine` del operador.
+- **Interfaces Modernas de Alto Contraste ("Uber-Style")**:
+  - `tickets_screen.dart`: Listado dinámico con estadísticas rápidas (pendientes vs cerrados) y estados vacíos.
+  - `create_ticket_screen.dart`: Formulario express minimalista con asunto, prioridad y descripción.
+  - `ticket_chat_screen.dart`: Chat fluido con burbujas alineadas para operador vs supervisor, cabecera de metadatos y auto-scroll.
+- **Calidad de Código**: Ejecución de `flutter analyze` exitosa con 0 warnings y 0 errores.
+
 ### [2026-05-20] Phase 118: Polymorphic Department Ticket Assignments & Visibility Filters ✅
 - **Modelo `Ticket`** (`models/ticket.py`): Campo `assigned_department_id` (UUID, index, nullable) añadido para routing a departamentos sin FK dura a hcm_db.
 - **Schemas** (`schemas/ticket_dto.py`): `TicketCreate`, `TicketUpdate`, `TicketRead`, `TicketTriage` actualizados con `assigned_department_id: Optional[UUID]`.

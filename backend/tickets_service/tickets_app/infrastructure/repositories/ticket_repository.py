@@ -25,19 +25,23 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         self._session = session
 
     async def _generate_ref_code(self, company_id: UUID) -> str:
-        """Genera el folio TKT-YYYY-NNNN globalmente único. Resiliente a colisiones."""
+        """Genera el folio TKT-YYYY-NNNN único por empresa. Resiliente a colisiones."""
         current_year = datetime.now().year
-        pattern = f"TKT-{current_year}-%"
-        # Count ALL tickets globally for this year (constraint is global, not per-company)
+        # Count all tickets for this company and year, supporting various prefixes (like IT-, SEC-, EXT-, TKT-)
+        pattern = f"%-{current_year}-%"
         stmt = select(func.count(Ticket.id)).where(
+            Ticket.company_id == company_id,
             Ticket.reference_code.like(pattern)
         )
         result = await self._session.execute(stmt)
         count = result.scalar() or 0
-        # Add uuid suffix for extra uniqueness in case of race conditions
+        
         ref = f"TKT-{current_year}-{count + 1:04d}"
-        # Verify it doesn't exist
-        check = select(func.count(Ticket.id)).where(Ticket.reference_code == ref)
+        # Verify it doesn't exist for this company
+        check = select(func.count(Ticket.id)).where(
+            Ticket.company_id == company_id,
+            Ticket.reference_code == ref
+        )
         exists = (await self._session.execute(check)).scalar() or 0
         if exists > 0:
             # Fallback: use timestamp-based suffix

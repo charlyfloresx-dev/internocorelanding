@@ -29,6 +29,7 @@ class UpdateWhatsAppMappingRequest(BaseModel):
     is_active: Optional[bool] = None
 
 class TestWhatsAppMessageRequest(BaseModel):
+    to: str = Field(..., description="Número de teléfono destino (+52XXXXXXXXXX) o group JID (XXXX@g.us)")
     message: str = Field(default="🔧 Mensaje de prueba desde InternoCore Notification Service")
 
 # --- ENDPOINTS ---
@@ -130,6 +131,31 @@ async def get_session_qr(
     """Retorna el QR de vinculación para el tenant autenticado (estado QR_READY)."""
     data = await _proxy_get(f"/api/v1/whatsapp/session/{current_user.company_id}/qr")
     return ApiResponse(status="success", data=data)
+
+
+@router.post("/test-send", response_model=ApiResponse)
+async def test_send_message(
+    body: TestWhatsAppMessageRequest,
+    current_user: TokenPayload = Depends(require_scope(["admin"])),
+):
+    """Envía un mensaje de prueba desde la sesión del tenant autenticado."""
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                f"{settings.LOCAL_WHATSAPP_GATEWAY_URL.rstrip('/')}/api/v1/whatsapp/send",
+                headers=_gateway_headers(),
+                json={
+                    "company_id": str(current_user.company_id),
+                    "to": body.to,
+                    "message": body.message,
+                },
+            )
+        return ApiResponse(status="success", data=resp.json())
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"WhatsApp Gateway unreachable: {str(e)}"
+        )
 
 
 @router.post("/session/initialize", response_model=ApiResponse)

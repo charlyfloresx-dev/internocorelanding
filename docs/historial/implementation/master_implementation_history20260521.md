@@ -71,7 +71,7 @@ Los 3 endpoints proxy (`/session/status`, `/session/qr`, `/session/initialize`) 
 
 ---
 
-## 4. Verificación Final
+## 4. Verificación Final (Phase 121-122)
 
 | Check | Resultado |
 |---|---|
@@ -80,3 +80,64 @@ Los 3 endpoints proxy (`/session/status`, `/session/qr`, `/session/initialize`) 
 | `GET /internal/status` sin firma | ✅ 403 Firma de servicio requerida |
 | `GET /internal/entitlements` sin firma | ✅ 403 Firma de servicio requerida |
 | WhatsApp Gateway código | ✅ Completo — pendiente despliegue y QR scan |
+
+---
+
+## 5. Implementación Ejecutada (Phase 123) — WhatsApp Gateway Deployment + Angular QR UI
+
+### Fix de build TypeScript
+
+**`backend/whatsapp_gateway/package.json`**: Faltaba `@types/qrcode` en `devDependencies`. El compilador TypeScript con `noImplicitAny: true` rechazaba el módulo `qrcode` sin tipos. Agregado `"@types/qrcode": "^1.5.5"`. Build limpio confirmado (`interno-backend-whatsapp-gateway:latest`).
+
+### Despliegue del contenedor
+
+`docker compose up -d --build whatsapp-gateway` → contenedor `interno-whatsapp-gateway-dev` corriendo en puerto 3011 (host) → 3000 (interno). Volumen `docker_whatsapp_sessions_dev` creado para persistir sesiones de WhatsApp entre reinicios.
+
+Log de inicio: `🚀 InternoCore WhatsApp Gateway running on port 3000`
+
+### Nginx — nueva ruta
+
+**`infrastructure/docker/nginx.conf`**: Línea añadida bajo la sección de notificaciones:
+```nginx
+location /api/v1/whatsapp { proxy_pass http://notification_servers; }
+```
+El `notification_service` (upstream `notification_servers:8000`) actúa como proxy espejo hacia el gateway Node.js aplicando Iron Wall ADR-02 (company_id del JWT). Gateway recargado.
+
+### Angular — `WhatsAppGatewayComponent`
+
+**`frontend/src/app/modules/admin/whatsapp-gateway.component.ts`**: Componente standalone 100% Signals.
+
+Máquina de estados reactiva: `NOT_INITIALIZED → QR_READY → AUTHENTICATING → CONNECTED` (y ramas `DISCONNECTED / FAILED`).
+
+- Estado `QR_READY`: muestra `<img [src]="qrCode">` (data URL Base64 del gateway), polling automático cada 5s hasta `CONNECTED`.
+- Estado `CONNECTED`: banner verde, botón "Reiniciar sesión".
+- Estado `FAILED / DISCONNECTED`: banner de error + botón de reinicio.
+- `startInitialization()` → `POST /api/v1/whatsapp/session/initialize` → arranca Puppeteer en el gateway.
+- `fetchQr()` → `GET /api/v1/whatsapp/session/qr` → actualiza `session.qrCode`.
+- Polling `clearInterval` automático cuando llega a `CONNECTED` o `FAILED`.
+
+### Angular — routing y navegación
+
+**`app.routes.ts`**: Ruta lazy-load `/admin/whatsapp` → `WhatsAppGatewayComponent`.
+**`main-layout.component.ts`**: Ítem **WhatsApp Gateway** con ícono `chat` añadido al bloque admin del sidebar, con estilo emerald para diferenciarlo de la "Consola Emergencia".
+
+### `initialize-dev.md` actualizado
+
+Sección 6 "WhatsApp Gateway" añadida con:
+- Comandos de build y start
+- Instrucciones de vinculación QR paso a paso
+- Variables de entorno requeridas
+- Diagrama del proxy: `Angular → Nginx (8000) → notification_service (8009) → whatsapp-gateway (3011)`
+
+---
+
+## 6. Estado Post-Phase 123
+
+| Check | Resultado |
+|---|---|
+| `interno-whatsapp-gateway-dev` | ✅ Corriendo en puerto 3011 |
+| Build TypeScript | ✅ Sin errores |
+| Nginx ruta `/api/v1/whatsapp` | ✅ Activa |
+| Angular `/admin/whatsapp` | ✅ Componente creado y ruta registrada |
+| `initialize-dev.md` | ✅ Actualizado con sección WhatsApp |
+| Sesión QR escaneada | ⏳ Pendiente — requiere escaneo manual desde teléfono |

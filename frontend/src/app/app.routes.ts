@@ -174,6 +174,10 @@ export const routes: Routes = [
           {
             path: 'system-control',
             loadComponent: () => import('./modules/admin/system-control.component').then(m => m.SystemControlComponent)
+          },
+          {
+            path: 'whatsapp',
+            loadComponent: () => import('./modules/admin/whatsapp-gateway.component').then(m => m.WhatsAppGatewayComponent)
           }
         ]
       },

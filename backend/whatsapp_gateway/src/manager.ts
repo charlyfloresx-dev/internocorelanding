@@ -45,16 +45,26 @@ class CompanyQueue {
       let success = false;
       try {
         console.log(`[Queue] Sending message to ${job.to}...`);
-        
-        // Ensure recipient format is clean (digits only plus optional @c.us / @g.us suffix)
-        let formattedTo = job.to.replace(/[^\d]/g, '');
-        if (!formattedTo.endsWith('@c.us') && !formattedTo.endsWith('@g.us')) {
-          formattedTo = `${formattedTo}@c.us`;
+
+        let chatId: string;
+
+        if (job.to.includes('@g.us')) {
+          // Group JID — use as-is
+          chatId = job.to;
+        } else {
+          // Individual number — resolve LID via getNumberId to avoid "No LID for user" error
+          const cleanNumber = job.to.replace(/\D/g, '');
+          const numberId = await this.client.getNumberId(cleanNumber);
+          if (!numberId) {
+            throw new Error(`Number ${job.to} is not registered on WhatsApp`);
+          }
+          chatId = numberId._serialized;
+          console.log(`[Queue] Resolved number ${job.to} -> ${chatId}`);
         }
 
-        await this.client.sendMessage(formattedTo, job.message);
+        await this.client.sendMessage(chatId, job.message);
         success = true;
-        console.log(`[Queue] Message successfully delivered to ${formattedTo}`);
+        console.log(`[Queue] Message successfully delivered to ${chatId}`);
       } catch (err: any) {
         console.error(`[Queue] Failed to send to ${job.to}:`, err);
         success = false;
@@ -121,6 +131,18 @@ export class WhatsAppSessionManager {
         await session.client.destroy();
       } catch (e) {
         console.warn(`[Manager] Error destroying previous client for company ${companyId}:`, e);
+      }
+    }
+
+    // Remove stale Chromium SingletonLock left by previous crashed/restarted process
+    const sessionDir = path.join(config.sessionsPath, `session-${companyId}`);
+    const lockFile = path.join(sessionDir, 'SingletonLock');
+    if (fs.existsSync(lockFile)) {
+      try {
+        fs.unlinkSync(lockFile);
+        console.log(`[Manager] Removed stale Chromium lock for company ${companyId}`);
+      } catch (e) {
+        console.warn(`[Manager] Could not remove lock file for company ${companyId}:`, e);
       }
     }
 

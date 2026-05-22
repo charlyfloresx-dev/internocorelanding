@@ -24,7 +24,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 app.include_router(event_routes.router, prefix="/api/v1")
 app.include_router(notification_routes.router, prefix="/api/v1")
-app.include_router(whatsapp_routes.router, prefix="/api/v1/whatsapp", tags=["WhatsApp Admin"])
+app.include_router(whatsapp_routes.router, prefix="/api/v1")
 
 @app.websocket("/ws/{company_id}")
 async def websocket_endpoint(websocket: WebSocket, company_id: str):

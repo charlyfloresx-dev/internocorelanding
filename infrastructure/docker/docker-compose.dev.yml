@@ -246,6 +246,27 @@ services:
     restart: unless-stopped
 
   # ==================================
+  # WhatsApp Gateway (Local Multitenant)
+  # ==================================
+  whatsapp-gateway:
+    build:
+      context: ../../backend
+      dockerfile: whatsapp_gateway/Dockerfile
+    container_name: interno-whatsapp-gateway-dev
+    image: interno-backend-whatsapp-gateway:latest
+    ports:
+      - "3011:3000"
+    volumes:
+      - whatsapp_sessions_dev:/app/sessions
+    environment:
+      PORT: 3000
+      API_KEY: DEV_INTERNAL_KEY_123
+      SESSIONS_PATH: /app/sessions
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
   # GATEWAY (Unified Entry Point)
   # ==================================
   gateway:
@@ -285,3 +306,6 @@ networks:
 volumes:
   postgres_data_dev:
     driver: local
+  whatsapp_sessions_dev:
+    driver: local
+
