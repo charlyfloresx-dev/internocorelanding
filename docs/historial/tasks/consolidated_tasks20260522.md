@@ -67,9 +67,28 @@ Jornada de verificación y documentación: Phase 124 — WhatsApp E2E Verificati
 
 ---
 
+## Phase 124 Addendum — WhatsApp Drawer UI + SingletonLock Fix ✅ COMPLETADO
+
+### Drawer deslizable (mismo patrón que POS)
+- `[x]` `WhatsAppGatewayComponent` adaptado como drawer: `min-h-screen bg-white p-12` → `p-6`, `max-w-xl` removidos de panels.
+- `[x]` `main-layout.component.ts` — ítem "WhatsApp Gateway" en menú admin cambiado de `routerLink="/admin/whatsapp"` a `openWhatsAppGatewayDrawer()`.
+- `[x]` `openWhatsAppGatewayDrawer()` implementado con `SideDrawerService.open(WhatsAppGatewayComponent, { width: 'w-[520px]' })`.
+
+### SingletonLock fix (Chromium session persistence)
+- `[x]` Root cause identificado: `SingletonLock` es un **symlink** — `fs.existsSync()` seguía el symlink y retornaba `false` para symlinks rotos (socket del contenedor anterior destruido). Cleanup nunca corría.
+- `[x]` Fix en `backend/whatsapp_gateway/src/manager.ts`: cleanup usa `fs.lstatSync()` (opera sobre el symlink mismo) antes de cada `initializeSession`. Limpia `SingletonLock`, `SingletonSocket` y `SingletonCookie`.
+- `[x]` Gateway reconstruido y redesplegado.
+
+### Verificación de entrega confirmada
+- `[x]` **Mensaje recibido físicamente en `+526641667684`** — "InternoCore WhatsApp test - canal local multitenant activo" — 1:44 PM ✓✓.
+- `[x]` LID resolution confirmado en logs: `Resolved number +526641667684 -> 263401871777841@lid`.
+- `[x]` Stack completo validado: Angular → Nginx:8000 → notification_service:8009 → gateway:3011 → WhatsApp.
+
+---
+
 ## Pendientes (próximas sesiones)
 
-- `[ ]` **Probar envío real a `+526641667684`** — ejecutar `POST /api/v1/whatsapp/test-send` con JWT admin y verificar recepción en teléfono.
+- `[ ]` **Obtener JID de grupo WhatsApp** — registrar un `WhatsAppGroupMapping` con `group_name = "TECNICOS_PLANTA"`.
 - `[ ]` **Obtener JID de grupo WhatsApp** — registrar un `WhatsAppGroupMapping` con `group_name = "TECNICOS_PLANTA"`.
 - `[ ]` Rate limiting en endpoints de `subscription_service` y `master_data_service`.
 - `[ ]` Fix conocido: `GET /products/{id}/variants` retorna 403 para rol `collaborator` — agregar `inventory:read` al scope mapping en `select_company_command.py`.

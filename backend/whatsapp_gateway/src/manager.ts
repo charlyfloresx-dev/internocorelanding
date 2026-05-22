@@ -134,15 +134,20 @@ export class WhatsAppSessionManager {
       }
     }
 
-    // Remove stale Chromium SingletonLock left by previous crashed/restarted process
+    // Remove stale Chromium lock files left by previous crashed/restarted container.
+    // SingletonLock is a symlink — fs.existsSync() follows symlinks and returns false
+    // for broken ones, so we must use lstatSync which detects them regardless.
     const sessionDir = path.join(config.sessionsPath, `session-${companyId}`);
-    const lockFile = path.join(sessionDir, 'SingletonLock');
-    if (fs.existsSync(lockFile)) {
+    for (const lockName of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
+      const lockPath = path.join(sessionDir, lockName);
       try {
-        fs.unlinkSync(lockFile);
-        console.log(`[Manager] Removed stale Chromium lock for company ${companyId}`);
-      } catch (e) {
-        console.warn(`[Manager] Could not remove lock file for company ${companyId}:`, e);
+        fs.lstatSync(lockPath); // throws ENOENT if truly absent; succeeds for broken symlinks
+        fs.unlinkSync(lockPath);
+        console.log(`[Manager] Removed stale ${lockName} for company ${companyId}`);
+      } catch (e: any) {
+        if (e.code !== 'ENOENT') {
+          console.warn(`[Manager] Could not remove ${lockName} for company ${companyId}:`, e);
+        }
       }
     }
 

@@ -1,6 +1,12 @@
 # Notification Service – Log
 
-## 🕒 Última Actividad (2026-05-21)
+## Última Actividad (2026-05-22)
+**Phase 124 Addendum: POST /whatsapp/test-send + E2E Delivery Verified** ✅
+- **`app/routers/whatsapp_routes.py`**: Endpoint `POST /whatsapp/test-send` añadido — proxy seguro al gateway con `require_scope(["admin"])`. `TestWhatsAppMessageRequest` con campos `to` (número o JID) y `message`. `company_id` exclusivamente del JWT (ADR-02).
+- **E2E verificado**: Mensaje entregado a `+526641667684` — `[Queue] Resolved number +526641667684 -> 263401871777841@lid` — LID resolution confirmado.
+- **Script de prueba**: `backend/tickets_service/scripts/test_whatsapp_send.py` — flujo completo login → JWT → status → send → logs.
+
+## Última Actividad (2026-05-21)
 **Phase 121 Fase 2: WhatsApp Local Multitenant Gateway — Adapter/Factory + Proxy Mirror Routes** ✅
 - **`app/infrastructure/base_whatsapp.py`** (NUEVO): ABC `BaseWhatsAppClient` con contratos `send_group_message(group_id, message, metadata)` y `send_template_message(group_id, template_name, params)`. Desacopla completamente Twilio del Local Gateway.
 - **`app/infrastructure/local_whatsapp_client.py`** (NUEVO): Cliente httpx async para el microservicio Node.js `whatsapp_gateway`. `company_id` tomado de `metadata["company_id"]` — error 400 si falta. POST a `{gateway_url}/api/v1/whatsapp/send` con Bearer API Key interna.

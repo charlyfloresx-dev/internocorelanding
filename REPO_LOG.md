@@ -20,6 +20,16 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 **Status**: ✅ Phase 125 COMPLETED
 
 ---
+### [2026-05-22] Phase 124 Addendum: WhatsApp Drawer UI + SingletonLock Fix + Mensaje Entregado
+
+**Cambios adicionales (misma jornada):**
+- **WhatsApp Gateway como Drawer**: `WhatsAppGatewayComponent` migrado a `SideDrawerService` (mismo patrón que POS). Ítem del menú admin abre el drawer deslizable de 520px en lugar de navegar a `/admin/whatsapp`. Componente adaptado: padding reducido, `min-h-screen` eliminado, `max-w-xl` removidos para que los paneles se adapten al ancho del drawer.
+- **SingletonLock Fix (Chromium)**: Root cause del error "browser already running" — `SingletonLock` es un symlink; `fs.existsSync()` sigue el symlink y retorna `false` para symlinks rotos. Fix en `manager.ts`: usa `fs.lstatSync()` que detecta el symlink independientemente de si el socket destino existe. Limpia `SingletonLock`, `SingletonSocket` y `SingletonCookie` antes de cada `initializeSession`.
+- **Entrega confirmada**: Mensaje `"InternoCore WhatsApp test - canal local multitenant activo"` recibido físicamente en `+526641667684`. LID resolution en logs: `Resolved number +526641667684 -> 263401871777841@lid`.
+
+**Status**: ✅ Phase 124 FULLY COMPLETED — canal WhatsApp verificado de extremo a extremo.
+
+---
 ### [2026-05-22] Phase 124: WhatsApp E2E Verification + Test Send Endpoint + How-To Docs
 
 **Objetivo:** Confirmar la sesión WhatsApp CONNECTED end-to-end, añadir endpoint de envío de prueba al stack seguro, y documentar el proceso completo de emparejamiento y notificaciones.
