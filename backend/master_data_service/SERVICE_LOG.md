@@ -1,3 +1,9 @@
+### [2026-05-24] Phase 131: PAYMENT_METHOD en enumerations + sync master_data_db ✅
+- **`scripts/seed_enums.py`**: `PAYMENT_METHOD` añadido con 5 valores globales (`company_id=NULL`): CASH (Efectivo), CARD (Tarjeta), TRANSFER (Transferencia Bancaria), STRIPE (Stripe / Pago Online), CREDIT (Crédito / Cuenta Corriente). Sirve el endpoint `GET /api/v1/enumerations?type=PAYMENT_METHOD`.
+- **Sync de enums desde unified seed**: `unified_industrial_seed.py` Section 3 ahora llama `seed_enumerations(session)` en `master_data_db`, asegurando que todos los enums globales (incluyendo PAYMENT_METHOD) se sincronicen en ambas DBs (`dbname` y `master_data_db`).
+- **Arquitectura**: `PAYMENT_METHOD` vive como enum dinámico en `enumerations` table — empresas pueden extender con métodos propios via `company_id` específico. El endpoint `GET /api/v1/enumerations?type=PAYMENT_METHOD` retorna globales + empresa.
+- **Status**: ✅ COMPLETED — PAYMENT_METHOD disponible vía endpoint dinámico de enumeraciones.
+
 ### [2026-05-20] Phase 119: inventory_item_variants SSOT Migration + Point-in-Time Prices ✅
 - **Table Migration**: `inventory_item_variants` recibida desde `inventory_db`. La tabla vive ahora en `master_data_db` (alembic `002_add_inventory_item_variants.py`). Permite JOIN ORM nativo en typeahead sin cruzar DBs.
 - **ORM Model**: `master_app/models/item_variant.py` creado con `UniqueConstraint(company_id, internal_sku, mfg_part_number)`.

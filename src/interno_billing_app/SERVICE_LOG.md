@@ -1,5 +1,20 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-24) — Phase 130-131
+**Phase 130: POS Checkout Stabilization** ✅
+- **Bug `SqliteException ON CONFLICT`** (`local_database.dart`): `insertAllOnConflictUpdate` en tabla `local_prices` con PK autoincrement-only reemplazado por `fullSyncReplace` (vacía tabla antes de insertar).
+- **Bug `type 'Null' is not subtype of 'int'`** (`local_database.g.dart`): `rowId` cambiado de `int` a `int?` en `LocalPrice.fromData()` — LEFT JOIN devuelve NULL para productos sin precio.
+- **Bug partner selection no repreciaba carrito** (`scanner_bloc.dart`): `_onSelectPartner` cambiado de `void sync` a `async Future<void>` con re-lookup por ítem al cambiar cliente.
+- **Status**: ✅ COMPLETED — Sync de precios y repreciado B2B estables.
+
+**Phase 131: ScannerScreen Unificada (Ventas + Recibos) + payment_method** ✅
+- **Pestañas unificadas** (`navigation/main_navigation_screen.dart`): Ventas (tab 0) y Recibos (tab 1) comparten slot físico 0 en `IndexedStack` — un solo `MobileScannerController`, sin conflicto de hardware en Moto g04s. `_physicalSlots = [0, 0, 1, 2, 3]`. `_onTabTapped` despacha `ModeSelected(sale/entry)` al `ScannerBloc`.
+- **Guard en BLoC** (`scanner_bloc.dart`): `if (event.mode == state.mode) return` en `_onModeSelected` — evita limpiar el carrito al re-tapear la misma pestaña.
+- **`isTabMode`** (`scanner_screen.dart`): Parámetro `bool isTabMode = false`. Cuando `true`, el botón X se reemplaza por `SizedBox` — sin `Navigator.pop` inválido al estar embebida como tab.
+- **Bug fix `PartnerSearchModal`** (`widgets/partner_search_modal.dart`): `context.read<PartnerRepository>()` lanzaba `ProviderNotFoundException` porque `PartnerRepository` vive en GetIt, no en widget tree. Corregido a `sl<PartnerRepository>()`.
+- **`payment_method` directo** (`data/models/inventory_document_request.dart`): Eliminado workaround `_buildNotes()` que codificaba el método de pago en el campo `notes`. Ahora `toJson()` envía `"payment_method": "CASH"` como campo propio cuando no es null.
+- **Status**: ✅ COMPLETED — Flujo Ventas/Recibos unificado. JSON contract actualizado.
+
 ## 🕒 Última Actividad (2026-05-22) — Phase 127
 **Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment** ✅
 - **Mapeo de Campos en Dart (`ticket_models.dart`)**: Agregados campos `assignedToId`, `area` y `ticketType` al modelo `Ticket` mapeados desde los payloads del backend.

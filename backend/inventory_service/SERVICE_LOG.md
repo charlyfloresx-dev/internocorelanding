@@ -1,5 +1,14 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-24) — Phase 131
+**Phase 131: payment_method como campo propio en inventory_documents** ✅
+- **Migration 003** (`alembic/versions/003_add_payment_method_to_documents.py`): Columna `payment_method VARCHAR(20) NULL` añadida a `inventory_documents`. Down: `op.drop_column`. Chain: `002_drop_inventory_item_variants` → `003_add_payment_method_to_documents`.
+- **`InventoryDocument` model** (`models/document.py`): `payment_method: Mapped[Optional[str]]` — almacena la key del enum dinámico `PAYMENT_METHOD` (CASH, CARD, TRANSFER, etc.). NULL para entradas/ajustes.
+- **`InventoryDocumentCreate` schema** (`schemas/inventory.py`): `payment_method: Optional[str] = None` añadido.
+- **`create_document` endpoint** (`api/v1/endpoints/transactions.py`): `doc_entity` incluye `"payment_method": doc.payment_method`.
+- **`create_inventory_document` repository** (`infrastructure/repositories/sqlalchemy_inventory_repository.py`): Constructor de `InventoryDocument` recibe `payment_method=document_entity.get("payment_method")`.
+- **Status**: ✅ COMPLETED — `payment_method` es un campo de primera clase. Workaround `_buildNotes()` eliminado.
+
 ## 🕒 Última Actividad (2026-05-21)
 **Phase 121 Fase 1: Structural Housekeeping** ✅
 - **`inventory_app/main.py`**: Eliminado bloque de imports duplicado (líneas 72-88 re-importaban los mismos 4 routers ya declarados en línea 14). Eliminados `CORSMiddleware`, `Base`, `engine` (no usados). `from fastapi import FastAPI, Request, status` consolidado.
