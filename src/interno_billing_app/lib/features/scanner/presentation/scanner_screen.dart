@@ -13,7 +13,8 @@ import 'package:interno_billing_app/features/scanner/presentation/widgets/partne
 import 'package:interno_billing_app/domain/entities/cart_item.dart';
 
 class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key});
+  final bool isTabMode;
+  const ScannerScreen({super.key, this.isTabMode = false});
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
@@ -21,7 +22,6 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen> {
   final MobileScannerController controller = MobileScannerController();
-  bool _isManualInput = false;
   final TextEditingController _manualController = TextEditingController();
 
   final FocusNode _keyboardFocusNode = FocusNode();
@@ -105,7 +105,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             }
             
             if (state.detectedProduct != null) {
-              _showProductConfirmation(context, state.detectedProduct!);
+              _showProductConfirmation(context, state.detectedProduct!, state.mode);
             }
           },
           builder: (context, state) {
@@ -164,10 +164,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _UberCircleIcon(
-              icon: Icons.close,
-              onTap: () => Navigator.pop(context),
-            ),
+            widget.isTabMode
+                ? const SizedBox(width: 48, height: 48)
+                : _UberCircleIcon(
+                    icon: Icons.close,
+                    onTap: () => Navigator.pop(context),
+                  ),
             
             // ── Mode Toggle ─────────────────────────────────────────────────
             Container(
@@ -183,7 +185,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   _ModeButton(
                     label: 'VENTA',
                     isActive: state.mode == ScannerMode.sale,
-                    activeColor: InternoColors.cyan,
+                    activeColor: InternoColors.error,
                     onTap: () => context.read<ScannerBloc>().add(ModeSelected(ScannerMode.sale)),
                   ),
                   _ModeButton(
@@ -248,10 +250,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
               Text(
                 'ESCANEANDO: ${state.items.length} PRODUCTOS (${state.totalItems} UNIDADES)',
                 style: TextStyle(
-                  fontFamily: 'Inter', 
-                  fontSize: 12, 
-                  fontWeight: FontWeight.w900, 
-                  color: state.items.isEmpty ? Colors.white54 : InternoColors.cyan, 
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: state.items.isEmpty
+                      ? Colors.white54
+                      : (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success),
                   letterSpacing: 1
                 ),
               ),
@@ -271,14 +275,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: state.selectedPartner != null ? InternoColors.cyan.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+            color: state.selectedPartner != null
+                  ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success).withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: state.selectedPartner != null ? InternoColors.cyan.withOpacity(0.3) : Colors.white10),
+            border: Border.all(
+              color: state.selectedPartner != null
+                  ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success).withValues(alpha: 0.3)
+                  : Colors.white10,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.person_outline, size: 16, color: state.selectedPartner != null ? InternoColors.cyan : Colors.white54),
+              Icon(
+                Icons.person_outline,
+                size: 16,
+                color: state.selectedPartner != null
+                    ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success)
+                    : Colors.white54,
+              ),
               const SizedBox(width: 8),
               Text(
                 state.selectedPartner?.name ?? (state.mode == ScannerMode.entry ? 'SELECCIONAR PROVEEDOR' : 'SELECCIONAR CLIENTE'),
@@ -327,7 +343,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       padding: const EdgeInsets.all(20),
       child: _SlideToConfirm(
         text: totalText,
-        completeColor: InternoColors.success,
+        completeColor: state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success,
         onConfirm: () {
           Future.delayed(const Duration(milliseconds: 300), () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen()));
@@ -387,12 +403,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
     });
   }
 
-  void _showProductConfirmation(BuildContext context, CartItem item) {
+  void _showProductConfirmation(BuildContext context, CartItem item, ScannerMode mode) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isDismissible: false,
-      builder: (_) => _ProductConfirmationSheet(item: item),
+      builder: (_) => _ProductConfirmationSheet(
+        item: item,
+        accentColor: mode == ScannerMode.sale ? InternoColors.error : InternoColors.success,
+      ),
     ).then((_) {
       _keyboardFocusNode.requestFocus();
     });
@@ -484,8 +503,9 @@ class _CircleIconButton extends StatelessWidget {
 
 class _ProductConfirmationSheet extends StatelessWidget {
   final CartItem item;
+  final Color accentColor;
 
-  const _ProductConfirmationSheet({required this.item});
+  const _ProductConfirmationSheet({required this.item, required this.accentColor});
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +544,7 @@ class _ProductConfirmationSheet extends StatelessWidget {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: InternoColors.cyan,
+                    backgroundColor: accentColor,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

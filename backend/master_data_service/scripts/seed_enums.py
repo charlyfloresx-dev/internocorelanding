@@ -45,6 +45,13 @@ async def seed_enums():
             {"type": "WORK_ORDER_STATUS", "key": "SCHEDULED", "label": "Programada", "t_key": "enums.wo_status.scheduled", "sort": 2},
             {"type": "WORK_ORDER_STATUS", "key": "IN_PROGRESS", "label": "En Ejecución", "t_key": "enums.wo_status.in_progress", "sort": 3},
             {"type": "WORK_ORDER_STATUS", "key": "COMPLETED", "label": "Completada", "t_key": "enums.wo_status.completed", "sort": 4},
+
+            # PAYMENT_METHOD (global defaults — companies can extend with company_id)
+            {"type": "PAYMENT_METHOD", "key": "CASH", "label": "Efectivo", "t_key": "enums.payment_method.cash", "sort": 1},
+            {"type": "PAYMENT_METHOD", "key": "CARD", "label": "Tarjeta", "t_key": "enums.payment_method.card", "sort": 2},
+            {"type": "PAYMENT_METHOD", "key": "TRANSFER", "label": "Transferencia Bancaria", "t_key": "enums.payment_method.transfer", "sort": 3},
+            {"type": "PAYMENT_METHOD", "key": "STRIPE", "label": "Stripe / Pago Online", "t_key": "enums.payment_method.stripe", "sort": 4},
+            {"type": "PAYMENT_METHOD", "key": "CREDIT", "label": "Crédito / Cuenta Corriente", "t_key": "enums.payment_method.credit", "sort": 5},
         ]
 
         for e in enums_to_seed:

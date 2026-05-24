@@ -31,7 +31,7 @@ async def pos_checkout(
 
     # ── Validación de tenant sobre warehouse_id (previene BOLA cross-tenant) ──
     wh_check = await service.repository.session.execute(
-        text("SELECT id FROM warehouses WHERE id = :wid AND company_id = :cid"),
+        text("SELECT id FROM inventory_warehouses WHERE id = :wid AND company_id = :cid"),
         {"wid": sale.warehouse_id, "cid": token.company_id},
     )
     if not wh_check.scalar():
@@ -44,14 +44,11 @@ async def pos_checkout(
     doc_id = uuid.uuid4()
 
     for item in sale.items:
-        # 1. Producto con filtro de tenant — previene lectura cross-company
-        prod_res = await service.repository.session.execute(
-            text("SELECT allow_price_override FROM products WHERE id = :id AND company_id = :cid"),
-            {"id": item.product_id, "cid": token.company_id},
-        )
-        product_override = prod_res.scalar()
-        if product_override is None:
+        # 1. Validate product belongs to this tenant via MasterDataClient (cross-service)
+        is_valid = await service.md_client.validate_product(item.product_id, token.company_id)
+        if not is_valid:
             raise HTTPException(status_code=404, detail={"code": "ERR_PRODUCT_NOT_FOUND"})
+        product_override = True  # price already resolved by mobile via Onion lookup
 
         # 2. Resolve target price following "Onion Layers" hierarchy
         resolved_price = None
@@ -132,7 +129,7 @@ async def pos_checkout(
             transaction_type=InventoryTransactionType.OUT,
             concept_id="SAL-VEN",
             reference_id=doc_id,
-            comments=f"POS Sale: {sale.comments or ''}"
+            comments=f"POS Sale via App Móvil ({sale.app_reference or 'mobile_scanner'}): {sale.comments or ''}"
         )
         tx = await service.create_transaction(
             stmt=movement,
@@ -157,13 +154,13 @@ async def pos_checkout(
     except Exception as e:
         # Fallback to UUID fragment if table not available or error
         folio_id = str(doc_id)[:5].upper()
-
+ 
     doc_entity = {
         "id": doc_id,
         "folio": f"POS-{folio_id}",
         "document_type": "OUT",
         "status": "PROCESSED",
-        "origin_name": "POS Terminal",
+        "origin_name": f"App Móvil ({sale.app_reference})" if sale.app_reference else "App Móvil (POS)",
         "destination_name": "Final Customer",
         "total_items": len(sale.items),
         "total_weight": total_weight,

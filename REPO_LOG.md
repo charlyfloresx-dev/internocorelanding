@@ -3,6 +3,121 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-24] Phase 131: ScannerScreen Unificado (Ventas/Recibos) + payment_method Backend
+
+**Objetivo:** Unificar las pestañas Ventas y Recibos del mobile en una sola `ScannerScreen` compartida, y elevar `payment_method` de workaround en `notes` a campo propio en `inventory_documents`.
+
+**Cambios Mobile (Flutter):**
+
+| Cambio | Archivo |
+|---|---|
+| Pestañas Ventas (tab 0) y Recibos (tab 1) comparten slot físico 0 en `IndexedStack` | `navigation/main_navigation_screen.dart` |
+| `_physicalSlots = [0, 0, 1, 2, 3]` — un solo `MobileScannerController` evita conflicto de hardware | `main_navigation_screen.dart` |
+| `_onTabTapped` despacha `ModeSelected(sale/entry)` al `ScannerBloc` compartido | `main_navigation_screen.dart` |
+| Guard `if (event.mode == state.mode) return` en `_onModeSelected` — evita limpiar carrito al re-tapear la misma pestaña | `scanner_bloc.dart` |
+| `ScannerScreen` acepta `isTabMode: bool` — oculta botón X al estar embebida como tab | `scanner_screen.dart` |
+| `PartnerSearchModal` bug fix: `context.read<PartnerRepository>()` → `sl<PartnerRepository>()` | `partner_search_modal.dart` |
+| `_buildNotes()` workaround eliminado — `payment_method` se envía como campo JSON directo | `inventory_document_request.dart` |
+
+**Cambios Backend (inventory_service):**
+
+| Cambio | Archivo |
+|---|---|
+| Alembic migration `003_add_payment_method_to_documents.py` — columna `payment_method VARCHAR(20) NULL` | `alembic/versions/003_add_payment_method_to_documents.py` |
+| `InventoryDocument.payment_method: Mapped[Optional[str]]` | `models/document.py` |
+| `InventoryDocumentCreate.payment_method: Optional[str] = None` | `schemas/inventory.py` |
+| `doc_entity` incluye `payment_method` en `create_document` | `api/v1/endpoints/transactions.py` |
+| `create_inventory_document` mapea `payment_method` al constructor | `infrastructure/repositories/sqlalchemy_inventory_repository.py` |
+
+**Cambios Seed / Enumeraciones:**
+
+| Cambio | Archivo |
+|---|---|
+| `PAYMENT_METHOD` añadido a `enums_to_seed`: CASH, CARD, TRANSFER, STRIPE, CREDIT | `scripts/unified_industrial_seed.py` |
+| Section 3 ahora llama `seed_enumerations(session)` en `master_data_db` — sinc entre DBs | `scripts/unified_industrial_seed.py` |
+| `PAYMENT_METHOD` añadido a `master_data_service/scripts/seed_enums.py` | `master_data_service/scripts/seed_enums.py` |
+
+**Arquitectura de enums — Payment Method:**
+- `PAYMENT_METHOD` es un enum **dinámico de DB** (`enumerations` table, `company_id=NULL` para globales)
+- Empresas pueden extender con métodos propios (p.ej. `CUENTA_CORRIENTE`) via `company_id` específico
+- El enum Python `PaymentMethod` en `common/enums.py` se mantiene para validación en código
+- El frontend consulta `GET /api/v1/enumerations?type=PAYMENT_METHOD` (endpoint dinámico)
+- La columna almacena la key string (ej: `"CASH"`) sin FK hard-coded para máxima flexibilidad
+
+**Contrato JSON verificado:**
+```json
+{
+  "correlation_id": "uuid",
+  "type": "OUT",
+  "concept_id": "SAL-VEN",
+  "warehouse_id": "uuid",
+  "payment_method": "CASH",
+  "notes": "Venta móvil",
+  "items": [...]
+}
+```
+
+**Status:** ✅ Phase 131 COMPLETED
+
+---
+### [2026-05-23] Phase 130: POS Checkout Stabilization + Nginx Dynamic Resolver
+
+**Objetivo:** Estabilizar el flujo completo de venta desde la app móvil Flutter (INTERNO POS) al backend, eliminando el error 502 Bad Gateway y el 500 por consulta SQL cross-DB.
+
+**Bugs corregidos:**
+
+| Bug | Causa | Fix |
+|---|---|---|
+| `500` en `POST /pos/checkout` | `pos.py` ejecutaba `SELECT allow_price_override FROM products` contra `inventory_db`. La tabla `products` vive en `master_data_db`. | Reemplazado por `await service.md_client.validate_product(...)` (HTTP cross-service correcto) |
+| `partner_id` ignorado en checkout B2B | Mobile envía `partner_id`, schema `SaleCreate` solo tenía `customer_id` | Añadido `partner_id` con `model_post_init` alias en `schemas/pos.py` |
+| OUT movements suman stock en vez de restar | `transactions.py` pasaba `item.quantity` (siempre positivo) para salidas | Negado para tipos `OUT` y `BACKFLUSHING` con `_OUTBOUND_TYPES` set |
+| `SqliteException ON CONFLICT` en sync de precios | `insertAllOnConflictUpdate` en `local_prices` con PK autoincrement-only | `fullSyncReplace` usa `insertAll` (tabla vacía antes de insertar) |
+| `type 'Null' is not a subtype of type 'int'` en catálogo | `LocalPrice.fromData()` casteaba `row_id` a `int` no-nullable; LEFT JOIN devuelve NULL | `rowId` cambiado a `int?` en `local_database.g.dart` |
+| Partner selection no repreciaba ítems del carrito | `_onSelectPartner` era sync void, no re-fetched precios | Cambiado a `async Future<void>` con re-lookup por ítem en `scanner_bloc.dart` |
+| `502 Bad Gateway` al hacer checkout | Nginx cacheó IP vieja del contenedor tras rebuild (`172.19.0.5` vs nuevo `172.19.0.12`) | `nginx.conf` migrado a `resolver 127.0.0.11 valid=30s` + `proxy_pass` via variables dinámicas |
+
+**Decisiones Arquitectónicas:**
+- `product_override = True` en POS: el precio ya viene resuelto por el móvil vía Onion Lookup. El backend no re-valida precio si `validate_product` pasa (precio enforcement suave).
+- Nginx community edition requiere `set $svc http://hostname:port; proxy_pass $svc;` para activar resolución DNS dinámica. Los bloques `upstream` estáticos cachean IPs en startup.
+
+**Archivos clave:**
+- `backend/inventory_service/inventory_app/api/v1/endpoints/pos.py`
+- `backend/inventory_service/inventory_app/schemas/pos.py`
+- `backend/inventory_service/inventory_app/api/v1/endpoints/transactions.py`
+- `src/interno_billing_app/lib/core/database/local_database.dart`
+- `src/interno_billing_app/lib/core/database/local_database.g.dart`
+- `src/interno_billing_app/lib/features/scanner/presentation/bloc/scanner_bloc.dart`
+- `infrastructure/docker/nginx.conf`
+
+**Status:** ✅ Phase 130 COMPLETED
+
+---
+### [2026-05-23] Phase 129: Landing Audit vs Operational Plan + WhatsApp How-To Reference
+
+**Objetivo:** Auditoría estratégica cruzada entre la landing page (`src/landing/`) y el historial de fases implementadas. Identificar gaps entre lo prometido y lo entregado. Consolidar documentación de WhatsApp.
+
+**Hallazgos de auditoría (9 módulos evaluados):**
+
+| Módulo | Estado |
+|---|---|
+| Auth, Master Data, Inventory, Subscription | ✅ Completos |
+| HCM Identity, Notifications/WhatsApp | ⚠️ Parciales |
+| MES Engine, WMS Logistics, CMMS Assets | ❌ Pendientes (código existe, sin despliegue activo) |
+
+**Features implementados no comunicados en landing:** Flutter INTERNO POS, Price Agreements B2B, Soft-Close Pricing, RFID Dual-Hash, RLS multi-tenant, Currency SSOT Banxico.
+
+**ADRs registrados:**
+- ADR-04: MES + WMS activar en nginx como prioridad P1 del próximo sprint (habilita Plan Industrial $350/mes)
+- ADR-05: CMMS como módulo de `mes_service` — no microservicio independiente
+
+**Documentación How-To WhatsApp (referencia):**
+- `docs/howto/whatsapp_pairing_and_notifications.md` — pairing + test-send (Phase 124)
+- `docs/howto/whatsapp_group_setup.md` — descubrimiento de grupos + mappings (Phase 128)
+- Stack verificado E2E: Angular → Nginx:8000 → notification_service:8009 → gateway:3011 → WhatsApp
+
+**Status:** ✅ Phase 129 COMPLETED
+
+---
 ### [2026-05-22] Phase 128: WhatsApp Group Discovery + Registration UI + E2E Group Delivery
 
 **Objetivo:** Completar el canal de notificaciones grupales de WhatsApp: descubrimiento de JIDs desde el panel Angular, registro de mappings en DB y verificación de entrega E2E a grupo real.

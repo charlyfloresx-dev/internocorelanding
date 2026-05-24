@@ -120,6 +120,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                 },
               ),
+              _buildMenuItem(
+                icon: Icons.qr_code_scanner_rounded,
+                title: 'Reconectar Servidor',
+                subtitle: 'Escanear QR de vinculación del portal',
+                accentColor: InternoColors.cyan,
+                onTap: () => _confirmReconnect(),
+              ),
 
               const SizedBox(height: 40),
             ],
@@ -145,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               CircleAvatar(
                 radius: 35,
-                backgroundColor: InternoColors.success.withOpacity(0.2),
+                backgroundColor: InternoColors.success.withValues(alpha:0.2),
                 child: const Icon(Icons.person, color: InternoColors.success, size: 40),
               ),
               const SizedBox(width: 16),
@@ -162,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(Icons.star, color: Colors.amber, size: 14),
                         const SizedBox(width: 4),
-                        Text('4.96 • Operador Pro', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                        Text('4.96 • Operador Pro', style: TextStyle(color: Colors.white.withValues(alpha:0.5), fontSize: 12)),
                       ],
                     ),
                   ],
@@ -212,28 +219,76 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Text(
         title,
-        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+        style: TextStyle(color: Colors.white.withValues(alpha:0.3), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
       ),
     );
   }
 
-  Widget _buildMenuItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildMenuItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap, Color? accentColor}) {
+    final color = accentColor ?? Colors.white;
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
-        child: Icon(icon, color: Colors.white, size: 28),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), shape: BoxShape.circle),
+        child: Icon(icon, color: color, size: 28),
       ),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-      subtitle: Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+      title: Text(title, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
+      trailing: Icon(Icons.chevron_right, color: color.withValues(alpha: 0.3)),
     );
   }
 
   void _showConfigMenu() {
-    // Show manual IP config or server settings
+    _confirmReconnect();
+  }
+
+  void _confirmReconnect() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Row(
+          children: [
+            Icon(Icons.qr_code_scanner_rounded, color: InternoColors.cyan, size: 24),
+            SizedBox(width: 12),
+            Text('Reconectar Servidor', style: TextStyle(color: Colors.white, fontSize: 18)),
+          ],
+        ),
+        content: const Text(
+          'Esto desvinculará este dispositivo del servidor actual. Necesitarás escanear el QR del portal web para volver a conectarte.',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCELAR', style: TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final prefs = sl<SharedPreferences>();
+              await prefs.remove('base_url');
+              await prefs.remove('access_token');
+              await prefs.remove('refresh_token');
+              await prefs.remove('company_id');
+              await prefs.remove('warehouse_id');
+              await prefs.remove('company_name');
+              await prefs.remove('warehouse_name');
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text('DESCONECTAR Y ESCANEAR', style: TextStyle(color: InternoColors.cyan, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showProfileDialog() {

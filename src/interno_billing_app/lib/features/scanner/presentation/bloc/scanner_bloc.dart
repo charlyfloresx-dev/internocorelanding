@@ -9,8 +9,8 @@ import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/sale_repository.dart';
 import '../../data/repositories/local_draft_repository.dart';
 import '../../data/models/draft_sale.dart';
-import '../../data/models/sale_request.dart';
 import '../../data/models/inventory_document_request.dart';
+import 'package:interno_billing_app/core/enums/app_reference.dart';
 import 'package:interno_billing_app/domain/entities/cart_item.dart';
 import 'package:interno_billing_app/domain/entities/partner.dart';
 import 'package:uuid/uuid.dart';
@@ -177,7 +177,7 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
   })  : _repository = repository,
         _saleRepository = saleRepository,
         _localDraftRepository = localDraftRepository,
-        super(ScannerState(taxRate: 0.16)) {
+        super(_buildInitialState(localDraftRepository, 0.16)) {
     on<ModeSelected>(_onModeSelected);
     on<BarcodeScanned>(_onBarcodeScanned);
     on<RemoveItem>(_onRemoveItem);
@@ -187,12 +187,31 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     on<AddProductToCart>(_onAddProductToCart);
     on<CancelDetection>(_onCancelDetection);
     on<CheckoutRequested>(_onCheckout);
+  }
 
-    _loadDraftFromLocal();
+  /// Builds the initial state by restoring any persisted draft.
+  /// Called from super() — no emit needed.
+  static ScannerState _buildInitialState(
+    LocalDraftRepository? repo,
+    double taxRate,
+  ) {
+    if (repo == null) return ScannerState(taxRate: taxRate);
+    try {
+      final draft = repo.loadDraft();
+      if (draft != null && draft.items.isNotEmpty) {
+        return ScannerState(
+          taxRate: taxRate,
+          items: draft.items,
+          selectedPartner: draft.selectedPartner,
+          mode: draft.mode == 'entry' ? ScannerMode.entry : ScannerMode.sale,
+        );
+      }
+    } catch (_) {}
+    return ScannerState(taxRate: taxRate);
   }
 
   void _onModeSelected(ModeSelected event, Emitter<ScannerState> emit) {
-    // Clear cart when switching modes to avoid mixing sales and entries
+    if (event.mode == state.mode) return;
     emit(ScannerState(
       mode: event.mode,
       taxRate: taxRate,
@@ -201,11 +220,39 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     _saveDraftToLocal();
   }
 
-  void _onSelectPartner(SelectPartner event, Emitter<ScannerState> emit) {
+  Future<void> _onSelectPartner(SelectPartner event, Emitter<ScannerState> emit) async {
+    final currentItems = state.items;
+
     emit(state.copyWith(
       selectedPartner: event.partner,
       clearPartner: event.partner == null,
+      isLoading: currentItems.isNotEmpty,
     ));
+
+    if (currentItems.isEmpty) {
+      _saveDraftToLocal();
+      return;
+    }
+
+    // Re-fetch prices for all cart items using the new partner's PriceAgreement
+    final newPartnerId = event.partner?.id;
+    final updatedItems = <CartItem>[];
+
+    for (final item in currentItems) {
+      try {
+        final repriced = await _repository.lookupByCode(
+          item.product.sku,
+          partnerId: newPartnerId,
+        );
+        updatedItems.add(repriced != null
+            ? CartItem(product: repriced, quantity: item.quantity, taxRate: item.taxRate)
+            : item);
+      } catch (_) {
+        updatedItems.add(item);
+      }
+    }
+
+    emit(state.copyWith(items: updatedItems, isLoading: false));
     _saveDraftToLocal();
   }
 
@@ -276,7 +323,9 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
 
     if (existingIndex >= 0) {
       final updatedItems = List<CartItem>.from(state.items);
-      updatedItems[existingIndex].increment();
+      updatedItems[existingIndex] = updatedItems[existingIndex].copyWith(
+        quantity: updatedItems[existingIndex].quantity + 1,
+      );
       emit(state.copyWith(
         items: updatedItems,
         clearDetected: true,
@@ -330,53 +379,36 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     emit(state.copyWith(isLoading: true));
 
     try {
-      if (state.mode == ScannerMode.sale) {
-        final request = SaleRequest(
-          items: state.items
-              .map((item) => SaleItemRequest(
-                    productId: item.product.id,
-                    sku: item.product.sku,
-                    quantity: item.quantity.toDouble(),
-                    unitPrice: item.product.price?.amount ?? 0,
-                  ))
-              .toList(),
-          warehouseId: event.warehouseId,
-          partnerId: state.selectedPartner?.id,
-          totalAmount: state.grandTotal,
-          comments: event.comments,
-          paymentMethod: event.paymentMethod,
-          appReference: event.appReference,
-        );
+      final isEntry = state.mode == ScannerMode.entry;
 
-        await _saleRepository!.checkout(request);
-      } else {
-        final correlationId = const Uuid().v4();
-        
-        final request = InventoryDocumentRequest(
-          correlationId: correlationId,
-          type: 'IN',
-          conceptId: 'd1d198e1-24a8-589c-94c1-ec8dafd67ab0', // ENT-PUR deterministic UUID 
-          warehouseId: event.warehouseId,
-          externalEntity: state.selectedPartner?.id,
-          notes: event.comments ?? 'Mobile Industrial Entry',
-          items: state.items.map((item) => InventoryDocumentItemRequest(
-            sku: item.product.sku,
-            productId: item.product.id,
-            quantity: item.quantity.toDouble(),
-            unitPrice: item.product.price?.amount ?? 0.0,
-            currency: item.currency,
-            location: 'SYS_RECEIVING', 
-          )).toList(),
-        );
+      final request = InventoryDocumentRequest(
+        correlationId: const Uuid().v4(),
+        type: isEntry ? 'IN' : 'OUT',
+        conceptId: isEntry ? 'ENT-PUR' : 'SAL-VEN',
+        warehouseId: event.warehouseId,
+        externalEntity: state.selectedPartner?.id,
+        notes: event.comments ?? (isEntry ? 'Mobile Industrial Entry' : 'Mobile POS Sale'),
+        paymentMethod: isEntry ? null : event.paymentMethod,
+        items: state.items
+            .map((item) => InventoryDocumentItemRequest(
+                  sku: item.product.sku,
+                  productId: item.product.id,
+                  quantity: item.quantity.toDouble(),
+                  unitPrice: item.product.price?.amount ?? 0.0,
+                  currency: item.currency,
+                  location: isEntry ? 'SYS_RECEIVING' : null,
+                ))
+            .toList(),
+        appReference: event.appReference ?? AppReference.mobileScanner.value,
+      );
 
-        await _saleRepository!.createDocument(request);
-      }
-      
+      await _saleRepository.createDocument(request);
+
       HapticFeedback.heavyImpact();
       _clearDraftFromLocal();
       emit(ScannerState(
-        successMessage: state.mode == ScannerMode.entry 
-            ? '✓ Entrada Registrada Exitosamente' 
+        successMessage: isEntry
+            ? '✓ Entrada Registrada Exitosamente'
             : '✓ Venta Procesada Exitosamente',
         taxRate: taxRate,
         selectedPartner: state.selectedPartner,
@@ -387,47 +419,22 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     }
   }
 
-  void _loadDraftFromLocal() {
-    if (_localDraftRepository == null) return;
-    try {
-      final draft = _localDraftRepository!.loadDraft();
-      if (draft != null && draft.mode == 'sale') {
-        emit(state.copyWith(
-          items: draft.items,
-          selectedPartner: draft.selectedPartner,
-          mode: ScannerMode.sale,
-        ));
-      }
-    } catch (e) {
-      // Fail-silent in production to prevent crashes
-    }
-  }
-
   void _saveDraftToLocal() {
     if (_localDraftRepository == null) return;
     try {
-      if (state.mode == ScannerMode.sale) {
-        final draft = DraftSale(
-          items: state.items,
-          selectedPartner: state.selectedPartner,
-          mode: 'sale',
-        );
-        _localDraftRepository!.saveDraft(draft);
-      } else {
-        _localDraftRepository!.clearDraft();
-      }
-    } catch (e) {
-      // Fail-silent
-    }
+      _localDraftRepository.saveDraft(DraftSale(
+        items: state.items,
+        selectedPartner: state.selectedPartner,
+        mode: state.mode == ScannerMode.entry ? 'entry' : 'sale',
+      ));
+    } catch (_) {}
   }
 
   void _clearDraftFromLocal() {
     if (_localDraftRepository == null) return;
     try {
-      _localDraftRepository!.clearDraft();
-    } catch (e) {
-      // Fail-silent
-    }
+      _localDraftRepository.clearDraft();
+    } catch (_) {}
   }
 
   void _handleError(dynamic e, Emitter<ScannerState> emit) {

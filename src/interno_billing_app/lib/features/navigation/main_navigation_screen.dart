@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:interno_billing_app/features/home/presentation/home_screen.dart';
 import 'package:interno_billing_app/features/home/presentation/inbox_screen.dart';
 import 'package:interno_billing_app/features/home/presentation/tickets_screen.dart';
-import 'package:interno_billing_app/features/home/presentation/sales_screen.dart';
-import 'package:interno_billing_app/features/home/presentation/receipts_screen.dart';
+import 'package:interno_billing_app/features/scanner/presentation/scanner_screen.dart';
+import 'package:interno_billing_app/features/scanner/presentation/bloc/scanner_bloc.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -15,20 +16,43 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const SalesScreen(),
-    const ReceiptsScreen(),
-    const TicketsScreen(),
-    const InboxScreen(), // Using Inbox as Support for now
-    const HomeScreen(),  // This is the "Usuario" screen
+  // Tabs 0 (Ventas) and 1 (Recibos) share the same ScannerScreen instance.
+  // Mode is controlled by dispatching ModeSelected on tab tap.
+  // This avoids initializing two camera controllers simultaneously.
+  static const _physicalSlots = [0, 0, 1, 2, 3];
+
+  final List<Widget> _physicalScreens = const [
+    ScannerScreen(isTabMode: true),
+    TicketsScreen(),
+    InboxScreen(),
+    HomeScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final mode = context.read<ScannerBloc>().state.mode;
+      if (mode == ScannerMode.entry) {
+        setState(() => _currentIndex = 1);
+      }
+    });
+  }
+
+  void _onTabTapped(int index) {
+    setState(() => _currentIndex = index);
+    final bloc = context.read<ScannerBloc>();
+    if (index == 0) bloc.add(ModeSelected(ScannerMode.sale));
+    if (index == 1) bloc.add(ModeSelected(ScannerMode.entry));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+        index: _physicalSlots[_currentIndex],
+        children: _physicalScreens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -36,7 +60,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: _onTabTapped,
           backgroundColor: Colors.black,
           selectedItemColor: Colors.white,
           unselectedItemColor: Colors.white24,

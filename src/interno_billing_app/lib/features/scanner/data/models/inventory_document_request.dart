@@ -9,6 +9,8 @@ class InventoryDocumentRequest extends Equatable {
   final String? externalEntity;
   final String? notes;
   final List<InventoryDocumentItemRequest> items;
+  final String? appReference;
+  final String? paymentMethod;
 
   const InventoryDocumentRequest({
     required this.correlationId,
@@ -19,6 +21,8 @@ class InventoryDocumentRequest extends Equatable {
     this.externalEntity,
     this.notes,
     required this.items,
+    this.appReference,
+    this.paymentMethod,
   });
 
   Map<String, dynamic> toJson() => {
@@ -30,10 +34,12 @@ class InventoryDocumentRequest extends Equatable {
         'external_entity': externalEntity,
         'notes': notes,
         'items': items.map((e) => e.toJson()).toList(),
+        'app_reference': appReference,
+        if (paymentMethod != null) 'payment_method': paymentMethod,
       };
 
   @override
-  List<Object?> get props => [correlationId, type, conceptId, warehouseId, items];
+  List<Object?> get props => [correlationId, type, conceptId, warehouseId, items, appReference, paymentMethod];
 }
 
 class InventoryDocumentItemRequest extends Equatable {
@@ -42,7 +48,7 @@ class InventoryDocumentItemRequest extends Equatable {
   final double quantity;
   final double unitPrice;
   final String currency;
-  final String location;
+  final String? location;
 
   const InventoryDocumentItemRequest({
     required this.sku,
@@ -50,7 +56,7 @@ class InventoryDocumentItemRequest extends Equatable {
     required this.quantity,
     required this.unitPrice,
     required this.currency,
-    required this.location,
+    this.location,
   });
 
   Map<String, dynamic> toJson() => {
@@ -59,7 +65,7 @@ class InventoryDocumentItemRequest extends Equatable {
         'quantity': quantity,
         'unit_price': unitPrice,
         'currency': currency,
-        'location': location,
+        if (location != null) 'location': location,
       };
 
   @override

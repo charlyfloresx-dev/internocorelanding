@@ -243,7 +243,14 @@ async def seed_enumerations(session):
         {"type": "VERSION_STATUS", "key": "EXPERIMENTAL", "label": "Prototipo / Experimental", "t_key": "enums.ver_status.experimental", "sort": 2},
         {"type": "VERSION_STATUS", "key": "PUBLISHED", "label": "Publicado / Vigente", "t_key": "enums.ver_status.published", "sort": 3},
         {"type": "UNIT_TYPE", "key": "BASE", "label": "Unidad Base (Contenedor)", "t_key": "enums.unit_type.base", "sort": 1},
-        {"type": "UNIT_TYPE", "key": "SALE", "label": "Unidad de Venta (Pieza)", "t_key": "enums.unit_type.sale", "sort": 2}
+        {"type": "UNIT_TYPE", "key": "SALE", "label": "Unidad de Venta (Pieza)", "t_key": "enums.unit_type.sale", "sort": 2},
+
+        # Payment Methods (global defaults — companies can extend with company_id)
+        {"type": "PAYMENT_METHOD", "key": "CASH", "label": "Efectivo", "t_key": "enums.payment_method.cash", "sort": 1},
+        {"type": "PAYMENT_METHOD", "key": "CARD", "label": "Tarjeta", "t_key": "enums.payment_method.card", "sort": 2},
+        {"type": "PAYMENT_METHOD", "key": "TRANSFER", "label": "Transferencia Bancaria", "t_key": "enums.payment_method.transfer", "sort": 3},
+        {"type": "PAYMENT_METHOD", "key": "STRIPE", "label": "Stripe / Pago Online", "t_key": "enums.payment_method.stripe", "sort": 4},
+        {"type": "PAYMENT_METHOD", "key": "CREDIT", "label": "Crédito / Cuenta Corriente", "t_key": "enums.payment_method.credit", "sort": 5},
     ]
     for e in enums_to_seed:
         stmt = select(Enumeration).where(Enumeration.type == e["type"], Enumeration.key == e["key"], Enumeration.company_id == None)
@@ -921,6 +928,7 @@ async def run_unified_seed():
     log.info("\n>>> [SECTION 3] Master Data (Master Data DB)")
     master_factory = get_session_factory(SERVICE_DB_MAP["master"])
     async with master_factory() as session:
+        await seed_enumerations(session)  # sync global enums to master_data_db for enumerations endpoint
         await seed_partners(session)
         await session.flush()
         await seed_master_data(session)

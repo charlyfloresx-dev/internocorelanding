@@ -252,8 +252,8 @@ class AppLocalDatabase extends _$AppLocalDatabase {
       await delete(localPrices).go();
       await delete(localProducts).go();
       await batch((b) {
-        b.insertAll(localProducts, products);
-        b.insertAll(localPrices, prices);
+        b.insertAllOnConflictUpdate(localProducts, products);
+        b.insertAll(localPrices, prices); // table cleared above — no conflict possible
       });
       // Save sync checkpoints
       final nowStr = DateTime.now().toIso8601String();

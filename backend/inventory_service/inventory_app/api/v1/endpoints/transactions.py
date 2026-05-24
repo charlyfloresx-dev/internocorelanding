@@ -1,17 +1,21 @@
 import uuid
-import os
-import httpx
+import hashlib
 import logging
+from decimal import Decimal
 from typing import List, Optional, Any, Union
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
+import httpx
 
 from inventory_app.db.session import get_db
 from inventory_app.models.inventory import InventoryLevel, InventoryTransaction, TransactionType
+from inventory_app.domain.entities.inventory_item import TransactionType as DomainTransactionType
+from inventory_app.models.movement import Movement
+from inventory_app.models.customs_pedimento import CustomsPedimento
 from inventory_app.schemas.inventory import InventoryTransactionCreate, InventoryTransactionRead, InventoryDocumentCreate, StockRelocationCreate
 from inventory_app.services.inventory import InventoryTransactionService
-from inventory_app.services.density_guard_audit import run_density_guard_audit # Phase 64
+from inventory_app.services.density_guard_audit import run_density_guard_audit
 from inventory_app.domain.entities.inventory_item import DocumentDetailEntity
 from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
 from inventory_app.dependencies.repositories import get_inventory_service, get_inventory_repository
@@ -24,6 +28,8 @@ from common.security.limiter import limiter
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+_OUTBOUND_TYPES = {DomainTransactionType.OUT, DomainTransactionType.BACKFLUSHING}
+
 
 async def _notify_admin_new_document(
     company_id: str,
@@ -32,7 +38,7 @@ async def _notify_admin_new_document(
     origin: str,
     destination: str,
     items_count: int,
-    total_amount: float,
+    total_amount: str,
     doc_id: str = None
 ):
     """
@@ -65,6 +71,26 @@ async def _notify_admin_new_document(
         logger.warning(f"⚠️ NOTIFY_ADMIN_FAILED (non-critical): {e}")
 
 
+async def _next_doc_folio(session, company_id: str, doc_type: str, fallback_id: uuid.UUID) -> str:
+    """
+    Generates a sequential folio using a per-company advisory lock to prevent
+    race conditions under concurrent requests.
+    """
+    # Advisory lock key: deterministic per company+type, fits in int4
+    lock_raw = f"{company_id}:{doc_type}:folio"
+    lock_key = int(hashlib.md5(lock_raw.encode()).hexdigest()[:8], 16) % (2 ** 31)
+    try:
+        await session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": lock_key})
+        count_res = await session.execute(
+            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = :dtype"),
+            {"cid": company_id, "dtype": str(doc_type)},
+        )
+        seq_num = (count_res.scalar() or 0) + 1
+        return f"{seq_num:06d}"
+    except Exception:
+        return str(fallback_id)[:5].upper()
+
+
 @router.post("/documents", response_model=ApiResponse)
 @idempotent()
 @limiter.limit("20/minute")
@@ -76,21 +102,20 @@ async def create_document(
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     client_request_id: Optional[str] = None
 ):
-    # 1. Process items/transactions
     results = []
-    total_weight = 0
-    total_amount = 0
-    
+    total_weight = Decimal("0")
+    total_amount = Decimal("0")
+
     for i, item in enumerate(doc.items):
         item_request_id = f"{client_request_id}:{i}" if client_request_id else None
-        
+
         stmt = InventoryTransactionCreate(
             product_id=item.product_id,
             uom_id=item.uom_id,
             warehouse_id=doc.warehouse_id,
             transaction_type=doc.type,
             concept_id=doc.concept_id,
-            quantity_change=item.quantity,
+            quantity_change=-item.quantity if doc.type in _OUTBOUND_TYPES else item.quantity,
             weight=item.weight,
             unit_cost=item.unit_price,
             target_warehouse_id=doc.target_warehouse_id,
@@ -98,7 +123,7 @@ async def create_document(
             comments=doc.notes,
             location=item.location
         )
-        
+
         try:
             tx = await service.create_transaction(
                 stmt=stmt,
@@ -116,37 +141,24 @@ async def create_document(
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-        # [PHASE 64] Silently Audit in Background
         if tx.location:
-             background_tasks.add_task(
-                 run_density_guard_audit,
-                 warehouse_id=doc.warehouse_id,
-                 location_code=tx.location,
-                 quantity_moved=tx.quantity,
-                 movement_id=tx.id,
-                 company_id=token.company_id
-             )
+            background_tasks.add_task(
+                run_density_guard_audit,
+                warehouse_id=doc.warehouse_id,
+                location_code=tx.location,
+                quantity_moved=tx.quantity,
+                movement_id=tx.id,
+                company_id=token.company_id
+            )
 
         results.append(tx)
-        total_weight += tx.weight
+        total_weight += Decimal(str(tx.weight)) if tx.weight else Decimal("0")
         if tx.price:
-            total_amount += (tx.price.amount * tx.quantity)
+            total_amount += Decimal(str(tx.price.amount)) * Decimal(str(tx.quantity))
         else:
             logger.warning(f"TX_PRICE_MISSING: Transaction {tx.id} has no price.")
 
-    # 2. Persist Document Metadata for Dashboard/Listing
-    from sqlalchemy import text
-    try:
-        count_res = await service.repository.session.execute(
-            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = :dtype"),
-            {"cid": token.company_id, "dtype": str(doc.type)}
-        )
-        seq_num = (count_res.scalar() or 0) + 1
-        folio_id = f"{seq_num:06d}"
-    except Exception as e:
-        folio_id = str(doc.correlation_id)[:5].upper()
-    
-    # Enrichment: Get warehouse name from Master Data
+    # Persist Document Metadata
     origin_name = "Almacén Central"
     try:
         warehouse_data = await service.md_client.get_warehouse(doc.warehouse_id, token.company_id)
@@ -156,49 +168,47 @@ async def create_document(
         logger.error(f"MD_WAREHOUSE_ENRICHMENT_FAILED: {str(e)}")
 
     destination_name = doc.external_entity or "N/A"
-    
-    # Enrichment: If external_entity is a UUID, try to get the Partner Name
     if doc.external_entity:
         try:
-            # Check if it's a valid UUID (can be string or UUID object)
-            if isinstance(doc.external_entity, uuid.UUID):
-                potential_uuid = doc.external_entity
-            else:
-                potential_uuid = uuid.UUID(str(doc.external_entity))
-                
+            potential_uuid = (
+                doc.external_entity
+                if isinstance(doc.external_entity, uuid.UUID)
+                else uuid.UUID(str(doc.external_entity))
+            )
             partner_data = await service.md_client.get_partner(potential_uuid, token.company_id)
             if partner_data:
                 destination_name = partner_data.get("name") or partner_data.get("code") or destination_name
         except (ValueError, Exception):
-            # Not a UUID or failed search, keep original
             pass
+
+    folio_id = await _next_doc_folio(
+        service.repository.session, token.company_id, str(doc.type), doc.correlation_id
+    )
 
     doc_entity = {
         "id": doc.correlation_id,
         "folio": f"DOC-{folio_id}",
         "document_type": doc.type,
         "status": "PROCESSED",
-        "origin_name": origin_name,
+        "origin_name": f"App Móvil ({doc.app_reference})" if getattr(doc, "app_reference", None) else origin_name,
         "destination_name": destination_name,
         "total_items": len(results),
-        "total_weight": float(total_weight),
-        "total_amount": float(total_amount),
+        "total_weight": str(total_weight),
+        "total_amount": str(total_amount),
         "total_currency": (results[0].price.currency if (results and results[0].price) else "MXN"),
         "concept_id": doc.concept_id,
-        "external_reference": str(doc.correlation_id)
+        "external_reference": str(doc.correlation_id),
+        "payment_method": doc.payment_method,
     }
-    
+
     try:
         await service.repository.create_inventory_document(doc_entity, token.company_id)
-        # 3. CRITICAL: Commit all changes (Movements + Document)
         await service.repository.session.commit()
     except Exception as e:
         logging.error(f"DOC_METADATA_FAILED: {str(e)}", exc_info=True)
-        # Rollback and raise to reveal the issue
         await service.repository.session.rollback()
         raise HTTPException(status_code=500, detail=f"Database error during document creation: {str(e)}")
 
-    # 4. [NOTIFICATIONS] Notificar al administrador en background (fire-and-forget)
     background_tasks.add_task(
         _notify_admin_new_document,
         company_id=token.company_id,
@@ -207,7 +217,7 @@ async def create_document(
         origin=origin_name,
         destination=destination_name,
         items_count=len(results),
-        total_amount=float(total_amount),
+        total_amount=str(total_amount),
         doc_id=str(doc.correlation_id)
     )
 
@@ -229,24 +239,13 @@ async def create_transaction(
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     client_request_id: Optional[str] = None
 ):
-    print(f"[*] INVENTORY_SERVICE received stmt: {stmt.model_dump()}")
-    
-    # El token ya fue validado por SubscriptionGuard
-    company_id = token.company_id
-    user_id = token.sub
-    trace_id = token.correlation_id or uuid.uuid4()
-    module_token = token.token # we might need to store the raw token in TokenPayload if not there
-
-    # Delegación de la lógica estructurada al Unit Of Work
-    print(f"DEBUG: RECIBIDO COMENTARIO EN API: {stmt.comments}")
-    import sys; sys.stdout.flush()
     try:
         transaction = await service.create_transaction(
             stmt=stmt,
-            company_id=company_id,
-            user_id=user_id,
-            trace_id=trace_id,
-            module_token=module_token,
+            company_id=token.company_id,
+            user_id=token.sub,
+            trace_id=token.correlation_id or uuid.uuid4(),
+            module_token=token.token,
             client_request_id=client_request_id,
             role=token.role,
             home_warehouse_id=token.wid,
@@ -257,19 +256,16 @@ async def create_transaction(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    # [PHASE 64] Silently Audit in Background
     if transaction.location:
-         background_tasks.add_task(
-             run_density_guard_audit,
-             warehouse_id=stmt.warehouse_id,
-             location_code=transaction.location,
-             quantity_moved=transaction.quantity,
-             movement_id=transaction.id,
-             company_id=token.company_id
-         )
+        background_tasks.add_task(
+            run_density_guard_audit,
+            warehouse_id=stmt.warehouse_id,
+            location_code=transaction.location,
+            quantity_moved=transaction.quantity,
+            movement_id=transaction.id,
+            company_id=token.company_id
+        )
 
-
-    # CRITICAL: Commit transaction
     await service.repository.session.commit()
 
     return ApiResponse(
@@ -286,81 +282,72 @@ async def get_transactions(
     warehouse_id: Optional[Union[uuid.UUID, str]] = None,
     limit: int = 100,
     offset: int = 0,
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     db: AsyncSession = Depends(get_db)
 ):
-    company_id_str = request.headers.get("X-Company-ID")
-    if not company_id_str:
-        raise HTTPException(status_code=400, detail="X-Company-ID header missing")
-    
-    # Allow strings for demo, otherwise try UUID
-    try:
-        if "-" in company_id_str:
-            company_id = uuid.UUID(company_id_str)
-        else:
-            company_id = company_id_str
-    except ValueError:
-        company_id = company_id_str
-    
     transactions = await InventoryTransactionService.get_transactions(
         db=db,
-        company_id=company_id,
+        company_id=token.company_id,
         product_id=product_id,
         warehouse_id=warehouse_id,
         limit=limit,
         offset=offset
     )
-    
+
     return ApiResponse(
         status="success",
         data=transactions,
         message="Transactions retrieved successfully."
     )
 
+
 @router.get("/levels", response_model=ApiResponse[List[Any]])
 async def get_all_levels(
     request: Request,
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    List all current stock levels for the active company.
-    """
-    company_id_str = request.headers.get("X-Company-ID")
-    if not company_id_str:
-        raise HTTPException(status_code=400, detail="X-Company-ID header missing")
-    
-    # Simple query for now
-    query = select(InventoryLevel).where(InventoryLevel.company_id == company_id_str)
+    """List current stock levels for the authenticated company."""
+    query = select(InventoryLevel).where(InventoryLevel.company_id == token.company_id)
     result = await db.execute(query)
     levels = result.scalars().all()
-    
+
     return ApiResponse(
         status="success",
         data=[{
             "id": str(l.id),
             "product_id": str(l.product_id),
             "warehouse_id": str(l.warehouse_id),
-            "stockQuantity": float(l.quantity),
-            "reservedQuantity": float(l.reserved_quantity),
+            "stockQuantity": str(l.quantity),
+            "reservedQuantity": str(l.reserved_quantity),
             "uom_id": str(l.uom_id)
         } for l in levels],
         message="Stock levels retrieved."
     )
 
+
 @router.get("/folio-preview/{concept_id}", response_model=ApiResponse)
 async def get_folio_preview(
     concept_id: str,
+    service: InventoryTransactionService = Depends(get_inventory_service),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
-    """
-    Generates a preview of the next folio for a given concept.
-    """
-    # Placeholder logic — in a real system, this would query the sequence generator
-    import random
-    fake_next = f"PREV-{concept_id[:3].upper()}-{random.randint(100, 999)}"
+    """Returns the next folio that will be assigned for a given document type."""
+    try:
+        count_res = await service.repository.session.execute(
+            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = :dtype"),
+            {"cid": token.company_id, "dtype": concept_id},
+        )
+        next_seq = (count_res.scalar() or 0) + 1
+        next_folio = f"DOC-{next_seq:06d}"
+    except Exception:
+        next_folio = f"DOC-{str(uuid.uuid4())[:5].upper()}"
+
     return ApiResponse(
         status="success",
-        data={"nextFolio": fake_next}
+        data={"nextFolio": next_folio}
     )
+
 
 @router.get("/vdetail/{document_id}", response_model=ApiResponse[DocumentDetailEntity])
 async def get_document(
@@ -368,10 +355,7 @@ async def get_document(
     repo: IInventoryRepository = Depends(get_inventory_repository),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
-    """
-    Recupera los detalles de un documento de inventario por su ID.
-    En el backend, el document_id es el id/trace_id de los movimientos.
-    """
+    """Recupera los detalles de un documento de inventario por su ID."""
     try:
         doc_uuid = uuid.UUID(document_id)
         doc = await repo.get_document_by_id(doc_uuid, token.company_id)
@@ -382,6 +366,7 @@ async def get_document(
         raise HTTPException(status_code=404, detail="Document not found")
     return ApiResponse(data=doc)
 
+
 @router.get("/fifo-preview/{product_id}/{warehouse_id}")
 async def get_fifo_preview(
     product_id: uuid.UUID,
@@ -390,50 +375,55 @@ async def get_fifo_preview(
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ) -> ApiResponse:
     """
-    [PHASE 42.5] Picking Suggestion Logic.
     Returns the specific batches (Movements) that WILL be consumed by FIFO.
+    Uses a single JOIN query to avoid N+1 per movement.
     """
     movements = await repo.get_available_movements_fifo(
         product_id=product_id,
         warehouse_id=warehouse_id,
         company_id=token.company_id
     )
-    
-    # Enrichment: We need pedimento numbers (labels)
-    # The repository already does the outer join in get_available_movements_fifo potentially,
-    # but MovementEntity might need clarification.
-    picking_summary = []
-    
-    from inventory_app.models.movement import Movement
-    from inventory_app.models.customs_pedimento import CustomsPedimento
-    from sqlalchemy import select
-    
-    for m in movements:
-        # Resolve pedimento number if exists
-        p_num = "GENERAL/STOCK"
-        if m.customs_pedimento_id:
-            stmt = select(CustomsPedimento.pedimento_number).where(CustomsPedimento.id == m.customs_pedimento_id)
-            res = await repo.session.execute(stmt)
-            p_num = res.scalar() or "N/A"
-            
-        # Get location from DB model directly for precision
-        stmt_loc = select(Movement.location).where(Movement.id == m.id)
-        res_loc = await repo.session.execute(stmt_loc)
-        location = res_loc.scalar() or "SIN UBICACIÓN"
 
-        picking_summary.append({
+    if not movements:
+        return ApiResponse(status="success", data=[], message="No FIFO batches available.")
+
+    movement_ids = [m.id for m in movements]
+    pedimento_map: dict[uuid.UUID, str] = {}
+    location_map: dict[uuid.UUID, str] = {}
+
+    # Single query for all pedimentos
+    ped_rows = await repo.session.execute(
+        select(Movement.id, CustomsPedimento.pedimento_number)
+        .outerjoin(CustomsPedimento, Movement.customs_pedimento_id == CustomsPedimento.id)
+        .where(Movement.id.in_(movement_ids))
+    )
+    for row in ped_rows:
+        pedimento_map[row[0]] = row[1] or "GENERAL/STOCK"
+
+    # Single query for all locations
+    loc_rows = await repo.session.execute(
+        select(Movement.id, Movement.location).where(Movement.id.in_(movement_ids))
+    )
+    for row in loc_rows:
+        location_map[row[0]] = row[1] or "SIN UBICACIÓN"
+
+    picking_summary = [
+        {
             "movement_id": str(m.id),
-            "quantity": float(m.available_quantity),
-            "pedimento_number": p_num,
-            "location": location,
-            "date": m.created_at.isoformat() if m.created_at else None
-        })
-        
+            "quantity": str(m.available_quantity),
+            "pedimento_number": pedimento_map.get(m.id, "GENERAL/STOCK"),
+            "location": location_map.get(m.id, "SIN UBICACIÓN"),
+            "date": m.created_at.isoformat() if m.created_at else None,
+        }
+        for m in movements
+    ]
+
     return ApiResponse(
         status="success",
         data=picking_summary,
         message="FIFO picking preview generated."
     )
+
 
 @router.get("/levels/{product_id}/{warehouse_id}")
 async def get_stock_levels(
@@ -442,9 +432,7 @@ async def get_stock_levels(
     db: AsyncSession = Depends(get_db),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ) -> Any:
-    """
-    Consulta los niveles de stock (Actual y Reservado) para un producto en un almacén.
-    """
+    """Consulta niveles de stock (actual y reservado) para un producto en un almacén."""
     query = select(InventoryLevel).where(
         InventoryLevel.company_id == token.company_id,
         InventoryLevel.product_id == product_id,
@@ -452,23 +440,25 @@ async def get_stock_levels(
     )
     result = await db.execute(query)
     level = result.scalar_one_or_none()
-    
+
     if not level:
         return {
             "product_id": str(product_id),
             "warehouse_id": str(warehouse_id),
-            "quantity": 0.0,
-            "reserved_quantity": 0.0,
-            "available_quantity": 0.0
+            "quantity": "0",
+            "reserved_quantity": "0",
+            "available_quantity": "0"
         }
-        
+
+    available = Decimal(str(level.quantity)) - Decimal(str(level.reserved_quantity))
     return {
         "product_id": str(level.product_id),
         "warehouse_id": str(level.warehouse_id),
-        "quantity": float(level.quantity),
-        "reserved_quantity": float(level.reserved_quantity),
-        "available_quantity": float(level.quantity) - float(level.reserved_quantity)
+        "quantity": str(level.quantity),
+        "reserved_quantity": str(level.reserved_quantity),
+        "available_quantity": str(available)
     }
+
 
 @router.post("/relocate", response_model=ApiResponse)
 @limiter.limit("30/minute")
@@ -478,10 +468,7 @@ async def relocate_stock(
     service: InventoryTransactionService = Depends(get_inventory_service),
     token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
 ):
-    """
-    [Phase 42.8] Internal Relocation.
-    Executes a stock move between locations within the same warehouse.
-    """
+    """[Phase 42.8] Internal Relocation — moves stock between locations within the same warehouse."""
     try:
         results = await service.relocate_stock(
             stmt=stmt,
@@ -489,10 +476,9 @@ async def relocate_stock(
             user_id=token.sub,
             role=token.role
         )
-        
-        # Commit transaction
+
         await service.repository.session.commit()
-        
+
         return ApiResponse(
             status="success",
             message=f"Relocated {stmt.quantity} units to {stmt.to_location}.",
@@ -501,5 +487,5 @@ async def relocate_stock(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.error(f"ERR_CREATE_DOC: {str(e)}", exc_info=True)
+        logging.error(f"ERR_RELOCATE: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

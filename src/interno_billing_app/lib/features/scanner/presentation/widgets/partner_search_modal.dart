@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
+import 'package:interno_billing_app/core/di/injection.dart';
 import 'package:interno_billing_app/features/scanner/data/repositories/partner_repository.dart';
 import 'package:interno_billing_app/domain/entities/partner.dart';
 import 'package:interno_billing_app/features/scanner/presentation/bloc/scanner_bloc.dart';
@@ -31,7 +32,7 @@ class _PartnerSearchModalState extends State<PartnerSearchModal> {
       final mode = scannerBloc.state.mode;
       final type = mode == ScannerMode.entry ? 'SUPPLIER' : 'CUSTOMER';
       
-      final repo = context.read<PartnerRepository>();
+      final repo = sl<PartnerRepository>();
       final results = await repo.searchPartners(query, type: type);
       setState(() {
         _results = results;

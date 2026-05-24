@@ -1303,6 +1303,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             total_weight=Decimal(str(document_entity.get("total_weight", 0.0))),
             concept_id=document_entity.get("concept_id"),
             external_reference=str(document_entity.get("external_reference", py_uuid.uuid4())),
+            payment_method=document_entity.get("payment_method"),
             company_id=strict_company_id,
             tenant_id=strict_company_id
         )

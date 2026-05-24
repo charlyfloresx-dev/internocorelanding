@@ -162,7 +162,7 @@ class LocalProductsCompanion extends UpdateCompanion<LocalProduct> {
 }
 
 class LocalPrice extends DataClass implements Insertable<LocalPrice> {
-  final int rowId;
+  final int? rowId;
   final String productId;
   final double amount;
   final String currency;
@@ -170,14 +170,14 @@ class LocalPrice extends DataClass implements Insertable<LocalPrice> {
   final String? validUntil;
 
   const LocalPrice({
-    required this.rowId, required this.productId, required this.amount,
+    this.rowId, required this.productId, required this.amount,
     required this.currency, this.partnerId, this.validUntil,
   });
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['row_id'] = Variable<int>(rowId);
+    if (rowId != null) map['row_id'] = Variable<int>(rowId!);
     map['product_id'] = Variable<String>(productId);
     map['amount'] = Variable<double>(amount);
     map['currency'] = Variable<String>(currency);
@@ -189,7 +189,7 @@ class LocalPrice extends DataClass implements Insertable<LocalPrice> {
   factory LocalPrice.fromData(Map<String, dynamic> data, {String? prefix}) {
     final p = prefix ?? '';
     return LocalPrice(
-      rowId: data['${p}row_id'] as int,
+      rowId: data['${p}row_id'] as int?,
       productId: data['${p}product_id'] as String,
       amount: data['${p}amount'] as double,
       currency: data['${p}currency'] as String,
@@ -202,7 +202,7 @@ class LocalPrice extends DataClass implements Insertable<LocalPrice> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return {
-      'rowId': serializer.toJson<int>(rowId), 'productId': serializer.toJson<String>(productId),
+      'rowId': serializer.toJson<int?>(rowId), 'productId': serializer.toJson<String>(productId),
       'amount': serializer.toJson<double>(amount), 'currency': serializer.toJson<String>(currency),
       'partnerId': serializer.toJson<String?>(partnerId), 'validUntil': serializer.toJson<String?>(validUntil),
     };

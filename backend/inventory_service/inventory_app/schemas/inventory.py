@@ -48,7 +48,7 @@ class DocumentLine(BaseModel):
     product_id: Union[uuid.UUID, str]
     quantity: Decimal
     uom_id: Optional[Union[uuid.UUID, str]] = None
-    weight: Decimal
+    weight: Decimal = Decimal("0.0")
     unit_price: Decimal = Decimal("0.00")
     currency: str = "MXN"
     location: Optional[str] = None
@@ -69,6 +69,8 @@ class InventoryDocumentCreate(BaseModel):
     external_entity: Optional[str] = None
     notes: Optional[str] = None
     items: list[DocumentLine]
+    app_reference: Optional[str] = None
+    payment_method: Optional[str] = None
 
 class InventoryLevelRead(BaseModel):
     id: uuid.UUID

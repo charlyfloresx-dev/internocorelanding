@@ -57,5 +57,9 @@ class InventoryDocument(MultiTenantBase):
         comment="JSON con warnings y metadatos del Agente de Auditoría Pre-Vuelo."
     )
 
+    # Método de pago — clave de enumerations.type='PAYMENT_METHOD' (CASH, CARD, TRANSFER, etc.)
+    # NULL para documentos de entrada (compras/ajustes). Solo aplica para ventas (SAL-*).
+    payment_method: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
     def __repr__(self):
         return f"<InventoryDocument(folio={self.folio}, type={self.document_type}, status={self.status}, pending_valuation={self.pending_financial_valuation})>"

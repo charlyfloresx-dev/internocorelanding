@@ -16,11 +16,16 @@ class SaleCreate(BaseModel):
     items: List[SaleItemCreate]
     warehouse_id: uuid.UUID
     comments: Optional[str] = None
-    customer_id: Optional[uuid.UUID] = None # Optional for POS
+    customer_id: Optional[uuid.UUID] = None
+    partner_id: Optional[uuid.UUID] = None  # mobile alias for customer_id
     total_amount: Decimal
     currency: str = "MXN"
     payment_method: Optional[str] = None
     app_reference: Optional[str] = None
+
+    def model_post_init(self, __context) -> None:
+        if self.customer_id is None and self.partner_id is not None:
+            object.__setattr__(self, 'customer_id', self.partner_id)
 
 class SaleResponse(BaseModel):
     sale_id: uuid.UUID
