@@ -3,6 +3,37 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-24] Phase 132: ScannerScreen Dual-Mode UI — Uber POS Restaurado ✅
+
+**Objetivo:** Restaurar el diseño Uber POS frozen (`uber_pos_layout.md`) en la pestaña Ventas sin romper la arquitectura de cámara única establecida en Phase 131.
+
+**Decisión Arquitectónica:**
+`ScannerScreen` ahora renderiza dos UIs distintas según `state.mode` — un solo `MobileScannerController` compartido para ambos modos, evitando el conflicto de hardware BLASTBufferQueue del Moto g04s que aparece con dos instancias simultáneas de `MobileScanner`.
+
+| Mode | UI renderizado | Checkout destino |
+|---|---|---|
+| `ScannerMode.sale` | Uber POS: camera fullscreen + cutout verde + laser rojo + top pill MX$ + `DraggableScrollableSheet` + slide-to-confirm | `PaymentConfirmationScreen` |
+| `ScannerMode.entry` | Design actual: VENTA/ENTRADA toggle + panel fijo 45% altura | `CheckoutScreen` |
+
+**Cambios Mobile:**
+
+| Cambio | Archivo |
+|---|---|
+| `_buildSaleMode()` — diseño completo de `SalesScreen` integrado (overlay painter, laser, top bar, draggable sheet, slide-to-confirm) | `scanner_screen.dart` |
+| `_buildEntryMode()` — diseño previo de `ScannerScreen` (toggle + panel fijo) intacto | `scanner_screen.dart` |
+| Estado de sync integrado en `_ScannerScreenState`: `_sheetController`, `_slideProgress`, `_isSyncing`, `_productCatalog` | `scanner_screen.dart` |
+| Listener `BlocConsumer` dispara `_showProductDetectedSheet` (sale) o `_showProductConfirmation` (entry) según modo | `scanner_screen.dart` |
+| `_ScannerOverlayPainter` (custom painter con cutout + esquinas verdes) incluido en `scanner_screen.dart` | `scanner_screen.dart` |
+
+**Workarounds / Deuda Técnica:**
+- `sales_screen.dart` permanece intacto como archivo de referencia del diseño frozen
+- `main_navigation_screen.dart` sin cambios — sigue con `_physicalSlots = [0, 0, 1, 2, 3]`
+- Tickets `/internal` retorna 400 sin firma (no 403) — body validation precede al HMAC check; no es brecha (no 200)
+
+**Archivos clave:** `src/interno_billing_app/lib/features/scanner/presentation/scanner_screen.dart`
+
+---
+
 ### [2026-05-24] Phase 131: ScannerScreen Unificado (Ventas/Recibos) + payment_method Backend
 
 **Objetivo:** Unificar las pestañas Ventas y Recibos del mobile en una sola `ScannerScreen` compartida, y elevar `payment_method` de workaround en `notes` a campo propio en `inventory_documents`.

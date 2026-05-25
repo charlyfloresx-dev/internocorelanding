@@ -1,5 +1,17 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-24) — Phase 132
+**Phase 132: ScannerScreen Dual-Mode — Uber POS Restaurado** ✅
+- **Problema**: Phase 131 unificó Ventas/Recibos en `ScannerScreen` con cámara única, pero eso reemplazó el diseño Uber POS frozen (`uber_pos_layout.md`) de `SalesScreen` por el diseño de entrada simple.
+- **Solución**: `ScannerScreen` ahora contiene dos builders independientes — `_buildSaleMode()` y `_buildEntryMode()` — seleccionados por `state.mode` en el `BlocBuilder`. Un solo `MobileScannerController` compartido entre ambos. Al cambiar de modo, Flutter reconstruye el `Scaffold` pero el controller no se reinicia (la cámara permanece activa).
+- **Sale mode UI** (restaurado desde `uber_pos_layout.md`):
+  - `Positioned.fill` MobileScanner + `_ScannerOverlayPainter` (cutout 75% ancho × 220px + esquinas verdes + laser rojo)
+  - Top bar: botón home (izq) · pill `MX$total` (centro) · botón búsqueda (der)
+  - `DraggableScrollableSheet` (initialSize 0.11, max 0.85) con handle, tune icon, sync indicator, lista de ítems, slide-to-confirm → `PaymentConfirmationScreen`
+- **Entry mode UI**: toggle VENTA/ENTRADA + panel fijo 45% con `CartItemTile` → `CheckoutScreen` (sin cambios).
+- **Sync integrado**: `_loadSyncStatus`, `_loadProductsFromDb`, `_autoSyncIfNeeded` ahora en `_ScannerScreenState.initState()` — disponibles en sale mode.
+- **Status**: ✅ COMPLETED — Diseño Uber POS activo en tab Ventas. Estilo minimalista mantenido.
+
 ## 🕒 Última Actividad (2026-05-24) — Phase 130-131
 **Phase 130: POS Checkout Stabilization** ✅
 - **Bug `SqliteException ON CONFLICT`** (`local_database.dart`): `insertAllOnConflictUpdate` en tabla `local_prices` con PK autoincrement-only reemplazado por `fullSyncReplace` (vacía tabla antes de insertar).
