@@ -7,6 +7,7 @@ from typing import Optional
 from inventory_app.domain.interfaces.master_data_client import IMasterDataClient
 
 from common.context import request_context
+from common.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,7 @@ class MasterDataClient(IMasterDataClient):
     Ensures cross-service integrity for Product IDs and UOM Factors.
     """
     def __init__(self):
-        # In production, this would use service discovery or CORE_MASTER_DATA_URL
-        # Internal service URL (docker networking)
-        self.base_url = "http://localhost:8000/api/v1"
+        self.base_url = f"{settings.int_master_data_service_url}/api/v1"
         self.timeout = httpx.Timeout(5.0, connect=2.0)
 
     def _get_headers(self, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
@@ -79,41 +78,35 @@ class MasterDataClient(IMasterDataClient):
 
     async def get_product_internal_metadata(self, product_id: uuid.UUID, company_id: uuid.UUID, trace_id: Optional[str] = None) -> dict:
         """
-        Retrieves product name and metadata from internal master data endpoint.
-        Uses a resilient fallback strategy for Dashboard continuity.
+        Retrieves product name, SKU and UOM metadata from master_data_service internal endpoint.
+        Uses _get_headers() so the Bearer token from request_context is propagated.
         """
-        headers = {
-            "X-Company-ID": str(company_id),
-            "X-Trace-ID": trace_id or str(uuid.uuid4())
-        }
-        
+        headers = self._get_headers(company_id, trace_id)
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # Using the internal endpoint requested by the user
                 response = await client.get(
                     f"{self.base_url}/products/internal/{product_id}",
-                    headers=headers
+                    headers=headers,
                 )
-                
+
                 if response.status_code == 200:
                     payload = response.json()
-                    # ApiResponse envelope handling: {status, data, message}
-                    return payload.get("data", {})
-                
-                logger.warning(f"Master Data returned {response.status_code} for product {product_id}")
-                
-        except (httpx.RequestError, httpx.TimeoutException) as e:
-            logger.error(f"Resiliency Triggered: Master Data Service unavailable or slow. Error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Unknown error in MasterDataClient: {str(e)}")
+                    data = payload.get("data", {})
+                    return {
+                        "name": data.get("name") or data.get("description") or f"Producto {str(product_id)[:8]}",
+                        "sku": data.get("sku") or data.get("code"),
+                        "uom_name": (data.get("uom") or {}).get("name"),
+                    }
 
-        # Senior Automation: Metadata Offline fallback
-        return {
-            "name": f"[SKU: {str(product_id)[:8]}] - Metadata Offline",
-            "description": "Information temporarily unavailable from Master Data Provider.",
-            "product_type": "UNKNOWN",
-            "is_fallback": True
-        }
+                logger.warning(f"MasterData returned {response.status_code} for product {product_id}")
+
+        except (httpx.RequestError, httpx.TimeoutException) as e:
+            logger.error(f"MasterDataClient timeout/network error for product {product_id}: {e}")
+        except Exception as e:
+            logger.error(f"MasterDataClient unexpected error for product {product_id}: {e}")
+
+        return {"name": f"Producto {str(product_id)[:8]}", "sku": None, "uom_name": None}
 
     async def validate_product(self, product_id: uuid.UUID, company_id: uuid.UUID) -> bool:
         """

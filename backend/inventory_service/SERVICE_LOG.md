@@ -1,5 +1,29 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-26) — Phase 141
+**Phase 141: MasterDataClient ENV_ACCESS_VIOLATION Fix** ✅
+
+- **`infrastructure/clients/master_data.py`**: Removido `import os` y `os.getenv("CORE_MASTER_DATA_URL", ...)`. Reemplazado por `settings.int_master_data_service_url` de `common.config` (campo con alias `CORE_MASTER_DATA_SERVICE_URL`, default `http://master-data-service:8000`). Code Graph regresa a 0 errores.
+- **Status**: ✅ COMPLETED — Code Graph 100% CLEAN, 0 CRITICAL, 0 WARNING.
+
+## 🕒 Última Actividad (2026-05-26) — Phase 140
+**Phase 140: vdetail Fix + MasterDataClient Docker URL + abs() en totales OUT** ✅
+
+- **`get_document_by_id`** (`infrastructure/repositories/sqlalchemy_inventory_repository.py`): eliminadas queries directas a `inventory_item_variants` (tabla en `master_data_db`). Ahora usa `md_client.get_product_internal_metadata(product_id, company_id)` para cada movimiento. Fallback: `{"name": "Producto {id[:8]}", "sku": None}`.
+- **`MasterDataClient.__init__`** (`infrastructure/clients/master_data.py`): `base_url` lee `CORE_MASTER_DATA_URL` env var; default `http://master-data-service:8000/api/v1`. Fix crítico: `localhost:8000` no funciona dentro del contenedor Docker. Método `get_product_internal_metadata` ahora usa `_get_headers()` para propagar Bearer token del contexto.
+- **`abs()` en totales**: `quantity`, `weight`, `total_amount`, `total_weight` usan `abs()` al construir `DocumentDetailEntity`. Motor FIFO almacena negativos para OUT (convención de ledger); la API expone valores absolutos — la dirección se deriva del `document_type` y `concept_id`.
+- **Status**: ✅ COMPLETED
+
+## 🕒 Última Actividad (2026-05-26) — Phase 139
+**Phase 139: POS Checkout Stabilization — Folio Fix + ForensicImmutability + GET /documents** ✅
+
+- **`events.py` — `_MUTABLE_FIELDS`**: Añadido `source_movement_id` al whitelist del guard `before_update`. El discharge FIFO lo asigna en el movimiento OUT para trazabilidad; no modifica valores financieros, solo un puntero de auditoría asignado una sola vez.
+- **`transactions.py` — `_next_doc_folio`**: Corregido count de `WHERE company_id = :cid AND document_type = :type` a `WHERE company_id = :cid`. El folio es secuencial global por empresa. Colisión `DOC-000001` entre IN/OUT resuelta.
+- **`transactions.py` — `ERR_INSUFFICIENT_STOCK`**: El mensaje ahora incluye `| SKU: {item.sku}` para permitir extracción en cliente móvil sin parseo frágil.
+- **`transactions.py` — `GET /documents`**: Nuevo endpoint `list_documents` con filtros `document_type`, `warehouse_id`, `date_from`, `date_to`, `limit`, `offset`. Alimenta la pantalla de Recibos del móvil.
+- **Migration `004_fix_folio_unique_constraint.py`**: Reemplaza `UNIQUE(folio)` global por `UNIQUE(company_id, folio)`. Aplicada. Chain: `003_add_payment_method_to_documents` → `004_fix_folio_unique_constraint`.
+- **Status**: ✅ COMPLETED — Venta `DOC-000007` procesada end-to-end en Moto g04s.
+
 ## 🕒 Última Actividad (2026-05-24) — Phase 131
 **Phase 131: payment_method como campo propio en inventory_documents** ✅
 - **Migration 003** (`alembic/versions/003_add_payment_method_to_documents.py`): Columna `payment_method VARCHAR(20) NULL` añadida a `inventory_documents`. Down: `op.drop_column`. Chain: `002_drop_inventory_item_variants` → `003_add_payment_method_to_documents`.

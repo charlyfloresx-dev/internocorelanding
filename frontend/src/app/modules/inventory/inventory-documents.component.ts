@@ -619,7 +619,7 @@ export class InventoryDocumentsComponent implements OnInit {
         origin: d.origin || 'N/A',
         destination: d.destination || 'N/A',
         items_count: d.items_count || 0,
-        total_value: d.total_value || d.total_weight || 0,
+        total_value: Math.abs(d.total_value || d.total_weight || 0),
         created_at: d.date || new Date().toISOString(),
         created_by: d.created_by || 'SISTEMA',
         external_reference: d.external_reference,

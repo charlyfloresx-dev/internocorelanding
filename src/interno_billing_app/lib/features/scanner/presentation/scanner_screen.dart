@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/core/di/injection.dart';
@@ -14,9 +13,7 @@ import 'package:interno_billing_app/features/scanner/presentation/checkout_scree
 import 'package:interno_billing_app/features/scanner/presentation/payment_confirmation_screen.dart';
 import 'package:interno_billing_app/features/scanner/presentation/widgets/cart_item_tile.dart';
 import 'package:interno_billing_app/features/scanner/presentation/widgets/partner_search_modal.dart';
-import 'package:interno_billing_app/features/scanner/data/repositories/partner_repository.dart';
 import 'package:interno_billing_app/domain/entities/cart_item.dart';
-import 'package:interno_billing_app/domain/entities/partner.dart';
 import 'package:interno_billing_app/domain/entities/product.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -263,49 +260,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     ).whenComplete(() => _isProductModalShown = false);
   }
 
-  Future<void> _showPartnerSelectionDialog(ScannerBloc bloc) async {
-    List<Partner> partners = [];
-    try {
-      final partnerRepo = sl<PartnerRepository>();
-      partners = await partnerRepo.getPartners(type: 'CUSTOMER');
-    } catch (e) {
-      debugPrint('Error cargando partners: $e');
-    }
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        final currentPartner = bloc.state.selectedPartner;
-        return AlertDialog(
-          backgroundColor: const Color(0xFF12141A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Seleccionar Cliente', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  title: const Text('Público General', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('CUST-0000', style: TextStyle(color: Colors.white38)),
-                  trailing: currentPartner == null ? const Icon(Icons.check_circle, color: InternoColors.success) : null,
-                  onTap: () { bloc.add(SelectPartner(null)); Navigator.pop(dialogContext); },
-                ),
-                ...partners.map((p) => ListTile(
-                  contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  title: Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: Text(p.code, style: const TextStyle(color: Colors.white38)),
-                  trailing: currentPartner?.id == p.id ? const Icon(Icons.check_circle, color: InternoColors.success) : null,
-                  onTap: () { bloc.add(SelectPartner(p)); Navigator.pop(dialogContext); },
-                )),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   void _showQuickCatalogDialog(BuildContext context, ScannerBloc bloc) {
     showDialog(
@@ -481,7 +435,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildCircularButton(icon: Icons.home_rounded, onTap: () {}),
+                _buildCircularButton(
+                  icon: Icons.close_rounded,
+                  onTap: () {
+                    if (widget.isTabMode) return;
+                    Navigator.of(context).maybePop();
+                  },
+                ),
                 GestureDetector(
                   onTap: () {},
                   child: Container(
@@ -540,7 +500,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
-                            onPressed: () => _showPartnerSelectionDialog(context.read<ScannerBloc>()),
+                            onPressed: () => _showPartnerSearch(),
                             style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.04), padding: const EdgeInsets.all(12)),
                           ),
                           Column(
@@ -785,220 +745,203 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ENTRY MODE — current design
+  // ENTRY MODE — same DraggableScrollableSheet architecture as sale mode
+  // Only differences: accent color (green), partner label, slider text
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildEntryMode(BuildContext context, ScannerState state) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: (capture) {
-              for (final barcode in capture.barcodes) {
-                if (barcode.rawValue != null) {
-                  context.read<ScannerBloc>().add(BarcodeScanned(barcode.rawValue!));
+          // 1. Fullscreen camera
+          Positioned.fill(
+            child: MobileScanner(
+              controller: controller,
+              onDetect: (capture) {
+                for (final barcode in capture.barcodes) {
+                  if (barcode.rawValue != null) {
+                    context.read<ScannerBloc>().add(BarcodeScanned(barcode.rawValue!));
+                  }
                 }
-              }
-            },
+              },
+            ),
           ),
-          _buildDarkOverlay(),
-          _buildFloatingTopBar(state),
+
+          // 2. Dark overlay
+          Positioned.fill(
+            child: Container(color: Colors.black.withValues(alpha: 0.55)),
+          ),
+
+          // 3. Top bar — mode switcher + flash
           Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: _buildBottomPanel(state),
-          ),
-          if (state.isLoading)
-            const Center(child: CircularProgressIndicator(color: InternoColors.cyan)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDarkOverlay() {
-    return Container(
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.4)),
-    );
-  }
-
-  Widget _buildFloatingTopBar(ScannerState state) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            widget.isTabMode
-                ? const SizedBox(width: 48, height: 48)
-                : _UberCircleIcon(icon: Icons.close, onTap: () => Navigator.pop(context)),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _ModeButton(
-                    label: 'VENTA',
-                    isActive: state.mode == ScannerMode.sale,
-                    activeColor: InternoColors.error,
-                    onTap: () => context.read<ScannerBloc>().add(ModeSelected(ScannerMode.sale)),
+            top: 50, left: 20, right: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                widget.isTabMode
+                    ? const SizedBox(width: 54, height: 54)
+                    : _buildCircularButton(
+                        icon: Icons.close_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                // VENTA / ENTRADA toggle pill
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 4))],
                   ),
-                  _ModeButton(
-                    label: 'ENTRADA',
-                    isActive: state.mode == ScannerMode.entry,
-                    activeColor: InternoColors.success,
-                    onTap: () => context.read<ScannerBloc>().add(ModeSelected(ScannerMode.entry)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ModeButton(
+                        label: 'VENTA',
+                        isActive: false,
+                        activeColor: InternoColors.error,
+                        onTap: () => context.read<ScannerBloc>().add(ModeSelected(ScannerMode.sale)),
+                      ),
+                      _ModeButton(
+                        label: 'ENTRADA',
+                        isActive: true,
+                        activeColor: InternoColors.success,
+                        onTap: () {},
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            _UberCircleIcon(
-              icon: controller.torchEnabled ? Icons.flash_on : Icons.flash_off,
-              onTap: () => controller.toggleTorch(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomPanel(ScannerState state) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.45,
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          _buildUberHeaderBar(state),
-          const Divider(height: 1, color: Colors.white10),
-          _buildPartnerChip(state),
-          Expanded(
-            child: state.items.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: state.items.length,
-                    itemBuilder: (context, index) => CartItemTile(item: state.items[index]),
-                  ),
-          ),
-          _buildCheckoutAction(state),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUberHeaderBar(ScannerState state) {
-    return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ESCANEANDO: ${state.items.length} PRODUCTOS (${state.totalItems} UNIDADES)',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: state.items.isEmpty
-                      ? Colors.white54
-                      : (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success),
-                  letterSpacing: 1,
                 ),
-              ),
-            ],
-          ),
-          _CircleIconButton(icon: Icons.keyboard, onPressed: _showManualInput),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPartnerChip(ScannerState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: InkWell(
-        onTap: () => _showPartnerSearch(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: state.selectedPartner != null
-                ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success).withValues(alpha: 0.1)
-                : Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: state.selectedPartner != null
-                  ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success).withValues(alpha: 0.3)
-                  : Colors.white10,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.person_outline, size: 16,
-                color: state.selectedPartner != null
-                    ? (state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success)
-                    : Colors.white54),
-              const SizedBox(width: 8),
-              Text(
-                state.selectedPartner?.name ?? (state.mode == ScannerMode.entry ? 'SELECCIONAR PROVEEDOR' : 'SELECCIONAR CLIENTE'),
-                style: TextStyle(color: state.selectedPartner != null ? Colors.white : Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-              if (state.selectedPartner != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => context.read<ScannerBloc>().add(SelectPartner(null)),
-                  child: const Icon(Icons.close, size: 14, color: Colors.white38),
+                _buildCircularButton(
+                  icon: controller.torchEnabled ? Icons.flash_on : Icons.flash_off,
+                  onTap: () => controller.toggleTorch(),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.qr_code_scanner_rounded, size: 48, color: Colors.white10),
-          const SizedBox(height: 16),
-          const Text('ESCANEÉ UN CÓDIGO PARA COMENZAR', style: TextStyle(color: Colors.white24, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1)),
+          // 4. Draggable bottom sheet — identical structure to sale mode
+          DraggableScrollableSheet(
+            controller: _sheetController,
+            initialChildSize: 0.11,
+            minChildSize: 0.11,
+            maxChildSize: 0.85,
+            builder: (BuildContext ctx, ScrollController scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  boxShadow: [BoxShadow(color: Colors.black87, blurRadius: 20, spreadRadius: 5)],
+                ),
+                child: ListView(
+                  controller: scrollController,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const SizedBox(height: 10),
+                    Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2.5)))),
+                    const SizedBox(height: 16),
+                    // Sheet header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Partner selector (tune icon)
+                          IconButton(
+                            icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+                            onPressed: _showPartnerSearch,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(alpha: 0.04),
+                              padding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                          // Center status
+                          Column(
+                            children: [
+                              Text(
+                                state.items.isEmpty
+                                    ? 'Escaneando...'
+                                    : '${state.totalItems} ${state.totalItems == 1 ? 'unidad' : 'unidades'}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Proveedor: ${state.selectedPartner?.name ?? 'Sin proveedor'}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          // List toggle
+                          IconButton(
+                            icon: const Icon(Icons.list_rounded, color: Colors.white, size: 24),
+                            onPressed: _toggleCartSheet,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(alpha: 0.04),
+                              padding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(color: Colors.white10, height: 1),
+                    // Items
+                    if (state.items.isEmpty) ...[
+                      const SizedBox(height: 40),
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.02), shape: BoxShape.circle),
+                              child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white24, size: 48),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text('No hay productos agregados', style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 6),
+                            TextButton.icon(
+                              onPressed: _showManualInput,
+                              icon: const Icon(Icons.keyboard_rounded, color: Colors.white24, size: 16),
+                              label: const Text(
+                                'Ingresar código manual',
+                                style: TextStyle(color: Colors.white24, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        itemCount: state.items.length,
+                        itemBuilder: (_, index) => CartItemTile(item: state.items[index]),
+                      ),
+                      // Slide to confirm — green accent for entry
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+                        child: _SlideToConfirm(
+                          text: 'DESLIZAR PARA ENTRADA',
+                          completeColor: InternoColors.success,
+                          onConfirm: () {
+                            final nav = Navigator.of(context);
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              nav.push(MaterialPageRoute(builder: (_) => const CheckoutScreen()));
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // 5. Loading indicator
+          if (state.isLoading)
+            const Center(child: CircularProgressIndicator(color: InternoColors.success)),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCheckoutAction(ScannerState state) {
-    if (state.items.isEmpty) return const SizedBox(height: 20);
-    final formatter = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
-    final totalText = state.mode == ScannerMode.entry
-        ? 'DESLIZAR PARA ENTRADA'
-        : '>> DESLIZAR PARA COBRAR (${formatter.format(state.grandTotal)})';
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: _SlideToConfirm(
-        text: totalText,
-        completeColor: state.mode == ScannerMode.sale ? InternoColors.error : InternoColors.success,
-        onConfirm: () {
-          final nav = Navigator.of(context);
-          Future.delayed(const Duration(milliseconds: 300), () {
-            nav.push(MaterialPageRoute(builder: (_) => const CheckoutScreen()));
-          });
-        },
       ),
     );
   }
@@ -1037,11 +980,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   void _showPartnerSearch() {
+    final bloc = context.read<ScannerBloc>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const PartnerSearchModal(),
+      builder: (_) => BlocProvider.value(
+        value: bloc,
+        child: const PartnerSearchModal(),
+      ),
     ).then((_) => _keyboardFocusNode.requestFocus());
   }
 
@@ -1060,27 +1007,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
 // ── SHARED WIDGETS ────────────────────────────────────────────────────────────
 
-class _UberCircleIcon extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _UberCircleIcon({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48, height: 48,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.8),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-    );
-  }
-}
 
 class _ModeButton extends StatelessWidget {
   final String label;
@@ -1106,23 +1032,6 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-class _CircleIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  const _CircleIconButton({required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.05)),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-      onPressed: onPressed,
-    );
-  }
-}
 
 class _ProductConfirmationSheet extends StatelessWidget {
   final CartItem item;

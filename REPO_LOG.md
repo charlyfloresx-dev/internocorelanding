@@ -3,6 +3,75 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-26] Phase 141: Partner Modal Unification + Dead Code Cleanup + Angular Abs Fix ✅
+
+**Objetivo:** Unificar el selector de cliente/proveedor entre modo venta y modo entrada (mismo componente), eliminar código muerto en `scanner_screen.dart`, y corregir montos negativos en el listado de documentos Angular.
+
+**Decisiones Arquitectónicas:**
+
+- **`PartnerSearchModal` universal**: El modal ya detectaba el modo (`ScannerMode.entry` → `SUPPLIER`, else → `CUSTOMER`) en línea 33. Modo venta usaba un `AlertDialog` simple sin búsqueda (`_showPartnerSelectionDialog`). Reemplazado por el mismo `_showPartnerSearch()` en ambos modos — 0 duplicación, mismo componente. El `AlertDialog` sin búsqueda eliminado.
+- **Carga eager + filtro local**: `PartnerSearchModal` antes sólo cargaba socios al escribir (red por cada tecla). Reescrito con `initState → getPartners(type)` para traer todos los socios al abrir, y `_onSearch` filtra localmente por `name` o `code`. Sin latencia de red por tecla; `if (!mounted) return` previene setState post-dispose.
+- **`MasterDataClient` ENV_ACCESS_VIOLATION**: `os.getenv("CORE_MASTER_DATA_URL", ...)` directo en `__init__` violaba el invariante `ENV_ACCESS_VIOLATION` del Code Graph. Reemplazado por `settings.int_master_data_service_url` (campo existente en `common/config.py` con alias `CORE_MASTER_DATA_SERVICE_URL`). Code Graph: 0 errores.
+- **Angular `total_value` abs**: El endpoint de listado devuelve `total_amount` con signo del motor FIFO (negativo en OUT). `Math.abs()` aplicado en el mapeo Angular (`inventory-documents.component.ts:622`). El signo de dirección lo porta la columna TIPO, no el valor monetario.
+- **Dead code cleanup `scanner_screen.dart`**: Removidos `import 'package:intl/intl.dart'`, `_UberCircleIcon`, `_CircleIconButton`, imports de `partner_repository` y `domain/entities/partner` (ahora sólo `PartnerSearchModal` los usa). `_showManualInput` conectado al estado vacío del entry mode con `TextButton.icon(keyboard_rounded)`.
+
+**Archivos clave:**
+- `src/interno_billing_app/lib/features/scanner/presentation/scanner_screen.dart` — dead code out, ambos modos usan `_showPartnerSearch`
+- `src/interno_billing_app/lib/features/scanner/presentation/widgets/partner_search_modal.dart` — reescrito eager+local filter
+- `backend/inventory_service/inventory_app/infrastructure/clients/master_data.py` — `os.getenv` → `settings.int_master_data_service_url`
+- `frontend/src/app/modules/inventory/inventory-documents.component.ts` — `Math.abs()` en mapeo `total_value`
+
+**Status:** ✅ COMPLETED
+
+---
+### [2026-05-26] Phase 140: Entry Screen UX + vdetail Fix + MasterDataClient Docker URL ✅
+
+**Objetivo:** Resolver 500 en `/vdetail`, corregir negativos en totales OUT, redeseñar pantalla de recepción móvil (partner selector + controles de cantidad + layout compacto).
+
+**Decisiones Arquitectónicas:**
+
+- **`vdetail` 500 → ItemVariant en DB equivocada**: `get_document_by_id` hacía `SELECT inventory_item_variants` en `inventory_db`, pero esa tabla vive en `master_data_db` desde Phase 119. Fix: reemplazadas ambas queries por `md_client.get_product_internal_metadata()` — llamada HTTP al servicio correcto con fallback resiliente.
+- **MasterDataClient URL Docker**: `localhost:8000` no funciona dentro de un contenedor Docker (apunta al contenedor mismo). Cambiado a `os.getenv("CORE_MASTER_DATA_URL", "http://master-data-service:8000/api/v1")`. El nombre `master-data-service` es el service name de Docker Compose dentro de la red `interno-network`.
+- **Negativos en documentos OUT**: El motor FIFO almacena `quantity_change` negativo para salidas (permite `new_balance = prev + change` sin condicional). La capa de presentación aplica `abs()` en `quantity`, `total_amount`, `total_weight`. El `document_type` + `concept` ya porta la semántica de dirección — exponerle negativos al frontend sería fuga de abstracción del motor FIFO.
+- **Pantalla de entrada rediseñada**: `checkout_screen.dart` refactorizado en componentes privados (`_PartnerSelector`, `_ItemRow`, `_QtyButton`, `_Footer`, `_TotalLabel`). El `_PartnerSelector` abre `PartnerSearchModal` (ya filtraba por `type=SUPPLIER` en modo entry) con tap para limpiar selección. `_ItemRow` tiene controles `+/−` que despachan `UpdateQuantity`; botón `−` en cantidad 1 despacha `RemoveItem`. Footer compacto con subtotal + IVA + total en una sola fila.
+
+**Archivos clave:**
+- `backend/inventory_service/inventory_app/infrastructure/clients/master_data.py` — URL Docker + `get_product_internal_metadata` usa `_get_headers()`
+- `backend/inventory_service/inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py` — `get_document_by_id` sin ItemVariant, `abs()` en totales/cantidades
+- `src/interno_billing_app/lib/features/scanner/presentation/checkout_screen.dart` — rediseño completo con partner selector y qty controls
+
+**Status:** ✅ COMPLETED
+
+---
+### [2026-05-26] Phase 139: POS Checkout Stabilization — Folio Fix + IVA Display + Receipts Screen ✅
+
+**Objetivo:** Resolver errores de producción que bloqueaban el flujo completo de venta móvil (500 en checkout) e implementar la pantalla de recibos con datos reales. Venta `DOC-000007` completada exitosamente en dispositivo físico Moto g04s.
+
+**Decisiones Arquitectónicas:**
+
+- **Folio multi-tenant**: `_next_doc_folio` contaba solo documentos del mismo `document_type`, causando colisión `DOC-000001` entre IN y OUT del mismo tenant. Corregido a `COUNT(*) WHERE company_id = :cid` (todos los tipos). El folio es un secuencial global por empresa, no por tipo.
+- **Constraint único**: `inventory_documents_folio_key` era `UNIQUE(folio)` global — imposible en multi-tenant. Migration `004_fix_folio_unique_constraint` lo convierte a `UNIQUE(company_id, folio)`.
+- **ForensicImmutability whitelist**: El guard `before_update` en `events.py` solo permitía mutar `available_quantity`. El discharge FIFO también escribe `source_movement_id` en el movimiento OUT (traceabilidad). Añadido al whitelist como campo de auditoría, no de negocio — solo se asigna una vez (si es NULL) y no modifica el ledger financiero.
+- **Error SKU en stock insuficiente**: Backend ahora enriquece el mensaje `ERR_INSUFFICIENT_STOCK` con `| SKU: {sku}` para que el móvil pueda extraer y mostrar el código exacto sin parsear el mensajero completo.
+- **Parsing de errores anidados**: Los errores `DioException` con `detail` como `dict` (Python) se serializan con single quotes — Flutter BLoC ahora maneja `rawMsg is Map` antes de hacer `.toString()`.
+
+**Archivos clave:**
+- `backend/inventory_service/inventory_app/core/events.py` — whitelist `source_movement_id`
+- `backend/inventory_service/inventory_app/api/v1/endpoints/transactions.py` — folio fix + SKU en error + `GET /documents`
+- `backend/inventory_service/alembic/versions/004_fix_folio_unique_constraint.py` — constraint multi-tenant
+- `src/interno_billing_app/lib/features/scanner/presentation/bloc/scanner_bloc.dart` — dict error parsing + SKU extraction
+- `src/interno_billing_app/lib/features/scanner/presentation/payment_confirmation_screen.dart` — IVA breakdown
+- `src/interno_billing_app/lib/features/home/presentation/receipts_screen.dart` — pantalla real con API
+- `src/interno_billing_app/lib/features/home/data/document_repository.dart` — `GET /inventory/documents`
+- `src/interno_billing_app/lib/features/home/data/models/document_models.dart` — `InventoryDocumentRow`
+
+**Workarounds / Deuda Técnica:**
+- `TRB-700` sin stock en seed — solo `ECM-600` tiene existencias suficientes para pruebas POS.
+- Emojis/iconos eliminados de todos los mensajes de log backend y Flutter BLoC.
+
+**Status:** ✅ COMPLETED — Venta end-to-end `DOC-000007` confirmada en dispositivo físico.
+
+---
 ### [2026-05-26] Phase 135-137: mes_service — Core Matemático, Planning Bulk-load, Seguridad ✅
 
 **Objetivo:** Implementar los tres bloques de refactorización del MES derivados del análisis legacy de la sesión anterior.

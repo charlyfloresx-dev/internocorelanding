@@ -1,5 +1,34 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-26) — Phase 141
+**Phase 141: Partner Modal Unification + Dead Code Cleanup** ✅
+
+- **`partner_search_modal.dart`** — reescrito completamente:
+  - Carga eager en `initState` via `getPartners(type)` (una sola llamada de red al abrir).
+  - Filtro local en `_onSearch`: sin red por tecla, `name.contains(q) || code.contains(q)`.
+  - `if (!mounted) return` en el async callback (previene setState post-dispose — fix al freeze reportado).
+  - El título y el `type` siguen auto-detectando el modo del BLoC (`SUPPLIER` en entry, `CUSTOMER` en sale).
+  - `checkmark` verde en el ítem actualmente seleccionado.
+- **`scanner_screen.dart`** — dead code eliminado:
+  - Removidos: `import 'intl/intl.dart'`, `_UberCircleIcon`, `_CircleIconButton`, imports de `partner_repository.dart` y `domain/entities/partner.dart`.
+  - Modo venta: botón `tune_rounded` → `_showPartnerSearch()` (antes llamaba `_showPartnerSelectionDialog` sin búsqueda).
+  - `_showManualInput` conectado al estado vacío del entry mode con `TextButton.icon(Icons.keyboard_rounded)`.
+- **Status**: ✅ COMPLETED
+
+## 🕒 Última Actividad (2026-05-26) — Phase 139–140
+**Phase 139–140: POS Checkout E2E + Pantalla de Entrada Rediseñada** ✅
+
+- **`payment_confirmation_screen.dart`**: IVA breakdown encima del total (`Subtotal` + `IVA 16%` en fila horizontal, helper `_buildTotalRow`). Total en rojo `InternoColors.error`. Venta `DOC-000007` completada en Moto g04s.
+- **`scanner_bloc.dart`**: Parsing de errores `DioException` con `detail` como `Map` (dict Python con single quotes). Extracción de SKU con `RegExp(r'SKU:\s*(\S+)')` para `ERR_INSUFFICIENT_STOCK`. Eliminados emojis de mensajes de error.
+- **`checkout_screen.dart`** — rediseño completo en componentes privados:
+  - `_PartnerSelector`: pill tappable que abre `PartnerSearchModal` (ya filtraba `type=SUPPLIER` en modo entry). Muestra nombre del partner o "Seleccionar PROVEEDOR/CLIENTE". Botón `×` para limpiar selección.
+  - `_ItemRow`: fila compacta con controles `+/−` (`UpdateQuantity`). El botón `−` en cantidad 1 despacha `RemoveItem`. Precio unitario en segunda línea.
+  - `_Footer`: una fila con Subtotal + IVA + TOTAL. Botón CTA deshabilitado si `items.isEmpty`.
+- **`receipts_screen.dart`**: pantalla real con `DocumentRepository` → `GET /inventory/documents`. Filter chips: Todos/Ventas(OUT)/Ingresos(IN)/Ajustes. Pull-to-refresh, shimmer skeleton, estados de error y vacío.
+- **`document_repository.dart` + `document_models.dart`**: cliente HTTP para `GET /inventory/documents` con filtros. `InventoryDocumentRow` con `fromJson`.
+- **`sales_screen.dart`**: botón home corregido (`maybePop()` en lugar de callback vacío).
+- **Status**: ✅ COMPLETED — E2E venta confirmada, pantalla entrada funcional.
+
 ## 🕒 Última Actividad (2026-05-24) — Phase 132
 **Phase 132: ScannerScreen Dual-Mode — Uber POS Restaurado** ✅
 - **Problema**: Phase 131 unificó Ventas/Recibos en `ScannerScreen` con cámara única, pero eso reemplazó el diseño Uber POS frozen (`uber_pos_layout.md`) de `SalesScreen` por el diseño de entrada simple.
