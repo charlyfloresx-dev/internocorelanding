@@ -3,6 +3,90 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-26] Phase 135-137: mes_service — Core Matemático, Planning Bulk-load, Seguridad ✅
+
+**Objetivo:** Implementar los tres bloques de refactorización del MES derivados del análisis legacy de la sesión anterior.
+
+**Decisiones arquitectónicas:**
+- `break_minutes INTEGER DEFAULT 60` en `mes_shifts` — configurable por turno, elimina el hardcoded del legacy `TotalTimeBreaks = 1h`
+- `cycle_time_seconds INTEGER NULL` en `mes_standard_times` — RunTime por pieza; NULL = sin time-study, fallback a `set_time_hours`
+- `ShiftService.calculate_available_minutes()` con aritmética overnight: `(24h − start) + end` para T2 16:30–01:45
+- `ManufacturingMath.calculate_theoretical_capacity()` — nueva función para capacidad teórica por turno
+- `POST /planning/bulk-load` con `begin_nested()` por entrada — fallo parcial no aborta el lote
+- Downtime IDOR eliminado: `tech_user_id`/`admin_user_id` extraídos del JWT (`current_user.sub`), nunca del body/params
+- `require_scope` aplicado en scan, dashboard (3 endpoints), labor (4 endpoints), downtime (5 endpoints)
+- Fix `float(ledger_entry.qty)` → `str(Decimal(...))` en scan.py — PRIMITIVE_FLOAT_VIOLATION resuelto
+- Fix `db.get(WorkOrder, order_number)` → `select().where(order_number == ...)` — BUG-02 resuelto
+- `alembic/env.py` limpiado: debug prints eliminados + `version_table="alembic_version_mes"` añadido
+- Code Graph Auditor: **100% Compliance, 0 CRITICALs, 0 WARNINGs** post-implementación
+
+**Archivos clave:** `mes_service/alembic/versions/006_mes_cycle_time_and_breaks.py` · `mes_service/mes_app/api/v1/endpoints/planning.py` · `mes_service/mes_app/api/v1/endpoints/production.py` · `mes_service/mes_app/services/shift_service.py`
+
+---
+
+### [2026-05-26] Phase 138: hcm_service — Mexicanización del Expediente ✅
+
+**Objetivo:** Adaptar el modelo de colaborador al marco legal mexicano con doble apellido.
+
+**Decisiones arquitectónicas:**
+- `last_name` → `last_name_paternal VARCHAR(50) NOT NULL` + `last_name_maternal VARCHAR(50) NULL` (doble apellido MX)
+- `full_name` property actualizada para componer los dos apellidos
+- RFC y CURP ya existían con validators desde Phase 50 — no requirieron cambios
+- Migration con data copy: `SET last_name_paternal = last_name` antes de DROP COLUMN
+
+**Archivos clave:** `hcm_service/alembic/versions/002_split_last_name.py` · `hcm_service/hcm_app/models/collaborator.py`
+
+---
+
+### [2026-05-26] Phase 134: mes_service — Análisis Legacy + Plan de Refactorización (Phases 135–138) 📋
+
+**Objetivo:** Auditoría completa del código legacy (.NET) y definición del plan de refactorización del `mes_service` absorbiendo conocimiento de dominio genérico de manufactura.
+
+**Legados analizados:**
+- `Interno.Production` (.NET 7) — sistema de producción original; confirmó gaps en `RunTime`, `Planning`, `ResultWorkOrder N:M`, `WOType`
+- `Interno.HumanResource` (.NET 7) — sistema HR; confirmó necesidad de doble apellido + RFC/CURP en `hcm_service`
+- `Interno.DJO` (.NET Core 3.1) — supply chain para cliente Enovis (procurement, STBL, Kanban) → **descartado como deuda futura** (dominio separado, no genérico)
+- `Interno.Outset` (.NET 7) — adaptador Tulip MES → confirma que `RunTime` es crítico para StdTime real
+
+**Decisiones arquitectónicas:**
+- Modelo `ProductionRun` ya limpio (Phase 17.5) — solo extensión de atributos, no rediseño
+- `cycle_time_seconds` (RunTime) se agrega como campo nullable a `StandardTime`
+- Flujo de planificación vía `POST /planning/bulk-load` en lugar de Excel monolítico legacy
+- N:M WorkOrders resuelto con patrón Ledger (ya existe `IManufacturingLedgerRepository`)
+- Downtime endpoints sanitizados extrayendo IDs de usuario del JWT, no del body/params
+- Funcionalidad DJO-específica descartada: STBL, Kanban, Supplier Scorecard, Tulip integration
+
+**Fases derivadas (pendientes de implementación):**
+- **Phase 135** — Core matemático: `cycle_time_seconds`, overnight shift, alembic cleanup
+- **Phase 136** — Ingesta: `POST /planning/bulk-load` con `ScheduleProduction` en batch
+- **Phase 137** — Seguridad: IDOR downtime + scopes faltantes + endpoint `/scrap`
+- **Phase 138** — hcm: `last_name_paternal/maternal` + RFC/CURP validators
+
+**Archivos clave:** `backend/mes_service/SERVICE_LOG.md` · `docs/historial/tasks/consolidated_tasks20260526.md`
+
+---
+### [2026-05-26] Phase 133: Security Hardening Sprint 2 — Exception Exposure Fix + AuditService DB Logging ✅
+
+**Objetivo:** Auditoría OWASP Top 10 del ecosistema + corrección de excepción raw expuesta en respuestas HTTP 500 del middleware global + implementación real de `AuditService.track()` con persistencia en DB.
+
+**Decisiones Arquitectónicas:**
+
+- `InternoCoreGlobalMiddleware` ya no expone `str(e)` al cliente — respuesta genérica `"An unexpected error occurred."` con `trace_id` para soporte. Stack trace completo va a logs del servidor via `logger.error(exc_info=True)`.
+- `AuditService.track()` implementado como `asyncio.create_task(_persist())` fire-and-forget — abre su propia sesión con `AsyncSessionLocal`, falla silenciosamente si la DB no está disponible. Era un `print()` stub desde Phase 1.
+- Errores críticos de middleware quedan en `audit_logs` con `action="CRITICAL_MIDDLEWARE_ERROR"` y metadata completa (`trace_id`, `error_type`, `error_message`, `method`, `path`).
+
+**Hallazgos pendientes (no corregidos en esta fase):**
+
+| Severidad | Hallazgo |
+|---|---|
+| CRÍTICO | `kiosk_service` CORS `allow_origins=["*"]` |
+| ALTO | `asset_manager_service` CORS fallback a `["*"]` |
+| MEDIO | `"https://*.vercel.app"` wildcard subdomain en `common/config.py` |
+| MEDIO | God Mode `==` no constant-time — debería ser `hmac.compare_digest()` en `middleware.py:123` |
+
+**Archivos clave:** `backend/common/middleware.py` · `backend/common/services/audit_service.py`
+
+---
 ### [2026-05-24] Phase 132: ScannerScreen Dual-Mode UI — Uber POS Restaurado ✅
 
 **Objetivo:** Restaurar el diseño Uber POS frozen (`uber_pos_layout.md`) en la pestaña Ventas sin romper la arquitectura de cámara única establecida en Phase 131.

@@ -5,6 +5,72 @@
 
 ---
 
+### [2026-05-26] - Phase 135: Core Matemático ✅
+- **`alembic/env.py`**: Eliminado bloque de debug prints (líneas 20-27). Añadido `version_table="alembic_version_mes"` en `run_migrations_offline()` y `do_run_migrations()`. Gold Standard cumplido.
+- **Migration `006_mes_cycle_time_and_breaks`**: `cycle_time_seconds INTEGER NULL` en `mes_standard_times` + `break_minutes INTEGER DEFAULT 60` en `mes_shifts`.
+- **`Shift` model**: `break_minutes: Mapped[int] = mapped_column(Integer, default=60)` — reemplaza el hardcoded de 1h del legacy `Interno.HumanResource`.
+- **`StandardTime` model**: `cycle_time_seconds: Mapped[Optional[int]]` — RunTime por pieza en segundos (legacy: `OperationTime.RunTime`).
+- **`manufacturing_math.py`**: `calculate_tak_time_seconds()` acepta `cycle_time_seconds` opcional con fallback a fórmula. Nueva `calculate_theoretical_capacity(cycle_time_seconds, available_minutes)` → piezas teóricas por turno.
+- **`ShiftService`**: `calculate_available_minutes(shift)` — aritmética overnight `(24h − start) + end` para T2 16:30–01:45. `getattr(shift, 'break_minutes', 60)` seguro contra shifts legacy.
+- **Status**: ✅ COMPLETED
+
+---
+
+### [2026-05-26] - Phase 136: Planning Bulk-load ✅
+- **`schemas/planning.py`**: `PlanningEntry` con `@field_validator('date')` que rechaza fechas pasadas. `BulkLoadResponse` con `{scheduled, skipped, errors}`.
+- **`api/v1/endpoints/planning.py`**: `POST /api/v1/mes/planning/bulk-load` — `begin_nested()` por entrada (fallo parcial no aborta el lote), `company_id` del JWT (Muro de Hierro), `require_scope(["mes:write"])`, validaciones de WorkOrder y Resource por company.
+- **`main.py`**: Router registrado en `/api/v1/mes/planning`.
+- **Status**: ✅ COMPLETED
+
+---
+
+### [2026-05-26] - Phase 137: Seguridad y Calidad ✅
+- **`downtime.py`**: IDOR eliminado — `tech_user_id`/`admin_user_id` del cliente → `uuid.UUID(current_user.sub)` del JWT. `company_id` añadido como filtro en todos los UPDATE (`respond`, `close`, `admin-close`) y en `get_active_downtimes`. `require_scope` en los 5 endpoints. `DowntimeAdminClose` sin `admin_user_id` (campo eliminado del body).
+- **`scan.py`**: `float(ledger_entry.qty)` → `str(Decimal(ledger_entry.qty))` — PRIMITIVE_FLOAT_VIOLATION resuelto. `require_scope(["mes:write"])` añadido.
+- **`dashboard.py`**: `require_scope(["mes:read"])` en `/oee`, `/graphic`, `/pareto`. Router duplicado eliminado.
+- **`labor.py`**: `require_scope` en los 4 endpoints. `company_id` añadido al UPDATE de `clock_out`.
+- **`work_order.py`**: `WHERE company_id == company_id` aplicado en `get_work_orders`. Fix BUG-02: `db.get(WorkOrder, order_number)` → `select().where(order_number == ...)` (buscaba por PK UUID, no por string).
+- **`api/v1/endpoints/production.py`**: Nuevo endpoint `POST /api/v1/mes/production/scrap` — persiste `ScrapEntry` verificando ownership del `ProductionRun` por `company_id`.
+- **Code Graph**: 100% Compliance, 0 CRITICALs, 0 WARNINGs post-fase.
+- **Status**: ✅ COMPLETED
+
+---
+
+### [2026-05-26] - Phase 134: Análisis Legacy + Plan de Refactorización 📋
+
+**Tipo:** Sesión de planificación — sin cambios de código.
+
+**Auditorías realizadas esta sesión:**
+- Auditoría de seguridad mes_service: 10 CRITICOs identificados (bugs runtime + IDOR + scopes). Varios ya resueltos en phases previas (17.5, 20.5).
+- Análisis cruzado con 4 proyectos legacy .NET: `Interno.Production`, `Interno.HumanResource`, `Interno.DJO`, `Interno.Outset`.
+
+**Hallazgos que confirman el estado actual:**
+- Phase 17.5 ya resolvió: `ResourceResult → ProductionRun` renaming, `NameError/IndentationError`, BOM Guard, Andon escalation.
+- Phase 16 ya resolvió: `quality = 1.0` bug → `ScrapEntry` + `ManufacturingMath` con factor de calidad real.
+- Phase 20.5 ya resolvió: interfaces de repositorio, zero infrastructure imports en services.
+- Phase 3 ya resolvió: `ScheduleProduction` command con actualizaciones atómicas.
+
+**Gaps confirmados por análisis legacy (pendientes de implementación):**
+
+| Gap | Legacy confirma | Fase |
+|---|---|---|
+| `cycle_time_seconds` (RunTime) | Production + Outset usan RunTime | Phase 135 |
+| Overnight shift aritmética | Legacy `if End < Start → 24h - Start + End` | Phase 135 |
+| `alembic/env.py` sin `version_table` | Gold Standard violation | Phase 135 |
+| Debug prints en `alembic/env.py` | Expone paths del servidor | Phase 135 |
+| `POST /planning/bulk-load` | Legacy PlanningController 82 cols | Phase 136 |
+| Downtime IDOR (tech_user_id / admin_user_id del cliente) | Legacy tampoco lo tenía | Phase 137 |
+| Scopes faltantes en scan/dashboard/labor | Legacy no tenía auth | Phase 137 |
+| `POST /scrap` endpoint en API | Legacy tenía ScrapEntry visible | Phase 137 |
+
+**Funcionalidad legacy descartada (no genérica):**
+- STBL, Kanban/Bin picking, Supplier Scorecard → pertenece a `purchasing_service` futuro
+- Integración Tulip MES → específico a clientes con Tulip instalado
+- Windows AD auth → reemplazado correctamente por JWT
+- Rout/Routing multi-operación → fase futura
+
+---
+
 ### [2026-03-07] - Phase 20.5: Architectural Shielding & Repository Pattern ✅
 - **Status**: ✅ COMPLETED — **0 CRITICAL errors** in Auditor v4.1
 - **Repository Pattern**: Defined 6 domain repository interfaces:

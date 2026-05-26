@@ -6,6 +6,14 @@
 
 ---
 
+### [2026-05-26] - Phase 138: Mexicanización del Expediente ✅
+- **Migration `002_split_last_name`**: `last_name VARCHAR(100)` dividido en `last_name_paternal VARCHAR(50) NOT NULL` + `last_name_maternal VARCHAR(50) NULL`. Data copy: `SET last_name_paternal = last_name` antes del DROP COLUMN. Downgrade reconstituye `last_name` con CONCAT.
+- **Model `Collaborator`**: `last_name` → `last_name_paternal` + `last_name_maternal`. `full_name` property actualizada para componer ambos apellidos (omite maternal si NULL).
+- **Schemas `CollaboratorRead`, `CollaboratorCreate`, `CollaboratorUpdate`**: campos actualizados. RFC y CURP ya existían con regex validators desde Phase 50 — sin cambios requeridos.
+- **Status**: ✅ COMPLETED — Code Graph 100% Compliance.
+
+---
+
 ### [2026-05-21] - Phase 120: Audit Trail Completado en bulk_upload ✅
 - **`api/v1/endpoints/collaborators.py` — `bulk_upload`**: Añadida llamada `AuditService.log_action(action="COLLABORATOR_BULK_UPLOAD")` con métricas `{created, updates, errors}` antes del `db.commit()`. Anteriormente la carga masiva de colaboradores no quedaba registrada en audit_logs. El evento se registra incluso si hay errores parciales (imported N, errors M).
 

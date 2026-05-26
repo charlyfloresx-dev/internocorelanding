@@ -60,7 +60,8 @@ class CollaboratorRead(BaseModel):
     id: uuid.UUID
     internal_id: str
     first_name: str
-    last_name: str
+    last_name_paternal: str
+    last_name_maternal: Optional[str] = None
     full_name: str
     department_id: Optional[uuid.UUID] = None
     department: Optional[DepartmentRead] = None
@@ -115,7 +116,8 @@ class CollaboratorCreate(BaseModel):
     # Required core fields
     internal_id: str = Field(..., max_length=50, description="Alphanumeric badge/employee number.")
     first_name: str = Field(..., max_length=100)
-    last_name: str = Field(..., max_length=100)
+    last_name_paternal: str = Field(..., max_length=50)
+    last_name_maternal: Optional[str] = Field(None, max_length=50)
 
     # Classification
     department_id: Optional[uuid.UUID] = None
@@ -163,7 +165,8 @@ class CollaboratorCreate(BaseModel):
 
 class CollaboratorUpdate(BaseModel):
     first_name: Optional[str] = Field(None, max_length=100)
-    last_name: Optional[str] = Field(None, max_length=100)
+    last_name_paternal: Optional[str] = Field(None, max_length=50)
+    last_name_maternal: Optional[str] = Field(None, max_length=50)
     department_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = None
     translation_key: Optional[str] = None

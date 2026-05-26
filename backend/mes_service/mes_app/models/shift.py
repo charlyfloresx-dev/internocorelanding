@@ -14,15 +14,19 @@ class Shift(MultiTenantBase):
 
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
-    
+
     start_time: Mapped[time] = mapped_column(Time)
     end_time: Mapped[time] = mapped_column(Time)
-    
-    # Si True, el turno termina el día siguiente al que inició (ej. 22:00 -> 06:00)
+
+    # True when the shift ends the following calendar day (e.g. 22:00 → 06:00)
     is_overnight: Mapped[bool] = mapped_column(Boolean, default=False)
-    
-    # Jerarquía: Opcionales para permitir herencia
+
+    # Total scheduled break time in minutes (lunch + rest breaks).
+    # Used by ShiftService.calculate_available_minutes() to compute net productive time.
+    # Default 60 min matches the legacy Interno.HumanResource TotalTimeBreaks value.
+    break_minutes: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
+
+    # Hierarchy: optional resource-level override
     resource_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("mes_resources.id"), nullable=True)
 
-    
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

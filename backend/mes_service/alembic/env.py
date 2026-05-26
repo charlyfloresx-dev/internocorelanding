@@ -17,15 +17,6 @@ root_dir = os.path.abspath(os.path.join(current_dir, ".."))
 # 3. Inyectamos en sys.path con prioridad máxima
 sys.path.insert(0, root_dir)
 
-# --- BLOQUE DE DEPURACIÓN ---
-print("\n" + "="*50)
-print("ALEMBIC DEBUG (MES SERVICE)")
-print(f"Ruta Root detectada: {root_dir}")
-common_path = os.path.join(root_dir, "common")
-if os.path.exists(common_path):
-    print(f"Contenido de common: {os.listdir(common_path)}")
-print("="*50 + "\n")
-
 # ------------------------------------------------------------------------
 # Importación de Modelos y Metadata
 # ------------------------------------------------------------------------
@@ -54,12 +45,17 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table="alembic_version_mes",
     )
     with context.begin_transaction():
         context.run_migrations()
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table="alembic_version_mes",
+    )
     with context.begin_transaction():
         context.run_migrations()
 

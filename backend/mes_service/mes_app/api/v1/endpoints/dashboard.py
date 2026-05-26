@@ -15,8 +15,7 @@ import uuid
 from typing import List, Dict, Any
 
 from common.responses import ApiResponse
-
-router = APIRouter()
+from common.security.dependencies import require_scope
 
 router = APIRouter()
 
@@ -57,7 +56,7 @@ class ParetoEntry(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 # Endpoints
-@router.get("/oee/{resource_result_id}", response_model=OeeResponse)
+@router.get("/oee/{resource_result_id}", response_model=OeeResponse, dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_oee(
     resource_result_id: uuid.UUID, 
     run_repo: IProductionRunRepository = Depends(get_production_run_repo),
@@ -72,7 +71,7 @@ async def get_oee(
     service = KPIService(run_repo, ledger_repo, downtime_repo, labor_repo, goal_repo)
     return await service.calculate_oee(resource_result_id)
 
-@router.get("/graphic/{resource_result_id}", response_model=TrendGraphic)
+@router.get("/graphic/{resource_result_id}", response_model=TrendGraphic, dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_graphic(
     resource_result_id: uuid.UUID, 
     run_repo: IProductionRunRepository = Depends(get_production_run_repo),
@@ -87,7 +86,7 @@ async def get_graphic(
     service = KPIService(run_repo, ledger_repo, downtime_repo, labor_repo, goal_repo)
     return await service.get_resource_graphic(resource_result_id)
 
-@router.get("/pareto/{resource_result_id}", response_model=List[ParetoEntry])
+@router.get("/pareto/{resource_result_id}", response_model=List[ParetoEntry], dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_pareto(
     resource_result_id: uuid.UUID, 
     run_repo: IProductionRunRepository = Depends(get_production_run_repo),

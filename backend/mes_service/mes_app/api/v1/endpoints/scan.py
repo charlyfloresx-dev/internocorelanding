@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from decimal import Decimal
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from mes_app.dependencies import (
-    get_production_run_repo, get_ledger_repo, get_labor_repo, 
+    get_production_run_repo, get_ledger_repo, get_labor_repo,
     get_wms_client, get_current_company
 )
 from mes_app.domain.repositories.interfaces import (
-    IProductionRunRepository, IManufacturingLedgerRepository, 
+    IProductionRunRepository, IManufacturingLedgerRepository,
     ILaborRepository, IWMSClient
 )
 from mes_app.services.scanner_service import ScannerService
@@ -15,8 +16,10 @@ import uuid
 from typing import Optional
 
 from common.responses import ApiResponse
+from common.security.dependencies import require_scope
 
 router = APIRouter()
+
 
 class ScanRequest(BaseModel):
     resource_result_id: uuid.UUID = Field(description="Target Resource Result/Shift ID")
@@ -28,31 +31,32 @@ class ScanRequest(BaseModel):
         populate_by_name=True
     )
 
-@router.post("/scan")
+
+@router.post("/scan", dependencies=[Depends(require_scope(["mes:write"]))])
 async def process_scan(
-    request: ScanRequest, 
+    request: ScanRequest,
     company_id: uuid.UUID = Depends(get_current_company),
     run_repo: IProductionRunRepository = Depends(get_production_run_repo),
     ledger_repo: IManufacturingLedgerRepository = Depends(get_ledger_repo),
     labor_repo: ILaborRepository = Depends(get_labor_repo),
-    wms_client: IWMSClient = Depends(get_wms_client)
+    wms_client: IWMSClient = Depends(get_wms_client),
 ):
     """
-    Procesa un escaneo. Los errores de negocio lanzan BusinessRuleException
-    que es capturada por el domain_exception_handler.
+    Procesa un escaneo de producción. Los errores de negocio lanzan BusinessRuleException
+    capturada por el domain_exception_handler.
     """
     service = ScannerService(run_repo, ledger_repo, labor_repo, wms_client)
     ledger_entry, warning = await service.process_scan(
         resource_result_id=request.resource_result_id,
         scan_input=request.scan_input,
         company_id=company_id,
-        local_txn_id=request.local_txn_id
+        local_txn_id=request.local_txn_id,
     )
-    
+
     return {
         "id": ledger_entry.id,
         "sku": ledger_entry.sku,
-        "qty": float(ledger_entry.qty),
+        "qty": str(Decimal(ledger_entry.qty)),
         "sequence_number": ledger_entry.sequence_number,
-        "warning": warning
+        "warning": warning,
     }

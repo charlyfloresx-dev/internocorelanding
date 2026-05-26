@@ -48,21 +48,31 @@ class WorkOrderCreate(BaseModel):
 @router.get("/", response_model=List[WorkOrderRead], dependencies=[Depends(require_scope(["mes:read"]))])
 async def get_work_orders(
     company_id: uuid.UUID = Depends(get_current_company),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
-    """Listado de órdenes de la compañía."""
-    # Projection Query (Saneamiento de Query) y Limpieza RLS
-    query = select(WorkOrder.id, WorkOrder.order_number, WorkOrder.status)
+    """Listado de órdenes de la compañía. Filtrado por company_id del JWT."""
+    query = select(WorkOrder.id, WorkOrder.order_number, WorkOrder.status).where(
+        WorkOrder.company_id == company_id
+    )
     result = await db.execute(query)
-    
-    # Map raw rows to dicts for the Pydantic schema
     records = result.all()
     return [{"id": row.id, "order_number": row.order_number, "status": row.status} for row in records]
 
+
 @router.get("/{order_number}", response_model=WorkOrderRead, dependencies=[Depends(require_scope(["mes:read"]))])
-async def get_work_order(order_number: str, db: AsyncSession = Depends(get_db)):
-    """Detalle de una orden específica."""
-    wo = await db.get(WorkOrder, order_number)
+async def get_work_order(
+    order_number: str,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detalle de una orden específica buscada por order_number."""
+    result = await db.execute(
+        select(WorkOrder).where(
+            WorkOrder.order_number == order_number,
+            WorkOrder.company_id == company_id,
+        )
+    )
+    wo = result.scalar_one_or_none()
     if not wo:
         raise NotFoundException("WorkOrder not found")
     return wo

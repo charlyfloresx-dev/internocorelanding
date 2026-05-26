@@ -37,7 +37,8 @@ class Collaborator(MultiTenantBase):
     internal_id: Mapped[str] = mapped_column(String(50), nullable=False)
 
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name_paternal: Mapped[str] = mapped_column(String(50), nullable=False)
+    last_name_maternal: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     department_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -162,7 +163,10 @@ class Collaborator(MultiTenantBase):
 
     @property
     def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
+        parts = [self.first_name, self.last_name_paternal]
+        if self.last_name_maternal:
+            parts.append(self.last_name_maternal)
+        return " ".join(parts)
 
     def __repr__(self) -> str:
         return f"<Collaborator id={self.id} internal_id={self.internal_id} name={self.full_name}>"
