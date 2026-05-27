@@ -3,6 +3,66 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 144: Tickets Mine Triple-Identity + Scanner Conformance + CAPA Checkbox ✅
+
+**Objetivo:** Refinar visibilidad de tickets en móvil (solo asignados, todas las identidades), alinear el scanner POS a la spec Uber, y mejorar la UX del card de acciones CAPA con checkbox circular.
+
+**Decisiones Arquitectónicas:**
+
+- **`GET /tickets/mine` Triple Identity:** El filtro anterior retornaba tickets `created_by OR assigned_to`. Cambiado a solo los asignados, cubriendo las 3 identidades del sistema: INTERNAL (`assigned_to_id` + `ticket_assignees INTERNAL`), PLANTA (`collaborator_id` + `ticket_assignees PLANTA`), EXTERNO (`external_contact_id` + `ticket_assignees EXTERNO`). El endpoint acepta `?collaborator_id=<uuid>&external_contact_id=<uuid>` opcionales para cuando el móvil tenga el perfil físico del usuario. Los `EXISTS` subqueries cubren la tabla nueva `ticket_assignees` evitando que tickets triageados vía multi-asignado queden invisibles (en triage nuevo, `assigned_to_id` es null pero `ticket_assignees` tiene la entrada INTERNAL).
+- **Scanner Conformance (spec `uber_pos_layout.md`):** 3 desviaciones corregidas: (1) tarjeta de carrito ahora muestra solo el código (`code ?? sku`) en negrita blanca — sin nombre del producto; (2) scan duplicado ya no muestra modal, sino snackbar una sola vez y silencio subsecuente via `_warnedDuplicates` Set en el BLoC; (3) `scanWindow` pasado al `MobileScanner` restringiendo detección al rectángulo del cutout visual.
+- **CAPA Checkbox:** Card de acción reemplaza el botón "Cerrar" (texto top-right) con un checkbox circular animado en el lado izquierdo. `AnimatedContainer` transiciona de círculo vacío (borde blanco24) a círculo verde relleno con ícono check. Touch target 44×44px para uso con guantes industriales. Al cerrarse muestra descripción con tachado + color atenuado. Consistente con el diseño del frontend Angular.
+- **audit_logs verificado:** Tablas `audit_logs` en `hcm_db` y `subscription_db` ya existían y estaban aplicadas (migraciones `001_add_audit_logs_hcm` y `001_add_audit_logs_sub`). No requirió acción nueva.
+
+**Archivos clave:**
+- `backend/tickets_service/tickets_app/infrastructure/repositories/ticket_repository.py` — `list_by_visibility` con EXISTS subqueries + params `collaborator_id / external_contact_id`; import `or_, exists` a nivel módulo
+- `backend/tickets_service/tickets_app/services/ticket_service.py` — `get_tickets_with_visibility` +2 params opcionales
+- `backend/tickets_service/tickets_app/routers/ticket_routes.py` — `/mine` +2 query params opcionales
+- `src/interno_billing_app/lib/features/scanner/presentation/bloc/scanner_bloc.dart` — `_warnedDuplicates`, skip modal en duplicado, `_onClearCart` limpia set
+- `src/interno_billing_app/lib/features/scanner/presentation/scanner_screen.dart` — `scanWindow`, cart item code-only
+- `src/interno_billing_app/lib/features/home/presentation/ticket_chat_screen.dart` — `_buildActionCard` con checkbox circular (reemplaza botón "Cerrar")
+
+**Workarounds / Deuda Técnica:**
+- `collaborator_id` y `external_contact_id` no están en el JWT — el móvil no los pasa por ahora. Cuando el perfil de colaborador esté en el app, pasar ambos IDs al endpoint `/mine`.
+- `_warnedDuplicates` no se limpia en `RemoveItem` individual (solo en `ClearCart`) — edge case: si el usuario retira un ítem y vuelve a escanear el mismo, no verá el warning de nuevo en esa sesión.
+
+**Status:** ✅ COMPLETED
+
+---
+### [2026-05-27] Phase 143: ticket_assignees (Multi-Asignado Real) + Fixes Stack Migraciones ✅
+
+**Objetivo:** Implementar soporte real de múltiples asignados por ticket (N usuarios de cualquier tipo por ticket). Corregir stack de errores de migraciones acumuladas en `ticket_actions`. Agregar fecha+hora (5min steps) en formulario de acciones CAPA.
+
+**Decisiones Arquitectónicas:**
+
+- **`ticket_assignees` tabla JOIN:** Reemplaza el diseño de 3 columnas simples (`assigned_to_id`, `collaborator_id`, `external_contact_id`) que limitaba a 1 por tipo. Nueva tabla: `ticket_id FK + identity_type (INTERNAL/PLANTA/EXTERNO) + identity_id UUID (weak ref) + is_lead bool`. Sin FK cross-service — mismo patrón que Triple Identity en tickets.
+- **Replace-all semántica en triage:** `replace_assignees()` hace DELETE de todos los assignees del ticket + INSERT bulk de la lista nueva. No hay acumulación incremental — cada triage define el estado final de asignados. Las 3 columnas legacy se sincronizan con el lead de cada tipo para backward compat.
+- **`TicketTriage.assignees: List[AssigneeInput]`:** Nuevo campo. Si lista no vacía, usa la nueva tabla. Si vacía, path legacy (3 columnas) — permite rollback y backward compat con clientes que aún no envíen `assignees`.
+- **Backfill automático en migración:** `006_add_ticket_assignees` hace INSERT desde las 3 columnas legacy de todos los tickets existentes con `is_active=true`.
+- **Corrección de migraciones acumuladas:** `004` añade columnas faltantes de `MultiTenantBase` en `ticket_actions` (`group_id`, `updated_by`, `deleted_at`, `transaction_id`). `005` cambia `updated_at` de `NOT NULL` a `nullable=True`. Root cause: la migración `003` se creó sin comparar vs el ORM base class completo.
+- **`alembic_version_tickets.version_num VARCHAR(32)`:** Las IDs de migración deben tener ≤32 chars. `005_fix_ticket_actions_updated_at` (33 chars) causó error en alembic — renombrado a `005_fix_ta_nullable`.
+- **datetime CAPA:** `type="date"` + `type="time" step="300"` separados. Chrome respeta `step=300` en `type="time"` (scroll de 5 en 5 min) pero no en `type="datetime-local"`. Si no se selecciona hora, default `00:00`.
+
+**Archivos clave:**
+- `backend/tickets_service/tickets_app/models/assignee.py` — nuevo `TicketAssignee`
+- `backend/tickets_service/tickets_app/models/ticket.py` — relationship `assignees`
+- `backend/tickets_service/alembic/versions/004_fix_ticket_actions_columns.py`
+- `backend/tickets_service/alembic/versions/005_fix_ticket_actions_updated_at.py`
+- `backend/tickets_service/alembic/versions/006_add_ticket_assignees.py`
+- `backend/tickets_service/tickets_app/schemas/ticket_dto.py` — `AssigneeInput`, `TicketTriage.assignees`, `TicketAssigneeRead`, `TicketRead.assignees`
+- `backend/tickets_service/tickets_app/services/ticket_service.py` — `replace_assignees` call + legacy sync
+- `backend/tickets_service/tickets_app/infrastructure/repositories/ticket_repository.py` — `replace_assignees()` + `selectinload(Ticket.assignees)`
+- `frontend/src/app/core/models/support.types.ts` — `TicketAssignee`, `AssigneeInput`, `Ticket.assignees`
+- `frontend/src/app/core/services/support.service.ts` — `triageTicket` nueva firma
+- `frontend/src/app/modules/monitor/tickets/components/tickets-form.component.ts` — `_prePopulateAssignment` desde `assignees[]`, `submitTriage` con array, datetime dual
+- `frontend/src/app/modules/monitor/tickets/tickets-dashboard.component.ts` — `getAssignedLabels` desde `assignees[]`
+- `frontend/src/app/modules/monitor/tickets/components/ticket-triage-drawer.component.ts` — nueva firma
+
+**Pendiente:**
+- `ticket_assignees` — deprecar 3 columnas legacy (`assigned_to_id`, `collaborator_id`, `external_contact_id`) en phase futura cuando todos los clientes envíen `assignees[]`
+
+---
+
 ### [2026-05-27] Phase 142: Tickets Multi-Assignees Fix + TicketActions (CAPA) + Metrics Plan ✅
 
 **Objetivo:** Corregir que el triage solo guardaba un asignado. Implementar tabla `ticket_actions` (acciones correctivas tipo CAPA del legacy Interno.Actions). Planificar sistema de métricas/KPIs y multi-asignados como tabla.

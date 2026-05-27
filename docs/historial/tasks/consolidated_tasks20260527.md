@@ -107,6 +107,30 @@ class KPIFrequency(str, Enum): Daily | Weekly | Monthly | Quarterly
 
 ---
 
+### P4: Timezone por empresa
+
+> **Contexto:** Todos los microservicios almacenan fechas en UTC. La UI muestra en timezone del browser.
+> Se necesita que cada empresa tenga su propia timezone (`America/Monterrey`, `America/Chicago`, etc.)
+> y que la UI y los reportes muestren fechas en la timezone de la empresa activa.
+
+**Diseño:**
+- `company_settings` (o `hr_tenant_configs`) agrega columna `timezone: str` (IANA: `America/Monterrey`)
+- Default: `UTC`
+- JWT claim: añadir `timezone` al payload al hacer select-company
+- Frontend: `AuthService` expone `companyTimezone()` signal; pipes de fecha usan ese timezone
+- Backend: ningún cambio de almacenamiento (siempre UTC en DB); solo serialización en respuesta
+
+**Tareas:**
+- `[ ]` `master_data_service` o `auth_service`: columna `timezone` en tabla de configuración de empresa
+- `[ ]` Migration + seed defaults (`America/Monterrey` para empresas MX, `America/Chicago` para US)
+- `[ ]` `auth_service`: incluir `timezone` en JWT claims al hacer `select-company`
+- `[ ]` `common/schemas/jwt_claims.py`: campo `timezone: str = "UTC"` en el modelo de claims
+- `[ ]` Frontend `AuthService`: exponer `companyTimezone = computed(() => session().timezone ?? 'UTC')`
+- `[ ]` Frontend: pipe `LocalDatePipe` usando `date-fns-tz` o `Intl.DateTimeFormat` con el timezone de empresa
+- `[ ]` Inputs `datetime-local`: al leer el valor del input (que es local browser), convertir a UTC antes de enviar; al mostrar, convertir UTC → company timezone
+
+---
+
 ### P3: Deuda técnica tickets — pendiente desde sesiones anteriores
 
 - `[ ]` Fix: `kiosk_service` CORS `allow_origins=["*"]` — CRÍTICO (Phase 133 identificado, no corregido)
@@ -142,3 +166,31 @@ Signals actualmente protegidos con `untracked()`:
 - DB: `kpi_db`
 - Patrón de lectura: push via `POST /internal/kpi/readings` con HMAC `X-Service-Signature`
 - Refs cross-service: por `kpi_code: str` (no UUID FK) — igual que `collaborator_id` en tickets
+
+---
+
+## Phase 144 Tasks Completadas (sesión tarde 2026-05-27)
+
+### tickets_service — visibilidad `/mine`
+- [x] `list_by_visibility`: filtra solo ASIGNADOS (no created_by)
+- [x] Cubre Triple Identity: INTERNAL via `assigned_to_id` + `ticket_assignees INTERNAL`
+- [x] Parámetros opcionales `collaborator_id` + `external_contact_id` para PLANTA/EXTERNO
+- [x] `ticket_assignees` coverage con EXISTS subqueries (tickets triageados sin `assigned_to_id`)
+- [x] Rebuild tickets-service OK
+
+### scanner (uber_pos_layout.md)
+- [x] Tarjeta carrito: solo código de producto (sin nombre)
+- [x] Scan duplicado: snackbar una vez → silencio (`_warnedDuplicates`)
+- [x] `scanWindow` restringido al cutout visual
+
+### CAPA mobile
+- [x] Checkbox circular (44px) reemplaza botón "Cerrar"
+- [x] AnimatedContainer: vacío → verde con check al cerrar
+
+### audit_logs
+- [x] Verificado `audit_logs` en `hcm_db` ✅ EXISTS
+- [x] Verificado `audit_logs` en `subscription_db` ✅ EXISTS
+
+### Pendiente futuro
+- [ ] Pasar `collaborator_id` desde el perfil del móvil al endpoint `/mine`
+- [ ] Limpiar `_warnedDuplicates` en `RemoveItem` individual (low priority)

@@ -6,15 +6,26 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 ### Service Stats
 | Metric | Value |
 |---|---|
-| **Source Files** | 24 |
-| **Data Models** | 7 (Ticket, Comment, History, Resource, StopLog, OutboxEvent, **TicketAction**) |
+| **Source Files** | 26 |
+| **Data Models** | 9 (Ticket, Comment, History, Resource, StopLog, OutboxEvent, TicketAction, **TicketAssignee**) |
 | **API Endpoints** | 9 REST |
-| **Test Coverage** | 15% (Debouncing logic) |
+| **Migrations** | 006 (ticket_assignees) |
 | **Last Audit** | 2026-05-27 |
 
 ---
 
 ## 🚀 Log de Cambios y Estabilización
+
+### [2026-05-27] Phase 143: ticket_assignees (Multi-Asignado Real) + Fixes de Migraciones ✅
+- **`TicketAssignee` model** (`models/assignee.py`): Nuevo modelo con `ticket_id` FK, `identity_type` (INTERNAL/PLANTA/EXTERNO), `identity_id` UUID (weak ref), `is_lead` bool, `assigned_at`, `assigned_by`.
+- **Migration `006_add_ticket_assignees`**: Tabla `ticket_assignees` con 4 índices. Backfill automático desde 3 columnas legacy (`assigned_to_id`, `collaborator_id`, `external_contact_id`) para tickets existentes.
+- **Migration `004_fix_ticket_actions_columns`**: Añade columnas faltantes de `MultiTenantBase` a `ticket_actions` (`group_id`, `updated_by`, `deleted_at`, `transaction_id`) — omitidas en `003`.
+- **Migration `005_fix_ta_nullable`**: `ticket_actions.updated_at` cambiado a `nullable=True` (SQLAlchemy solo lo llena en UPDATE, no en INSERT — causaba NOT NULL violation).
+- **`TicketTriage` schema**: Añadido `assignees: List[AssigneeInput]`. Si se envía, reemplaza todos los `ticket_assignees` del ticket (DELETE + INSERT bulk). Si está vacío, usa path legacy de 3 columnas.
+- **`replace_assignees()` en repo**: DELETE existentes + INSERT nuevos en un `flush`. Columnas legacy sincronizadas desde el lead de cada tipo.
+- **`TicketRead.assignees`**: Lista de `TicketAssigneeRead`. Cargada via `selectinload(Ticket.assignees)` en las 5 queries del repo.
+- **audit string fix**: `new_value_audit` para history truncado a `{lead_uuid}+N` (máx 36+3 chars) — `VARCHAR(100)` de `ticket_history`.
+- **Límite revision IDs Alembic**: `alembic_version_tickets.version_num` es `VARCHAR(32)`. Revisiones deben tener ≤32 chars.
 
 ### [2026-05-27] Phase 142: TicketAction (CAPA) + Triage Multi-Assignee Fix ✅
 - **Triage schema bug:** `TicketTriage` schema no tenía `collaborator_id` ni `external_contact_id`. Pydantic los ignoraba; el service usaba `getattr(cmd, "new_collaborator_id", None)` — siempre `None`. Fix: campos añadidos al schema, service lee directamente.
@@ -251,3 +262,10 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 - [ ] KPI REST endpoints (MTTR, MTBF, OEE).
 - [ ] Frontend: Dashboard component para visualización de KPIs industriales.
 
+
+## Phase 144 — Triple Identity Visibility + audit_logs confirmed (2026-05-27)
+
+### Changes
+- `list_by_visibility`: removed `created_by` condition; added EXISTS subqueries for `ticket_assignees` (INTERNAL, PLANTA, EXTERNO); accepts `collaborator_id` + `external_contact_id` optional params
+- `/mine` endpoint: +2 optional query params `collaborator_id` / `external_contact_id`
+- `audit_logs` table confirmed present in `hcm_db` and `subscription_db` (migrations already applied)

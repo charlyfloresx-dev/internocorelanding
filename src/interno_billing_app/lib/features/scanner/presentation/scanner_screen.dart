@@ -18,14 +18,15 @@ import 'package:interno_billing_app/domain/entities/product.dart';
 
 class ScannerScreen extends StatefulWidget {
   final bool isTabMode;
-  const ScannerScreen({super.key, this.isTabMode = false});
+  final ValueNotifier<bool>? isActiveNotifier;
+  const ScannerScreen({super.key, this.isTabMode = false, this.isActiveNotifier});
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
-  final MobileScannerController controller = MobileScannerController();
+  final MobileScannerController controller = MobileScannerController(autoStart: false);
   final TextEditingController _manualController = TextEditingController();
   final FocusNode _keyboardFocusNode = FocusNode();
   final StringBuffer _keyboardBuffer = StringBuffer();
@@ -44,14 +45,29 @@ class _ScannerScreenState extends State<ScannerScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _keyboardFocusNode.requestFocus();
+      // Start camera only if active (or non-tab mode always starts)
+      if (widget.isActiveNotifier == null || widget.isActiveNotifier!.value) {
+        controller.start();
+      }
     });
+    widget.isActiveNotifier?.addListener(_onActiveChanged);
     _loadSyncStatus();
     _loadProductsFromDb();
     _autoSyncIfNeeded();
   }
 
+  void _onActiveChanged() {
+    if (!mounted) return;
+    if (widget.isActiveNotifier!.value) {
+      controller.start();
+    } else {
+      controller.stop();
+    }
+  }
+
   @override
   void dispose() {
+    widget.isActiveNotifier?.removeListener(_onActiveChanged);
     _keyboardFocusNode.dispose();
     controller.dispose();
     _manualController.dispose();
@@ -385,6 +401,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
     const double cutoutHeight = 220.0;
     final double scannerTop = (screenHeight - cutoutHeight) / 2 - 100;
     final double laserTop = scannerTop + (cutoutHeight / 2);
+    final Rect scanWindow = Rect.fromLTWH(
+      (screenWidth - cutoutWidth) / 2,
+      scannerTop,
+      cutoutWidth,
+      cutoutHeight,
+    );
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -394,6 +416,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           Positioned.fill(
             child: MobileScanner(
               controller: controller,
+              scanWindow: scanWindow,
               onDetect: (capture) {
                 for (final barcode in capture.barcodes) {
                   if (barcode.rawValue != null) {
@@ -583,13 +606,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(item.product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                                      const SizedBox(height: 4),
-                                      Text(item.product.code ?? item.product.sku, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 11, letterSpacing: 0.5)),
-                                    ],
+                                  child: Text(
+                                    item.product.code ?? item.product.sku,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 0.5),
                                   ),
                                 ),
                                 SizedBox(

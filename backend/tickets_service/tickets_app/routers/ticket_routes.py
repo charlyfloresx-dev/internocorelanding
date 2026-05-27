@@ -220,15 +220,17 @@ async def list_tickets(
 @router.get("/mine", response_model=ApiResponse)
 async def list_my_tickets(
     department_id: Optional[uuid.UUID] = None,
+    collaborator_id: Optional[uuid.UUID] = None,
+    external_contact_id: Optional[uuid.UUID] = None,
     db: AsyncSession = Depends(get_db),
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
     """
-    Retorna tickets creados por o asignados al usuario actual en su empresa activa.
-    Soporta filtrado por departamento/área del operador de forma polimórfica.
+    Retorna tickets asignados al usuario actual en cualquiera de sus identidades:
+    INTERNAL (user_id), PLANTA (collaborator_id), EXTERNO (external_contact_id).
     """
     service = TicketService(SQLAlchemyTicketRepository(db))
-    
+
     dept_id = department_id
     if not dept_id and hasattr(user, "department_id") and user.department_id:
         try:
@@ -236,13 +238,14 @@ async def list_my_tickets(
         except Exception:
             pass
 
-    # Usamos list_by_visibility con flags de usuario normal para filtrar lo propio
     tickets = await service.get_tickets_with_visibility(
         company_id=to_uuid(user.company_id),
         user_id=to_uuid(user.sub),
         is_admin=False,
         is_supervisor=False,
-        department_id=dept_id
+        department_id=dept_id,
+        collaborator_id=collaborator_id,
+        external_contact_id=external_contact_id,
     )
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
 

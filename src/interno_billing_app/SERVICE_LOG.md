@@ -190,3 +190,15 @@
 - **Atomic Checkout**: Integrado `SaleRepository` con el endpoint de backend `pos/checkout`, permitiendo confirmar ventas de múltiples artículos con un solo commit.
 - **Hidden Setup Entry**: Añadido activador por *Long Press* en el logo de la pantalla de login para re-configurar terminales en campo.
 - **Status**: ✅ COMPLETED - Mobile POS ready for Industrial Deployment.
+
+## Phase 144 — Scanner Conformance + CAPA Checkbox (2026-05-27)
+
+### Scanner (uber_pos_layout.md compliance)
+- `scanner_screen.dart`: cart item card now shows code-only (`code ?? sku`) — no product name
+- `scanner_screen.dart`: `scanWindow` added to `MobileScanner` matching visual cutout rect
+- `scanner_bloc.dart`: duplicate scan → snackbar once, then silent (`_warnedDuplicates` Set, cleared on `ClearCart`)
+
+### CAPA Tab — Action Card
+- `ticket_chat_screen.dart`: replaced "Cerrar" text button with animated circular checkbox (left-side)
+- 44×44px touch target for gloved industrial operators
+- `AnimatedContainer` transition: empty circle → filled green circle with check icon on close

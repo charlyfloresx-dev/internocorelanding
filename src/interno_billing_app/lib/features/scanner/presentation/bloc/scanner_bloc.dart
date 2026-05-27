@@ -95,6 +95,7 @@ class ScannerState extends Equatable {
   final String? lastScannedCode;
   final String? error;
   final String? successMessage;
+  final String? lastCreatedFolio;
   final double taxRate;
   final Partner? selectedPartner;
   final ScannerMode mode;
@@ -105,6 +106,7 @@ class ScannerState extends Equatable {
     this.lastScannedCode,
     this.error,
     this.successMessage,
+    this.lastCreatedFolio,
     this.taxRate = 0.16,
     this.selectedPartner,
     this.detectedProduct,
@@ -135,6 +137,7 @@ class ScannerState extends Equatable {
     String? lastScannedCode,
     String? error,
     String? successMessage,
+    String? lastCreatedFolio,
     double? taxRate,
     Partner? selectedPartner,
     bool clearPartner = false,
@@ -148,6 +151,7 @@ class ScannerState extends Equatable {
       lastScannedCode: lastScannedCode ?? this.lastScannedCode,
       error: error,
       successMessage: successMessage,
+      lastCreatedFolio: lastCreatedFolio,
       taxRate: taxRate ?? this.taxRate,
       selectedPartner: clearPartner ? null : (selectedPartner ?? this.selectedPartner),
       detectedProduct: clearDetected ? null : (detectedProduct ?? this.detectedProduct),
@@ -157,7 +161,7 @@ class ScannerState extends Equatable {
 
   @override
   List<Object?> get props =>
-      [items, isLoading, lastScannedCode, error, successMessage, selectedPartner, mode];
+      [items, isLoading, lastScannedCode, error, successMessage, lastCreatedFolio, selectedPartner, mode];
 }
 
 // ── Bloc ────────────────────────────────────────────────────────────────────
@@ -168,6 +172,9 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
   final double taxRate;
   String? _lastProcessedCode;
   DateTime? _lastScanTime;
+
+  // Tracks codes that have already shown the "already in cart" warning this session
+  final Set<String> _warnedDuplicates = {};
 
   ScannerBloc({
     required ProductRepository repository,
@@ -281,12 +288,15 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     );
 
     if (existingIndex >= 0) {
-      final existingItem = state.items[existingIndex];
-      HapticFeedback.mediumImpact();
-      emit(state.copyWith(
-        isLoading: false,
-        detectedProduct: existingItem,
-      ));
+      // Already in cart — show warning snackbar once, then silent (spec §2)
+      if (!_warnedDuplicates.contains(parsedCode)) {
+        _warnedDuplicates.add(parsedCode);
+        HapticFeedback.lightImpact();
+        emit(state.copyWith(
+          isLoading: false,
+          error: 'Ya en el carrito. Ajusta la cantidad manualmente.',
+        ));
+      }
       return;
     }
 
@@ -366,6 +376,7 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
   }
 
   void _onClearCart(ClearCart event, Emitter<ScannerState> emit) {
+    _warnedDuplicates.clear();
     emit(ScannerState(taxRate: taxRate, selectedPartner: state.selectedPartner));
     _clearDraftFromLocal();
   }
@@ -380,11 +391,19 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
 
     try {
       final isEntry = state.mode == ScannerMode.entry;
+      final conceptCode = isEntry ? 'ENT-PUR' : 'SAL-VEN';
+      
+      final prefs = sl<SharedPreferences>();
+      final companyId = prefs.getString('company_id') ?? '';
+      final conceptId = const Uuid().v5(
+        '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+        'interno.concept.$companyId.$conceptCode',
+      );
 
       final request = InventoryDocumentRequest(
         correlationId: const Uuid().v4(),
         type: isEntry ? 'IN' : 'OUT',
-        conceptId: isEntry ? 'ENT-PUR' : 'SAL-VEN',
+        conceptId: conceptId,
         warehouseId: event.warehouseId,
         externalEntity: state.selectedPartner?.id,
         notes: event.comments ?? (isEntry ? 'Mobile Industrial Entry' : 'Mobile POS Sale'),
@@ -402,14 +421,17 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         appReference: event.appReference ?? AppReference.mobileScanner.value,
       );
 
-      await _saleRepository.createDocument(request);
+      final response = await _saleRepository!.createDocument(request);
+      final folio = response['data']?['id'] ?? (isEntry ? 'ENT-EXITOSA' : 'POS-EXITOSO');
 
       HapticFeedback.heavyImpact();
       _clearDraftFromLocal();
-      emit(ScannerState(
+      emit(state.copyWith(
+        items: const [],
         successMessage: isEntry
-            ? '✓ Entrada Registrada Exitosamente'
-            : '✓ Venta Procesada Exitosamente',
+            ? '✓ Entrada Registrada Exitosamente ($folio)'
+            : '✓ Venta Procesada Exitosamente ($folio)',
+        lastCreatedFolio: folio,
         taxRate: taxRate,
         selectedPartner: state.selectedPartner,
         mode: state.mode,
@@ -444,14 +466,22 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       final response = e.response;
       if (response != null && response.data is Map) {
         final data = response.data as Map;
-        final errorMsg = data['message'] ?? data['detail'] ?? '';
+        // detail may be a nested map (e.g. ERR_DOCUMENT_PERSIST dict)
+        final rawMsg = data['message'] ?? data['detail'] ?? '';
+        final errorMsg = (rawMsg is Map)
+            ? (rawMsg['message'] ?? rawMsg.toString())
+            : rawMsg.toString();
         
         if (errorMsg.toString().contains('ERR_LOCATION_OVERFLOW_UNITS')) {
-          message = '⚠️ CAPACIDAD EXCEDIDA: La ubicación no tiene espacio suficiente para estas unidades.';
+          message = 'CAPACIDAD EXCEDIDA: La ubicacion no tiene espacio suficiente para estas unidades.';
         } else if (errorMsg.toString().contains('ERR_WAREHOUSE_LOCK')) {
-          message = '🔒 ALMACÉN BLOQUEADO: No se permiten movimientos en este momento.';
+          message = 'ALMACEN BLOQUEADO: No se permiten movimientos en este momento.';
         } else if (errorMsg.toString().contains('ERR_INSUFFICIENT_STOCK')) {
-          message = '❌ STOCK INSUFICIENTE: No hay existencias disponibles para completar la operación.';
+          final skuMatch = RegExp(r'SKU:\s*(\S+)').firstMatch(errorMsg.toString());
+          final sku = skuMatch?.group(1);
+          message = sku != null
+              ? 'STOCK INSUFICIENTE: Sin existencias para $sku.'
+              : 'STOCK INSUFICIENTE: Sin existencias disponibles.';
         } else {
           message = errorMsg.toString();
         }

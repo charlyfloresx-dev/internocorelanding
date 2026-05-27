@@ -6,7 +6,8 @@ from tickets_app.schemas.ticket_dto import TicketCreate, TicketUpdate, TicketCom
 from tickets_app.core.constants import TicketStatus, TicketPriority
 from tickets_app.core.config import settings
 from tickets_app.models.ticket import Ticket
-from datetime import datetime
+from tickets_app.models.assignee import TicketAssignee
+from datetime import datetime, timezone
 
 
 class TicketService:
@@ -323,10 +324,14 @@ class TicketService:
         is_admin: bool,
         is_supervisor: bool,
         department_area: Optional[str] = None,
-        department_id: Optional[uuid.UUID] = None
+        department_id: Optional[uuid.UUID] = None,
+        collaborator_id: Optional[uuid.UUID] = None,
+        external_contact_id: Optional[uuid.UUID] = None,
     ) -> List["Ticket"]:  # noqa: F821
         return await self.repo.list_by_visibility(
-            company_id, user_id, is_admin, is_supervisor, department_area, department_id
+            company_id, user_id, is_admin, is_supervisor,
+            department_area, department_id,
+            collaborator_id, external_contact_id,
         )
 
     async def get_tickets(self, company_id: uuid.UUID) -> List["Ticket"]:  # noqa: F821
@@ -354,10 +359,12 @@ class TicketService:
             updates["status"] = TicketStatus.ASSIGNED
             new_status = TicketStatus.ASSIGNED.value
         elif cmd.action.value == "REASSIGN":
-            if not (cmd.new_assigned_to_id or getattr(cmd, "new_collaborator_id", None) or getattr(cmd, "new_external_contact_id", None) or getattr(cmd, "assigned_department_id", None)):
+            has_assignees = bool(cmd.assignees)
+            has_legacy = bool(cmd.new_assigned_to_id or cmd.collaborator_id or cmd.external_contact_id)
+            if not (has_assignees or has_legacy or cmd.assigned_department_id):
                 raise ValueError("Se requiere al menos un destinatario para REASSIGN")
-            
-            if getattr(cmd, "assigned_department_id", None):
+
+            if cmd.assigned_department_id:
                 updates["assigned_department_id"] = cmd.assigned_department_id
                 updates["assigned_to_id"] = None
                 updates["collaborator_id"] = None
@@ -367,12 +374,33 @@ class TicketService:
                 new_value_audit = f"dept_{cmd.assigned_department_id}"
             else:
                 updates["assigned_department_id"] = None
-                updates["assigned_to_id"] = cmd.new_assigned_to_id
-                updates["collaborator_id"] = cmd.collaborator_id
-                updates["external_contact_id"] = cmd.external_contact_id
                 updates["status"] = TicketStatus.ASSIGNED
                 new_status = TicketStatus.ASSIGNED.value
-                new_value_audit = str(cmd.new_assigned_to_id)
+
+                if has_assignees:
+                    # --- ticket_assignees: replace all ---
+                    await self.repo.replace_assignees(
+                        ticket_id=ticket.id,
+                        company_id=company_id,
+                        assignees=cmd.assignees,
+                        assigned_by=user_id,
+                    )
+                    # Sync legacy columns from lead assignee per type
+                    lead_internal = next((a for a in cmd.assignees if a.identity_type == "INTERNAL" and a.is_lead), None)
+                    lead_planta   = next((a for a in cmd.assignees if a.identity_type == "PLANTA"), None)
+                    lead_externo  = next((a for a in cmd.assignees if a.identity_type == "EXTERNO"), None)
+                    updates["assigned_to_id"]      = lead_internal.identity_id if lead_internal else None
+                    updates["collaborator_id"]      = lead_planta.identity_id   if lead_planta   else None
+                    updates["external_contact_id"]  = lead_externo.identity_id  if lead_externo  else None
+                    lead = next((a for a in cmd.assignees if a.is_lead), cmd.assignees[0])
+                    extra = len(cmd.assignees) - 1
+                    new_value_audit = str(lead.identity_id) + (f"+{extra}" if extra else "")
+                else:
+                    # Legacy path
+                    updates["assigned_to_id"]     = cmd.new_assigned_to_id
+                    updates["collaborator_id"]    = cmd.collaborator_id
+                    updates["external_contact_id"] = cmd.external_contact_id
+                    new_value_audit = str(cmd.new_assigned_to_id)
             
             # Auditoría: hash del operador
             hash_str = f"{user_id}_{ticket_id}_{new_value_audit}"

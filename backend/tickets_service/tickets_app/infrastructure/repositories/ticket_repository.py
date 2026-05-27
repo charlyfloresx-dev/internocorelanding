@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 import uuid
 
-from sqlalchemy import select, func, and_, update, delete
+from sqlalchemy import select, func, and_, update, delete, or_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -12,6 +12,7 @@ from tickets_app.models.ticket import Ticket
 from tickets_app.models.history import TicketHistory
 from tickets_app.models.comments import TicketComment
 from tickets_app.models.outbox import OutboxEvent
+from tickets_app.models.assignee import TicketAssignee
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
 
 
@@ -94,7 +95,9 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
             selectinload(Ticket.resources),
-            selectinload(Ticket.stop_logs)
+            selectinload(Ticket.stop_logs),
+            selectinload(Ticket.actions),
+            selectinload(Ticket.assignees)
         ).where(
             Ticket.id == ticket_id,
             Ticket.company_id == company_id
@@ -107,7 +110,9 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
             selectinload(Ticket.resources),
-            selectinload(Ticket.stop_logs)
+            selectinload(Ticket.stop_logs),
+            selectinload(Ticket.actions),
+            selectinload(Ticket.assignees)
         ).where(
             Ticket.company_id == company_id,
             Ticket.is_active == True
@@ -116,29 +121,69 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         return list(result.scalars().all())
 
     async def list_by_visibility(
-        self, company_id: UUID, user_id: UUID, is_admin: bool, is_supervisor: bool, department_area: Optional[str] = None, department_id: Optional[UUID] = None
+        self,
+        company_id: UUID,
+        user_id: UUID,
+        is_admin: bool,
+        is_supervisor: bool,
+        department_area: Optional[str] = None,
+        department_id: Optional[UUID] = None,
+        collaborator_id: Optional[UUID] = None,
+        external_contact_id: Optional[UUID] = None,
     ) -> list[Ticket]:
         stmt = select(Ticket).options(
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
             selectinload(Ticket.resources),
-            selectinload(Ticket.stop_logs)
+            selectinload(Ticket.stop_logs),
+            selectinload(Ticket.actions),
+            selectinload(Ticket.assignees)
         ).where(
             Ticket.company_id == company_id,
             Ticket.is_active == True
         )
-        
+
         if not is_admin:
-            from sqlalchemy import or_
+            # INTERNAL identity: legacy direct field + multi-assignee table
             conds = [
-                Ticket.created_by == user_id,
-                Ticket.assigned_to_id == user_id
+                Ticket.assigned_to_id == user_id,
+                select(TicketAssignee.id).where(
+                    TicketAssignee.ticket_id == Ticket.id,
+                    TicketAssignee.company_id == company_id,
+                    TicketAssignee.identity_type == 'INTERNAL',
+                    TicketAssignee.identity_id == user_id,
+                ).exists(),
             ]
+
+            # PLANTA identity (collaborador físico en HCM)
+            if collaborator_id:
+                conds.append(Ticket.collaborator_id == collaborator_id)
+                conds.append(
+                    select(TicketAssignee.id).where(
+                        TicketAssignee.ticket_id == Ticket.id,
+                        TicketAssignee.company_id == company_id,
+                        TicketAssignee.identity_type == 'PLANTA',
+                        TicketAssignee.identity_id == collaborator_id,
+                    ).exists()
+                )
+
+            # EXTERNO identity (proveedor / contacto externo)
+            if external_contact_id:
+                conds.append(Ticket.external_contact_id == external_contact_id)
+                conds.append(
+                    select(TicketAssignee.id).where(
+                        TicketAssignee.ticket_id == Ticket.id,
+                        TicketAssignee.company_id == company_id,
+                        TicketAssignee.identity_type == 'EXTERNO',
+                        TicketAssignee.identity_id == external_contact_id,
+                    ).exists()
+                )
+
             if department_area:
                 conds.append(Ticket.area == department_area)
             if department_id:
                 conds.append(Ticket.assigned_department_id == department_id)
-                
+
             stmt = stmt.where(or_(*conds))
 
         result = await self._session.execute(stmt)
@@ -216,7 +261,9 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
             selectinload(Ticket.resources),
-            selectinload(Ticket.stop_logs)
+            selectinload(Ticket.stop_logs),
+            selectinload(Ticket.actions),
+            selectinload(Ticket.assignees)
         ).where(
             Ticket.deduplication_hash == dedup_hash,
             Ticket.company_id == company_id,
@@ -299,10 +346,43 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
             selectinload(Ticket.resources),
-            selectinload(Ticket.stop_logs)
+            selectinload(Ticket.stop_logs),
+            selectinload(Ticket.actions),
+            selectinload(Ticket.assignees)
         ).where(
             Ticket.external_token == token,
             Ticket.is_active == True
         )
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def replace_assignees(
+        self,
+        ticket_id: UUID,
+        company_id: UUID,
+        assignees: list,
+        assigned_by: UUID,
+    ) -> None:
+        """Reemplaza todos los ticket_assignees del ticket con la nueva lista."""
+        await self._session.execute(
+            delete(TicketAssignee).where(
+                TicketAssignee.ticket_id == ticket_id,
+                TicketAssignee.company_id == company_id,
+            )
+        )
+        now = datetime.now(timezone.utc)
+        for a in assignees:
+            row = TicketAssignee(
+                id=uuid.uuid4(),
+                ticket_id=ticket_id,
+                company_id=company_id,
+                tenant_id=company_id,
+                identity_type=a.identity_type,
+                identity_id=a.identity_id,
+                is_lead=a.is_lead,
+                assigned_at=now,
+                assigned_by=assigned_by,
+                created_by=assigned_by,
+            )
+            self._session.add(row)
+        await self._session.flush()
