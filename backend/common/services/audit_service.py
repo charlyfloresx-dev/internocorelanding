@@ -3,6 +3,9 @@ from typing import Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.models.audit import AuditLog
 import uuid
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class AuditService:
     """Servicio de Auditoría para Interno Core"""
@@ -46,7 +49,23 @@ class AuditService:
 
     @staticmethod
     async def track(user_id: Any, action: str, resource: str, metadata: dict):
-        # Para compatibilidad con codigo que no tiene DB session a la mano (background/fire-and-forget)
-        # Por ahora logueamos a consola, pero idealmente usariamos un background_task con un nuevo session_factory
-        print(f"[{datetime.now()}] AUDIT_ASYNC_TRACK (TODO_DB): User {user_id} - {action} on {resource} with meta: {metadata}")
+        import asyncio
+
+        async def _persist():
+            try:
+                from common.infrastructure.database import AsyncSessionLocal
+                async with AsyncSessionLocal() as session:
+                    async with session.begin():
+                        await AuditService.log_action(
+                            db=session,
+                            user_id=user_id,
+                            action=action,
+                            entity_name=resource,
+                            entity_id=metadata.get("trace_id"),
+                            details=str(metadata),
+                        )
+            except Exception as exc:
+                _logger.warning(f"AuditService.track DB persist failed: {exc}")
+
+        asyncio.create_task(_persist())
         return True

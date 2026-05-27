@@ -9,4 +9,4 @@ class EventPublisher:
     """
     async def publish(self, event_name: str, payload: dict):
         # TODO: Implementar conexión real a RabbitMQ
-        logger.info(f"🚀 EVENT PUBLISHED: {event_name} | Payload: {payload}")
+        logger.info(f"EVENT PUBLISHED: {event_name} | Payload: {payload}")

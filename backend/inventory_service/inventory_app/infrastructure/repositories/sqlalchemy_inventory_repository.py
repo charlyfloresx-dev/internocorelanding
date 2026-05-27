@@ -699,23 +699,20 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             if ict:
                 warehouse_id = ict.destination_warehouse_id
                 notes = ict.notes
-                # Fetch SKU and Name from the target company's catalog via ItemVariant
-                stmt_sku = select(ItemVariant).where(
-                    and_(
-                        ItemVariant.product_id == ict.destination_product_id,
-                        ItemVariant.company_id == company_id
+                # Resolve product metadata via master_data_service (inventory_item_variants lives in master_data_db)
+                ict_meta = {}
+                if self.md_client:
+                    ict_meta = await self.md_client.get_product_internal_metadata(
+                        ict.destination_product_id, company_id
                     )
-                ).limit(1)
-                sku_res = await self.session.execute(stmt_sku)
-                variant = sku_res.scalar_one_or_none()
-                
+
                 items.append(DocumentItemEntity(
                     product_id=ict.destination_product_id,
-                    sku=variant.internal_sku if variant else ict.destination_sku or "N/A",
-                    name=variant.mfg_part_number if variant else "Inbound ICT Product",
+                    sku=ict_meta.get("sku") or ict_meta.get("code") or ict.destination_sku or "N/A",
+                    name=ict_meta.get("name") or "Inbound ICT Product",
                     quantity=ict.quantity,
                     uom_id=ict.uom_id,
-                    uom_name="PZA", 
+                    uom_name="PZA",
                     weight=ict.weight,
                     location="REC-DOCK"
                 ))
@@ -726,25 +723,19 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
             if not notes:
                 notes = m.comments
             
-            # Resolve SKU and Name for each unique product in this document
-            # To keep it efficient, we could cache this, but for a single document detail it's fine
-            stmt_variant = select(ItemVariant).where(
-                and_(
-                    ItemVariant.product_id == m.product_id,
-                    ItemVariant.company_id == company_id
-                )
-            ).limit(1)
-            v_res = await self.session.execute(stmt_variant)
-            variant = v_res.scalar_one_or_none()
+            # Resolve product metadata via master_data_service (inventory_item_variants lives in master_data_db)
+            meta = {}
+            if self.md_client:
+                meta = await self.md_client.get_product_internal_metadata(m.product_id, company_id)
 
             items.append(DocumentItemEntity(
                 product_id=m.product_id,
-                sku=variant.internal_sku if variant else "N/A",
-                name=variant.mfg_part_number if variant else "Producto Industrial",
-                quantity=m.quantity,
+                sku=meta.get("sku") or meta.get("code") or str(m.product_id)[:8],
+                name=meta.get("name") or "Producto Industrial",
+                quantity=abs(m.quantity),
                 uom_id=m.uom_id,
-                uom_name="PZA", # TODO: Resolve UOM name
-                weight=m.weight,
+                uom_name=meta.get("uom_name") or "PZA",
+                weight=abs(m.weight) if m.weight is not None else None,
                 unit_price=m._amount if m._amount is not None else Decimal("0.0"),
                 location=m.location,
                 validation_status=m.validation_status
@@ -762,11 +753,11 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
                 origin=doc.origin_name or "N/A",
                 destination=doc.destination_name or "N/A",
                 items_count=doc.total_items,
-                total_weight=doc.total_weight,
+                total_weight=abs(doc.total_weight) if doc.total_weight is not None else Decimal("0"),
                 concept_id=doc.concept_id,
                 warehouse_id=warehouse_id,
                 notes=notes,
-                total_amount=doc.total_amount.amount if doc.total_amount else Decimal("0.0"),
+                total_amount=abs(doc.total_amount.amount) if doc.total_amount else Decimal("0.0"),
                 currency=doc.total_amount.currency if doc.total_amount else "MXN",
                 items=items
             )

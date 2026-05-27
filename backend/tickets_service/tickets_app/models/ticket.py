@@ -114,3 +114,6 @@ class Ticket(MultiTenantBase):
     actions: Mapped[List["TicketAction"]] = relationship(
         "TicketAction", back_populates="ticket", cascade="all, delete-orphan"
     )
+    assignees: Mapped[List["TicketAssignee"]] = relationship(
+        "TicketAssignee", back_populates="ticket", cascade="all, delete-orphan"
+    )

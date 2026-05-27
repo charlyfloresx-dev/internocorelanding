@@ -13,6 +13,7 @@ import 'package:interno_billing_app/features/scanner/data/repositories/sale_repo
 import 'package:interno_billing_app/features/scanner/data/repositories/partner_repository.dart';
 import 'package:interno_billing_app/features/scanner/data/repositories/local_draft_repository.dart';
 import 'package:interno_billing_app/features/home/data/ticket_repository.dart';
+import 'package:interno_billing_app/features/home/data/document_repository.dart';
 import 'package:interno_billing_app/features/home/presentation/bloc/tickets_bloc.dart';
 
 final sl = GetIt.instance;
@@ -52,6 +53,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => PartnerRepository(sl(), sl()));
   sl.registerLazySingleton(() => LocalDraftRepository(sl()));
   sl.registerLazySingleton(() => TicketRepository(sl(), sl()));
+  sl.registerLazySingleton(() => DocumentRepository(sl()));
 
   // ── Blocs ──────────────────────────────────────────────────────────────────
   sl.registerFactory(() => TicketsBloc(ticketRepository: sl()));

@@ -31,9 +31,21 @@ def setup_audit_listeners():
 
     @event.listens_for(Movement, "before_update")
     def receive_before_update(mapper, connection, target):
-        raise ForensicImmutabilityError(
-            "IMMUTABLE_ERROR: Updates are strictly prohibited on inventory movements."
-        )
+        # Allow updating 'available_quantity' for FIFO consumption tracking.
+        # Any other column modifications are strictly blocked.
+        from sqlalchemy.orm.attributes import get_history
+        # Mutable fields during FIFO discharge:
+        # - available_quantity: decremented on IN movements consumed by OUT
+        # - source_movement_id: linked on OUT movement for audit traceability
+        _MUTABLE_FIELDS = {"available_quantity", "source_movement_id"}
+        state = target._sa_instance_state
+        for attr in state.mapper.column_attrs:
+            if attr.key not in _MUTABLE_FIELDS:
+                history = get_history(target, attr.key)
+                if history.has_changes():
+                    raise ForensicImmutabilityError(
+                        f"IMMUTABLE_ERROR: Updates on '{attr.key}' are strictly prohibited on inventory movements."
+                    )
 
     @event.listens_for(Movement, "before_delete")
     def receive_before_delete(mapper, connection, target):

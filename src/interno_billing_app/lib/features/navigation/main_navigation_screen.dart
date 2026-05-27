@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/features/home/presentation/home_screen.dart';
 import 'package:interno_billing_app/features/home/presentation/create_ticket_screen.dart';
 import 'package:interno_billing_app/features/home/presentation/tickets_screen.dart';
@@ -17,11 +18,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   // Tabs 0 (Ventas) and 1 (Recibos) share the same ScannerScreen instance.
-  // Mode is controlled by dispatching ModeSelected on tab tap.
-  // This avoids initializing two camera controllers simultaneously.
   static const _physicalSlots = [0, 0, 1, 2, 3];
 
-  // Controls camera lifecycle: start when scanner tab active, stop otherwise.
   final ValueNotifier<bool> _scannerActive = ValueNotifier(true);
 
   late final List<Widget> _physicalScreens;
@@ -52,7 +50,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
-    // Scanner tabs are 0 (Ventas) and 1 (Recibos)
     _scannerActive.value = index == 0 || index == 1;
     final bloc = context.read<ScannerBloc>();
     if (index == 0) bloc.add(ModeSelected(ScannerMode.sale));
@@ -61,6 +58,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
       body: IndexedStack(
         index: _physicalSlots[_currentIndex],
@@ -68,25 +68,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: _onTabTapped,
-          backgroundColor: Colors.black,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white24,
+          backgroundColor: scaffoldBg,
+          selectedItemColor: cs.primary,
+          unselectedItemColor: cs.onSurface.withValues(alpha: 0.35),
           type: BottomNavigationBarType.fixed,
           showSelectedLabels: true,
           showUnselectedLabels: true,
           selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 10),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), label: 'Ventas'),
-            BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), label: 'Recibos'),
-            BottomNavigationBarItem(icon: Icon(Icons.confirmation_number_outlined), label: 'Tickets'),
-            BottomNavigationBarItem(icon: Icon(Icons.support_agent_outlined), label: 'Soporte'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Usuario'),
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.point_of_sale_outlined), label: 'nav.sales'.tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.receipt_long_outlined), label: 'nav.receipts'.tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.confirmation_number_outlined), label: 'nav.tickets'.tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.support_agent_outlined), label: 'nav.support'.tr()),
+            BottomNavigationBarItem(icon: const Icon(Icons.person_outline), label: 'nav.user'.tr()),
           ],
         ),
       ),

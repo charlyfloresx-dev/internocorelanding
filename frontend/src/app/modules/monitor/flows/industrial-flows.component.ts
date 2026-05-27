@@ -161,11 +161,10 @@ export class IndustrialFlowsComponent {
       );
       if (t2) {
         await this.supportService.triageTicket(
-          t2.id, 
-          'APPROVE', 
-          undefined, 
-          'Asignación automática a colaborador de planta', 
-          '11111111-0001-4001-b001-000000000001'
+          t2.id,
+          'REASSIGN',
+          [{ identity_type: 'PLANTA', identity_id: '11111111-0001-4001-b001-000000000001', is_lead: true }],
+          'Asignación automática a colaborador de planta'
         );
         this.addLog('success', `Ticket Planta Creado y Asignado a Carlos Ramírez: ${t2.reference_code}`);
       }
@@ -180,12 +179,10 @@ export class IndustrialFlowsComponent {
       );
       if (t3) {
         await this.supportService.triageTicket(
-          t3.id, 
-          'APPROVE', 
-          undefined, 
-          'Generando token de acceso para proveedor externo', 
-          undefined, 
-          '22222222-0002-4002-b002-000000000002'
+          t3.id,
+          'REASSIGN',
+          [{ identity_type: 'EXTERNO', identity_id: '22222222-0002-4002-b002-000000000002', is_lead: true }],
+          'Generando token de acceso para proveedor externo'
         );
         this.addLog('success', `Ticket Externo Creado con Token Forense: ${t3.reference_code}`);
         this.addLog('info', `Handshake completado para: charly.flores.x@gmail.com`);

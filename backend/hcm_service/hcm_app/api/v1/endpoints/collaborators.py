@@ -163,7 +163,16 @@ async def search_collaborators(
         Collaborator.is_active == True
     )
     if q:
-        stmt = stmt.where(Collaborator.full_name.ilike(f"%{q}%"))
+        from sqlalchemy import or_
+        pattern = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                Collaborator.first_name.ilike(pattern),
+                Collaborator.last_name_paternal.ilike(pattern),
+                Collaborator.last_name_maternal.ilike(pattern),
+                Collaborator.internal_id.ilike(pattern),
+            )
+        )
     
     result = await db.execute(stmt)
     collaborators = result.scalars().all()

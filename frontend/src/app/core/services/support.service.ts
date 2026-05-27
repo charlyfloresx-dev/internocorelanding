@@ -158,12 +158,9 @@ export class SupportService {
     }
   }
 
-  async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', newAssignedToId?: string, comment?: string, collaboratorId?: string, externalContactId?: string) {
+  async triageTicket(ticketId: string, action: 'APPROVE' | 'REASSIGN', assignees: import('../models/support.types').AssigneeInput[], comment?: string) {
     try {
-      const payload: any = { action };
-      if (newAssignedToId) payload.new_assigned_to_id = newAssignedToId;
-      if (collaboratorId) payload.collaborator_id = collaboratorId;
-      if (externalContactId) payload.external_contact_id = externalContactId;
+      const payload: any = { action, assignees };
       if (comment) payload.comment = comment;
 
       const response = await firstValueFrom(

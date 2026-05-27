@@ -6,8 +6,9 @@ from .stop_log import StopLog
 from .escalation_rule import EscalationRule
 from .outbox import OutboxEvent
 from .action import TicketAction
+from .assignee import TicketAssignee
 
 __all__ = [
     "Ticket", "TicketComment", "TicketHistory", "TicketResource",
-    "StopLog", "OutboxEvent", "EscalationRule", "TicketAction"
+    "StopLog", "OutboxEvent", "EscalationRule", "TicketAction", "TicketAssignee"
 ]

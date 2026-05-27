@@ -25,6 +25,7 @@ class Company(AuditBase):
     # ── CURRENCY & TAX CONFIGURATION ──────────────────────────────────────────
     base_currency: Mapped[str] = mapped_column(String(3), default="USD", nullable=False)
     default_tax_rate: Mapped[Decimal] = mapped_column(default=0.16)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
 
     # Relation to BusinessGroup
     business_group: Mapped[Optional["BusinessGroup"]] = relationship(

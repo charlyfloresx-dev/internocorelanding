@@ -43,7 +43,7 @@ def setup_global_logging(service_name: str, level: int = logging.INFO):
     logging.getLogger("uvicorn.access").addFilter(TenantFilter())
     logging.getLogger("uvicorn.error").addFilter(TenantFilter())
     
-    logging.info(f"🚀 Logging initialized for {service_name}")
+    logging.info(f"Logging initialized for {service_name}")
     return logger
 
 # Singleton-like logger proxy

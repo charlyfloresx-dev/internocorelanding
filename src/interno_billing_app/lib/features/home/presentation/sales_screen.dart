@@ -421,8 +421,8 @@ class _SalesScreenState extends State<SalesScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildCircularButton(
-                      icon: Icons.home_rounded,
-                      onTap: () {},
+                      icon: Icons.close_rounded,
+                      onTap: () => Navigator.of(context).maybePop(),
                     ),
 
                     // Total pill

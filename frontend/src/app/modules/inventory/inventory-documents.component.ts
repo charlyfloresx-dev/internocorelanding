@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 interface InventoryDocument {
   id: string;
@@ -25,7 +26,7 @@ interface InventoryDocument {
 @Component({
   selector: 'app-inventory-documents',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink, FormsModule, CurrencyFormatPipe, TranslatePipe],
+  imports: [CommonModule, MatIconModule, RouterLink, FormsModule, CurrencyFormatPipe, TranslatePipe, LocalDatePipe],
   template: `
     <div class="space-y-8 animate-fade-in pb-24">
       <!-- Header Section -->
@@ -208,7 +209,7 @@ interface InventoryDocument {
                           <span class="text-[9px] text-amber-500 font-black uppercase tracking-widest">{{ doc.customs_pedimento }}</span>
                         </div>
                       }
-                      <span class="text-[9px] text-surface-text-muted font-mono font-bold uppercase mt-0.5">{{ doc.created_at | date:'dd MMM yyyy HH:mm' }}</span>
+                      <span class="text-[9px] text-surface-text-muted font-mono font-bold uppercase mt-0.5">{{ doc.created_at | localDate:'dd MMM yyyy HH:mm' }}</span>
                       <div class="lg:hidden mt-2 flex flex-col gap-1">
                          <span class="text-[8px] font-black text-primary uppercase tracking-tighter">{{ doc.concept_name || doc.type }}</span>
                          <span class="text-[8px] font-bold text-surface-text-muted uppercase truncate max-w-[100px]">{{ doc.origin }} -> {{ doc.destination }}</span>

@@ -78,6 +78,7 @@ class AccessTokenResponse(BaseModel):
     status: str = "ACTIVE"
     readonly: bool = False
     default_tax_rate: Decimal = 0.16
+    timezone: str = "UTC"
 
     model_config = ConfigDict(from_attributes=True)
 

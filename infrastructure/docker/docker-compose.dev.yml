@@ -291,7 +291,6 @@ services:
         condition: service_started
       hcm-service:
         condition: service_started
-
     networks:
       - interno-network
     restart: unless-stopped
@@ -308,4 +307,3 @@ volumes:
     driver: local
   whatsapp_sessions_dev:
     driver: local
-

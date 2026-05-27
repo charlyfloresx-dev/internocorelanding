@@ -16,7 +16,7 @@ from inventory_app.models.customs_pedimento import CustomsPedimento
 from inventory_app.schemas.inventory import InventoryTransactionCreate, InventoryTransactionRead, InventoryDocumentCreate, StockRelocationCreate
 from inventory_app.services.inventory import InventoryTransactionService
 from inventory_app.services.density_guard_audit import run_density_guard_audit
-from inventory_app.domain.entities.inventory_item import DocumentDetailEntity
+from inventory_app.domain.entities.inventory_item import DocumentDetailEntity, DocumentListRowEntity
 from inventory_app.domain.repositories.inventory_repository import IInventoryRepository
 from inventory_app.dependencies.repositories import get_inventory_service, get_inventory_repository
 from common.responses import ApiResponse
@@ -68,7 +68,7 @@ async def _notify_admin_new_document(
             )
             logger.info(f"🔔 InventoryDocumentCreated event dispatched for {folio}")
     except Exception as e:
-        logger.warning(f"⚠️ NOTIFY_ADMIN_FAILED (non-critical): {e}")
+        logger.warning(f"NOTIFY_ADMIN_FAILED (non-critical): {e}")
 
 
 async def _next_doc_folio(session, company_id: str, doc_type: str, fallback_id: uuid.UUID) -> str:
@@ -82,8 +82,8 @@ async def _next_doc_folio(session, company_id: str, doc_type: str, fallback_id: 
     try:
         await session.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": lock_key})
         count_res = await session.execute(
-            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid AND document_type = :dtype"),
-            {"cid": company_id, "dtype": str(doc_type)},
+            text("SELECT count(*) FROM inventory_documents WHERE company_id = :cid"),
+            {"cid": company_id},
         )
         seq_num = (count_res.scalar() or 0) + 1
         return f"{seq_num:06d}"
@@ -137,9 +137,15 @@ async def create_document(
                 is_supervisor=token.is_supervisor
             )
         except ValueError as e:
-            if "ERR_WAREHOUSE_LOCK" in str(e):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            err_msg = str(e)
+            if "ERR_WAREHOUSE_LOCK" in err_msg:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=err_msg)
+            if "ERR_INSUFFICIENT_STOCK" in err_msg:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"{err_msg} | SKU: {item.sku}"
+                )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
 
         if tx.location:
             background_tasks.add_task(
@@ -207,7 +213,7 @@ async def create_document(
     except Exception as e:
         logging.error(f"DOC_METADATA_FAILED: {str(e)}", exc_info=True)
         await service.repository.session.rollback()
-        raise HTTPException(status_code=500, detail=f"Database error during document creation: {str(e)}")
+        raise HTTPException(status_code=500, detail={"code": "ERR_DOCUMENT_PERSIST", "message": "Failed to persist document metadata."})
 
     background_tasks.add_task(
         _notify_admin_new_document,
@@ -273,6 +279,30 @@ async def create_transaction(
         data=transaction,
         message="Transaction recorded successfully."
     )
+
+
+@router.get("/documents", response_model=ApiResponse[List[DocumentListRowEntity]])
+async def list_documents(
+    document_type: Optional[str] = None,
+    warehouse_id: Optional[uuid.UUID] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    repo: IInventoryRepository = Depends(get_inventory_repository),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE"))
+):
+    """Listado paginado de documentos de inventario filtrable por tipo y fechas."""
+    docs, total = await repo.list_movements(
+        company_id=token.company_id,
+        limit=limit,
+        offset=offset,
+        movement_type=document_type,
+        warehouse_id=warehouse_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return ApiResponse(status="success", data=docs, message=f"{total} documents found.")
 
 
 @router.get("/transactions", response_model=ApiResponse[List[InventoryTransactionRead]])

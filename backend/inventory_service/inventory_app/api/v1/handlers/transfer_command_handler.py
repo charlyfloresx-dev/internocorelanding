@@ -1237,7 +1237,7 @@ class TransferCommandHandler:
                 "status": status
             })
 
-            logger.info(f"✅ ASYNC_VAL_FINISH: Movement {movement_id} processed as {status}.")
+            logger.info(f"ASYNC_VAL_FINISH: Movement {movement_id} processed as {status}.")
             
         except Exception as e:
             logger.error(f"Critical error in verify_density_and_compliance: {str(e)}")

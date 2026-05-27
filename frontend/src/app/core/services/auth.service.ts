@@ -41,6 +41,7 @@ export class AuthService {
   public activeCompanyId = computed(() => this.session()?.company_id || null);
 
   public subscriptionStatus = computed(() => this.session()?.status || SubscriptionStatus.ACTIVE);
+  public companyTimezone = computed(() => this.session()?.timezone ?? 'UTC');
 
   public isUnpaid = computed(() => this.subscriptionStatus() === SubscriptionStatus.UNPAID);
 
@@ -99,7 +100,8 @@ export class AuthService {
         company_id: data.company_id,
         user_id: data.user_id,
         roles: data.roles,
-        company_name: (data as any).company_name || 'InternoCorp Enterprise'
+        company_name: (data as any).company_name || 'InternoCorp Enterprise',
+        timezone: data.timezone || 'UTC'
       }));
     }
     console.log('[AuthService] ✅ Session persisted with refresh_token & permissions');

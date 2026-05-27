@@ -1,3 +1,7 @@
+### [2026-05-27] Phase 147: Multi-Tenant Timezone Integration ✅
+- **`alembic/versions/a6b1698e23e1_add_timezone_to_company.py`**: Alembic migration to add the `timezone` string column with `UTC` default to the `companies` table, matching the identity definition in `auth_service`.
+- **Status**: ✅ COMPLETED
+
 ### [2026-05-24] Phase 131: PAYMENT_METHOD en enumerations + sync master_data_db ✅
 - **`scripts/seed_enums.py`**: `PAYMENT_METHOD` añadido con 5 valores globales (`company_id=NULL`): CASH (Efectivo), CARD (Tarjeta), TRANSFER (Transferencia Bancaria), STRIPE (Stripe / Pago Online), CREDIT (Crédito / Cuenta Corriente). Sirve el endpoint `GET /api/v1/enumerations?type=PAYMENT_METHOD`.
 - **Sync de enums desde unified seed**: `unified_industrial_seed.py` Section 3 ahora llama `seed_enumerations(session)` en `master_data_db`, asegurando que todos los enums globales (incluyendo PAYMENT_METHOD) se sincronicen en ambas DBs (`dbname` y `master_data_db`).

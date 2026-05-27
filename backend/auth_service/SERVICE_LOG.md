@@ -1,5 +1,11 @@
 # Auth Service - Service Log
 
+## [2026-05-27] Phase 147: Multi-Tenant Timezone Integration ✅
+- **`models/company.py`**: Added `timezone` string column with `UTC` default to the `Company` model to support dynamic multitenant timezones.
+- **`alembic/versions/99a023377b4d_add_timezone_to_company.py`**: Alembic migration to add the column.
+- **`commands/select_company_command.py`**: Updated token generation to inject the active company's `timezone` into the JWT payload, exposing it via the `timezone` claim to all downstream microservices and the frontend.
+- **Status**: ✅ COMPLETED
+
 ## [2026-05-21] Phase 122: Subscription Client HMAC + Dead Code Removal ✅
 - **`infrastructure/clients/subscription_client.py`**: Añadida función `_service_signature(company_id)` que computa `hmac(SECRET_KEY, company_id, sha256)`. `get_company_entitlements()` ahora envía `X-Service-Signature` en cada request a `subscription_service`. Alineado con el contrato HMAC que ahora exige el endpoint receptor.
 - **Eliminado**: `infrastructure/subscription_client.py` — legacy client con `BASE_URL` hardcodeado (`http://subscription-service:8000/internal`) que nunca fue importado por ningún módulo activo (grep confirmó 0 importadores). Único caller vivo: `infrastructure/clients/subscription_client.py`.

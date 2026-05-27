@@ -311,7 +311,8 @@ async def refresh_token_endpoint(
             "role_names": roles, 
             "scopes": permissions,
             "status": sub_status,
-            "readonly": sub_readonly
+            "readonly": sub_readonly,
+            "timezone": company.timezone,
         },
     )
     new_refresh_raw = security.create_refresh_token(subject=user_id, company_id=company_id)
@@ -348,7 +349,8 @@ async def refresh_token_endpoint(
                 "is_active": user.is_active
             },
             status=sub_status,
-            readonly=sub_readonly
+            readonly=sub_readonly,
+            timezone=company.timezone,
         ),
         message="Token refreshed successfully.",
     )
@@ -405,6 +407,9 @@ async def get_current_user_info(
     Endpoint de Validación Zero Trust.
     Verifica token + empresa en headers; retorna sesión completa para hidratar el frontend.
     """
+    company = await db.get(Company, context.company_id) if context.company_id else None
+    company_timezone = company.timezone if company else "UTC"
+
     if context.role == "collaborator":
         return ApiResponse(
             status="success",
@@ -412,6 +417,8 @@ async def get_current_user_info(
                 access_token=request.headers.get("Authorization", "").replace("Bearer ", ""),
                 user_id=context.user_id,
                 company_id=context.company_id,
+                company_name=company.name if company else None,
+                group_id=company.parent_group_id if company else None,
                 roles=["collaborator"],
                 permissions=context.scopes,
                 scopes=context.scopes,
@@ -422,7 +429,8 @@ async def get_current_user_info(
                     "email": None,
                     "full_name": context.full_name or "Industrial Operator",
                     "is_active": True
-                }
+                },
+                timezone=company_timezone,
             ),
             message="Collaborator session validated successfully."
         )
@@ -430,8 +438,6 @@ async def get_current_user_info(
     user = await db.get(User, context.user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    company = await db.get(Company, context.company_id) if context.company_id else None
 
     return ApiResponse(
         status="success",
@@ -453,7 +459,8 @@ async def get_current_user_info(
                 "is_active": user.is_active
             },
             status=context.status,
-            readonly=context.readonly
+            readonly=context.readonly,
+            timezone=company_timezone,
         ),
         message="Session validated successfully.",
     )

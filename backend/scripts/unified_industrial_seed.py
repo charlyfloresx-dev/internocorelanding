@@ -271,18 +271,22 @@ async def seed_auth(session):
             id=GROUP_ID, name="Interno Global Operations", version_id=1, is_active=True
         ), "BusinessGroup")
 
-    for co_id, co_name, co_tax in [
-        (ENTERPRISE_ID, "Interno Enterprise", 0.16),
-        (LOGISTICS_MX_ID, "Planta MX", 0.16),
-        (LOGISTICS_US_ID, "Planta US", 0.0),
-        (DEMO_ID, "Demo Operativo S.A.", 0.16)
-    ]:
-        if not await session.get(Company, co_id):
+    company_data = [
+        (ENTERPRISE_ID, "Interno Enterprise", 0.16, "America/Monterrey"),
+        (LOGISTICS_MX_ID, "Planta MX", 0.16, "America/Monterrey"),
+        (LOGISTICS_US_ID, "Planta US", 0.0, "America/Chicago"),
+        (DEMO_ID, "Demo Operativo S.A.", 0.16, "America/Monterrey"),
+    ]
+    for co_id, co_name, co_tax, co_tz in company_data:
+        company = await session.get(Company, co_id)
+        if not company:
             await _safe_add(session, Company(
-                id=co_id, name=co_name,
-                status="ACTIVE", parent_group_id=GROUP_ID, version_id=1, is_active=True,
-                default_tax_rate=co_tax
-            ), f"Empresa: {co_name} (IVA: {co_tax*100}%)")
+                id=co_id, name=co_name, status="ACTIVE", parent_group_id=GROUP_ID,
+                version_id=1, is_active=True, default_tax_rate=co_tax, timezone=co_tz
+            ), f"Empresa: {co_name} (IVA: {co_tax*100}%, TZ: {co_tz})")
+        else:
+            company.timezone = co_tz
+            company.default_tax_rate = co_tax
 
     role_admin = await _first(session, select(Role).where(Role.name == "admin"))
     if not role_admin:
@@ -734,84 +738,92 @@ async def seed_industrial_identities(session):
     
     # ── Carlos Ramírez (Enterprise/Logistics, Supervisor) ──
     CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
-    collab_carlos = Collaborator(
-        id=CARLOS_ID,
-        internal_id="003709A",
-        first_name="Carlos",
-        last_name="Ramírez",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
-        rfid_tag=hash_rfid("960091919"),
-        pin_code=hash_pin("1234"),
-        company_id=ENTERPRISE_ID,
-        tenant_id=ENTERPRISE_ID,
-        group_id=GROUP_ID,
-        user_id=CHARLY_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_carlos, "Collaborator: Carlos Ramírez (Enterprise)")
+    if not await session.get(Collaborator, CARLOS_ID):
+        await _safe_add(session, Collaborator(
+            id=CARLOS_ID,
+            internal_id="003709A",
+            first_name="Carlos",
+            last_name_paternal="Ramírez",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
+            rfid_tag=hash_rfid("960091919"),
+            pin_code=hash_pin("1234"),
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            group_id=GROUP_ID,
+            user_id=CHARLY_ID,
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Carlos Ramírez (Enterprise)")
+    else:
+        log.info("  SKIP Collaborator: Carlos Ramírez (Enterprise) (already exists)")
 
     CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
-    collab_carlos_us = Collaborator(
-        id=CARLOS_US_ID,
-        internal_id="003709A",
-        first_name="Carlos",
-        last_name="Ramírez",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
-        rfid_tag=hash_rfid("960091919"),
-        pin_code=hash_pin("1234"),
-        company_id=LOGISTICS_US_ID,
-        tenant_id=LOGISTICS_US_ID,
-        group_id=GROUP_ID,
-        user_id=CHARLY_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_carlos_us, "Collaborator: Carlos Ramírez (Logistics US)")
+    if not await session.get(Collaborator, CARLOS_US_ID):
+        await _safe_add(session, Collaborator(
+            id=CARLOS_US_ID,
+            internal_id="003709A",
+            first_name="Carlos",
+            last_name_paternal="Ramírez",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
+            rfid_tag=hash_rfid("960091919"),
+            pin_code=hash_pin("1234"),
+            company_id=LOGISTICS_US_ID,
+            tenant_id=LOGISTICS_US_ID,
+            group_id=GROUP_ID,
+            user_id=CHARLY_ID,
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Carlos Ramírez (Logistics US)")
+    else:
+        log.info("  SKIP Collaborator: Carlos Ramírez (Logistics US) (already exists)")
 
     # ── Luis Torres (Logistics US/MX, Supervisor) ──
     LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
-    collab_luis_us = Collaborator(
-        id=LUIS_US_ID,
-        internal_id="801",
-        first_name="Luis (USA)",
-        last_name="Torres",
-        is_direct=True,
-        supervisor_id=None,
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
-        rfid_tag=hash_rfid("2327559684"),
-        pin_code=None,
-        company_id=LOGISTICS_US_ID,
-        tenant_id=LOGISTICS_US_ID,
-        group_id=GROUP_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_luis_us, "Collaborator: Luis Torres (Logistics US)")
+    if not await session.get(Collaborator, LUIS_US_ID):
+        await _safe_add(session, Collaborator(
+            id=LUIS_US_ID,
+            internal_id="801",
+            first_name="Luis (USA)",
+            last_name_paternal="Torres",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
+            rfid_tag=hash_rfid("2327559684"),
+            pin_code=None,
+            company_id=LOGISTICS_US_ID,
+            tenant_id=LOGISTICS_US_ID,
+            group_id=GROUP_ID,
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Luis Torres (Logistics US)")
+    else:
+        log.info("  SKIP Collaborator: Luis Torres (Logistics US) (already exists)")
 
     # ── Ana García (Logistics MX, Subordinada de Luis) ──
     ANA_ID = uuid.UUID("11111111-0003-4001-a001-000000000003")
-    collab_ana = Collaborator(
-        id=ANA_ID,
-        internal_id="301",
-        first_name="Ana",
-        last_name="García",
-        is_direct=True,
-        supervisor_id=LUIS_US_ID, # Just for testing hierarchy
-        home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
-        rfid_tag=None,
-        pin_code=hash_pin("1234"),
-        company_id=LOGISTICS_MX_ID,
-        tenant_id=LOGISTICS_MX_ID,
-        group_id=GROUP_ID,
-        is_active=True,
-        version_id=1
-    )
-    await _safe_add(session, collab_ana, "Collaborator: Ana García (Logistics MX)")
+    if not await session.get(Collaborator, ANA_ID):
+        await _safe_add(session, Collaborator(
+            id=ANA_ID,
+            internal_id="301",
+            first_name="Ana",
+            last_name_paternal="García",
+            is_direct=True,
+            supervisor_id=LUIS_US_ID,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
+            rfid_tag=None,
+            pin_code=hash_pin("1234"),
+            company_id=LOGISTICS_MX_ID,
+            tenant_id=LOGISTICS_MX_ID,
+            group_id=GROUP_ID,
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Ana García (Logistics MX)")
+    else:
+        log.info("  SKIP Collaborator: Ana García (Logistics MX) (already exists)")
 
     # 2. External Contact (Provider)
     contact_data = {

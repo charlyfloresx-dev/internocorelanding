@@ -74,7 +74,7 @@ class InterCompanyTransfer(MultiTenantBase):
     cost_b: Mapped[Optional[Money]] = composite(Money, _acquisition_cost_b, currency)
 
     status: Mapped[TransferStatus] = mapped_column(
-        SAEnum(TransferStatus, name="transfer_status_enum"),
+        SAEnum(TransferStatus, name="transfer_status_enum", native_enum=False),
         nullable=False, default=TransferStatus.PENDING, server_default="PENDING", index=True
     )
 

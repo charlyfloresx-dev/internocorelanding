@@ -75,6 +75,7 @@ def create_final_access_token(
     readonly: bool = False,
     correlation_id: Optional[str] = None,
     extra_data: Optional[dict] = None,
+    timezone: str = "UTC",
 ) -> str:
     """
     Phase-2 token: final JWT scoped to a specific company.
@@ -100,6 +101,7 @@ def create_final_access_token(
         "status": status,
         "readonly": readonly,
         "correlation_id": correlation_id,
+        "timezone": timezone,
     }
     
     # Merge extra data (e.g. Industrial Identity)
@@ -124,6 +126,7 @@ def create_access_token(subject: str, company_id: str, data: dict) -> str:
         status=data.get("status", "TRIAL"),
         readonly=data.get("readonly", False),
         correlation_id=data.get("correlation_id"),
+        timezone=data.get("timezone", "UTC"),
         extra_data=data,
     )
 

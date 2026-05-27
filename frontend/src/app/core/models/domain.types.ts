@@ -119,6 +119,7 @@ export interface AuthSession {
   modules?: string[];
   status?: SubscriptionStatus;
   readonly?: boolean;
+  timezone?: string;
 }
 
 

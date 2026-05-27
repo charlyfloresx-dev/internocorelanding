@@ -6,6 +6,15 @@
 
 ---
 
+### [2026-05-26] - Phase 133: Security Hardening Sprint 2 ✅
+
+- **`middleware.py`**: Eliminado `traceback.print_exc()` y `f"Critical Middleware Error: {str(e)}"` en la respuesta HTTP 500. Reemplazado por `logger.error(..., exc_info=True)` (stack trace solo en logs del servidor) + `asyncio.create_task(AuditService.track(...))` con `action="CRITICAL_MIDDLEWARE_ERROR"`. Mensaje al cliente: `"An unexpected error occurred."` con `trace_id` para soporte.
+- **`services/audit_service.py`**: `track()` implementado con persistencia real en DB via `asyncio.create_task(_persist())`. Era un `print()` TODO desde Phase 1. Abre su propia `AsyncSessionLocal`, falla silenciosamente con `_logger.warning`. `_logger = logging.getLogger(__name__)` añadido a nivel de módulo.
+- **Auditoría realizada**: CORS (`kiosk_service` wildcard CRÍTICO, `asset_manager` fallback ALTO, `*.vercel.app` MEDIO), God Mode constant-time comparison (MEDIO). Todos pendientes de fix en próxima sesión.
+- **Status**: ✅ COMPLETED — Exception raw corregida + AuditService funcional en todos los servicios.
+
+---
+
 ### [2026-05-20] - Phase 117: Namespace Scope Matching Security Bridge ✅
 
 - **`security/dependencies.py`**: Added `_scope_satisfies` helper inside `require_scope` dependency. Resolves authorization mismatches where endpoints require coarse scopes (e.g. `master_data:read`) but tokens carry granular database permission slugs (e.g. `master_data.product.read`).

@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Ticket, TicketStatus, TicketPriority } from '../../../core/models/support.types';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
+import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
 import { SideDrawerService } from '../../../core/services/side-drawer.service';
 import { TicketsFormComponent } from './components/tickets-form.component';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
@@ -17,7 +18,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
 @Component({
   selector: 'app-tickets-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule, TicketTriageDrawerComponent, RouterModule],
+  imports: [CommonModule, MatIconModule, TranslatePipe, MatMenuModule, MatButtonModule, TicketTriageDrawerComponent, RouterModule, LocalDatePipe],
   template: `
     <div class="p-6 animate-fade-in flex flex-col min-h-full w-full">
       
@@ -135,7 +136,7 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
                     <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
                       <mat-icon class="text-[8px]">event</mat-icon> {{ 'support.dashboard.registered_at' | translate:'REGISTRO' }}
                     </p>
-                    <p class="text-[11px] font-black text-surface-text">{{ ticket.created_at | date:'dd/MM/yyyy' }}</p>
+                    <p class="text-[11px] font-black text-surface-text">{{ ticket.created_at | localDate:'dd/MM/yyyy' }}</p>
                   </div>
                 </div>
 
@@ -399,7 +400,7 @@ export class TicketsDashboardComponent implements OnInit {
   async handleQuickApprove(ticket: Ticket) {
     this.isLoadingTriage.set(true);
     try {
-      await this.ticketService.triageTicket(ticket.id, 'APPROVE', undefined, 'Aprobación rápida desde Dashboard');
+      await this.ticketService.triageTicket(ticket.id, 'APPROVE', [], 'Aprobación rápida desde Dashboard');
       this.toastService.success('Ticket aprobado correctamente');
       this.loadSupervisionData();
     } catch (err: any) {
@@ -412,7 +413,7 @@ export class TicketsDashboardComponent implements OnInit {
   async handleQuickAssign(ticket: Ticket, techId: string) {
     this.isLoadingTriage.set(true);
     try {
-      await this.ticketService.triageTicket(ticket.id, 'REASSIGN', techId, 'Asignación rápida desde Dashboard');
+      await this.ticketService.triageTicket(ticket.id, 'REASSIGN', [{ identity_type: 'INTERNAL', identity_id: techId, is_lead: true }], 'Asignación rápida desde Dashboard');
       this.toastService.success('Ticket asignado correctamente');
       this.loadSupervisionData();
     } catch (err: any) {
@@ -491,28 +492,23 @@ export class TicketsDashboardComponent implements OnInit {
   }
 
   getAssignedLabels(ticket: Ticket): { id: string; name: string; css: string }[] {
+    const assignees = ticket.assignees ?? [];
+    if (assignees.length > 0) {
+      return assignees.map(a => {
+        if (a.identity_type === 'INTERNAL') {
+          return { id: a.identity_id, name: this.getUserName(a.identity_id), css: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+        } else if (a.identity_type === 'PLANTA') {
+          return { id: a.identity_id, name: 'PLANTA', css: 'bg-teal-500/10 text-teal-600 border-teal-500/20' };
+        } else {
+          return { id: a.identity_id, name: 'EXTERNO', css: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
+        }
+      });
+    }
+    // Fallback legacy
     const labels: { id: string; name: string; css: string }[] = [];
-    if (ticket.assigned_to_id) {
-      labels.push({
-        id: ticket.assigned_to_id,
-        name: this.getUserName(ticket.assigned_to_id),
-        css: 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-      });
-    }
-    if (ticket.collaborator_id) {
-      labels.push({
-        id: ticket.collaborator_id,
-        name: 'PLANTA',
-        css: 'bg-teal-500/10 text-teal-600 border-teal-500/20'
-      });
-    }
-    if (ticket.external_contact_id) {
-      labels.push({
-        id: ticket.external_contact_id,
-        name: 'EXTERNO',
-        css: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
-      });
-    }
+    if (ticket.assigned_to_id) labels.push({ id: ticket.assigned_to_id, name: this.getUserName(ticket.assigned_to_id), css: 'bg-amber-500/10 text-amber-600 border-amber-500/20' });
+    if (ticket.collaborator_id) labels.push({ id: ticket.collaborator_id, name: 'PLANTA', css: 'bg-teal-500/10 text-teal-600 border-teal-500/20' });
+    if (ticket.external_contact_id) labels.push({ id: ticket.external_contact_id, name: 'EXTERNO', css: 'bg-purple-500/10 text-purple-600 border-purple-500/20' });
     return labels;
   }
 

@@ -44,9 +44,9 @@ class SubscriptionClient:
                 if response.status_code == 200:
                     return response.json()
                 
-                logger.warning(f"⚠️ Subscription Service returned {response.status_code} for {company_id}")
+                logger.warning(f"Subscription Service returned {response.status_code} for {company_id}")
                 return fallback
                 
         except Exception as e:
-            logger.error(f"❌ Error connecting to Subscription Service: {e}")
+            logger.error(f"Error connecting to Subscription Service: {e}")
             return fallback

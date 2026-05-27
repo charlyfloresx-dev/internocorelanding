@@ -3,6 +3,27 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 147: Multi-Tenant Timezone Integration (Frontend & Backend) ✅
+
+**Objetivos:** Implementar soporte dinámico de zona horaria por empresa para corregir desviaciones de horario en auditorías y reportes transaccionales.
+
+**Decisiones Arquitectónicas:**
+- **Backend Timezone Infrastructure:** Columna `timezone` (ej. `America/Monterrey`) añadida a la tabla `companies` en `auth_service` y `master_data_service` con valor default `UTC`.
+- **JWT Claims:** La zona horaria se inyecta en el payload del Access Token durante el handshake (`/login` -> `/select-company`) en `select_company_command.py`.
+- **Frontend Timezone Signal:** Angular lee la zona horaria del JWT y la expone vía `AuthService.companyTimezone()` como signal reactivo.
+- **Pipe Standalone:** Se construyó `LocalDatePipe` reemplazando la dependencia nativa de Angular `| date`, manejando la zona horaria destino vía `date-fns-tz`.
+- **Seeding Unificado:** El script `unified_industrial_seed.py` se actualizó para sembrar las empresas Planta MX y Planta US con sus zonas horarias operativas reales.
+
+**Workarounds / Deuda Técnica:**
+- La migración progresiva del pipe `| date` al nuevo `| localDate` requiere barrer sistemáticamente el frontend, actualmente en progreso iterativo.
+
+**Archivos clave:**
+- `backend/auth_service/auth_app/commands/select_company_command.py`
+- `backend/common/models/company.py`
+- `frontend/src/app/shared/pipes/local-date.pipe.ts`
+- `frontend/src/app/core/services/auth.service.ts`
+
+---
 ### [2026-05-27] Phase 146: Mobile Config — Theme Dark/Light + Language ES/EN ✅
 
 **Objetivo:** Implementar el panel de configuración de la app móvil con selector de tema (oscuro/claro) y selector de idioma (ES/EN), persistentes entre sesiones.

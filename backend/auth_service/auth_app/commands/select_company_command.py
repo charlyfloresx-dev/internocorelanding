@@ -95,7 +95,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             if sub_status == "PAST_DUE":
                 readonly = True
         except Exception as e:
-            self.logger.warning(f"⚠️ [Handshake Fallback]: {e}")
+            self.logger.warning(f"[Handshake Fallback]: {e}")
             readonly = True
             sub_status = "PAST_DUE"
 
@@ -105,7 +105,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
         if not ucr:
             # FALLBACK: Verificación Industrial (Colaborador)
             # Si no existe en Auth asocialo a un flujo de colaborador en HR
-            self.logger.info(f"⚠️ [Collaborator Check] ID {command.user_id} not in Auth. Checking HR Service...")
+            self.logger.info(f"[Collaborator Check] ID {command.user_id} not in Auth. Checking HR Service...")
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     hr_res = await client.post(
@@ -126,7 +126,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                     if matches:
                         # ¡Luis Torres detectado para esta empresa!
                         match = matches[0]
-                        self.logger.info(f"✅ [Collaborator Success] {match['full_name']} verified for {command.company_id}")
+                        self.logger.info(f"[Collaborator Success] {match['full_name']} verified for {command.company_id}")
                         
                         # Construir Scopes y Permisos dinámicamente
                         is_sup = match.get("is_supervisor", False)
@@ -161,7 +161,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                             correlation_id=correlation_id
                         )
             except Exception as e:
-                self.logger.error(f"❌ HR Fallback failed: {e}")
+                self.logger.error(f"HR Fallback failed: {e}")
             
             raise UnauthorizedException(message="User not associated with this company")
 
@@ -172,6 +172,10 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
 
         # 3. Generar Access Token final (15 min, typ: "access")
         scopes = _build_scopes(ucr.role_names, ucr.scopes, permissions)
+        
+        company_obj = await self.db.get(Company, command.company_id)
+        company_timezone = company_obj.timezone if company_obj else "UTC"
+
         access_token = create_access_token(
             subject=str(command.user_id),
             company_id=str(command.company_id),
@@ -184,6 +188,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                 "readonly": readonly,
                 "correlation_id": correlation_id,
                 "group_id": str(ucr.group_id) if ucr.group_id else None,
+                "timezone": company_timezone,
             },
         )
 
@@ -251,12 +256,18 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "status": sub_status,
             "readonly": readonly,
             "default_tax_rate": getattr(ucr, "default_tax_rate", 0.16) if ucr else 0.16,
+            "timezone": company_timezone,
         }
+
     async def _generate_collaborator_response(
         self, command, real_collaborator_id, full_name, internal_id, is_supervisor, warehouse_id, department, 
         permissions, scopes, modules, sub_status, readonly, correlation_id
     ) -> dict:
         """Helper para generar el JWT y la respuesta final para un colaborador industrial."""
+        company_obj = await self.db.get(Company, command.company_id)
+        company_timezone = company_obj.timezone if company_obj else "UTC"
+        company_name = company_obj.name if company_obj else "Interno Core"
+
         access_token = create_access_token(
             subject=str(real_collaborator_id), # Usamos el ID específico de la empresa
             company_id=str(command.company_id),
@@ -274,7 +285,8 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                 "full_name": full_name,
                 "department": department,
                 "warehouse_id": str(warehouse_id) if warehouse_id else None,
-                "role": "collaborator"
+                "role": "collaborator",
+                "timezone": company_timezone,
             },
         )
         
@@ -287,11 +299,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             entity_id=command.company_id,
             details=f"Identity: {full_name} ({internal_id})",
         )
- 
-        # Resolve company name for the header
-        company_obj = await self.db.get(Company, command.company_id)
-        company_name = company_obj.name if company_obj else "Interno Core"
- 
+
         return {
             "access_token": access_token,
             "refresh_token": None, 
@@ -313,4 +321,5 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             "status": sub_status,
             "readonly": readonly,
             "default_tax_rate": getattr(company_obj, "default_tax_rate", 0.16) if company_obj else 0.16,
+            "timezone": company_timezone,
         }

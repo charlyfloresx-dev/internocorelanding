@@ -52,6 +52,22 @@ export interface TicketAction {
   updated_at?: string;
 }
 
+export interface TicketAssignee {
+  id: string;
+  ticket_id: string;
+  identity_type: 'INTERNAL' | 'PLANTA' | 'EXTERNO';
+  identity_id: string;
+  is_lead: boolean;
+  assigned_at: string;
+  assigned_by?: string;
+}
+
+export interface AssigneeInput {
+  identity_type: 'INTERNAL' | 'PLANTA' | 'EXTERNO';
+  identity_id: string;
+  is_lead: boolean;
+}
+
 export interface Ticket {
   id: string;
   reference_code: string;
@@ -69,6 +85,8 @@ export interface Ticket {
   area?: string;
   department_id?: string;
   comments?: TicketComment[];
+  actions?: TicketAction[];
+  assignees?: TicketAssignee[];
 }
 
 export interface TicketTriage {

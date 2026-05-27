@@ -38,6 +38,39 @@ class AddTicketComment extends TicketsEvent {
   List<Object> get props => [ticketId, content];
 }
 
+class LoadTicketActions extends TicketsEvent {
+  final String ticketId;
+  const LoadTicketActions(this.ticketId);
+
+  @override
+  List<Object> get props => [ticketId];
+}
+
+class AddTicketActionEvent extends TicketsEvent {
+  final String ticketId;
+  final String description;
+  final DateTime? commitDate;
+
+  const AddTicketActionEvent({
+    required this.ticketId,
+    required this.description,
+    this.commitDate,
+  });
+
+  @override
+  List<Object> get props => [ticketId, description];
+}
+
+class CloseTicketActionEvent extends TicketsEvent {
+  final String ticketId;
+  final String actionId;
+
+  const CloseTicketActionEvent({required this.ticketId, required this.actionId});
+
+  @override
+  List<Object> get props => [ticketId, actionId];
+}
+
 // --- States ---
 abstract class TicketsState extends Equatable {
   const TicketsState();
@@ -60,11 +93,21 @@ class TicketsLoaded extends TicketsState {
 class TicketCommentsLoaded extends TicketsState {
   final Ticket ticket;
   final List<TicketComment> comments;
-  
+
   const TicketCommentsLoaded(this.ticket, this.comments);
 
   @override
   List<Object> get props => [ticket, comments];
+}
+
+class TicketActionsLoaded extends TicketsState {
+  final String ticketId;
+  final List<TicketAction> actions;
+
+  const TicketActionsLoaded(this.ticketId, this.actions);
+
+  @override
+  List<Object> get props => [ticketId, actions];
 }
 
 class TicketActionSuccess extends TicketsState {
@@ -86,7 +129,7 @@ class TicketsError extends TicketsState {
 // --- BLoC ---
 class TicketsBloc extends Bloc<TicketsEvent, TicketsState> {
   final TicketRepository ticketRepository;
-  
+
   List<Ticket> _currentTickets = [];
   List<Ticket> get currentTickets => _currentTickets;
 
@@ -95,6 +138,9 @@ class TicketsBloc extends Bloc<TicketsEvent, TicketsState> {
     on<CreateTicket>(_onCreateTicket);
     on<LoadTicketComments>(_onLoadTicketComments);
     on<AddTicketComment>(_onAddTicketComment);
+    on<LoadTicketActions>(_onLoadTicketActions);
+    on<AddTicketActionEvent>(_onAddTicketAction);
+    on<CloseTicketActionEvent>(_onCloseTicketAction);
   }
 
   Future<void> _onLoadTickets(LoadTickets event, Emitter<TicketsState> emit) async {
@@ -125,7 +171,8 @@ class TicketsBloc extends Bloc<TicketsEvent, TicketsState> {
     }
   }
 
-  Future<void> _onLoadTicketComments(LoadTicketComments event, Emitter<TicketsState> emit) async {
+  Future<void> _onLoadTicketComments(
+      LoadTicketComments event, Emitter<TicketsState> emit) async {
     emit(TicketsLoading());
     try {
       final ticket = _currentTickets.firstWhere((t) => t.id == event.ticketId);
@@ -137,13 +184,16 @@ class TicketsBloc extends Bloc<TicketsEvent, TicketsState> {
     }
   }
 
-  Future<void> _onAddTicketComment(AddTicketComment event, Emitter<TicketsState> emit) async {
+  Future<void> _onAddTicketComment(
+      AddTicketComment event, Emitter<TicketsState> emit) async {
     final currentState = state;
     if (currentState is TicketCommentsLoaded) {
       try {
-        final newComment = await ticketRepository.addComment(event.ticketId, event.content);
+        final newComment =
+            await ticketRepository.addComment(event.ticketId, event.content);
         if (newComment != null) {
-          final updatedComments = List<TicketComment>.from(currentState.comments)..add(newComment);
+          final updatedComments =
+              List<TicketComment>.from(currentState.comments)..add(newComment);
           emit(TicketCommentsLoaded(currentState.ticket, updatedComments));
         } else {
           emit(const TicketsError('No se pudo enviar el mensaje'));
@@ -153,6 +203,50 @@ class TicketsBloc extends Bloc<TicketsEvent, TicketsState> {
         emit(const TicketsError('Error al enviar mensaje'));
         emit(currentState);
       }
+    }
+  }
+
+  Future<void> _onLoadTicketActions(
+      LoadTicketActions event, Emitter<TicketsState> emit) async {
+    emit(TicketsLoading());
+    try {
+      final actions = await ticketRepository.getTicketActions(event.ticketId);
+      emit(TicketActionsLoaded(event.ticketId, actions));
+    } catch (e) {
+      emit(const TicketsError('Error al cargar acciones'));
+    }
+  }
+
+  Future<void> _onAddTicketAction(
+      AddTicketActionEvent event, Emitter<TicketsState> emit) async {
+    try {
+      final action = await ticketRepository.createAction(
+        event.ticketId,
+        description: event.description,
+        commitDate: event.commitDate,
+      );
+      if (action != null) {
+        emit(const TicketActionSuccess('Acción registrada'));
+      } else {
+        emit(const TicketsError('No se pudo registrar la acción'));
+      }
+    } catch (e) {
+      emit(const TicketsError('Error al registrar acción'));
+    }
+  }
+
+  Future<void> _onCloseTicketAction(
+      CloseTicketActionEvent event, Emitter<TicketsState> emit) async {
+    try {
+      final success =
+          await ticketRepository.closeAction(event.ticketId, event.actionId);
+      if (success) {
+        emit(const TicketActionSuccess('Acción cerrada'));
+      } else {
+        emit(const TicketsError('No se pudo cerrar la acción'));
+      }
+    } catch (e) {
+      emit(const TicketsError('Error al cerrar acción'));
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/di/injection.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/features/home/data/models/ticket_models.dart';
@@ -64,8 +65,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
     if (title.length < 5) {
       HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('El asunto debe tener al menos 5 caracteres'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('create_ticket.subject_error'.tr()),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
       ));
@@ -73,8 +74,8 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     }
     if (desc.length < 10) {
       HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('La descripción debe tener al menos 10 caracteres'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('create_ticket.desc_error'.tr()),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
       ));
@@ -92,6 +93,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardBg = Theme.of(context).cardColor;
+
     return BlocListener<TicketsBloc, TicketsState>(
       listener: (context, state) {
         if (state is TicketActionSuccess && state.message.contains('creado')) {
@@ -100,22 +105,20 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: scaffoldBg,
         body: SafeArea(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 280),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeIn,
-            child: _showSuccess ? _buildSuccess() : _buildForm(),
+            child: _showSuccess ? _buildSuccess(cs) : _buildForm(cs, cardBg),
           ),
         ),
       ),
     );
   }
 
-  // ── Success State ──────────────────────────────────────────────────────────
-
-  Widget _buildSuccess() {
+  Widget _buildSuccess(ColorScheme cs) {
     return Center(
       key: const ValueKey('success'),
       child: Padding(
@@ -133,10 +136,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
               child: const Icon(Icons.check, color: InternoColors.success, size: 36),
             ),
             const SizedBox(height: 28),
-            const Text(
-              'TICKET ENVIADO',
+            Text(
+              'create_ticket.sent'.tr(),
               style: TextStyle(
-                color: Colors.white,
+                color: cs.onSurface,
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 2,
@@ -144,10 +147,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'El equipo de soporte ha recibido tu reporte y lo atenderá a la brevedad.',
+              'create_ticket.sent_desc'.tr(),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: cs.onSurface.withValues(alpha: 0.45),
                 fontSize: 13,
                 height: 1.6,
               ),
@@ -159,13 +162,13 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
               child: OutlinedButton(
                 onPressed: _reset,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white24),
+                  foregroundColor: cs.onSurface,
+                  side: BorderSide(color: cs.onSurface.withValues(alpha: 0.24)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text(
-                  'REPORTAR OTRO PROBLEMA',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
+                child: Text(
+                  'create_ticket.report_another'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
                 ),
               ),
             ),
@@ -175,9 +178,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  // ── Form ──────────────────────────────────────────────────────────────────
-
-  Widget _buildForm() {
+  Widget _buildForm(ColorScheme cs, Color cardBg) {
     return BlocBuilder<TicketsBloc, TicketsState>(
       key: const ValueKey('form'),
       builder: (context, state) {
@@ -185,16 +186,15 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'NUEVO REPORTE',
+                  Text(
+                    'create_ticket.title'.tr(),
                     style: TextStyle(
-                      color: Colors.white,
+                      color: cs.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.5,
@@ -202,61 +202,49 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Reporta una falla, incidente o solicitud de soporte',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.38), fontSize: 12),
+                    'create_ticket.subtitle'.tr(),
+                    style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 12),
                   ),
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Divider(color: Colors.white10, height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Divider(color: cs.onSurface.withValues(alpha: 0.1), height: 1),
             ),
-
-            // ── Fields ────────────────────────────────────────────────────
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _label('ASUNTO'),
+                    _label('create_ticket.subject'.tr(), cs),
                     const SizedBox(height: 8),
-                    _field(
-                      controller: _titleController,
-                      hint: 'Ej: Falla en compresor línea 3',
-                    ),
-
+                    _field(controller: _titleController, hint: 'create_ticket.subject_hint'.tr(), cs: cs, cardBg: cardBg),
                     const SizedBox(height: 20),
-
-                    _label('PRIORIDAD'),
+                    _label('create_ticket.priority'.tr(), cs),
                     const SizedBox(height: 8),
-                    _prioritySelector(),
-
+                    _prioritySelector(cs),
                     const SizedBox(height: 20),
-
-                    _label('ÁREA (OPCIONAL)'),
+                    _label('create_ticket.area'.tr(), cs),
                     const SizedBox(height: 8),
-                    _departmentDropdown(),
-
+                    _departmentDropdown(cs, cardBg),
                     const SizedBox(height: 20),
-
-                    _label('DESCRIPCIÓN'),
+                    _label('create_ticket.description'.tr(), cs),
                     const SizedBox(height: 8),
                     _field(
                       controller: _descController,
-                      hint: 'Describe el problema con el mayor detalle posible...',
+                      hint: 'create_ticket.desc_hint'.tr(),
                       minLines: 4,
                       maxLines: 8,
+                      cs: cs,
+                      cardBg: cardBg,
                     ),
-
                     const SizedBox(height: 32),
                   ],
                 ),
               ),
             ),
-
-            // ── CTA ───────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: SizedBox(
@@ -265,25 +253,21 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    disabledBackgroundColor: Colors.white12,
+                    backgroundColor: cs.onSurface,
+                    foregroundColor: cs.surface,
+                    disabledBackgroundColor: cs.onSurface.withValues(alpha: 0.12),
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: cs.surface.withValues(alpha: 0.54)),
                         )
-                      : const Text(
-                          'CREAR TICKET',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
-                            letterSpacing: 1.5,
-                          ),
+                      : Text(
+                          'create_ticket.create'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.5),
                         ),
                 ),
               ),
@@ -294,12 +278,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  Widget _label(String text) => Text(
+  Widget _label(String text, ColorScheme cs) => Text(
         text,
-        style: const TextStyle(
-          color: Colors.white38,
+        style: TextStyle(
+          color: cs.onSurface.withValues(alpha: 0.38),
           fontSize: 10,
           fontWeight: FontWeight.bold,
           letterSpacing: 2,
@@ -309,71 +291,60 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
   Widget _field({
     required TextEditingController controller,
     required String hint,
+    required ColorScheme cs,
+    required Color cardBg,
     int minLines = 1,
     int maxLines = 1,
   }) =>
       TextField(
         controller: controller,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: TextStyle(color: cs.onSurface, fontSize: 15),
         minLines: minLines,
         maxLines: maxLines,
-        textAlignVertical:
-            maxLines > 1 ? TextAlignVertical.top : TextAlignVertical.center,
+        textAlignVertical: maxLines > 1 ? TextAlignVertical.top : TextAlignVertical.center,
         decoration: InputDecoration(
           filled: true,
-          fillColor: const Color(0xFF111111),
+          fillColor: cardBg,
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
+          hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 13),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.white24),
+            borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.24)),
           ),
         ),
       );
 
-  Widget _prioritySelector() {
+  Widget _prioritySelector(ColorScheme cs) {
     const options = [
-      (TicketPriority.low, 'BAJA', Color(0xFF8E8E93)),
-      (TicketPriority.medium, 'MEDIA', Color(0xFFFFCC00)),
-      (TicketPriority.high, 'ALTA', Color(0xFFFF9500)),
-      (TicketPriority.critical, 'CRÍTICA', Color(0xFFFF3B30)),
+      (TicketPriority.low, 'tickets.priority_low', Color(0xFF8E8E93)),
+      (TicketPriority.medium, 'tickets.priority_medium', Color(0xFFFFCC00)),
+      (TicketPriority.high, 'tickets.priority_high', Color(0xFFFF9500)),
+      (TicketPriority.critical, 'tickets.priority_critical', Color(0xFFFF3B30)),
     ];
 
     return Row(
       children: [
         for (int i = 0; i < options.length; i++) ...[
           if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: _priorityChip(options[i].$1, options[i].$2, options[i].$3),
-          ),
+          Expanded(child: _priorityChip(options[i].$1, options[i].$2.tr(), options[i].$3, cs)),
         ],
       ],
     );
   }
 
-  Widget _departmentDropdown() {
+  Widget _departmentDropdown(ColorScheme cs, Color cardBg) {
     if (_loadingDepts) {
       return Container(
         height: 52,
-        decoration: BoxDecoration(
-          color: const Color(0xFF111111),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Center(
+        decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12)),
+        child: Center(
           child: SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+            child: CircularProgressIndicator(strokeWidth: 2, color: cs.onSurface.withValues(alpha: 0.24)),
           ),
         ),
       );
@@ -385,19 +356,16 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
         child: Container(
           height: 52,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF111111),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12)),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  'Sin departamentos — Toca para reintentar',
-                  style: TextStyle(color: Colors.white24, fontSize: 12),
+                  'create_ticket.no_depts'.tr(),
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 12),
                 ),
               ),
-              const Icon(Icons.refresh, color: Colors.white24, size: 16),
+              Icon(Icons.refresh, color: cs.onSurface.withValues(alpha: 0.24), size: 16),
             ],
           ),
         ),
@@ -408,27 +376,24 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        color: cardBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _selectedDept != null ? Colors.white24 : Colors.transparent,
+          color: _selectedDept != null ? cs.onSurface.withValues(alpha: 0.24) : Colors.transparent,
         ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Department>(
           value: _selectedDept,
           isExpanded: true,
-          dropdownColor: const Color(0xFF1A1A1A),
-          icon: const Icon(Icons.expand_more, color: Colors.white38, size: 20),
-          hint: const Text(
-            'Seleccionar área',
-            style: TextStyle(color: Colors.white24, fontSize: 13),
-          ),
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+          dropdownColor: cardBg,
+          icon: Icon(Icons.expand_more, color: cs.onSurface.withValues(alpha: 0.38), size: 20),
+          hint: Text('create_ticket.select_area'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 13)),
+          style: TextStyle(color: cs.onSurface, fontSize: 14),
           items: [
-            const DropdownMenuItem<Department>(
+            DropdownMenuItem<Department>(
               value: null,
-              child: Text('Sin área', style: TextStyle(color: Colors.white38, fontSize: 13)),
+              child: Text('create_ticket.no_area'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 13)),
             ),
             ..._departments.map((dept) => DropdownMenuItem<Department>(
                   value: dept,
@@ -444,7 +409,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
     );
   }
 
-  Widget _priorityChip(TicketPriority p, String label, Color color) {
+  Widget _priorityChip(TicketPriority p, String label, Color color, ColorScheme cs) {
     final selected = _priority == p;
     return GestureDetector(
       onTap: () {
@@ -454,10 +419,10 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : const Color(0xFF111111),
+          color: selected ? color.withValues(alpha: 0.12) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? color : Colors.white10,
+            color: selected ? color : cs.onSurface.withValues(alpha: 0.1),
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -468,7 +433,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: selected ? color : Colors.white24,
+                color: selected ? color : cs.onSurface.withValues(alpha: 0.24),
                 shape: BoxShape.circle,
               ),
             ),
@@ -476,7 +441,7 @@ class _CreateTicketScreenState extends State<CreateTicketScreen> {
             Text(
               label,
               style: TextStyle(
-                color: selected ? color : Colors.white38,
+                color: selected ? color : cs.onSurface.withValues(alpha: 0.38),
                 fontSize: 9,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,

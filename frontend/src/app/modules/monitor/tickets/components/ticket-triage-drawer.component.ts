@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
-import { Ticket, TicketStatus } from '../../../../core/models/support.types';
+import { Ticket, TicketStatus, TicketComment } from '../../../../core/models/support.types';
 import { SupportService } from '../../../../core/services/support.service';
 import { AdminUser, AdminService } from '../../../../core/services/admin.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-ticket-triage-drawer',
@@ -19,7 +20,7 @@ import { ToastService } from '../../../../core/services/toast.service';
         <div class="absolute inset-0 bg-surface-bg/30 backdrop-blur-sm transition-opacity" (click)="close.emit()" aria-hidden="true"></div>
 
         <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-          <div class="pointer-events-auto w-screen max-w-md transform transition-transform ease-in-out duration-300 translate-x-0 bg-surface-card border-l border-surface-border shadow-2xl flex flex-col h-full overflow-hidden">
+          <div class="pointer-events-auto w-screen max-w-3xl transform transition-transform ease-in-out duration-300 translate-x-0 bg-surface-card border-l border-surface-border shadow-2xl flex flex-col h-full overflow-hidden">
             
             <!-- Header -->
             <div class="px-6 py-5 border-b border-surface-border bg-surface-card/50 backdrop-blur-md flex items-start justify-between">
@@ -46,9 +47,12 @@ import { ToastService } from '../../../../core/services/toast.service';
               </div>
             </div>
 
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6">
-              
+            <!-- Two-column Content -->
+            <div class="flex flex-1 overflow-hidden">
+
+              <!-- LEFT: Detalles + Triaje -->
+              <div class="w-80 flex-shrink-0 overflow-y-auto px-6 py-6 flex flex-col gap-6 border-r border-surface-border custom-scrollbar">
+
               <!-- Detalles del Ticket -->
               <div class="bg-surface-text/[0.02] border border-surface-border rounded-xl p-4">
                 <h3 class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-3">
@@ -92,25 +96,39 @@ import { ToastService } from '../../../../core/services/toast.service';
                       <!-- Typeahead de Técnicos -->
                       <div class="relative w-full">
                         <label class="block text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-2">
-                          Asignar Técnico Responsable
+                          Asignar Responsables
                         </label>
+
+                        <!-- Chips seleccionados -->
+                        @if (selectedIdentities().length > 0) {
+                          <div class="flex flex-wrap gap-1.5 mb-2">
+                            @for (p of selectedIdentities(); track (p.id + p.type)) {
+                              <div class="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight border"
+                                   [ngClass]="{
+                                     'bg-sky-500/10 border-sky-500/20 text-sky-400': p.type === 'INTERNAL',
+                                     'bg-amber-500/10 border-amber-500/20 text-amber-400': p.type === 'PLANTA',
+                                     'bg-purple-500/10 border-purple-500/20 text-purple-400': p.type === 'EXTERNO'
+                                   }">
+                                <mat-icon class="text-[11px]">{{ p.type === 'INTERNAL' ? 'person' : (p.type === 'PLANTA' ? 'engineering' : 'business_center') }}</mat-icon>
+                                {{ p.label }}
+                                <button (mousedown)="removeIdentity(p)" class="ml-0.5 hover:opacity-60 transition-opacity flex items-center">
+                                  <mat-icon class="text-[11px]">close</mat-icon>
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        }
+
                         <div class="relative">
                           <mat-icon class="absolute left-3 top-[10px] text-surface-text-muted text-[20px]">search</mat-icon>
-                          <input type="text" 
+                          <input type="text"
                                  [ngModel]="techSearchQuery()"
                                  (ngModelChange)="onTechSearchChange($event)"
                                  (focus)="showTechDropdown.set(true)"
                                  (blur)="onTechBlur()"
                                  placeholder="Buscar por nombre o correo..."
                                  class="w-full bg-surface-card border border-surface-border text-surface-text text-sm rounded-xl focus:ring-primary focus:border-primary block p-3 pl-10 pr-10 shadow-sm transition-all" />
-                          
-                          @if (selectedTechnicianId()) {
-                            <button class="absolute right-2 top-[8px] text-surface-text-muted hover:text-surface-text bg-surface-card rounded-full p-1 transition-colors" (mousedown)="clearTechSelection()">
-                              <mat-icon class="text-[16px]">close</mat-icon>
-                            </button>
-                          } @else {
-                            <mat-icon class="absolute right-3 top-[10px] text-surface-text-muted text-[20px] pointer-events-none transition-transform" [class.rotate-180]="showTechDropdown()">expand_more</mat-icon>
-                          }
+                          <mat-icon class="absolute right-3 top-[10px] text-surface-text-muted text-[20px] pointer-events-none transition-transform" [class.rotate-180]="showTechDropdown()">expand_more</mat-icon>
                         </div>
 
                         @if (showTechDropdown() && typeaheadIdentities().length > 0) {
@@ -151,13 +169,13 @@ import { ToastService } from '../../../../core/services/toast.service';
                       </div>
 
                       <!-- Banner Informativo para Externos -->
-                      @if (selectedIdentity()?.type === 'EXTERNO') {
+                      @if (selectedIdentities().some(i => i.type === 'EXTERNO')) {
                         <div class="p-3 rounded-xl border border-purple-500/20 bg-purple-500/5 flex items-start gap-3 animate-fade-in">
                           <mat-icon class="text-purple-500 text-sm mt-0.5">info</mat-icon>
                           <div class="flex-1">
                             <p class="text-[10px] font-black uppercase text-purple-500 tracking-widest mb-1">SLA Externo: 72 Horas</p>
                             <p class="text-[10px] text-surface-text-muted leading-tight">
-                              Se enviará un enlace de acceso seguro a <b>{{ selectedIdentity()?.sub }}</b>. 
+                              Se enviará un enlace de acceso seguro a <b>{{ selectedIdentities().find(i => i.type === 'EXTERNO')?.sub }}</b>.
                               El proveedor podrá interactuar sin consumir licencias.
                             </p>
                           </div>
@@ -224,7 +242,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 
                       <!-- Botón de Confirmación -->
                       <button (click)="submitTriage('REASSIGN')" 
-                              [disabled]="!selectedTechnicianId() || isSubmitting()"
+                              [disabled]="selectedIdentities().length === 0 || isSubmitting()"
                               class="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2 shadow-lg shadow-primary/20 mt-2">
                         @if (isSubmitting()) { <mat-icon class="animate-spin text-[16px]">refresh</mat-icon> }
                         @else { <mat-icon class="text-[16px]">send</mat-icon> }
@@ -239,8 +257,93 @@ import { ToastService } from '../../../../core/services/toast.service';
                   <p class="text-xs text-surface-text-muted">Este ticket ya superó la fase de triaje operativo.</p>
                 </div>
               }
-              
-            </div>
+
+              </div><!-- end LEFT column -->
+
+              <!-- RIGHT: Comentarios -->
+              <div class="flex-1 flex flex-col overflow-hidden">
+
+                <!-- Chat header -->
+                <div class="px-5 py-4 border-b border-surface-border flex-shrink-0 flex items-center gap-2">
+                  <mat-icon class="text-[14px] text-surface-text-muted">chat</mat-icon>
+                  <h3 class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest">Comentarios</h3>
+                  @if (comments().length > 0) {
+                    <span class="text-[9px] bg-surface-text/10 px-1.5 py-0.5 rounded-full text-surface-text-muted">{{ comments().length }}</span>
+                  }
+                  <button class="ml-auto p-1 rounded-lg hover:bg-surface-text/[0.05] transition-colors" (click)="loadComments()" title="Actualizar">
+                    <mat-icon class="text-[14px] text-surface-text-muted" [class.animate-spin]="isLoadingComments()">refresh</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Messages -->
+                <div class="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3 custom-scrollbar">
+                  @if (isLoadingComments()) {
+                    <div class="flex items-center justify-center py-8">
+                      <mat-icon class="animate-spin text-surface-text-muted">refresh</mat-icon>
+                    </div>
+                  } @else if (comments().length === 0) {
+                    <div class="flex flex-col items-center justify-center h-full gap-2 opacity-40">
+                      <mat-icon class="text-4xl text-surface-text-muted">chat_bubble_outline</mat-icon>
+                      <p class="text-xs text-surface-text-muted">Sin comentarios aún</p>
+                    </div>
+                  } @else {
+                    @for (comment of comments(); track comment.id) {
+                      @if (comment.author_id === SYSTEM_USER_ID) {
+                        <!-- Bot -->
+                        <div class="flex gap-2 items-start">
+                          <div class="w-7 h-7 rounded-lg bg-primary/10 flex-shrink-0 flex items-center justify-center">
+                            <mat-icon class="text-[14px] text-primary">smart_toy</mat-icon>
+                          </div>
+                          <div class="bg-surface-text/[0.03] border border-surface-border/60 rounded-xl rounded-tl-none px-3 py-2 max-w-[90%]">
+                            <p class="text-[9px] font-black text-primary uppercase tracking-widest mb-1">Interno AI Assistant</p>
+                            <p class="text-xs text-surface-text whitespace-pre-line leading-relaxed">{{ comment.content }}</p>
+                            <p class="text-[9px] text-surface-text-muted mt-1 text-right">{{ formatCommentTime(comment.created_at) }}</p>
+                          </div>
+                        </div>
+                      } @else if (comment.author_id === currentUserId()) {
+                        <!-- Me -->
+                        <div class="flex justify-end">
+                          <div class="bg-primary/10 border border-primary/20 rounded-xl rounded-tr-none px-3 py-2 max-w-[90%]">
+                            <p class="text-xs text-surface-text leading-relaxed">{{ comment.content }}</p>
+                            <p class="text-[9px] text-surface-text-muted mt-1 text-right">{{ formatCommentTime(comment.created_at) }}</p>
+                          </div>
+                        </div>
+                      } @else {
+                        <!-- Other -->
+                        <div class="flex gap-2 items-start">
+                          <div class="w-7 h-7 rounded-full bg-surface-text/10 flex-shrink-0 flex items-center justify-center">
+                            <mat-icon class="text-[14px] text-surface-text-muted">person</mat-icon>
+                          </div>
+                          <div class="bg-surface-text/[0.03] border border-surface-border/60 rounded-xl rounded-tl-none px-3 py-2 max-w-[90%]">
+                            <p class="text-xs text-surface-text leading-relaxed">{{ comment.content }}</p>
+                            <p class="text-[9px] text-surface-text-muted mt-1 text-right">{{ formatCommentTime(comment.created_at) }}</p>
+                          </div>
+                        </div>
+                      }
+                    }
+                  }
+                </div>
+
+                <!-- Input bar -->
+                <div class="px-5 py-4 border-t border-surface-border flex-shrink-0 flex gap-2">
+                  <input type="text" [(ngModel)]="newCommentText"
+                         (keyup.enter)="sendComment()"
+                         placeholder="Escribe un comentario..."
+                         class="flex-1 bg-surface-card border border-surface-border text-surface-text text-xs rounded-xl focus:ring-primary focus:border-primary block p-2.5 shadow-sm" />
+                  <button (click)="sendComment()"
+                          [disabled]="!newCommentText.trim() || isAddingComment()"
+                          class="p-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/20 flex-shrink-0">
+                    @if (isAddingComment()) {
+                      <mat-icon class="animate-spin text-[16px]">refresh</mat-icon>
+                    } @else {
+                      <mat-icon class="text-[16px]">send</mat-icon>
+                    }
+                  </button>
+                </div>
+
+              </div><!-- end RIGHT column -->
+
+            </div><!-- end two-column -->
             
           </div>
         </div>
@@ -256,13 +359,15 @@ import { ToastService } from '../../../../core/services/toast.service';
 })
 export class TicketTriageDrawerComponent {
   TicketStatus = TicketStatus;
-  
+  readonly SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
   @Input() ticket: Ticket | null = null;
   @Output() close = new EventEmitter<void>();
 
   private supportService = inject(SupportService);
   private adminService = inject(AdminService);
   private toastService = inject(ToastService);
+  private authService = inject(AuthService);
 
   private searchTimeout: any;
 
@@ -274,7 +379,8 @@ export class TicketTriageDrawerComponent {
   techSearchQuery = signal<string>('');
   showTechDropdown = signal<boolean>(false);
   typeaheadIdentities = signal<any[]>([]);
-  selectedIdentity = signal<any | null>(null);
+  selectedIdentity = signal<any | null>(null); // kept for blur logic only
+  selectedIdentities = signal<any[]>([]);
 
   selectedTechnicianId = signal<string | null>(null);
   selectedCollaboratorId = signal<string | null>(null);
@@ -283,6 +389,13 @@ export class TicketTriageDrawerComponent {
   triageComment = signal<string>('');
   commitmentDate = signal<string>('');
   attachmentName = signal<string | null>(null);
+
+  comments = signal<TicketComment[]>([]);
+  newCommentText = '';
+  isAddingComment = signal<boolean>(false);
+  isLoadingComments = signal<boolean>(false);
+
+  currentUserId = computed(() => this.authService.session()?.user_id ?? '');
 
   // Derivados
   filteredTechnicians = computed(() => {
@@ -318,13 +431,52 @@ export class TicketTriageDrawerComponent {
     effect(() => {
       if (this.ticket) {
         this.loadSupervisionData();
-        // Limpiar el estado interno al abrir otro ticket
+        this.loadComments();
+        this.selectedIdentity.set(null);
+        this.selectedIdentities.set([]);
         this.selectedTechnicianId.set(null);
+        this.selectedCollaboratorId.set(null);
+        this.selectedExternalContactId.set(null);
+        this.techSearchQuery.set('');
+        this.typeaheadIdentities.set([]);
         this.triageComment.set('');
         this.commitmentDate.set('');
         this.attachmentName.set(null);
+        this.newCommentText = '';
       }
     });
+  }
+
+  async loadComments() {
+    if (!this.ticket) return;
+    this.isLoadingComments.set(true);
+    try {
+      const msgs = await this.supportService.getMessages(this.ticket.id);
+      this.comments.set(msgs);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    } finally {
+      this.isLoadingComments.set(false);
+    }
+  }
+
+  async sendComment() {
+    if (!this.ticket || !this.newCommentText.trim()) return;
+    this.isAddingComment.set(true);
+    try {
+      await this.supportService.addMessage(this.ticket.id, this.newCommentText.trim());
+      this.newCommentText = '';
+      await this.loadComments();
+    } catch (err) {
+      this.toastService.error('Error', 'No se pudo enviar el comentario.');
+    } finally {
+      this.isAddingComment.set(false);
+    }
+  }
+
+  formatCommentTime(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   }
 
   async loadSupervisionData() {
@@ -369,26 +521,30 @@ export class TicketTriageDrawerComponent {
   }
 
   selectIdentity(identity: any) {
-    this.selectedIdentity.set(identity);
-    this.techSearchQuery.set(identity.label);
+    this.selectedIdentity.set(identity); // used by onTechBlur
+    this.selectedIdentities.update(list => [...list.filter(i => i.type !== identity.type), identity]);
+    this._syncIds();
+    this.techSearchQuery.set('');
+    this.typeaheadIdentities.set([]);
     this.showTechDropdown.set(false);
+  }
 
-    // Reset specific IDs
-    this.selectedTechnicianId.set(null);
-    this.selectedCollaboratorId.set(null);
-    this.selectedExternalContactId.set(null);
+  removeIdentity(identity: any) {
+    this.selectedIdentities.update(list => list.filter(i => !(i.id === identity.id && i.type === identity.type)));
+    this._syncIds();
+    if (this.selectedIdentities().length === 0) this.selectedIdentity.set(null);
+  }
 
-    if (identity.type === 'INTERNAL') {
-      this.selectedTechnicianId.set(identity.id);
-    } else if (identity.type === 'PLANTA') {
-      this.selectedCollaboratorId.set(identity.id);
-    } else if (identity.type === 'EXTERNO') {
-      this.selectedExternalContactId.set(identity.id);
-    }
+  private _syncIds() {
+    const all = this.selectedIdentities();
+    this.selectedTechnicianId.set(all.find(i => i.type === 'INTERNAL')?.id ?? null);
+    this.selectedCollaboratorId.set(all.find(i => i.type === 'PLANTA')?.id ?? null);
+    this.selectedExternalContactId.set(all.find(i => i.type === 'EXTERNO')?.id ?? null);
   }
 
   clearTechSelection() {
     this.selectedIdentity.set(null);
+    this.selectedIdentities.set([]);
     this.selectedTechnicianId.set(null);
     this.selectedCollaboratorId.set(null);
     this.selectedExternalContactId.set(null);
@@ -414,13 +570,16 @@ export class TicketTriageDrawerComponent {
         finalComment += `\n[Adjunto]: ${this.attachmentName()}`;
       }
 
+      const assignees = this.selectedIdentities().map((id: any, idx: number) => ({
+        identity_type: id.type as 'INTERNAL' | 'PLANTA' | 'EXTERNO',
+        identity_id: id.id,
+        is_lead: idx === 0,
+      }));
       await this.supportService.triageTicket(
-        this.ticket.id, 
-        action, 
-        this.selectedTechnicianId() || undefined, 
-        finalComment || undefined,
-        this.selectedCollaboratorId() || undefined,
-        this.selectedExternalContactId() || undefined
+        this.ticket.id,
+        action,
+        assignees,
+        finalComment || undefined
       );
       this.toastService.success('Triaje Completado', 'El ticket ha sido despachado exitosamente.');
       this.close.emit();

@@ -9,31 +9,38 @@ class SaleRepository {
 
   SaleRepository(this._dio, this._prefs);
 
-  Future<void> checkout(SaleRequest request) async {
+  Future<Map<String, dynamic>> checkout(SaleRequest request) async {
     try {
       final token = _prefs.getString('access_token') ?? '';
       final companyId = _prefs.getString('company_id') ?? '';
 
-      await _dio.post(
+      final response = await _dio.post(
         'pos/checkout',
         data: request.toJson(),
         queryParameters: {'company_id': companyId},
       );
+      return response.data as Map<String, dynamic>;
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<void> createDocument(InventoryDocumentRequest request) async {
+  Future<Map<String, dynamic>> createDocument(InventoryDocumentRequest request) async {
     try {
       final token = _prefs.getString('access_token') ?? '';
       final companyId = _prefs.getString('company_id') ?? '';
 
-      await _dio.post(
+      final response = await _dio.post(
         'inventory/documents',
         data: request.toJson(),
         queryParameters: {'company_id': companyId},
+        options: Options(
+          headers: {
+            'X-Client-Request-ID': request.correlationId,
+          },
+        ),
       );
+      return response.data as Map<String, dynamic>;
     } catch (e) {
       rethrow;
     }

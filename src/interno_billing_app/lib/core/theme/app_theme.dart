@@ -14,19 +14,21 @@ class InternoColors {
 }
 
 class AppTheme {
-  // Dark — industrial black / cyan (matches Angular .dark vars)
+  // Dark — industrial black / cyan (uber_pos palette)
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF050B14),
+      scaffoldBackgroundColor: Colors.black,
       colorScheme: const ColorScheme.dark(
         primary: InternoColors.cyan,
         secondary: InternoColors.success,
-        surface: Color(0xFF0A1628),
-        onSurface: Color(0xFFF8FAFC),
+        surface: Color(0xFF1A1A1A),
+        onSurface: Colors.white,
       ),
       fontFamily: 'Inter',
       useMaterial3: true,
+      cardColor: const Color(0xFF1A1A1A),
+      dividerColor: Colors.white12,
     );
   }
 

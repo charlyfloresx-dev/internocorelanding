@@ -425,7 +425,7 @@ async def seed_master_data(session):
         if result.returncode != 0:
             log.warning(f"Sub-seed failed: {result.stderr}")
         else:
-            log.info("   ✅ Precios de transferencia OK.")
+            log.info("   Precios de transferencia OK.")
     except Exception as e:
         log.warning(f"Failed to run transfer prices seed: {e}")
 
@@ -464,7 +464,7 @@ async def seed_inventory(session):
         if result.returncode != 0:
             log.warning(f"Sub-seed failed: {result.stderr}")
         else:
-            log.info("   ✅ Variantes de producto OK.")
+            log.info("   Variantes de producto OK.")
     except Exception as e:
         log.warning(f"Failed to run variants seed: {e}")
 

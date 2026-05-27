@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/features/home/data/models/ticket_models.dart';
 import 'package:interno_billing_app/features/home/presentation/bloc/tickets_bloc.dart';
@@ -12,14 +12,18 @@ class TicketsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardBg = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('TICKETS DE SOPORTE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        backgroundColor: scaffoldBg,
+        title: Text('tickets.title'.tr(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: Icon(Icons.refresh, color: cs.onSurface),
             onPressed: () => context.read<TicketsBloc>().add(LoadTickets()),
           )
         ],
@@ -49,13 +53,13 @@ class TicketsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                _buildTicketSummary(pending.toString(), closed.toString()),
+                _buildTicketSummary(pending.toString(), closed.toString(), cs, cardBg),
                 const SizedBox(height: 32),
                 Expanded(
                   child: state is TicketsLoading && tickets.isEmpty
                       ? const Center(child: CircularProgressIndicator(color: InternoColors.cyan))
                       : tickets.isEmpty
-                          ? const Center(child: Text('No hay tickets activos', style: TextStyle(color: Colors.white38)))
+                          ? Center(child: Text('tickets.no_tickets'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38))))
                           : ListView.builder(
                               itemCount: tickets.length,
                               itemBuilder: (context, index) {
@@ -66,11 +70,10 @@ class TicketsScreen extends StatelessWidget {
                                       context,
                                       MaterialPageRoute(builder: (_) => TicketChatScreen(ticket: t)),
                                     ).then((_) {
-                                      // Reload tickets when back to reflect any status change or we just reload.
                                       context.read<TicketsBloc>().add(LoadTickets());
                                     });
                                   },
-                                  child: _buildTicketItem(t),
+                                  child: _buildTicketItem(t, cs, cardBg),
                                 );
                               },
                             ),
@@ -89,7 +92,7 @@ class TicketsScreen extends StatelessWidget {
                     minimumSize: const Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('CREAR NUEVO TICKET', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('tickets.create'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -99,63 +102,61 @@ class TicketsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTicketSummary(String pending, String closed) {
+  Widget _buildTicketSummary(String pending, String closed, ColorScheme cs, Color cardBg) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildSummaryStat(pending, 'PENDIENTES'),
-          Container(width: 1, height: 40, color: Colors.white10),
-          _buildSummaryStat(closed, 'CERRADOS/RESUELTOS'),
+          _buildSummaryStat(pending, 'tickets.pending'.tr(), cs),
+          Container(width: 1, height: 40, color: cs.onSurface.withValues(alpha: 0.1)),
+          _buildSummaryStat(closed, 'tickets.closed_resolved'.tr(), cs),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryStat(String val, String label) {
+  Widget _buildSummaryStat(String val, String label, ColorScheme cs) {
     return Column(
       children: [
-        Text(val, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(val, style: TextStyle(color: cs.onSurface, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 10, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  Widget _buildTicketItem(Ticket ticket) {
+  Widget _buildTicketItem(Ticket ticket, ColorScheme cs, Color cardBg) {
     Color statusColor = Colors.grey;
     if (ticket.status == TicketStatus.newTicket || ticket.status == TicketStatus.pending) statusColor = Colors.amber;
     if (ticket.status == TicketStatus.resolved || ticket.status == TicketStatus.closed) statusColor = InternoColors.success;
     if (ticket.status == TicketStatus.inProgress) statusColor = InternoColors.cyan;
 
-    // Priority color for the left indicator bar
     Color priorityColor;
     String priorityLabel;
     IconData priorityIcon;
     switch (ticket.priority) {
       case TicketPriority.critical:
         priorityColor = const Color(0xFFFF3B30);
-        priorityLabel = 'CRÍTICA';
+        priorityLabel = 'tickets.priority_critical'.tr();
         priorityIcon = Icons.warning_amber_rounded;
         break;
       case TicketPriority.high:
         priorityColor = const Color(0xFFFF9500);
-        priorityLabel = 'ALTA';
+        priorityLabel = 'tickets.priority_high'.tr();
         priorityIcon = Icons.arrow_upward_rounded;
         break;
       case TicketPriority.low:
         priorityColor = const Color(0xFF8E8E93);
-        priorityLabel = 'BAJA';
+        priorityLabel = 'tickets.priority_low'.tr();
         priorityIcon = Icons.arrow_downward_rounded;
         break;
       case TicketPriority.medium:
-      default:
         priorityColor = const Color(0xFFFFCC00);
-        priorityLabel = 'MEDIA';
+        priorityLabel = 'tickets.priority_medium'.tr();
         priorityIcon = Icons.remove_rounded;
         break;
     }
@@ -165,14 +166,13 @@ class TicketsScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: IntrinsicHeight(
         child: Row(
           children: [
-            // Priority indicator bar
             Container(
               width: 4,
               decoration: BoxDecoration(
@@ -183,39 +183,34 @@ class TicketsScreen extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Row 1: Reference code + Status badge
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('#${ticket.referenceCode}', style: const TextStyle(color: InternoColors.cyan, fontWeight: FontWeight.bold, fontSize: 13)),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: statusColor.withValues(alpha:0.15), borderRadius: BorderRadius.circular(8)),
                           child: Text(ticket.status.name.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 9, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    // Row 2: Title
-                    Text(ticket.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(ticket.title, style: TextStyle(color: cs.onSurface, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 10),
-                    // Row 3: Priority badge + Area tag + Assignment
                     Wrap(
                       spacing: 8,
                       runSpacing: 6,
                       children: [
-                        // Priority badge
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: priorityColor.withOpacity(0.15),
+                            color: priorityColor.withValues(alpha:0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -227,21 +222,19 @@ class TicketsScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Area tag (if present)
                         if (ticket.area != null && ticket.area!.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
+                              color: cs.onSurface.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: Text(ticket.area!, style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold)),
+                            child: Text(ticket.area!, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.54), fontSize: 9, fontWeight: FontWeight.bold)),
                           ),
-                        // Assignment indicator
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: isAssigned ? InternoColors.cyan.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                            color: isAssigned ? InternoColors.cyan.withValues(alpha:0.1) : cs.onSurface.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -250,12 +243,12 @@ class TicketsScreen extends StatelessWidget {
                               Icon(
                                 isAssigned ? Icons.person_rounded : Icons.person_outline_rounded,
                                 size: 12,
-                                color: isAssigned ? InternoColors.cyan : Colors.white38,
+                                color: isAssigned ? InternoColors.cyan : cs.onSurface.withValues(alpha: 0.38),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                isAssigned ? 'Asignado' : 'Sin asignar',
-                                style: TextStyle(color: isAssigned ? InternoColors.cyan : Colors.white38, fontSize: 9, fontWeight: FontWeight.bold),
+                                isAssigned ? 'tickets.assigned'.tr() : 'tickets.not_assigned'.tr(),
+                                style: TextStyle(color: isAssigned ? InternoColors.cyan : cs.onSurface.withValues(alpha: 0.38), fontSize: 9, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -263,19 +256,17 @@ class TicketsScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Row 4: Date
                     Text(
-                      'Reportado el ${DateFormat('dd MMM yyyy').format(ticket.createdAt)}',
-                      style: const TextStyle(color: Colors.white24, fontSize: 11),
+                      '${'tickets.reported_on'.tr()} ${DateFormat('dd MMM yyyy').format(ticket.createdAt)}',
+                      style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 11),
                     ),
                   ],
                 ),
               ),
             ),
-            // Chevron
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 20),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Icon(Icons.chevron_right_rounded, color: cs.onSurface.withValues(alpha: 0.24), size: 20),
             ),
           ],
         ),

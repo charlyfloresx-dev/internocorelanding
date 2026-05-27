@@ -347,14 +347,31 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                     media_type="application/json"
                 )
 
-            import traceback
-            traceback.print_exc()
-            
+            import asyncio
+            logger.error(
+                f"UNHANDLED_EXCEPTION [{type(e).__name__}] method:{request.method} path:{path} trace:{transaction_id}",
+                exc_info=True,
+            )
+
+            from common.services.audit_service import AuditService
+            asyncio.create_task(AuditService.track(
+                user_id=str(user_id) if user_id else "SYSTEM",
+                action="CRITICAL_MIDDLEWARE_ERROR",
+                resource=path,
+                metadata={
+                    "trace_id": transaction_id,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                    "method": request.method,
+                    "path": path,
+                },
+            ))
+
             return Response(
-                status_code=500, 
+                status_code=500,
                 content=json.dumps({
-                    "status": "error", 
-                    "message": f"Critical Middleware Error: {str(e)}",
+                    "status": "error",
+                    "message": "An unexpected error occurred.",
                     "meta": {"trace_id": transaction_id}
                 }, cls=InternoCoreEncoder),
                 media_type="application/json"

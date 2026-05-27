@@ -194,3 +194,155 @@ Signals actualmente protegidos con `untracked()`:
 ### Pendiente futuro
 - [ ] Pasar `collaborator_id` desde el perfil del móvil al endpoint `/mine`
 - [ ] Limpiar `_warnedDuplicates` en `RemoveItem` individual (low priority)
+
+---
+
+## PENDIENTES — HCM Service: Gaps Legacy Employee → Collaborator
+
+> **Contexto (sesión 2026-05-27):** Análisis del legacy .NET `Employee.cs` vs. Python `Collaborator`.
+> El colaborador en HCM es el equivalente directo al `Employee` del legacy.
+> `Department` del HCM ES la configuración de áreas por empresa — el dropdown de Área
+> en la pantalla Soporte del móvil ya lo consume vía `GET /api/v1/hcm/departments/`.
+> El legacy también distingue `Area` (física/planta) de `Department` (funcional);
+> en el HCM actual ambos están fusionados en `Department`.
+
+### P-HCM-1: `Department.description` + seed por defecto ✅ COMPLETADO (sesión 2026-05-27)
+
+- [x] Campo `description: Optional[str]` añadido al modelo `Department`
+- [x] Migración `003_add_department_description.py` (alembic hcm_service)
+- [x] Seed de departamentos por defecto en `hcm_service/scripts/seed.py`:
+  Producción · Calidad · Mantenimiento · Almacén · Administración · Ingeniería
+
+### P-HCM-2: CRUD de Departamentos en Angular (configuración por empresa) 🟡
+
+> Los departamentos son configurados por empresa desde el portal web.
+> El endpoint ya existe (`GET/POST/PATCH/DELETE /hcm/departments/`); falta la UI.
+
+- `[ ]` Sección "ÁREAS Y DEPARTAMENTOS" en la pantalla de configuración de empresa
+- `[ ]` Lista de departamentos con toggle `is_active`
+- `[ ]` Formulario de creación: Nombre + Código + Descripción
+- `[ ]` Confirmación antes de desactivar (afecta dropdown en móvil)
+
+### P-HCM-3: Gaps de campos del legacy (deuda baja prioridad) 🟢
+
+> Ninguno bloquea funcionalidad actual. Se puede hacer en una fase futura.
+
+- `[ ]` `JobPosition` como catálogo propio (actualmente solo `job_title: str` en Collaborator)
+- `[ ]` `shift_id` en Collaborator → FK al turno del MES (bridge HCM↔MES)
+- `[ ]` `manager_id` + `director_id` (jerarquía 3 niveles, actualmente solo `supervisor_id`)
+- `[ ]` `is_hourly: bool` (directo horario vs. salarial)
+- `[ ]` `departure_date: Optional[date]` (baja voluntaria / baja definitiva)
+- `[ ]` `business_unit_id` → catálogo `BusinessUnit` (usado en empresas multi-planta tipo Safran)
+- `[ ]` `Department.description` en Angular CRUD (campo ya en DB desde P-HCM-1)
+
+---
+
+## PENDIENTES — MES Service: Flujo ERP → MES → Production Report
+
+> **Contexto:** El MES ejecuta el ciclo completo: ERP libera Work Orders → MES las recibe, asigna recursos,
+> registra operadores y tiempos de ciclo → al cerrar corrida, reporta producción de vuelta al ERP.
+> El análisis de 2026-05-27 identificó gaps que bloquean el flujo end-to-end.
+
+---
+
+### P-MES-1: Bugs Críticos (bloquean creación de Work Orders) 🔴
+
+**Problema:** `WorkOrderHandler.handle_create` intenta setear campos que NO existen en el modelo `WorkOrder`.
+La creación falla silenciosamente con `AttributeError`.
+
+| Handler usa | Modelo tiene | Acción |
+|---|---|---|
+| `order_qty=` | `order_quantity` | Renombrar campo en modelo O handler |
+| `due_date=` | `request_date` | Renombrar / alinear |
+| `alias=` | *(no existe)* | Agregar columna `alias: Optional[str]` |
+| `release_date=` | *(no existe)* | Agregar columna `release_date: Optional[datetime]` |
+| `status="PLANNED"` | default `"DRAFT"` | Alinear — PLANNED es el estado correcto al recibir del ERP |
+
+**Archivos:** `mes_service/mes_app/models/work_order.py` + `mes_service/mes_app/core/handlers/work_order_handler.py`
+
+- `[ ]` Sincronizar modelo `WorkOrder` con los campos que usa el handler
+- `[ ]` Agregar migración Alembic para las columnas nuevas (`alias`, `release_date`)
+- `[ ]` Verificar que `GET /work-orders/` y `GET /work-orders/{order_number}` no rompen con campos añadidos
+
+---
+
+### P-MES-2: Bug BOM — `parent_item_code` inexistente 🔴
+
+**Archivo:** `inventory_service/inventory_app/models/bom.py:24`
+
+El `__repr__` referencia `self.parent_item_code` pero el campo no está mapeado en la clase.
+El modelo tiene `product_id` (UUID del producto padre) pero no una columna `parent_item_code` (string legible).
+
+- `[ ]` Opción A: Agregar `parent_item_code: Mapped[str]` al modelo `BOM` + migración
+- `[ ]` Opción B: Corregir `__repr__` para usar `product_id` en lugar de `parent_item_code`
+- `[ ]` Verificar si `seed_variants.py` o seeds industriales usan `parent_item_code` → puede requerir opción A
+
+---
+
+### P-MES-3: Backflush de materiales al cerrar corrida 🟠
+
+**Contexto:** Cuando `CloseProductionRunCommand` cierra una corrida, los componentes del BOM
+deben consumirse del inventario (movimiento OUT por backflush). Actualmente hay un comentario
+`# Here we would normally emit a Domain Event` — no hay implementación.
+
+**Restricción arquitectónica:** MES NO puede importar modelos de `inventory_service`.
+La integración DEBE ser via HTTP (`httpx`) al endpoint `POST /api/v1/inventory/movements`.
+
+**Archivo:** `mes_service/mes_app/core/commands/close_production_run.py:77`
+
+- `[ ]` Crear `mes_service/mes_app/infrastructure/clients/inventory_client.py`
+  — `InventoryClient.backflush(company_id, bom_components: list[dict], reference_run_id)` via `httpx`
+- `[ ]` En `CloseProductionRunCommand.execute()`: resolver componentes del BOM por `item_code` y llamar backflush
+- `[ ]` Manejar fallo del cliente HTTP como warning (no revertir el cierre de corrida si inventario falla)
+- `[ ]` Agregar `material_status` en `WorkOrder` para reflejar si el backflush fue exitoso o quedó pendiente
+
+---
+
+### P-MES-4: Actualizar progreso de Work Order al reportar producción 🟠
+
+**Problema:** Cuando se registra producción (`ManufacturingLedger` / `ProductionEvent`),
+el campo `manufactured_quantity` de `WorkOrder` nunca se actualiza.
+La WO no sabe cuánto se ha producido acumulado.
+
+- `[ ]` En `ProductionService.register_event()` o en `CloseProductionRunCommand`:
+  al cerrar corrida, sumar `actual_quantity` al `WorkOrder.manufactured_quantity`
+- `[ ]` Transición automática de status:
+  - `RELEASED` → `IN_PROGRESS` al registrar primera pieza
+  - `IN_PROGRESS` → `COMPLETED` cuando `manufactured_quantity >= order_quantity`
+- `[ ]` Endpoint `GET /work-orders/{order_number}` debe incluir `manufactured_quantity` + `completion_pct`
+
+---
+
+### P-MES-5: Soporte Tab — Crear Ticket en móvil 🟡
+
+> **Contexto (sesión 2026-05-27):** El usuario mostró screenshots de la tab "Soporte" del móvil
+> (actualmente muestra "BANDEJA DE ENTRADA") y el formulario Angular de CREAR TICKET.
+> La instrucción fue: *"La pantalla de soporte es para generar un ticket tal cual en el frontend,
+> dejalo como tareas pendientes"*
+
+**Angular CREAR TICKET tiene los campos:** Asunto · Prioridad · Área · Descripción
+
+El móvil ya tiene `create_ticket_screen.dart` implementado (Asunto, Prioridad, Descripción).
+La tab de Soporte (`InboxScreen`) es actualmente una pantalla de notificaciones estática.
+
+- `[ ]` Revisar si reemplazar `InboxScreen` por `CreateTicketScreen` en la tab Soporte o hacer split (tab con dos vistas)
+- `[ ]` Agregar campo **Área** al formulario móvil (falta vs. Angular)
+- `[ ]` Conectar `CreateTicket` event del `TicketsBloc` al endpoint `POST /tickets/`
+- `[ ]` Mostrar confirmación de éxito y navegar a la lista de tickets después de crear
+# Task: Multitenant Timezone Support
+
+## Backend
+- [x] 1. Modify `common/models/company.py` — add `timezone` column
+- [x] 2. Create Alembic migration in `auth_service`
+- [x] 3. Create Alembic migration in `master_data_service`
+- [x] 4. Modify `security.py` — add timezone to JWT payload
+- [x] 5. Modify `select_company_command.py` — load & inject timezone
+- [x] 6. Modify `schemas/auth.py` — add timezone to AccessTokenResponse
+- [x] 7. Modify `auth.py` endpoints — populate timezone in /refresh and /me
+- [x] 8. Modify `unified_industrial_seed.py` — seed timezone defaults
+
+## Frontend
+- [x] 9. Modify `domain.types.ts` — add timezone to AuthSession
+- [x] 10. Modify `auth.service.ts` — expose companyTimezone computed signal
+- [x] 11. Create `local-date.pipe.ts` — standalone LocalDatePipe
+- [x] 12. Swap `| date` → `| localDate` in key components

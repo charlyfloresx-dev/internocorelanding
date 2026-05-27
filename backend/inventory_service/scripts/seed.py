@@ -31,7 +31,7 @@ async def seed_inventory(company_id: uuid.UUID):
             SYSTEM_USER_ID = uuid.UUID("69aa5ddc-bbaa-46e6-a7f0-aeb4b92b6d38")
             UOM_PZ_ID      = uuid.uuid5(uuid.NAMESPACE_DNS, "interno.uom.PZA")
             
-            logger.info(f"🌱 [INVENTORY] Iniciando seed blindado determinista (Rectificado) para {company_id}")
+            logger.info(f"[INVENTORY] Iniciando seed blindado determinista (Rectificado) para {company_id}")
 
             # 1. Almacenes (Independiente)
             wh_codes = ["WH-TIJ", "WH-SDY"]
@@ -109,10 +109,10 @@ async def seed_inventory(company_id: uuid.UUID):
                     ))
 
             await session.commit()
-            logger.info("✅ SUCCESS: Datos FIFO deterministas inyectados con arquitectura rectificada.")
+            logger.info("SUCCESS: Datos FIFO deterministas inyectados con arquitectura rectificada.")
         except Exception as e:
             await session.rollback()
-            logger.error(f"❌ ERROR: {str(e)}")
+            logger.error(f"ERROR: {str(e)}")
             raise
 
 # Known Company IDs from Auth Service Seed

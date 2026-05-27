@@ -9,12 +9,13 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs/operators';
 import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 import { TicketStatus, TicketComment, TicketAction } from '../../../../core/models/support.types';
 
 @Component({
   selector: 'app-tickets-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, MatIconModule, TranslatePipe],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, MatIconModule, TranslatePipe, LocalDatePipe],
   template: `
     <div class="flex flex-col h-full bg-white animate-fade-in relative">
       
@@ -53,7 +54,7 @@ import { TicketStatus, TicketComment, TicketAction } from '../../../../core/mode
               <h4 class="font-bold text-slate-800 text-sm mb-1 line-clamp-1">{{ t.title }}</h4>
               <p class="text-slate-500 text-[11px] mb-5 line-clamp-2 leading-relaxed">{{ t.description }}</p>
               <div class="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                <span>{{ t.created_at | date:'M/d/yy, h:mm a' }}</span>
+                <span>{{ t.created_at | localDate:'M/d/yy, h:mm a' }}</span>
                 <span class="flex items-center gap-1.5 font-bold text-slate-600">
                   <div class="w-1.5 h-1.5 rounded-full" [ngClass]="getPriorityColor(t.priority)"></div> 
                   {{ t.priority }}
@@ -251,12 +252,21 @@ import { TicketStatus, TicketComment, TicketAction } from '../../../../core/mode
                       placeholder="Descripción de la acción..."
                       class="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-medium text-slate-800 outline-none focus:border-sky-400 transition-all placeholder:text-slate-300"
                     >
-                    <input
-                      type="date"
-                      [ngModel]="newActionDate()"
-                      (ngModelChange)="newActionDate.set($event)"
-                      class="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-medium text-slate-600 outline-none focus:border-sky-400 transition-all"
-                    >
+                    <div class="flex gap-2">
+                      <input
+                        type="date"
+                        [ngModel]="newActionDate()"
+                        (ngModelChange)="newActionDate.set($event)"
+                        class="flex-1 bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-medium text-slate-600 outline-none focus:border-sky-400 transition-all"
+                      >
+                      <input
+                        type="time"
+                        step="300"
+                        [ngModel]="newActionTime()"
+                        (ngModelChange)="newActionTime.set($event)"
+                        class="w-28 bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-medium text-slate-600 outline-none focus:border-sky-400 transition-all"
+                      >
+                    </div>
                     <div class="flex items-center gap-1 text-[10px] text-slate-400 font-bold px-1">
                       <mat-icon class="text-[12px]">person_pin</mat-icon>
                       <span>Se asignará al primer responsable del ticket</span>
@@ -305,13 +315,13 @@ import { TicketStatus, TicketComment, TicketAction } from '../../../../core/mode
                           @if (act.commit_date) {
                             <span class="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                               <mat-icon class="text-[11px]">event</mat-icon>
-                              {{ act.commit_date | date:'d MMM' }}
+                              {{ act.commit_date | localDate:'d MMM, HH:mm' }}
                             </span>
                           }
                           @if (act.is_closed && act.closed_date) {
                             <span class="text-[9px] font-bold text-emerald-600 flex items-center gap-1">
                               <mat-icon class="text-[11px]">done_all</mat-icon>
-                              {{ act.closed_date | date:'d MMM' }}
+                              {{ act.closed_date | localDate:'d MMM, HH:mm' }}
                             </span>
                           }
                         </div>
@@ -452,6 +462,7 @@ export class TicketsFormComponent implements OnInit {
   isAddingAction = signal<boolean>(false);
   newActionText = signal<string>('');
   newActionDate = signal<string>('');
+  newActionTime = signal<string>('');
   showActionForm = signal<boolean>(false);
   currentUserId = computed(() => this.authService.session()?.user_id ?? '');
   currentUserName = computed(() => this.authService.session()?.user?.full_name ?? 'Yo');
@@ -523,16 +534,29 @@ export class TicketsFormComponent implements OnInit {
     // the effect to re-run every time loadUsersMap() sets the map → infinite loop.
     const map = untracked(() => this.userMap());
     const identities: any[] = [];
-    if (ticket.assigned_to_id) {
-      const name = map[ticket.assigned_to_id] || 'Usuario asignado';
-      identities.push({ id: ticket.assigned_to_id, type: 'INTERNAL', label: name, sub: '' });
+
+    const assignees: any[] = ticket.assignees ?? [];
+    if (assignees.length > 0) {
+      for (const a of assignees) {
+        const type = a.identity_type as 'INTERNAL' | 'PLANTA' | 'EXTERNO';
+        let label = type === 'INTERNAL' ? (map[a.identity_id] || 'Usuario') :
+                    type === 'PLANTA'   ? 'Colaborador' : 'Externo';
+        identities.push({ id: a.identity_id, type, label, sub: a.identity_id.slice(-6) });
+      }
+    } else {
+      // Fallback a 3 columnas legacy mientras se migra data
+      if (ticket.assigned_to_id) {
+        const name = map[ticket.assigned_to_id] || 'Usuario asignado';
+        identities.push({ id: ticket.assigned_to_id, type: 'INTERNAL', label: name, sub: '' });
+      }
+      if (ticket.collaborator_id) {
+        identities.push({ id: ticket.collaborator_id, type: 'PLANTA', label: 'Colaborador', sub: ticket.collaborator_id.slice(-6) });
+      }
+      if (ticket.external_contact_id) {
+        identities.push({ id: ticket.external_contact_id, type: 'EXTERNO', label: 'Externo', sub: '' });
+      }
     }
-    if (ticket.collaborator_id) {
-      identities.push({ id: ticket.collaborator_id, type: 'PLANTA', label: 'Colaborador', sub: ticket.collaborator_id.slice(-6) });
-    }
-    if (ticket.external_contact_id) {
-      identities.push({ id: ticket.external_contact_id, type: 'EXTERNO', label: 'Externo', sub: '' });
-    }
+
     if (identities.length > 0) {
       this.selectedIdentities.set(identities);
       this._syncIds();
@@ -593,15 +617,19 @@ export class TicketsFormComponent implements OnInit {
     const ticket = this.selectedTicket();
     if (!ticket || this.selectedIdentities().length === 0) return;
 
+    const assignees = this.selectedIdentities().map((id, idx) => ({
+      identity_type: id.type as 'INTERNAL' | 'PLANTA' | 'EXTERNO',
+      identity_id: id.id,
+      is_lead: idx === 0,
+    }));
+
     this.isSaving.set(true);
     try {
       await this.supportService.triageTicket(
         ticket.id,
         'REASSIGN',
-        this.selectedTechnicianId() || undefined,
+        assignees,
         this.triageComment(),
-        this.selectedCollaboratorId() || undefined,
-        this.selectedExternalContactId() || undefined
       );
 
       this.notifications.success('Éxito', 'Asignación guardada.');
@@ -725,7 +753,10 @@ export class TicketsFormComponent implements OnInit {
     if (assignee.type === 'INTERNAL') payload.assigned_to_id = assignee.id;
     else if (assignee.type === 'PLANTA') payload.collaborator_id = assignee.id;
     else payload.external_contact_id = assignee.id;
-    if (this.newActionDate()) payload.commit_date = new Date(this.newActionDate()).toISOString();
+    if (this.newActionDate()) {
+      const time = this.newActionTime() || '00:00';
+      payload.commit_date = new Date(`${this.newActionDate()}T${time}:00`).toISOString();
+    }
 
     this.isAddingAction.set(true);
     try {
@@ -733,6 +764,7 @@ export class TicketsFormComponent implements OnInit {
       this.actions.update(list => [...list, created]);
       this.newActionText.set('');
       this.newActionDate.set('');
+      this.newActionTime.set('');
       this.showActionForm.set(false);
     } catch (err: any) {
       this.notifications.error('Error', err.message || 'No se pudo crear la acción');

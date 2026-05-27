@@ -406,14 +406,24 @@ python backend/scripts/generate_code_graph.py
 
 ---
 
-## 13. Deuda Técnica Activa (al 2026-05-20)
+## 13. Deuda Técnica Activa (al 2026-05-27)
 
 | Prioridad | Item |
 |---|---|
+| CRÍTICA | **MES** `WorkOrder` model↔handler mismatch — creación de WO falla (`order_qty` vs `order_quantity`, `due_date`, `alias`, `release_date` inexistentes) |
+| CRÍTICA | **MES/Inventory** `BOM.__repr__` referencia `parent_item_code` que no existe en el modelo |
+| ALTA | **MES** Backflush de materiales al cerrar corrida — BOM components no se consumen de inventario |
+| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza al reportar producción |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
+| MEDIA | **MES** Transición automática de WO status: RELEASED → IN_PROGRESS → COMPLETED |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
 | MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
+| MEDIA | **Mobile** Tab Soporte → formulario Crear Ticket (igual que Angular: Asunto, Prioridad, Área, Descripción) — ✅ COMPLETADO 2026-05-27 |
+| MEDIA | **HCM** CRUD de Departamentos en Angular (configuración de áreas por empresa) |
+| BAJA | **HCM** `JobPosition` catálogo propio (actualmente solo `job_title: str`) |
+| BAJA | **HCM** `shift_id` en Collaborator → bridge HCM↔MES |
+| BAJA | **HCM** jerarquía 3 niveles: `manager_id` + `director_id` (actualmente solo `supervisor_id`) |
 | BAJA | WMS y MES no desplegados en dev stack |
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |

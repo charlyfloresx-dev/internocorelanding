@@ -302,15 +302,12 @@ interface ConfirmedDocument {
                         >
                       </td>
 
-                      <!-- COL 2: UOM -->
+                      <!-- COL 2: UOM — read-only, resolved from product -->
                       <td class="px-6 py-3 text-center" [attr.data-col]="2">
-                        <select formControlName="uom" class="input-clean text-center text-[10px] font-black uppercase tracking-widest cursor-pointer appearance-none text-surface-text">
-                          <option value="PZ">PZ</option>
-                          <option value="FT">FT</option>
-                          <option value="KG">KG</option>
-                          <option value="MT">MT</option>
-                          <option value="CJ">CJ</option>
-                        </select>
+                        <span class="text-[11px] font-black uppercase tracking-widest text-surface-text opacity-80">
+                          {{ itemGroup.get('uom')?.value || '—' }}
+                        </span>
+                        <input type="hidden" formControlName="uom">
                       </td>
 
                       <!-- COL PRECIO -->
