@@ -1,6 +1,15 @@
 # Service Log — Frontend Angular (interno-web)
 
 ## 🕒 Última Actividad (2026-05-27)
+**Phase 147: Multi-Tenant Timezone Integration (Frontend)** ✅
+- **`local-date.pipe.ts`**: Creado pipe standalone `| localDate` que utiliza `AuthService.companyTimezone()` y `date-fns-tz` para formatear fechas dinámicamente según el timezone del tenant activo. Reemplaza al pipe `date` nativo de Angular que no soporta offsets dinámicos.
+- **`auth.service.ts`**: Expuesto `companyTimezone` como un Signal computado leyendo la propiedad `timezone` extraída del JWT del tenant activo (valor inyectado durante el handshake backend).
+- **`domain.types.ts`**: Actualizado modelo de autenticación para soportar la lectura segura del timezone en la app de Angular.
+- **Migración Progresiva**: Inicio de la sustitución del pipe de fechas nativo `| date` al nuevo `| localDate` a lo largo de componentes críticos como `tickets-form`, `tickets-dashboard` e `inventory-documents`.
+- **Status**: ✅ COMPLETED — Base timezone operativa, sustitución progresiva de pipes en curso.
+
+---
+
 **Phase 143: Multi-Asignados Reales + datetime Fecha+Hora en CAPA** ✅
 
 - **`support.types.ts`**: Nuevos tipos `TicketAssignee`, `AssigneeInput`. `Ticket` interface ahora incluye `assignees?: TicketAssignee[]` y `actions?: TicketAction[]`.
