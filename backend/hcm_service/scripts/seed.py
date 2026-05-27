@@ -37,6 +37,7 @@ from sqlalchemy import select
 from hcm_app.core.database import AsyncSessionLocal
 from hcm_app.core.security import hash_rfid, hash_pin
 from hcm_app.models.collaborator import Collaborator
+from hcm_app.models.department import Department
 from hcm_app.models.tenant_settings import HrTenantConfig
 
 # ─── Known Company/Tenant IDs (must match auth_service seed) ─────────────────
@@ -101,6 +102,41 @@ async def run_seed():
                     existing_cfg.internal_id_pattern = cfg["pattern"]
                     log.info(f"  [INFO] Config para {cfg['cid']} actualizada.")
 
+            # ── [STEP 0.5] Default Departments per company ────────────────────────
+            log.info("[0.5/3] Seeding default departments...")
+            _DEFAULT_DEPTS = [
+                ("Producción",    "PROD",  "Operadores directos de línea de producción"),
+                ("Calidad",       "QUAL",  "Control e inspección de calidad"),
+                ("Mantenimiento", "MANT",  "Mantenimiento preventivo y correctivo de equipos"),
+                ("Almacén",       "ALM",   "Recepción, almacenaje y despacho de materiales"),
+                ("Administración","ADMIN", "Gestión administrativa y recursos humanos"),
+                ("Ingeniería",    "ENG",   "Ingeniería de procesos y manufactura"),
+            ]
+            for company_id in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID]:
+                for (name, code, desc) in _DEFAULT_DEPTS:
+                    dept_id = uuid.uuid5(
+                        uuid.NAMESPACE_DNS,
+                        f"interno.dept.{company_id}.{code}"
+                    )
+                    existing = await db.get(Department, dept_id)
+                    if not existing:
+                        db.add(Department(
+                            id=dept_id,
+                            company_id=company_id,
+                            tenant_id=company_id,
+                            group_id=GROUP_ID,
+                            name=name,
+                            code=code,
+                            description=desc,
+                            is_active=True,
+                            version_id=1,
+                        ))
+                        log.info(f"  [OK] {name} ({code}) → {company_id}")
+                    else:
+                        existing.description = desc
+            await db.flush()
+            log.info("  [OK] Departamentos por defecto listos.")
+
             # ── Carlos Ramírez — Enterprise, RFID, Supervisor (sin supervisor_id) ──
             log.info("[1/3] Carlos Ramírez (Supervisor, Enterprise)...")
             carlos = await db.get(Collaborator, CARLOS_ID)
@@ -109,8 +145,8 @@ async def run_seed():
                     id=CARLOS_ID,
                     internal_id="003709A",
                     first_name="Carlos",
-                    last_name="Ramírez",
-                    department="Warehouse",
+                    last_name_paternal="Ramírez",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{ENTERPRISE_ID}.ALM"),
                     translation_key="dept.warehouse",
                     is_direct=True,
                     supervisor_id=None,   # Top of the tree → is_supervisor=True
@@ -141,8 +177,8 @@ async def run_seed():
                     id=CARLOS_MX_ID,
                     internal_id="003709A",
                     first_name="Carlos",
-                    last_name="Ramírez",
-                    department="Warehouse",
+                    last_name_paternal="Ramírez",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.ALM"),
                     translation_key="dept.warehouse",
                     is_direct=True,
                     supervisor_id=None,
@@ -166,8 +202,8 @@ async def run_seed():
                     id=CARLOS_US_ID,
                     internal_id="003709A",
                     first_name="Carlos",
-                    last_name="Ramírez",
-                    department="Warehouse",
+                    last_name_paternal="Ramírez",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_US_ID}.ALM"),
                     translation_key="dept.warehouse",
                     is_direct=True,
                     supervisor_id=None,
@@ -190,8 +226,8 @@ async def run_seed():
                     id=LUIS_ID,
                     internal_id="201",
                     first_name="Luis",
-                    last_name="Torres",
-                    department="Logistics",
+                    last_name_paternal="Torres",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.PROD"),
                     translation_key="dept.logistics",
                     is_direct=True,
                     supervisor_id=None,   # Supervisor
@@ -221,9 +257,9 @@ async def run_seed():
                 db.add(Collaborator(
                     id=LUIS_ENT_ID,
                     internal_id="901",
-                    first_name="Luis (Enterprise)",
-                    last_name="Torres",
-                    department="Warehouse",
+                    first_name="Luis",
+                    last_name_paternal="Torres",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{ENTERPRISE_ID}.ALM"),
                     translation_key="dept.warehouse",
                     is_direct=True,
                     supervisor_id=None,
@@ -246,9 +282,9 @@ async def run_seed():
                 db.add(Collaborator(
                     id=LUIS_US_ID,
                     internal_id="801",
-                    first_name="Luis (USA)",
-                    last_name="Torres",
-                    department="Logistics",
+                    first_name="Luis",
+                    last_name_paternal="Torres",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_US_ID}.PROD"),
                     translation_key="dept.logistics",
                     is_direct=True,
                     supervisor_id=None,
@@ -271,8 +307,8 @@ async def run_seed():
                     id=ANA_ID,
                     internal_id="301",
                     first_name="Ana",
-                    last_name="García",
-                    department="Warehouse",
+                    last_name_paternal="García",
+                    department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.ALM"),
                     translation_key="dept.warehouse",
                     is_direct=True,
                     supervisor_id=LUIS_ID,   # Reports to Luis → is_supervisor=False

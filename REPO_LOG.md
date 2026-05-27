@@ -3,6 +3,38 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 145: HCM Departments Seed + Soporte Tab Mobile + Tickets Action Fixes ✅
+
+**Objetivo:** Activar el dropdown de departamentos en la pantalla Soporte del móvil (áreas de la empresa desde HCM), corregir bugs acumulados en el seed de HCM por incompatibilidad con migraciones previas, y limpiar dos bugs en el tickets service (min_length y company_id hardcodeado).
+
+**Decisiones Arquitectónicas:**
+
+- **Migration `003_add_department_description` (hcm_service):** Columna `description VARCHAR(250) NULL` en `departments`. Alembic tiene múltiples heads por las ramas paralelas `001_add_audit_logs` y `001_add_id_pattern` — comando correcto es `alembic upgrade heads` (plural). El `down_revision` de `003` apunta a `a6054c79a22f` (la cabeza de la rama principal después de `002_split_last_name`).
+- **Seed HCM corregido (3 bugs):** (1) `last_name=` inválido desde migration `002_split_last_name` (Phase 138) — corregido a `last_name_paternal=`. (2) `department="Warehouse"` pasado como string a un campo que es `relationship` desde Phase 118 — corregido a `department_id=uuid.uuid5(...)` FK determinista. (3) `first_name="Luis (Enterprise)"` / `"Luis (USA)"` — limpiado a `first_name="Luis"` para que `full_name` sea correcto.
+- **18 departamentos default seeded:** Producción/PROD, Calidad/QUAL, Mantenimiento/MANT, Almacén/ALM, Administración/ADMIN, Ingeniería/ENG × 3 empresas. UUIDs deterministas `uuid.uuid5(NAMESPACE_DNS, f"interno.dept.{company_id}.{code}")` — idempotent, re-runable.
+- **Nginx `/api/v1/hcm`:** Ruta añadida en `nginx.conf` para exponer todos los endpoints HCM al gateway incluyendo el nuevo departamentos.
+- **Mobile Soporte Tab (CreateTicketScreen):** Dropdown de áreas populado con `GET /api/v1/hcm/departments/?is_active=true`. Retry button en estado vacío (en lugar de texto muerto). `_loadDepartments()` resetea `_loadingDepts=true` en cada intento.
+- **`TicketActionCreate.description` min_length 5→1:** "Test", "OK", "Done" son descripciones legítimas de acciones cortas. El campo `...` (requerido) ya previene strings vacíos.
+- **AI Assistant auto-comment:** Removida la línea `"Asegúrate de estar en el tenant correcto: " + str(ticket.company_id)` que exponía el UUID interno del tenant en la UI de producción. Reemplazada con texto genérico de orientación al usuario.
+
+**Archivos clave:**
+- `backend/hcm_service/alembic/versions/003_add_department_description.py` — nueva migración
+- `backend/hcm_service/hcm_app/models/department.py` — campo `description`
+- `backend/hcm_service/hcm_app/schemas/department.py` — `description` en Read/Create/Update
+- `backend/hcm_service/scripts/seed.py` — 3 bugs corregidos + 18 depts seeded
+- `backend/tickets_service/tickets_app/schemas/ticket_dto.py` — `TicketActionCreate.description` min_length 1
+- `backend/tickets_service/tickets_app/services/ticket_service.py` — AI comment sin company_id hardcodeado
+- `infrastructure/docker/nginx.conf` — ruta `/api/v1/hcm`
+- `src/interno_billing_app/lib/features/home/presentation/create_ticket_screen.dart` — retry button en dept dropdown
+
+**Workarounds / Deuda Técnica:**
+- `alembic upgrade heads` requerido en hcm_service por ramas paralelas pre-existentes (`001_add_audit_logs` y `001_add_id_pattern`). Esto es correcto y no requiere merge de ramas.
+- El `full_name` de "Luis (Enterprise)" y "Luis (USA)" fue limpiado — si hay datos en producción con esos nombres, requieren update manual.
+
+**Status:** ✅ COMPLETED — Code Graph 0 CRITICALs · Ecosystem 8/8 OK
+
+---
+
 ### [2026-05-27] Phase 144: Tickets Mine Triple-Identity + Scanner Conformance + CAPA Checkbox ✅
 
 **Objetivo:** Refinar visibilidad de tickets en móvil (solo asignados, todas las identidades), alinear el scanner POS a la spec Uber, y mejorar la UX del card de acciones CAPA con checkbox circular.

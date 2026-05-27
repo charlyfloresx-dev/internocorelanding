@@ -45,8 +45,16 @@ class TicketTriageAction(str, Enum):
     APPROVE = "APPROVE"
     REASSIGN = "REASSIGN"
 
+class AssigneeInput(BaseModel):
+    identity_type: str  # INTERNAL | PLANTA | EXTERNO
+    identity_id: UUID
+    is_lead: bool = False
+
+
 class TicketTriage(BaseModel):
     action: TicketTriageAction
+    assignees: List[AssigneeInput] = []
+    # Legacy single-field compat (kept for backward compat)
     new_assigned_to_id: Optional[UUID] = None
     collaborator_id: Optional[UUID] = None
     external_contact_id: Optional[UUID] = None
@@ -141,24 +149,19 @@ class TicketRead(TicketBase):
     resources: List[TicketResourceRead] = []
     stop_logs: List[StopLogRead] = []
     actions: List["TicketActionRead"] = []
+    assignees: List["TicketAssigneeRead"] = []
 
     class Config:
         from_attributes = True
 
 
 class TicketActionCreate(BaseModel):
-    description: str = Field(..., min_length=5, max_length=500)
+    description: str = Field(..., min_length=1, max_length=500)
     assigned_to_id: Optional[UUID] = None
     collaborator_id: Optional[UUID] = None
     external_contact_id: Optional[UUID] = None
     commit_date: Optional[datetime] = None
     escalation_date: Optional[datetime] = None
-
-    @model_validator(mode='after')
-    def at_least_one_assignee(self):
-        if not any([self.assigned_to_id, self.collaborator_id, self.external_contact_id]):
-            raise ValueError("Se requiere al menos un responsable (assigned_to_id, collaborator_id o external_contact_id)")
-        return self
 
 
 class TicketActionClose(BaseModel):
@@ -179,6 +182,19 @@ class TicketActionRead(BaseModel):
     is_closed: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TicketAssigneeRead(BaseModel):
+    id: UUID
+    ticket_id: UUID
+    identity_type: str
+    identity_id: UUID
+    is_lead: bool
+    assigned_at: datetime
+    assigned_by: Optional[UUID] = None
 
     class Config:
         from_attributes = True

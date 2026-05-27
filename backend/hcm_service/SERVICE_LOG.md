@@ -6,6 +6,21 @@
 
 ---
 
+### [2026-05-27] - Phase 145: Department Description + Seed Hardening + Mobile Departments ✅
+- **Migration `003_add_department_description`**: Columna `description VARCHAR(250) NULL` añadida a `departments`. Alembic múltiples heads resuelto — usar `alembic upgrade heads` (plural) para respetar las dos ramas paralelas `001_add_audit_logs` y `001_add_id_pattern`.
+- **Model `Department`** (`models/department.py`): Campo `description: Mapped[Optional[str]]` añadido. Espeja `Department.Description` del .NET legacy (max 250 chars).
+- **Schemas `DepartmentRead/Create/Update`** (`schemas/department.py`): `description` añadido en los tres schemas.
+- **Seed `scripts/seed.py`** — tres bugs de compatibilidad corregidos:
+  1. `last_name=` → `last_name_paternal=` (incompatible con migration `002_split_last_name` Phase 138).
+  2. `department="Warehouse"/"Logistics"` (string) → `department_id=uuid.uuid5(...)` FK correcto (incompatible con `department` como relationship desde Phase 118).
+  3. `first_name="Luis (Enterprise)"` / `first_name="Luis (USA)"` → `first_name="Luis"` (nombre limpio en full_name).
+- **18 departamentos seeded**: 6 por empresa (Producción/PROD, Calidad/QUAL, Mantenimiento/MANT, Almacén/ALM, Administración/ADMIN, Ingeniería/ENG) × 3 empresas (Enterprise, Logistics MX, Logistics US). UUIDs deterministas con `uuid.uuid5(NAMESPACE_DNS, f"interno.dept.{company_id}.{code}")`.
+- **Nginx**: Ruta `/api/v1/hcm` añadida en `nginx.conf` → expone todos los endpoints HCM al gateway (incluyendo `/api/v1/hcm/departments/`).
+- **Mobile Flutter**: `CreateTicketScreen._departmentDropdown()` — estado vacío mejorado con botón "Toca para reintentar" + `_loadDepartments()` resetea `_loadingDepts=true` antes de cada fetch.
+- **Status**: ✅ COMPLETED — Departamentos visibles en app móvil.
+
+---
+
 ### [2026-05-26] - Phase 138: Mexicanización del Expediente ✅
 - **Migration `002_split_last_name`**: `last_name VARCHAR(100)` dividido en `last_name_paternal VARCHAR(50) NOT NULL` + `last_name_maternal VARCHAR(50) NULL`. Data copy: `SET last_name_paternal = last_name` antes del DROP COLUMN. Downgrade reconstituye `last_name` con CONCAT.
 - **Model `Collaborator`**: `last_name` → `last_name_paternal` + `last_name_maternal`. `full_name` property actualizada para componer ambos apellidos (omite maternal si NULL).

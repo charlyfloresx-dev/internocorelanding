@@ -16,6 +16,11 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-05-27] Phase 145: TicketAction Validation Fix + AI Comment Hardcode Removal ✅
+- **`TicketActionCreate.description` min_length 5→1** (`schemas/ticket_dto.py`): Validación demasiado estricta rechazaba descripciones cortas válidas ("Test", "Done", "OK"). El campo sigue siendo requerido (`...`) — strings vacíos siguen siendo inválidos.
+- **AI Assistant auto-comment** (`services/ticket_service.py` → `_process_support_ai`): Removida la línea `"Asegúrate de estar en el tenant correcto: " + str(ticket.company_id)` que exponía el UUID interno del tenant en el historial de tickets visible al usuario. Reemplazada con `"Verifica que el área y la prioridad del reporte sean correctas."` — orientación genérica sin datos internos.
+- **Status**: ✅ COMPLETED.
+
 ### [2026-05-27] Phase 143: ticket_assignees (Multi-Asignado Real) + Fixes de Migraciones ✅
 - **`TicketAssignee` model** (`models/assignee.py`): Nuevo modelo con `ticket_id` FK, `identity_type` (INTERNAL/PLANTA/EXTERNO), `identity_id` UUID (weak ref), `is_lead` bool, `assigned_at`, `assigned_by`.
 - **Migration `006_add_ticket_assignees`**: Tabla `ticket_assignees` con 4 índices. Backfill automático desde 3 columnas legacy (`assigned_to_id`, `collaborator_id`, `external_contact_id`) para tickets existentes.

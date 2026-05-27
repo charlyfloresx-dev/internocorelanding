@@ -125,7 +125,7 @@ class TicketService:
                 "He recibido tu solicitud de soporte. Estoy analizando el historial y los manuales operativos.\n"
                 "Un agente humano revisará esto pronto, pero mientras tanto, verifica si esto resuelve tu duda:\n"
                 "- Consulta la sección de FAQs en el Dashboard.\n"
-                "- Asegúrate de estar en el tenant correcto: " + str(ticket.company_id)
+                "- Verifica que el área y la prioridad del reporte sean correctas."
             ),
             author_id=system_user_id
         )

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:interno_billing_app/features/home/presentation/home_screen.dart';
-import 'package:interno_billing_app/features/home/presentation/inbox_screen.dart';
+import 'package:interno_billing_app/features/home/presentation/create_ticket_screen.dart';
 import 'package:interno_billing_app/features/home/presentation/tickets_screen.dart';
 import 'package:interno_billing_app/features/scanner/presentation/scanner_screen.dart';
 import 'package:interno_billing_app/features/scanner/presentation/bloc/scanner_bloc.dart';
@@ -21,16 +21,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   // This avoids initializing two camera controllers simultaneously.
   static const _physicalSlots = [0, 0, 1, 2, 3];
 
-  final List<Widget> _physicalScreens = const [
-    ScannerScreen(isTabMode: true),
-    TicketsScreen(),
-    InboxScreen(),
-    HomeScreen(),
-  ];
+  // Controls camera lifecycle: start when scanner tab active, stop otherwise.
+  final ValueNotifier<bool> _scannerActive = ValueNotifier(true);
+
+  late final List<Widget> _physicalScreens;
 
   @override
   void initState() {
     super.initState();
+    _physicalScreens = [
+      ScannerScreen(isTabMode: true, isActiveNotifier: _scannerActive),
+      const TicketsScreen(),
+      const CreateTicketScreen(),
+      const HomeScreen(),
+    ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final mode = context.read<ScannerBloc>().state.mode;
@@ -40,8 +44,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _scannerActive.dispose();
+    super.dispose();
+  }
+
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
+    // Scanner tabs are 0 (Ventas) and 1 (Recibos)
+    _scannerActive.value = index == 0 || index == 1;
     final bloc = context.read<ScannerBloc>();
     if (index == 0) bloc.add(ModeSelected(ScannerMode.sale));
     if (index == 1) bloc.add(ModeSelected(ScannerMode.entry));
