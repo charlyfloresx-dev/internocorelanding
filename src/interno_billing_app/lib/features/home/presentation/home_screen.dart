@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:interno_billing_app/core/di/injection.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
+import 'package:interno_billing_app/core/theme/theme_notifier.dart';
 import 'package:interno_billing_app/features/scanner/presentation/scanner_screen.dart';
 import 'package:interno_billing_app/features/scanner/presentation/inventory_stock_screen.dart';
 import 'package:interno_billing_app/features/auth/presentation/login_screen.dart';
@@ -88,21 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 32),
               
               _buildMenuSection('GESTIÓN'),
-              _buildMenuItem(
-                icon: Icons.person_outline,
-                title: 'Perfil del Usuario',
-                subtitle: 'Preferencias y sesión activa',
-                onTap: () => _showProfileDialog(),
-              ),
-              _buildMenuItem(
-                icon: Icons.support_agent_rounded,
-                title: 'Tickets de Soporte',
-                subtitle: 'Reportar fallas o solicitar ayuda',
-                onTap: () {
-                  // This is handled by the tab index in MainNavigationScreen
-                  // but we can also navigate directly if needed
-                },
-              ),
               _buildMenuItem(
                 icon: Icons.warehouse_outlined,
                 title: 'Cambiar Almacén',
@@ -241,7 +229,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showConfigMenu() {
-    _confirmReconnect();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) => _ConfigSheet(),
+    );
   }
 
   void _confirmReconnect() {
@@ -291,26 +284,163 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showProfileDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('SESIÓN ACTIVA', style: TextStyle(color: Colors.white)),
-        content: Text('Usted está logueado como $_userName en $_companyName.', style: const TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              final prefs = sl<SharedPreferences>();
-              await prefs.clear();
-              if (mounted) {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
-              }
-            },
-            child: const Text('CERRAR SESIÓN', style: TextStyle(color: Colors.red)),
+}
+
+// ── Config Bottom Sheet ────────────────────────────────────────────────────────
+
+class _ConfigSheet extends StatelessWidget {
+  const _ConfigSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final themeNotifier = context.watch<ThemeNotifier>();
+    final isDark = themeNotifier.isDark;
+    final isEs = context.locale.languageCode == 'es';
+
+    final sheetBg = isDark ? const Color(0xFF0D0D0D) : Colors.white;
+    final labelColor = isDark ? Colors.white38 : const Color(0xFF94A3B8);
+    final borderColor = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CERRAR')),
+          const SizedBox(height: 24),
+
+          // Title
+          Text(
+            'config.title'.tr(),
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ── TEMA ──────────────────────────────────────────────────────────
+          Text('config.theme'.tr(),
+              style: TextStyle(color: labelColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _Chip(
+              icon: Icons.dark_mode_outlined,
+              label: 'config.dark'.tr(),
+              selected: isDark,
+              isDark: isDark,
+              onTap: () => context.read<ThemeNotifier>().setMode(ThemeMode.dark),
+            )),
+            const SizedBox(width: 10),
+            Expanded(child: _Chip(
+              icon: Icons.light_mode_outlined,
+              label: 'config.light'.tr(),
+              selected: !isDark,
+              isDark: isDark,
+              onTap: () => context.read<ThemeNotifier>().setMode(ThemeMode.light),
+            )),
+          ]),
+          const SizedBox(height: 24),
+
+          Divider(color: borderColor, height: 1),
+          const SizedBox(height: 24),
+
+          // ── IDIOMA ────────────────────────────────────────────────────────
+          Text('config.language'.tr(),
+              style: TextStyle(color: labelColor, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 2)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: _Chip(
+              label: 'config.spanish'.tr(),
+              selected: isEs,
+              isDark: isDark,
+              onTap: () => context.setLocale(const Locale('es')),
+            )),
+            const SizedBox(width: 10),
+            Expanded(child: _Chip(
+              label: 'config.english'.tr(),
+              selected: !isEs,
+              isDark: isDark,
+              onTap: () => context.setLocale(const Locale('en')),
+            )),
+          ]),
         ],
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final bool isDark;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeBg = isDark ? Colors.white : const Color(0xFF0F172A);
+    final activeText = isDark ? Colors.black : Colors.white;
+    final inactiveBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF1F5F9);
+    final inactiveBorder = isDark ? Colors.white10 : const Color(0xFFCBD5E1);
+    final inactiveText = isDark ? Colors.white38 : const Color(0xFF94A3B8);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 52,
+        decoration: BoxDecoration(
+          color: selected ? activeBg : inactiveBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? activeBg : inactiveBorder,
+            width: selected ? 0 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 15, color: selected ? activeText : inactiveText),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? activeText : inactiveText,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

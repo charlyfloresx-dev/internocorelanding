@@ -47,5 +47,14 @@
     "email": "Email",
     "roles": "Roles",
     "settings": "Settings"
+  },
+  "config": {
+    "title": "SETTINGS",
+    "theme": "THEME",
+    "dark": "DARK",
+    "light": "LIGHT",
+    "language": "LANGUAGE",
+    "spanish": "SPANISH",
+    "english": "ENGLISH"
   }
 }

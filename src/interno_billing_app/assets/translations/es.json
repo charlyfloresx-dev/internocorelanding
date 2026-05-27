@@ -47,5 +47,14 @@
     "email": "Correo",
     "roles": "Roles",
     "settings": "Configuración"
+  },
+  "config": {
+    "title": "CONFIGURACIÓN",
+    "theme": "TEMA",
+    "dark": "OSCURO",
+    "light": "CLARO",
+    "language": "IDIOMA",
+    "spanish": "ESPAÑOL",
+    "english": "INGLÉS"
   }
 }

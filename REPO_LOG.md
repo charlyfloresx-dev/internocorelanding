@@ -3,6 +3,33 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 146: Mobile Config — Theme Dark/Light + Language ES/EN ✅
+
+**Objetivo:** Implementar el panel de configuración de la app móvil con selector de tema (oscuro/claro) y selector de idioma (ES/EN), persistentes entre sesiones.
+
+**Decisiones Arquitectónicas:**
+
+- **`ThemeNotifier` (ChangeNotifier):** Persiste `ThemeMode` en SharedPreferences bajo `app_theme_mode`. Default: dark. Registrado en `MultiProvider` por encima del `MaterialApp` para sobrevivir cambios de locale (easy_localization reconstruye el árbol al cambiar idioma).
+- **`AppTheme.lightTheme`:** Paleta alineada con el frontend Angular (`styles.css` light vars): scaffold `#F1F5F9`, card `#FFFFFF`, primary `#0284C7`, texto `#0F172A`, muted `#94A3B8`. El dark theme ahora usa `#050B14` (Angular `--color-ic-dark`) en lugar de `#000000` puro — consistencia visual entre plataformas.
+- **`MaterialApp` con `themeMode`:** `theme: lightTheme`, `darkTheme: darkTheme`, `themeMode: themeNotifier.mode`. Cambio de tema es instantáneo vía `notifyListeners()` — sin reinicio requerido.
+- **Idioma vía `easy_localization`:** El plugin ya persiste el locale internamente. `context.setLocale(Locale('en'/'es'))` reconstruye el árbol. Los nuevos keys `config.*` añadidos a `assets/translations/es.json` y `en.json`.
+- **`_ConfigSheet` widget:** Modal bottom sheet con chips animados (180ms). El sheet mismo es theme-aware (fondo negro en dark, blanco en light). Se llama desde el botón "Config." de la pantalla Usuario — reemplaza el stub `_confirmReconnect()` que no tenía función real.
+- **Menú Usuario:** Removidos "Perfil del Usuario" y "Tickets de Soporte" (duplicados de otras tabs). Solo quedan: Cambiar Almacén y Reconectar Servidor.
+
+**Archivos clave:**
+- `src/interno_billing_app/lib/core/theme/theme_notifier.dart` — nuevo
+- `src/interno_billing_app/lib/core/theme/app_theme.dart` — `lightTheme` + dark scaffold actualizado
+- `src/interno_billing_app/lib/main.dart` — `ThemeNotifier` provider + `Consumer<ThemeNotifier>` + `themeMode`
+- `src/interno_billing_app/lib/features/home/presentation/home_screen.dart` — `_ConfigSheet` + `_Chip` widgets; `_showProfileDialog` removido
+- `src/interno_billing_app/assets/translations/es.json` + `en.json` — keys `config.{title,theme,dark,light,language,spanish,english}`
+
+**Workarounds / Deuda Técnica:**
+- Las pantallas individuales usan colores hardcodeados (uber_pos industrial design). El `lightTheme` afecta únicamente widgets Material que consumen el `Theme` implícitamente (Scaffold, BottomNav, AppBar). Migración pantalla-por-pantalla a `Theme.of(context)` es deuda futura si se quiere light theme completo.
+
+**Status:** ✅ COMPLETED — APK instalado en Moto g04s · Code Graph 0 CRITICALs · Ecosystem 8/8 OK
+
+---
+
 ### [2026-05-27] Phase 145: HCM Departments Seed + Soporte Tab Mobile + Tickets Action Fixes ✅
 
 **Objetivo:** Activar el dropdown de departamentos en la pantalla Soporte del móvil (áreas de la empresa desde HCM), corregir bugs acumulados en el seed de HCM por incompatibilidad con migraciones previas, y limpiar dos bugs en el tickets service (min_length y company_id hardcodeado).
