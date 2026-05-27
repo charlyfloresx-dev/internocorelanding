@@ -6,15 +6,24 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 ### Service Stats
 | Metric | Value |
 |---|---|
-| **Source Files** | 23 |
-| **Data Models** | 6 (Ticket, Comment, History, Resource, StopLog, OutboxEvent) |
-| **API Endpoints** | 6 REST |
+| **Source Files** | 24 |
+| **Data Models** | 7 (Ticket, Comment, History, Resource, StopLog, OutboxEvent, **TicketAction**) |
+| **API Endpoints** | 9 REST |
 | **Test Coverage** | 15% (Debouncing logic) |
-| **Last Audit** | 2026-05-02 |
+| **Last Audit** | 2026-05-27 |
 
 ---
 
 ## 🚀 Log de Cambios y Estabilización
+
+### [2026-05-27] Phase 142: TicketAction (CAPA) + Triage Multi-Assignee Fix ✅
+- **Triage schema bug:** `TicketTriage` schema no tenía `collaborator_id` ni `external_contact_id`. Pydantic los ignoraba; el service usaba `getattr(cmd, "new_collaborator_id", None)` — siempre `None`. Fix: campos añadidos al schema, service lee directamente.
+- **`TicketAction` model:** Nuevo modelo basado en legacy `Interno.Actions`. Campos: `description` (500), Triple Identity (`assigned_to_id | collaborator_id | external_contact_id`), `commit_date`, `escalation_date`, `closed_date`, `is_closed`. Relationship `ticket.actions`.
+- **Migration `003_add_ticket_actions.py`:** Tabla `ticket_actions` con índices en `ticket_id`, `company_id`, `assigned_to_id`, `is_closed`. Guard `_table_exists`.
+- **Endpoints nuevos:** `POST /{id}/actions` (scope `ticket:triage`), `GET /{id}/actions` (scope `ticket:read`), `PATCH /{id}/actions/{aid}/close` (scope `ticket:triage`).
+- **Schemas:** `TicketActionCreate` (validador: al menos un responsable), `TicketActionClose`, `TicketActionRead`. `TicketRead` incluye `actions: []`.
+- **Frontend:** Sección "PLAN DE ACCIONES" en drawer triage. Signals: `actions`, `isLoadingActions`, `isAddingAction`, `newActionText`, `newActionDate`, `showActionForm`. Métodos: `loadActions`, `addAction`, `closeAction`, `actionAssigneeLabel`.
+- **Angular loop fix definitivo:** `ngOnInit()` skips `loadTickets()` cuando `view() === 'triage'`. `_syncIds()` usa `untracked(() => selectedIdentities())` para evitar reactive dependency en SideDrawer effect.
 
 ### [2026-05-22] Phase 127: Sentinel Mobile Dashboard Enrichment & Field Alignment ✅
 - **Mapeo de Campos en Dart (`ticket_models.dart`)**: Agregados campos `assignedToId`, `area` y `ticketType` al modelo `Ticket` mapeados desde los payloads del backend.

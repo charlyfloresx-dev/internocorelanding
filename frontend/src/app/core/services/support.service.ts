@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { WebSocketService } from './websocket.service';
 import { environment } from '../../../environments/environment';
-import { Ticket, TicketComment, TicketPriority, TicketStatus, ApiResponse } from '../models/support.types';
+import { Ticket, TicketAction, TicketComment, TicketPriority, TicketStatus, ApiResponse } from '../models/support.types';
 import { firstValueFrom, filter } from 'rxjs';
 
 @Injectable({
@@ -56,6 +56,18 @@ export class SupportService {
       }
     } catch (err) {
       console.error('Error loading ticket constants:', err);
+    }
+  }
+
+  async getTicket(ticketId: string): Promise<Ticket | null> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ApiResponse<Ticket>>(`${this.baseUrl}/${ticketId}`)
+      );
+      return response.data || null;
+    } catch (err) {
+      console.error('Error loading ticket:', err);
+      return null;
     }
   }
 
@@ -165,23 +177,21 @@ export class SupportService {
   }
 
   async searchIdentities(q: string): Promise<any[]> {
-    try {
-      const [users, collaborators, contacts] = await Promise.all([
-        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/users/?q=${q}`)),
-        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/hcm/collaborators/search?q=${q}`)),
-        firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/partners/contacts/search?q=${q}`))
-      ]);
+    const [usersRes, collaboratorsRes, contactsRes] = await Promise.allSettled([
+      firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/users/?q=${q}`)),
+      firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/staff/search?q=${q}`)),
+      firstValueFrom(this.http.get<ApiResponse<any[]>>(`${environment.apiUrl}/api/v1/partners/contacts/search?q=${q}`))
+    ]);
 
-      const results = [];
-      if (users.data) results.push(...users.data.map(u => ({ ...u, type: 'INTERNAL', label: u.full_name, sub: u.email })));
-      if (collaborators.data) results.push(...collaborators.data.map(c => ({ ...c, type: 'PLANTA', label: c.full_name, sub: c.internal_id })));
-      if (contacts.data) results.push(...contacts.data.map(e => ({ ...e, type: 'EXTERNO', label: e.full_name, sub: e.email })));
+    const results: any[] = [];
+    if (usersRes.status === 'fulfilled' && usersRes.value.data)
+      results.push(...usersRes.value.data.map(u => ({ ...u, type: 'INTERNAL', label: u.full_name, sub: u.email })));
+    if (collaboratorsRes.status === 'fulfilled' && collaboratorsRes.value.data)
+      results.push(...collaboratorsRes.value.data.map(c => ({ ...c, type: 'PLANTA', label: c.full_name, sub: c.internal_id })));
+    if (contactsRes.status === 'fulfilled' && contactsRes.value.data)
+      results.push(...contactsRes.value.data.map(e => ({ ...e, type: 'EXTERNO', label: e.full_name, sub: e.email })));
 
-      return results;
-    } catch (err) {
-      console.error('Error searching identities:', err);
-      return [];
-    }
+    return results;
   }
 
   async getTechniciansWorkload(): Promise<Record<string, number>> {
@@ -194,5 +204,40 @@ export class SupportService {
       console.error('Error loading technician workload:', err);
       return {};
     }
+  }
+
+  async getActions(ticketId: string): Promise<TicketAction[]> {
+    try {
+      const response = await firstValueFrom(
+        this.http.get<ApiResponse<TicketAction[]>>(`${this.baseUrl}/${ticketId}/actions`)
+      );
+      return response.data || [];
+    } catch (err) {
+      console.error('Error loading actions:', err);
+      return [];
+    }
+  }
+
+  async createAction(ticketId: string, payload: {
+    description: string;
+    assigned_to_id?: string;
+    collaborator_id?: string;
+    external_contact_id?: string;
+    commit_date?: string;
+  }): Promise<TicketAction> {
+    const response = await firstValueFrom(
+      this.http.post<ApiResponse<TicketAction>>(`${this.baseUrl}/${ticketId}/actions`, payload)
+    );
+    return response.data;
+  }
+
+  async closeAction(ticketId: string, actionId: string): Promise<TicketAction> {
+    const response = await firstValueFrom(
+      this.http.patch<ApiResponse<TicketAction>>(
+        `${this.baseUrl}/${ticketId}/actions/${actionId}/close`,
+        {}
+      )
+    );
+    return response.data;
   }
 }

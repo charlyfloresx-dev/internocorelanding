@@ -10,13 +10,16 @@ from tickets_app.dependencies.database import get_db
 from common.security.dependencies import require_scope
 from tickets_app.services.ticket_service import TicketService
 from tickets_app.schemas.ticket_dto import (
-    TicketRead, 
-    TicketCreate, 
-    TicketUpdate, 
-    TicketCommentRead, 
-    TicketCommentCreate, 
+    TicketRead,
+    TicketCreate,
+    TicketUpdate,
+    TicketCommentRead,
+    TicketCommentCreate,
     TicketCommentBase,
     TicketTriage,
+    TicketActionCreate,
+    TicketActionClose,
+    TicketActionRead,
     ApiResponse
 )
 from tickets_app.schemas.escalation_dto import EscalationRuleRead
@@ -501,3 +504,90 @@ async def add_public_comment(
     
     return ApiResponse(data=TicketCommentRead.model_validate(comment), message="Comentario agregado por proveedor externo")
 
+
+# ─────────────────────────────────────────────────────────────
+#  TICKET ACTIONS
+# ─────────────────────────────────────────────────────────────
+
+@router.post("/{ticket_id}/actions", response_model=ApiResponse)
+async def create_ticket_action(
+    ticket_id: uuid.UUID,
+    cmd: TicketActionCreate,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(require_scope(["ticket:triage"]))
+):
+    from tickets_app.models.action import TicketAction
+
+    company_id = to_uuid(user.company_id)
+    action = TicketAction(
+        id=uuid.uuid4(),
+        ticket_id=ticket_id,
+        company_id=company_id,
+        tenant_id=company_id,
+        description=cmd.description,
+        created_by=to_uuid(user.sub),
+        assigned_to_id=cmd.assigned_to_id,
+        collaborator_id=cmd.collaborator_id,
+        external_contact_id=cmd.external_contact_id,
+        commit_date=cmd.commit_date,
+        escalation_date=cmd.escalation_date,
+        is_closed=False,
+        version_id=1,
+        is_active=True,
+    )
+    db.add(action)
+    await db.commit()
+    await db.refresh(action)
+    return ApiResponse(data=TicketActionRead.model_validate(action), message="Acción creada")
+
+
+@router.get("/{ticket_id}/actions", response_model=ApiResponse)
+async def list_ticket_actions(
+    ticket_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(require_scope(["ticket:read"]))
+):
+    from tickets_app.models.action import TicketAction
+    from sqlalchemy import select
+
+    company_id = to_uuid(user.company_id)
+    result = await db.execute(
+        select(TicketAction).where(
+            TicketAction.ticket_id == ticket_id,
+            TicketAction.company_id == company_id,
+            TicketAction.is_active == True
+        ).order_by(TicketAction.created_at)
+    )
+    actions = result.scalars().all()
+    return ApiResponse(data=[TicketActionRead.model_validate(a) for a in actions])
+
+
+@router.patch("/{ticket_id}/actions/{action_id}/close", response_model=ApiResponse)
+async def close_ticket_action(
+    ticket_id: uuid.UUID,
+    action_id: uuid.UUID,
+    cmd: TicketActionClose,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(require_scope(["ticket:triage"]))
+):
+    from tickets_app.models.action import TicketAction
+    from sqlalchemy import select
+    from datetime import datetime, timezone
+
+    company_id = to_uuid(user.company_id)
+    result = await db.execute(
+        select(TicketAction).where(
+            TicketAction.id == action_id,
+            TicketAction.ticket_id == ticket_id,
+            TicketAction.company_id == company_id,
+        )
+    )
+    action = result.scalar_one_or_none()
+    if not action:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+
+    action.is_closed = True
+    action.closed_date = cmd.closed_date or datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(action)
+    return ApiResponse(data=TicketActionRead.model_validate(action), message="Acción cerrada")

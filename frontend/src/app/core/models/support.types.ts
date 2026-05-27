@@ -36,6 +36,22 @@ export interface TicketComment {
   created_at: string;
 }
 
+export interface TicketAction {
+  id: string;
+  ticket_id: string;
+  description: string;
+  created_by: string;
+  assigned_to_id?: string;
+  collaborator_id?: string;
+  external_contact_id?: string;
+  commit_date?: string;
+  escalation_date?: string;
+  closed_date?: string;
+  is_closed: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Ticket {
   id: string;
   reference_code: string;
@@ -48,6 +64,8 @@ export interface Ticket {
   updated_at?: string;
   created_by: string;
   assigned_to_id?: string;
+  collaborator_id?: string;
+  external_contact_id?: string;
   area?: string;
   department_id?: string;
   comments?: TicketComment[];

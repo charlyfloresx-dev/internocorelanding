@@ -48,6 +48,8 @@ class TicketTriageAction(str, Enum):
 class TicketTriage(BaseModel):
     action: TicketTriageAction
     new_assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
     assigned_department_id: Optional[UUID] = None
     comment: Optional[str] = None
 
@@ -138,9 +140,49 @@ class TicketRead(TicketBase):
     history: List[TicketHistoryRead] = []
     resources: List[TicketResourceRead] = []
     stop_logs: List[StopLogRead] = []
+    actions: List["TicketActionRead"] = []
 
     class Config:
         from_attributes = True
+
+
+class TicketActionCreate(BaseModel):
+    description: str = Field(..., min_length=5, max_length=500)
+    assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
+    commit_date: Optional[datetime] = None
+    escalation_date: Optional[datetime] = None
+
+    @model_validator(mode='after')
+    def at_least_one_assignee(self):
+        if not any([self.assigned_to_id, self.collaborator_id, self.external_contact_id]):
+            raise ValueError("Se requiere al menos un responsable (assigned_to_id, collaborator_id o external_contact_id)")
+        return self
+
+
+class TicketActionClose(BaseModel):
+    closed_date: Optional[datetime] = None
+
+
+class TicketActionRead(BaseModel):
+    id: UUID
+    ticket_id: UUID
+    description: str
+    created_by: UUID
+    assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
+    commit_date: Optional[datetime] = None
+    escalation_date: Optional[datetime] = None
+    closed_date: Optional[datetime] = None
+    is_closed: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 
 class ApiResponse(BaseModel):
     status: str = "success"

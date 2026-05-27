@@ -3,6 +3,39 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 142: Tickets Multi-Assignees Fix + TicketActions (CAPA) + Metrics Plan ✅
+
+**Objetivo:** Corregir que el triage solo guardaba un asignado. Implementar tabla `ticket_actions` (acciones correctivas tipo CAPA del legacy Interno.Actions). Planificar sistema de métricas/KPIs y multi-asignados como tabla.
+
+**Decisiones Arquitectónicas:**
+
+- **Triage schema bug fix:** `TicketTriage` Pydantic solo tenía `new_assigned_to_id`. Campos `collaborator_id` y `external_contact_id` no existían en el schema → Pydantic los ignoraba silenciosamente. `ticket_service.py` usaba `getattr(cmd, "new_collaborator_id", None)` (campo inexistente) → siempre `None`. Fix: agregar los campos al schema y leer directamente `cmd.collaborator_id` / `cmd.external_contact_id`.
+- **TicketAction (CAPA):** Nuevo modelo derivado del legacy `Interno.Actions.Action.cs`. Campos: `description`, Triple Identity (assigned_to_id | collaborator_id | external_contact_id), `commit_date`, `escalation_date`, `closed_date`, `is_closed`. Migration `003_add_ticket_actions`. Endpoints: `POST /{id}/actions`, `GET /{id}/actions`, `PATCH /{id}/actions/{aid}/close`.
+- **Frontend Actions:** Sección "PLAN DE ACCIONES" en columna izquierda del SideDrawer de triage. Lista con checkbox de cierre, badge de responsable y fecha. Formulario desplegable para crear nueva acción.
+- **Angular Signals loop definitivo:** `ngOnInit()` ya no llama `loadTickets()` cuando `view() === 'triage'` (setter `data` ya prepobló la vista antes que `ngOnInit` dispare). Root cause del loop era `selectedIdentities()` leído sin `untracked()` dentro del efecto del SideDrawer → `_syncIds()` ahora usa `untracked(() => this.selectedIdentities())`.
+- **Downtime → Ticket → Actions flow confirmado:** `mes_service.Downtime` (OPEN) → `tickets_service.Ticket` (type=DOWNTIME) → `TicketAction[]` (CAPA correctivo) → KPIs impactados.
+- **Plan multi-asignados (tabla):** Diseñada `ticket_assignees` con `identity_type` ENUM + `identity_id` weak ref + `is_lead`. Migración planificada como Phase siguiente para no romper API actual.
+- **Plan KPI/Métricas:** Diseñado `KPIDefinition + KPITarget + KPIReading` basado en `ScoreCard.cs` legacy (DJO). Pendiente decisión de ubicación: `mes_service` (alcance operacional) vs nuevo servicio dado que WMS, Inventory y Tickets también necesitan métricas. `ActionKPILink` (weak ref por `kpi_code`) en `tickets_service`.
+
+**Archivos clave:**
+- `backend/tickets_service/tickets_app/schemas/ticket_dto.py` — `TicketTriage` +2 campos + schemas TicketAction
+- `backend/tickets_service/tickets_app/services/ticket_service.py` — fix triage fields
+- `backend/tickets_service/tickets_app/models/action.py` — nuevo `TicketAction`
+- `backend/tickets_service/tickets_app/models/ticket.py` — relationship `actions`
+- `backend/tickets_service/tickets_app/routers/ticket_routes.py` — 3 endpoints actions
+- `backend/tickets_service/alembic/versions/003_add_ticket_actions.py` — migración
+- `frontend/src/app/core/models/support.types.ts` — tipo `TicketAction`
+- `frontend/src/app/core/services/support.service.ts` — 3 métodos actions
+- `frontend/src/app/modules/monitor/tickets/components/tickets-form.component.ts` — UI acciones + loop fix
+
+**Workarounds / Deuda Técnica:**
+- Multi-asignados todavía usa 3 columnas simples en `tickets` (plan de migración a tabla pendiente Phase 143)
+- `ActionKPILink` no implementado — pendiente definir ubicación del sistema de métricas
+- Search de identidades filtra por `company_id` del JWT — colaboradores de otras empresas del grupo no aparecen (multi-tenant isolation intencional, puede cambiarse a `group_id` si se requiere)
+
+**Status:** ✅ COMPLETED
+
+---
 ### [2026-05-26] Phase 141: Partner Modal Unification + Dead Code Cleanup + Angular Abs Fix ✅
 
 **Objetivo:** Unificar el selector de cliente/proveedor entre modo venta y modo entrada (mismo componente), eliminar código muerto en `scanner_screen.dart`, y corregir montos negativos en el listado de documentos Angular.

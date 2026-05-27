@@ -229,9 +229,17 @@ import { TicketTriageDrawerComponent } from './components/ticket-triage-drawer.c
                   </div>
                   <div class="text-right">
                     <p class="text-[7px] font-black text-surface-text-muted uppercase tracking-widest mb-1 flex items-center gap-1 justify-end">
-                      <mat-icon class="text-[8px]">person</mat-icon> {{ 'support.dashboard.responsible' | translate:'RESPONSABLE' }}
+                      <mat-icon class="text-[8px]">people</mat-icon> {{ 'support.dashboard.responsible' | translate:'RESPONSABLE' }}
                     </p>
-                    <p class="text-[11px] font-black text-amber-500">{{ getUserName(ticket.assigned_to_id) }}</p>
+                    <div class="flex flex-wrap gap-1 justify-end mt-1">
+                      @for (label of getAssignedLabels(ticket); track label.id) {
+                        <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md border"
+                              [ngClass]="label.css">{{ label.name }}</span>
+                      }
+                      @if (getAssignedLabels(ticket).length === 0) {
+                        <span class="text-[10px] font-black text-surface-text-muted">PENDIENTE</span>
+                      }
+                    </div>
                   </div>
                 </div>
               </div>
@@ -432,7 +440,7 @@ export class TicketsDashboardComponent implements OnInit {
       title: 'GESTIÓN DE TICKET',
       subtitle: ticket.reference_code,
       icon: 'engineering',
-      width: 'w-[450px]'
+      width: 'w-[900px]'
     }, ticket);
   }
 
@@ -441,7 +449,7 @@ export class TicketsDashboardComponent implements OnInit {
       title: 'NUEVO TICKET',
       subtitle: 'CENTRO DE SOPORTE',
       icon: 'smart_toy',
-      width: 'w-[450px]'
+      width: 'w-[500px]'
     }, null);
   }
 
@@ -480,6 +488,32 @@ export class TicketsDashboardComponent implements OnInit {
     }
 
     this.draggedTicket = null;
+  }
+
+  getAssignedLabels(ticket: Ticket): { id: string; name: string; css: string }[] {
+    const labels: { id: string; name: string; css: string }[] = [];
+    if (ticket.assigned_to_id) {
+      labels.push({
+        id: ticket.assigned_to_id,
+        name: this.getUserName(ticket.assigned_to_id),
+        css: 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+      });
+    }
+    if (ticket.collaborator_id) {
+      labels.push({
+        id: ticket.collaborator_id,
+        name: 'PLANTA',
+        css: 'bg-teal-500/10 text-teal-600 border-teal-500/20'
+      });
+    }
+    if (ticket.external_contact_id) {
+      labels.push({
+        id: ticket.external_contact_id,
+        name: 'EXTERNO',
+        css: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+      });
+    }
+    return labels;
   }
 
   getPriorityTextColor(priority: string): string {

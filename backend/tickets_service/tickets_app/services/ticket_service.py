@@ -368,8 +368,8 @@ class TicketService:
             else:
                 updates["assigned_department_id"] = None
                 updates["assigned_to_id"] = cmd.new_assigned_to_id
-                updates["collaborator_id"] = getattr(cmd, "new_collaborator_id", None)
-                updates["external_contact_id"] = getattr(cmd, "new_external_contact_id", None)
+                updates["collaborator_id"] = cmd.collaborator_id
+                updates["external_contact_id"] = cmd.external_contact_id
                 updates["status"] = TicketStatus.ASSIGNED
                 new_status = TicketStatus.ASSIGNED.value
                 new_value_audit = str(cmd.new_assigned_to_id)

@@ -111,3 +111,6 @@ class Ticket(MultiTenantBase):
         "Ticket", back_populates="child_tickets", remote_side="Ticket.id",
         foreign_keys="Ticket.parent_ticket_id"
     )
+    actions: Mapped[List["TicketAction"]] = relationship(
+        "TicketAction", back_populates="ticket", cascade="all, delete-orphan"
+    )
