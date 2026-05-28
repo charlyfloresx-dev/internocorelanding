@@ -33,7 +33,7 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
             rfid_tag=orm.rfid_tag,
             pin_code=orm.pin_code,
             home_warehouse_id=orm.home_warehouse_id,
-            is_supervisor=orm.is_supervisor,
+            is_supervisor=orm.supervisor_id is None,
             tenant_id=orm.tenant_id,
             photo_path=orm.photo_path,
             assigned_plant=orm.assigned_plant,
@@ -42,15 +42,31 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
         )
 
     def _to_orm(self, domain: DomainCollaborator) -> ORMCollaborator:
+        parts = domain.full_name.split() if domain.full_name else []
+        if len(parts) >= 3:
+            first_name = " ".join(parts[:-2])
+            last_name_paternal = parts[-2]
+            last_name_maternal = parts[-1]
+        elif len(parts) == 2:
+            first_name = parts[0]
+            last_name_paternal = parts[1]
+            last_name_maternal = None
+        else:
+            first_name = parts[0] if parts else "Unknown"
+            last_name_paternal = "Unknown"
+            last_name_maternal = None
+
         return ORMCollaborator(
             id=domain.id,
             company_id=domain.company_id,
             internal_id=domain.internal_id,
-            full_name=domain.full_name,
+            first_name=first_name,
+            last_name_paternal=last_name_paternal,
+            last_name_maternal=last_name_maternal,
             rfid_tag=domain.rfid_tag,
             pin_code=domain.pin_code,
             home_warehouse_id=domain.home_warehouse_id,
-            is_supervisor=domain.is_supervisor,
+            supervisor_id=None if domain.is_supervisor else None,
             tenant_id=domain.tenant_id,
             photo_path=domain.photo_path,
             assigned_plant=domain.assigned_plant,
@@ -76,14 +92,27 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
         return self._to_domain(orm)
 
     async def update(self, collaborator: DomainCollaborator) -> DomainCollaborator:
-        # Simplified update (should merge in production)
         orm = await self.db.get(ORMCollaborator, collaborator.id)
         if orm:
-            orm.full_name = collaborator.full_name
+            parts = collaborator.full_name.split() if collaborator.full_name else []
+            if len(parts) >= 3:
+                orm.first_name = " ".join(parts[:-2])
+                orm.last_name_paternal = parts[-2]
+                orm.last_name_maternal = parts[-1]
+            elif len(parts) == 2:
+                orm.first_name = parts[0]
+                orm.last_name_paternal = parts[1]
+                orm.last_name_maternal = None
+            else:
+                orm.first_name = parts[0] if parts else "Unknown"
+                orm.last_name_paternal = "Unknown"
+                orm.last_name_maternal = None
+
             orm.rfid_tag = collaborator.rfid_tag
             orm.pin_code = collaborator.pin_code
             orm.home_warehouse_id = collaborator.home_warehouse_id
-            orm.is_supervisor = collaborator.is_supervisor
+            if collaborator.is_supervisor:
+                orm.supervisor_id = None
             orm.photo_path = collaborator.photo_path
             orm.assigned_plant = collaborator.assigned_plant
             orm.shift = collaborator.shift

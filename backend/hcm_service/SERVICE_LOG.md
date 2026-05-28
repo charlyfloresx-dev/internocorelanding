@@ -16,7 +16,13 @@
   - Validar de forma endurecida que la Licencia CDL, el Certificado Médico (SCT/DOT) y la Visa no estén vencidos (considerando el umbral de seguridad).
   - Validar que el operador posea al menos un identificador de cruce activo: `sentry_id` OR `global_entry_id`.
 - **Seed Updates (`scripts/seed.py`)**: Añadida la importación de `date` para fijar fechas de expiración en las semillas de prueba de colaboradores binacionales.
-- **Status**: ✅ COMPLETED — Endpoint y modelos validados con éxito.
+- **Pruebas Unitarias e Integración (`tests/test_collaborator_eligibility.py`)**:
+  - Implementada una suite parametrizada con 8 casos críticos de prueba para `_calculate_eligibility` (éxito con Sentry/Global Entry, fallos por umbral seguro, falta de identificador, CDL expirada/no registrada, vencimientos próximos).
+  - Añadida prueba de aislamiento multi-tenant que valida que las consultas y búsquedas por ID aíslen correctamente colaboradores de diferentes empresas.
+- **Hotfixes en Repositorio (`infrastructure/repositories/collaborator_repository.py`)**:
+  - Corregido `TypeError` al inicializar `ORMCollaborator` dividiendo el `full_name` del dominio en campos ORM de base de datos (`first_name`, `last_name_paternal`, `last_name_maternal`).
+  - Corregido `is_supervisor` en el mapeador para deducirse dinámicamente según la nulidad de `supervisor_id`.
+- **Status**: ✅ COMPLETED — Pruebas unitarias, de integración y modelos validados al 100% de éxito.
 
 ---
 
