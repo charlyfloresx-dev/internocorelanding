@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/core/di/injection.dart';
 import 'package:interno_billing_app/core/services/product_sync_service.dart';
@@ -252,7 +253,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                  child: Text('scanner.cancel'.tr(), style: const TextStyle(color: Colors.white54)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -266,7 +267,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Agregar al Carrito', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('scanner.add_cart'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ]),
@@ -286,7 +287,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Búsqueda Rápida', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text('scanner.quick_search'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             IconButton(
               icon: _isSyncing
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676)))
@@ -303,14 +304,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   children: [
                     const Icon(Icons.cloud_download_outlined, color: Colors.white24, size: 48),
                     const SizedBox(height: 16),
-                    const Text('No hay productos en caché local.', style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
+                    Text('scanner.no_cache'.tr(), style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    const Text('Pulsa sincronización para descargar el catálogo.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white24, fontSize: 12)),
+                    Text('scanner.sync_hint'.tr(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white24, fontSize: 12)),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () { Navigator.pop(dialogContext); _triggerSync(); },
                       icon: const Icon(Icons.sync),
-                      label: const Text('Sincronizar Ahora'),
+                      label: Text('scanner.sync_now'.tr()),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E676)),
                     ),
                   ],
@@ -529,11 +530,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           Column(
                             children: [
                               Text(
-                                state.items.isEmpty ? 'Escaneando...' : '${state.totalItems} ${state.totalItems == 1 ? 'artículo' : 'artículos'}',
+                                state.items.isEmpty ? 'scanner.scanning'.tr() : '${state.totalItems} ${state.totalItems == 1 ? 'artículo' : 'artículos'}',
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
                               ),
                               const SizedBox(height: 4),
-                              Text('Cliente: ${state.selectedPartner?.name ?? 'Público General'}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                              Text('${'scanner.client'.tr()}: ${state.selectedPartner?.name ?? 'scanner.general_public'.tr()}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
                               GestureDetector(
                                 onTap: _triggerSync,
                                 child: Row(
@@ -574,14 +575,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                               child: const Icon(Icons.receipt_long_outlined, color: Colors.white24, size: 48),
                             ),
                             const SizedBox(height: 16),
-                            const Text('No hay productos agregados', style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
+                            Text('scanner.no_products'.tr(), style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 40),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 40),
                               child: Text(
-                                'Apunta la cámara a un código de barras o utiliza la lupa arriba para agregarlos.',
+                                'scanner.scan_hint_camera'.tr(),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white10, fontSize: 12),
+                                style: const TextStyle(color: Colors.white10, fontSize: 12),
                               ),
                             ),
                           ],
@@ -685,7 +686,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                           const Icon(Icons.keyboard_double_arrow_right_rounded, color: Colors.white, size: 20),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'DESLIZAR PARA COBRAR (\$${state.grandTotal.toStringAsFixed(2)})',
+                                            '${'scanner.slide_to_pay'.tr()} (\$${state.grandTotal.toStringAsFixed(2)})',
                                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
                                           ),
                                         ],
@@ -818,13 +819,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _ModeButton(
-                        label: 'VENTA',
+                        label: 'scanner.sale'.tr(),
                         isActive: false,
                         activeColor: InternoColors.error,
                         onTap: () => context.read<ScannerBloc>().add(ModeSelected(ScannerMode.sale)),
                       ),
                       _ModeButton(
-                        label: 'ENTRADA',
+                        label: 'scanner.entry'.tr(),
                         isActive: true,
                         activeColor: InternoColors.success,
                         onTap: () {},
@@ -880,13 +881,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                             children: [
                               Text(
                                 state.items.isEmpty
-                                    ? 'Escaneando...'
+                                    ? 'scanner.scanning'.tr()
                                     : '${state.totalItems} ${state.totalItems == 1 ? 'unidad' : 'unidades'}',
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Proveedor: ${state.selectedPartner?.name ?? 'Sin proveedor'}',
+                                '${'scanner.provider'.tr()}: ${state.selectedPartner?.name ?? 'scanner.no_provider'.tr()}',
                                 style: const TextStyle(color: Colors.white54, fontSize: 12),
                               ),
                             ],
@@ -917,14 +918,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                               child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white24, size: 48),
                             ),
                             const SizedBox(height: 16),
-                            const Text('No hay productos agregados', style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
+                            Text('scanner.no_products'.tr(), style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 6),
                             TextButton.icon(
                               onPressed: _showManualInput,
                               icon: const Icon(Icons.keyboard_rounded, color: Colors.white24, size: 16),
-                              label: const Text(
-                                'Ingresar código manual',
-                                style: TextStyle(color: Colors.white24, fontSize: 12),
+                              label: Text(
+                                'scanner.manual_input'.tr(),
+                                style: const TextStyle(color: Colors.white24, fontSize: 12),
                               ),
                             ),
                           ],
@@ -942,7 +943,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
                         child: _SlideToConfirm(
-                          text: 'DESLIZAR PARA ENTRADA',
+                          text: 'scanner.slide_entry'.tr(),
                           completeColor: InternoColors.success,
                           onConfirm: () {
                             final nav = Navigator.of(context);
@@ -972,17 +973,17 @@ class _ScannerScreenState extends State<ScannerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Entrada Manual', style: TextStyle(color: Colors.white)),
+        title: Text('scanner.manual_entry_title'.tr(), style: const TextStyle(color: Colors.white)),
         content: TextField(
           controller: _manualController,
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(hintText: 'Código SKU / Barcode', hintStyle: TextStyle(color: Colors.white38)),
+          decoration: InputDecoration(hintText: 'scanner.manual_hint'.tr(), hintStyle: const TextStyle(color: Colors.white38)),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () { Navigator.pop(context); _keyboardFocusNode.requestFocus(); },
-            child: const Text('CANCELAR'),
+            child: Text('common.cancel'.tr()),
           ),
           TextButton(
             onPressed: () {
@@ -993,7 +994,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 _keyboardFocusNode.requestFocus();
               }
             },
-            child: const Text('BUSCAR'),
+            child: Text('scanner.search'.tr()),
           ),
         ],
       ),
@@ -1079,7 +1080,7 @@ class _ProductConfirmationSheet extends StatelessWidget {
               Expanded(
                 child: TextButton(
                   onPressed: () { context.read<ScannerBloc>().add(CancelDetection()); Navigator.pop(context); },
-                  child: const Text('DESCARTAR', style: TextStyle(color: Colors.white54)),
+                  child: Text('scanner.discard'.tr(), style: const TextStyle(color: Colors.white54)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -1092,7 +1093,7 @@ class _ProductConfirmationSheet extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('AGREGAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text('scanner.add'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

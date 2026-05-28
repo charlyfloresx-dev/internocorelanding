@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/features/scanner/presentation/bloc/scanner_bloc.dart';
 import 'package:interno_billing_app/core/enums/payment_method.dart';
@@ -11,12 +12,10 @@ class PaymentConfirmationScreen extends StatefulWidget {
   const PaymentConfirmationScreen({super.key, required this.warehouseId});
 
   @override
-  _PaymentConfirmationScreenState createState() =>
-      _PaymentConfirmationScreenState();
+  State<PaymentConfirmationScreen> createState() => _PaymentConfirmationScreenState();
 }
 
-class _PaymentConfirmationScreenState
-    extends State<PaymentConfirmationScreen> {
+class _PaymentConfirmationScreenState extends State<PaymentConfirmationScreen> {
   PaymentMethod _selectedPayment = PaymentMethod.cash;
   final TextEditingController _referenceController = TextEditingController();
   final ScrollController _itemsScrollController = ScrollController();
@@ -25,12 +24,11 @@ class _PaymentConfirmationScreenState
   String? _completedFolio;
 
   bool get _showReferenceField =>
-      _selectedPayment == PaymentMethod.card ||
-      _selectedPayment == PaymentMethod.transfer;
+      _selectedPayment == PaymentMethod.card || _selectedPayment == PaymentMethod.transfer;
 
   String get _referenceLabel => _selectedPayment == PaymentMethod.card
-      ? 'No. de autorización de terminal'
-      : 'Folio de transferencia';
+      ? 'payment.card_auth'.tr()
+      : 'payment.transfer_folio'.tr();
 
   IconData get _referenceIcon => _selectedPayment == PaymentMethod.card
       ? Icons.credit_card_rounded
@@ -66,34 +64,32 @@ class _PaymentConfirmationScreenState
         }
         if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.error!),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
+            SnackBar(content: Text(state.error!), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
           );
         }
       },
       builder: (context, state) {
+        final cs = Theme.of(context).colorScheme;
+        final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
         return Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: scaffoldBg,
           appBar: _saleCompleted
               ? null
               : AppBar(
-                  backgroundColor: Colors.black,
-                  title: const Text('Confirmar Venta'),
+                  backgroundColor: scaffoldBg,
+                  title: Text('payment.title'.tr()),
                   centerTitle: true,
                 ),
           body: _saleCompleted
-              ? _buildSuccessView(context)
-              : _buildPaymentView(context, state),
+              ? _buildSuccessView(context, cs)
+              : _buildPaymentView(context, state, cs),
         );
       },
     );
   }
 
-  // ── Success view ────────────────────────────────────────────────────────────
-  Widget _buildSuccessView(BuildContext context) {
+  Widget _buildSuccessView(BuildContext context, ColorScheme cs) {
     return SafeArea(
       child: Center(
         child: Padding(
@@ -104,41 +100,25 @@ class _PaymentConfirmationScreenState
               Container(
                 width: 100,
                 height: 100,
-                decoration: BoxDecoration(
-                  color: InternoColors.success.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: InternoColors.success,
-                  size: 60,
-                ),
+                decoration: BoxDecoration(color: InternoColors.success.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: const Icon(Icons.check_circle_rounded, color: InternoColors.success, size: 60),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'VENTA COMPLETADA',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  letterSpacing: 1.5,
-                ),
+              Text(
+                'payment.completed'.tr(),
+                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 1.5),
               ),
               if (_completedFolio != null) ...[
                 const SizedBox(height: 8),
                 Text(
                   _completedFolio!,
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 14,
-                    letterSpacing: 1,
-                  ),
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 14, letterSpacing: 1),
                 ),
               ],
               const SizedBox(height: 12),
               Text(
                 '${_selectedPayment.displayName} · ${_referenceController.text.isNotEmpty ? _referenceController.text : "—"}',
-                style: const TextStyle(color: Colors.white24, fontSize: 12),
+                style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 12),
               ),
               const SizedBox(height: 48),
               SizedBox(
@@ -147,19 +127,13 @@ class _PaymentConfirmationScreenState
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E676),
+                    backgroundColor: InternoColors.success,
                     foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text(
-                    'NUEVA VENTA',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      letterSpacing: 1.2,
-                    ),
+                  child: Text(
+                    'payment.new_sale'.tr(),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
                   ),
                 ),
               ),
@@ -170,71 +144,56 @@ class _PaymentConfirmationScreenState
     );
   }
 
-  // ── Payment form ────────────────────────────────────────────────────────────
-  Widget _buildPaymentView(BuildContext context, ScannerState state) {
+  Widget _buildPaymentView(BuildContext context, ScannerState state, ColorScheme cs) {
+    final cardBg = Theme.of(context).cardColor;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Total breakdown
           Center(
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildTotalRow('Subtotal', '\$${state.subtotal.toStringAsFixed(2)}', small: true),
+                    _buildTotalRow('checkout.subtotal'.tr(), '\$${state.subtotal.toStringAsFixed(2)}', cs, small: true),
                     const SizedBox(width: 24),
                     _buildTotalRow(
                       'IVA ${(state.taxRate * 100).toInt()}%',
                       '\$${state.totalTax.toStringAsFixed(2)}',
+                      cs,
                       small: true,
                       highlight: true,
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Total a Pagar',
-                  style: TextStyle(color: Colors.white60, fontSize: 16),
-                ),
+                Text('payment.total_to_pay'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 16)),
                 const SizedBox(height: 4),
                 Text(
                   '\$${state.grandTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: InternoColors.error,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: InternoColors.error, fontSize: 36, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 32),
-
-          // Products
-          const Text(
-            'Productos a Confirmar',
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          Text('payment.products'.tr(), style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Container(
             constraints: const BoxConstraints(maxHeight: 180),
             decoration: BoxDecoration(
-              color: const Color(0xFF161616),
+              color: cardBg,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
             ),
             child: state.items.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        'No hay productos seleccionados',
-                        style: TextStyle(color: Colors.white60),
-                      ),
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text('payment.no_products'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6))),
                     ),
                   )
                 : Scrollbar(
@@ -243,11 +202,9 @@ class _PaymentConfirmationScreenState
                     child: ListView.separated(
                       controller: _itemsScrollController,
                       shrinkWrap: true,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                       itemCount: state.items.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(color: Colors.white10, height: 1),
+                      separatorBuilder: (context, index) => Divider(color: cs.onSurface.withValues(alpha: 0.08), height: 1),
                       itemBuilder: (context, index) {
                         final item = state.items[index];
                         return Padding(
@@ -262,21 +219,14 @@ class _PaymentConfirmationScreenState
                                       item.product.brandName != null
                                           ? '${item.product.name} (${item.product.brandName})'
                                           : item.product.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
+                                      style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       '${item.quantity} ${item.product.uomName ?? "PZ"} x \$${item.product.price?.amount.toStringAsFixed(2) ?? "0.00"}',
-                                      style: const TextStyle(
-                                        color: Colors.white60,
-                                        fontSize: 12,
-                                      ),
+                                      style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 12),
                                     ),
                                   ],
                                 ),
@@ -284,11 +234,7 @@ class _PaymentConfirmationScreenState
                               const SizedBox(width: 8),
                               Text(
                                 '\$${item.lineTotal.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: InternoColors.error,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                                style: const TextStyle(color: InternoColors.error, fontWeight: FontWeight.bold, fontSize: 14),
                               ),
                             ],
                           ),
@@ -298,13 +244,7 @@ class _PaymentConfirmationScreenState
                   ),
           ),
           const SizedBox(height: 32),
-
-          // Payment method selector
-          const Text(
-            'Método de Pago',
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          Text('payment.payment_method'.tr(), style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -320,24 +260,16 @@ class _PaymentConfirmationScreenState
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? InternoColors.error.withValues(alpha: 0.2)
-                          : Colors.grey[900],
-                      border: Border.all(
-                        color:
-                            isSelected ? InternoColors.error : Colors.transparent,
-                        width: 2,
-                      ),
+                      color: isSelected ? InternoColors.error.withValues(alpha: 0.2) : cardBg,
+                      border: Border.all(color: isSelected ? InternoColors.error : Colors.transparent, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
                       child: Text(
                         method.displayName,
                         style: TextStyle(
-                          color: isSelected ? InternoColors.error : Colors.white,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          color: isSelected ? InternoColors.error : cs.onSurface,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -347,40 +279,25 @@ class _PaymentConfirmationScreenState
             }).toList(),
           ),
           const SizedBox(height: 32),
-
-          // Reference field (card / transfer only)
           if (_showReferenceField) ...[
-            const Text(
-              'Datos Complementarios',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
-            ),
+            Text('payment.complementary'.tr(), style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             TextField(
               controller: _referenceController,
-              style: const TextStyle(color: Colors.white),
-              keyboardType: _selectedPayment == PaymentMethod.card
-                  ? TextInputType.number
-                  : TextInputType.text,
+              style: TextStyle(color: cs.onSurface),
+              keyboardType: _selectedPayment == PaymentMethod.card ? TextInputType.number : TextInputType.text,
               decoration: InputDecoration(
                 labelText: _referenceLabel,
-                labelStyle: const TextStyle(color: Colors.white60),
+                labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
                 filled: true,
-                fillColor: Colors.grey[900],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+                fillColor: cardBg,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 prefixIcon: Icon(_referenceIcon, color: InternoColors.error),
               ),
             ),
             const SizedBox(height: 48),
           ] else
             const SizedBox(height: 48),
-
-          // Process button
           SizedBox(
             width: double.infinity,
             height: 60,
@@ -389,19 +306,13 @@ class _PaymentConfirmationScreenState
               style: ElevatedButton.styleFrom(
                 backgroundColor: InternoColors.error,
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
               child: state.isLoading
                   ? const CircularProgressIndicator(color: Colors.black)
-                  : const Text(
-                      'PROCESAR Y EMITIR TICKET',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 1.2,
-                      ),
+                  : Text(
+                      'payment.process'.tr(),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
                     ),
             ),
           ),
@@ -410,13 +321,13 @@ class _PaymentConfirmationScreenState
     );
   }
 
-  Widget _buildTotalRow(String label, String value, {bool small = false, bool highlight = false}) {
+  Widget _buildTotalRow(String label, String value, ColorScheme cs, {bool small = false, bool highlight = false}) {
     return Column(
       children: [
         Text(
           label,
           style: TextStyle(
-            color: highlight ? InternoColors.error.withValues(alpha: 0.8) : Colors.white38,
+            color: highlight ? InternoColors.error.withValues(alpha: 0.8) : cs.onSurface.withValues(alpha: 0.38),
             fontSize: 11,
           ),
         ),
@@ -424,7 +335,7 @@ class _PaymentConfirmationScreenState
         Text(
           value,
           style: TextStyle(
-            color: highlight ? InternoColors.error : Colors.white60,
+            color: highlight ? InternoColors.error : cs.onSurface.withValues(alpha: 0.6),
             fontSize: small ? 14 : 16,
             fontWeight: FontWeight.bold,
           ),

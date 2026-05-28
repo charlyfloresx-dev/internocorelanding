@@ -1,5 +1,16 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-05-27) — Phase 149
+**Phase 149: BOM Model CRITICAL Bug Fix** ✅
+
+- **`models/bom.py`**: Añadidos dos campos ausentes que el endpoint, consumer y reconciliation worker requerían:
+  - `parent_item_code: Mapped[Optional[str]]` (String 100, nullable, indexed) — identificador string del item padre. El `__repr__` lo referenciaba pero no existía → `AttributeError` en cualquier `repr(bom)`.
+  - `is_active: Mapped[bool]` (Boolean, default True) — el endpoint de creación siempre pasaba `is_active=stmt.is_active` al constructor pero el modelo lo ignoraba silenciosamente.
+- **`__repr__`**: Ya usaba `self.parent_item_code` correctamente; ahora el campo existe en el modelo.
+- **`alembic/versions/005_add_bom_parent_item_code.py`**: `ADD COLUMN parent_item_code VARCHAR(100) NULL` + índice + `ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT true` en `inventory_boms`.
+- **Contexto Legacy**: `Interno.Inventory/Models/Catalog/BOM.cs` usaba navigation property `Item Item` (FK object). Python traduce esto a `product_id UUID` (existente) + `parent_item_code` string para queries cross-service sin JOIN externo.
+- **Status**: ✅ COMPLETED
+
 ## 🕒 Última Actividad (2026-05-26) — Phase 141
 **Phase 141: MasterDataClient ENV_ACCESS_VIOLATION Fix** ✅
 

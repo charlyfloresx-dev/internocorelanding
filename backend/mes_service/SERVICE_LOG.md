@@ -5,6 +5,18 @@
 
 ---
 
+### [2026-05-27] - Phase 149: WorkOrder CRITICAL Bug Fix ✅
+
+- **`models/work_order.py`**: Añadidas dos columnas ausentes: `alias: Mapped[Optional[str]]` (String 100, nullable) y `release_date: Mapped[Optional[datetime]]` (DateTime tz-aware, nullable). El handler las requería desde Phase 137 pero no existían en el modelo → `WorkOrder()` constructor fallaba en runtime.
+- **`core/handlers/work_order_handler.py`**: Corregidos 4 mismatches entre `CreateWorkOrderCommand` y el modelo SQLAlchemy:
+  - `order_qty=command.order_qty` → `order_quantity=command.order_qty` (nombre correcto del campo)
+  - `due_date=command.due_date` → `request_date=command.due_date` (nombre correcto del campo)
+  - `status="PLANNED"` → `status="DRAFT"` (alinea con enum del modelo: DRAFT/RELEASED/IN_PROGRESS/COMPLETED/CLOSED)
+  - `release_date` y `alias` ahora tienen columnas reales en el modelo
+- **`alembic/versions/007_add_workorder_alias_release_date.py`**: Migración `ADD COLUMN alias VARCHAR(100) NULL` + `ADD COLUMN release_date TIMESTAMPTZ NULL` en `mes_work_orders`. Down: `DROP COLUMN`.
+- **Referencia Legacy**: `Interno.Production` no tenía `alias` — fue adición del handler sin contraparte en modelo.
+- **Status**: ✅ COMPLETED — `POST /api/v1/mes/work-orders/` funcional.
+
 ### [2026-05-26] - Phase 135: Core Matemático ✅
 - **`alembic/env.py`**: Eliminado bloque de debug prints (líneas 20-27). Añadido `version_table="alembic_version_mes"` en `run_migrations_offline()` y `do_run_migrations()`. Gold Standard cumplido.
 - **Migration `006_mes_cycle_time_and_breaks`**: `cycle_time_seconds INTEGER NULL` en `mes_standard_times` + `break_minutes INTEGER DEFAULT 60` en `mes_shifts`.

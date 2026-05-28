@@ -18,5 +18,7 @@ class WorkOrder(MultiTenantBase):
     status: Mapped[str] = mapped_column(String(50), default="DRAFT") # DRAFT, RELEASED, IN_PROGRESS, COMPLETED, CLOSED
     material_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # For future inventory integration
     
+    alias: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     start_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     request_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    release_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

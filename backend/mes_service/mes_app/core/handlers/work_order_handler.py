@@ -47,11 +47,11 @@ class WorkOrderHandler:
                     company_id=command.company_id,
                     order_number=command.order_number,
                     item_code=command.item_code,
-                    order_qty=command.order_qty,
-                    due_date=command.due_date,
+                    order_quantity=command.order_qty,
+                    request_date=command.due_date,
                     alias=command.alias,
                     release_date=datetime.now(timezone.utc),
-                    status="PLANNED"
+                    status="DRAFT"
                 )
                 self.db.add(wo)
                 

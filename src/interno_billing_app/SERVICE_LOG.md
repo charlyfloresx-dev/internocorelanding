@@ -1,5 +1,16 @@
 # Service Log — Interno Sentinel Mobile App
 
+## 🕒 Última Actividad (2026-05-27) — Phase 148
+**Phase 148: Full Theme Dark/Light + i18n en Todas las Pantallas** ✅
+
+- **Pantallas migradas a `Theme.of(context)`:** `ticket_chat_screen.dart`, `warehouse_selection_screen.dart`, `inventory_stock_screen.dart`, `checkout_screen.dart`, `payment_confirmation_screen.dart`, `login_screen.dart`, `setup_screen.dart`, `scanner_screen.dart`.
+- **Patrón aplicado:** `scaffoldBg = Theme.of(context).scaffoldBackgroundColor`, `cardBg = Theme.of(context).cardColor`, `cs = Theme.of(context).colorScheme`. Todos los `Colors.black`, `Color(0xFF1A1A1A)`, `Colors.white` hardcodeados reemplazados por tokens de tema.
+- **Excepción camera:** `setup_screen.dart` y el overlay de cámara en `scanner_screen.dart` conservan `Colors.black` (requisito de visibilidad de cámara).
+- **i18n:** Todos los textos visibles migrados a `.tr()`. Nuevas keys añadidas a `assets/translations/es.json` y `en.json`: `scanner.*`, `payment.*`, `checkout.*`, `inventory.*`, `warehouse.*`, `ticket_chat.*`, `login.*`, `setup.*`.
+- **Fixes lint:** `context.mounted` en guards async de `warehouse_selection_screen.dart`; `State<T>` como return type de `createState()` en `payment_confirmation_screen.dart`; imports/campos no usados eliminados en `login_screen.dart`.
+- **Build:** `flutter analyze` → 0 errores. `flutter build apk --debug` → ✅.
+- **Status:** ✅ COMPLETED — Resuelve deuda técnica de Phase 146 (tema por pantalla).
+
 ## 🕒 Última Actividad (2026-05-26) — Phase 141
 **Phase 141: Partner Modal Unification + Dead Code Cleanup** ✅
 

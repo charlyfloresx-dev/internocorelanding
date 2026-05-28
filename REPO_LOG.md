@@ -3,6 +3,50 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-27] Phase 149: MES WorkOrder + Inventory BOM — CRITICAL Bug Fixes ✅
+
+**Objetivo:** Corregir dos bugs CRÍTICOS que impedían la creación de WorkOrders en MES y causaban `AttributeError` en cualquier representación de objetos BOM en inventory.
+
+**WorkOrder (mes_service):**
+- `WorkOrderHandler.handle_create()` construía `WorkOrder(order_qty=..., due_date=..., alias=..., release_date=..., status="PLANNED")` — 4 campos inexistentes en el modelo y status incorrecto.
+- **Fix modelo**: Añadidos `alias: Mapped[Optional[str]]` y `release_date: Mapped[Optional[datetime]]`.
+- **Fix handler**: `order_qty` → `order_quantity`, `due_date` → `request_date`, `status="PLANNED"` → `status="DRAFT"`.
+- **Migration `007`**: `ADD COLUMN alias`, `ADD COLUMN release_date` en `mes_work_orders`.
+
+**BOM (inventory_service):**
+- `BOM.__repr__` referenciaba `self.parent_item_code` que no existía en el modelo → `AttributeError`.
+- El endpoint `POST /api/v1/inventory/boms/` pasaba `parent_item_code` e `is_active` al constructor sin columnas en la tabla → campos silenciosamente ignorados por SQLAlchemy.
+- El backflush consumer y reconciliation worker ejecutaban `BOM.parent_item_code == ...` → `AttributeError`.
+- **Fix modelo**: Añadidos `parent_item_code: Mapped[Optional[str]]` (indexed) e `is_active: Mapped[bool]`.
+- **Migration `005`**: `ADD COLUMN parent_item_code`, `ADD COLUMN is_active` en `inventory_boms`.
+- **Referencia legacy**: `Interno.Inventory.BOM.cs` usaba navigation property `Item Item`; Python traduce a `product_id UUID` (FK) + `parent_item_code` string para queries cross-service.
+
+**Archivos clave:**
+- `backend/mes_service/mes_app/models/work_order.py`
+- `backend/mes_service/mes_app/core/handlers/work_order_handler.py`
+- `backend/mes_service/alembic/versions/007_add_workorder_alias_release_date.py`
+- `backend/inventory_service/inventory_app/models/bom.py`
+- `backend/inventory_service/alembic/versions/005_add_bom_parent_item_code.py`
+
+---
+
+### [2026-05-27] Phase 148: Mobile — Full Theme Dark/Light + i18n en Todas las Pantallas ✅
+
+**Objetivo:** Completar la migración tema/i18n a todas las pantallas individuales de la app (deuda de Phase 146).
+
+**Decisiones Arquitectónicas:**
+- **Patrón uniforme**: `scaffoldBg = Theme.of(context).scaffoldBackgroundColor`, `cardBg = Theme.of(context).cardColor`, `cs = Theme.of(context).colorScheme`. Sub-widgets llaman `Theme.of(context)` localmente para evitar prop-drilling.
+- **Camera screens frozen**: `setup_screen.dart` (full-screen QR) y el overlay de cámara en `scanner_screen.dart` conservan `Colors.black` hardcodeado — requisito de visibilidad de cámara en hardware real (Moto g04s).
+- **Uber POS design frozen**: El carrito/scanner bottom layer de `scanner_screen.dart` conserva paleta oscura hardcodeada; solo las strings se traducen.
+- **i18n**: 60+ keys nuevas añadidas a `es.json`/`en.json` cubriendo todos los flows: `scanner.*`, `payment.*`, `checkout.*`, `inventory.*`, `warehouse.*`, `ticket_chat.*`, `login.*`, `setup.*`.
+- **Fixes lint incluidos**: `context.mounted` en guards async; `State<T>` return type en `createState()`; imports/campos no usados eliminados.
+
+**Pantallas migradas:** `ticket_chat_screen.dart`, `warehouse_selection_screen.dart`, `inventory_stock_screen.dart`, `checkout_screen.dart`, `payment_confirmation_screen.dart`, `login_screen.dart`, `setup_screen.dart`, `scanner_screen.dart`.
+
+**Status:** ✅ COMPLETED — `flutter analyze` 0 errores, APK debug compilado. Deuda técnica de Phase 146 cerrada.
+
+---
+
 ### [2026-05-27] Phase 147: Multi-Tenant Timezone Integration (Frontend & Backend) ✅
 
 **Objetivos:** Implementar soporte dinámico de zona horaria por empresa para corregir desviaciones de horario en auditorías y reportes transaccionales.

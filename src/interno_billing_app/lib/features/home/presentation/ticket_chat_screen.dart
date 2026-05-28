@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/features/home/data/models/ticket_models.dart';
 import 'package:interno_billing_app/features/home/presentation/bloc/tickets_bloc.dart';
-import 'package:intl/intl.dart';
 
 class TicketChatScreen extends StatefulWidget {
   final Ticket ticket;
@@ -18,14 +18,12 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Historial tab
   final _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String? _currentUserId;
   List<TicketComment> _comments = [];
   bool _commentsLoading = true;
 
-  // CAPA tab
   List<TicketAction> _actions = [];
   bool _actionsLoading = false;
   bool _actionsLoaded = false;
@@ -89,6 +87,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
   }
 
   Future<void> _pickDate() async {
+    final cs = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: _actionDate ?? DateTime.now().add(const Duration(days: 1)),
@@ -96,12 +95,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: InternoColors.cyan,
-            onPrimary: Colors.black,
-            surface: Color(0xFF1A1A1A),
-            onSurface: Colors.white,
-          ),
+          colorScheme: cs.copyWith(primary: InternoColors.cyan, onPrimary: Colors.black),
         ),
         child: child!,
       ),
@@ -110,17 +104,13 @@ class _TicketChatScreenState extends State<TicketChatScreen>
   }
 
   Future<void> _pickTime() async {
+    final cs = Theme.of(context).colorScheme;
     final picked = await showTimePicker(
       context: context,
       initialTime: _actionTime ?? const TimeOfDay(hour: 9, minute: 0),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: InternoColors.cyan,
-            onPrimary: Colors.black,
-            surface: Color(0xFF1A1A1A),
-            onSurface: Colors.white,
-          ),
+          colorScheme: cs.copyWith(primary: InternoColors.cyan, onPrimary: Colors.black),
         ),
         child: child!,
       ),
@@ -163,13 +153,53 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     }
   }
 
+  Color _priorityColor(TicketPriority p, ColorScheme cs) {
+    switch (p) {
+      case TicketPriority.critical:
+        return InternoColors.error;
+      case TicketPriority.high:
+        return InternoColors.warning;
+      case TicketPriority.low:
+        return cs.onSurface.withValues(alpha: 0.38);
+      default:
+        return const Color(0xFF42A5F5);
+    }
+  }
+
+  String _statusLabel(TicketStatus s) {
+    switch (s) {
+      case TicketStatus.newTicket:
+        return 'ticket_chat.status_new'.tr();
+      case TicketStatus.pending:
+        return 'ticket_chat.status_pending'.tr();
+      case TicketStatus.reviewing:
+        return 'ticket_chat.status_reviewing'.tr();
+      case TicketStatus.assigned:
+        return 'ticket_chat.status_assigned'.tr();
+      case TicketStatus.inProgress:
+        return 'ticket_chat.status_in_progress'.tr();
+      case TicketStatus.waiting:
+        return 'ticket_chat.status_waiting'.tr();
+      case TicketStatus.resolved:
+        return 'ticket_chat.status_resolved'.tr();
+      case TicketStatus.closed:
+        return 'ticket_chat.status_closed'.tr();
+      case TicketStatus.canceled:
+        return 'ticket_chat.status_canceled'.tr();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final cardBg = Theme.of(context).cardColor;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: scaffoldBg,
+        iconTheme: IconThemeData(color: cs.onSurface),
         title: Text(
           '#${widget.ticket.referenceCode}',
           style: const TextStyle(
@@ -184,26 +214,23 @@ class _TicketChatScreenState extends State<TicketChatScreen>
           indicatorColor: InternoColors.cyan,
           indicatorWeight: 2,
           labelColor: InternoColors.cyan,
-          unselectedLabelColor: Colors.white38,
-          labelStyle: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-          tabs: const [
-            Tab(text: 'HISTORIAL'),
-            Tab(text: 'CAPA'),
+          unselectedLabelColor: cs.onSurface.withValues(alpha: 0.38),
+          labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          tabs: [
+            Tab(text: 'ticket_chat.history'.tr()),
+            Tab(text: 'ticket_chat.capa'.tr()),
           ],
         ),
       ),
       body: BlocConsumer<TicketsBloc, TicketsState>(
         listener: (context, state) {
-          if (state is TicketCommentsLoaded &&
-              state.ticket.id == widget.ticket.id) {
+          if (state is TicketCommentsLoaded && state.ticket.id == widget.ticket.id) {
             setState(() {
               _comments = state.comments;
               _commentsLoading = false;
             });
             Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
-          } else if (state is TicketActionsLoaded &&
-              state.ticketId == widget.ticket.id) {
+          } else if (state is TicketActionsLoaded && state.ticketId == widget.ticket.id) {
             setState(() {
               _actions = state.actions;
               _actionsLoading = false;
@@ -220,11 +247,8 @@ class _TicketChatScreenState extends State<TicketChatScreen>
               content: Text(state.message),
               backgroundColor: InternoColors.success,
             ));
-            // Reload actions after any CAPA mutation
             setState(() => _actionsLoading = true);
-            context
-                .read<TicketsBloc>()
-                .add(LoadTicketActions(widget.ticket.id));
+            context.read<TicketsBloc>().add(LoadTicketActions(widget.ticket.id));
           } else if (state is TicketsError) {
             setState(() {
               _commentsLoading = false;
@@ -240,13 +264,13 @@ class _TicketChatScreenState extends State<TicketChatScreen>
         builder: (context, state) {
           return Column(
             children: [
-              _buildTicketHeader(),
+              _buildTicketHeader(cs, cardBg),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildHistorialTab(),
-                    _buildCapaTab(),
+                    _buildHistorialTab(cs, cardBg),
+                    _buildCapaTab(cs, cardBg, scaffoldBg),
                   ],
                 ),
               ),
@@ -257,26 +281,23 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  // ─── Ticket header ───────────────────────────────────────────────────────────
-
-  Widget _buildTicketHeader() {
-    final priorityColor = _priorityColor(widget.ticket.priority);
+  Widget _buildTicketHeader(ColorScheme cs, Color cardBg) {
+    final priorityColor = _priorityColor(widget.ticket.priority, cs);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      color: const Color(0xFF0D0D0D),
+      color: cardBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.ticket.title,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 15),
           ),
           const SizedBox(height: 6),
           Text(
             widget.ticket.description,
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
+            style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -294,11 +315,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
                 ),
                 child: Text(
                   widget.ticket.priority.name.toUpperCase(),
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: priorityColor,
-                      letterSpacing: 0.5),
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: priorityColor, letterSpacing: 0.5),
                 ),
               ),
             ],
@@ -318,73 +335,27 @@ class _TicketChatScreenState extends State<TicketChatScreen>
       ),
       child: Text(
         _statusLabel(status),
-        style: const TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: InternoColors.cyan,
-            letterSpacing: 0.5),
+        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: InternoColors.cyan, letterSpacing: 0.5),
       ),
     );
   }
 
-  Color _priorityColor(TicketPriority p) {
-    switch (p) {
-      case TicketPriority.critical:
-        return InternoColors.error;
-      case TicketPriority.high:
-        return InternoColors.warning;
-      case TicketPriority.low:
-        return Colors.white38;
-      default:
-        return const Color(0xFF42A5F5);
-    }
-  }
-
-  String _statusLabel(TicketStatus s) {
-    switch (s) {
-      case TicketStatus.newTicket:
-        return 'NUEVO';
-      case TicketStatus.pending:
-        return 'PENDIENTE';
-      case TicketStatus.reviewing:
-        return 'EN REVISIÓN';
-      case TicketStatus.assigned:
-        return 'ASIGNADO';
-      case TicketStatus.inProgress:
-        return 'EN PROGRESO';
-      case TicketStatus.waiting:
-        return 'EN ESPERA';
-      case TicketStatus.resolved:
-        return 'RESUELTO';
-      case TicketStatus.closed:
-        return 'CERRADO';
-      case TicketStatus.canceled:
-        return 'CANCELADO';
-    }
-  }
-
-  // ─── Historial tab ────────────────────────────────────────────────────────────
-
-  Widget _buildHistorialTab() {
+  Widget _buildHistorialTab(ColorScheme cs, Color cardBg) {
     if (_commentsLoading && _comments.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: InternoColors.cyan));
+      return const Center(child: CircularProgressIndicator(color: InternoColors.cyan));
     }
 
     return Column(
       children: [
         Expanded(
           child: _comments.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat_bubble_outline,
-                          color: Colors.white12, size: 44),
-                      SizedBox(height: 12),
-                      Text('Sin comentarios aún',
-                          style:
-                              TextStyle(color: Colors.white38, fontSize: 13)),
+                      Icon(Icons.chat_bubble_outline, color: cs.onSurface.withValues(alpha: 0.12), size: 44),
+                      const SizedBox(height: 12),
+                      Text('ticket_chat.no_comments'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 13)),
                     ],
                   ),
                 )
@@ -395,27 +366,24 @@ class _TicketChatScreenState extends State<TicketChatScreen>
                   itemBuilder: (context, index) {
                     final comment = _comments[index];
                     final isOperator = comment.authorId != _currentUserId;
-                    return _buildMessageBubble(comment, isOperator);
+                    return _buildMessageBubble(comment, isOperator, cs, cardBg);
                   },
                 ),
         ),
-        _buildMessageInput(),
+        _buildMessageInput(cs, cardBg),
       ],
     );
   }
 
-  Widget _buildMessageBubble(TicketComment comment, bool isOperator) {
+  Widget _buildMessageBubble(TicketComment comment, bool isOperator, ColorScheme cs, Color cardBg) {
     return Align(
       alignment: isOperator ? Alignment.centerLeft : Alignment.centerRight,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isOperator
-              ? const Color(0xFF1A1A1A)
-              : const Color(0xFF0D1A1A),
+          color: isOperator ? cardBg : InternoColors.cyan.withValues(alpha: 0.08),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -423,25 +391,17 @@ class _TicketChatScreenState extends State<TicketChatScreen>
             bottomRight: Radius.circular(isOperator ? 16 : 0),
           ),
           border: Border.all(
-            color: isOperator
-                ? Colors.white10
-                : InternoColors.cyan.withValues(alpha: 0.25),
+            color: isOperator ? cs.onSurface.withValues(alpha: 0.08) : InternoColors.cyan.withValues(alpha: 0.25),
           ),
         ),
         child: Column(
-          crossAxisAlignment:
-              isOperator ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          crossAxisAlignment: isOperator ? CrossAxisAlignment.start : CrossAxisAlignment.end,
           children: [
-            Text(comment.content,
-                style:
-                    const TextStyle(color: Colors.white, fontSize: 12)),
+            Text(comment.content, style: TextStyle(color: cs.onSurface, fontSize: 12)),
             const SizedBox(height: 4),
             Text(
               DateFormat('HH:mm').format(comment.createdAt),
-              style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold),
+              style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 9, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -449,38 +409,33 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  Widget _buildMessageInput() {
+  Widget _buildMessageInput(ColorScheme cs, Color cardBg) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: cs.onSurface.withValues(alpha: 0.08))),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _commentController,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: cs.onSurface, fontSize: 14),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF111111),
-                hintText: 'Escribe un mensaje...',
-                hintStyle: const TextStyle(color: Colors.white24),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+                fillColor: cardBg,
+                hintText: 'ticket_chat.type_message'.tr(),
+                hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.24)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
               ),
               onSubmitted: (_) => _sendComment(),
             ),
           ),
           const SizedBox(width: 8),
           Container(
-            decoration: const BoxDecoration(
-                color: InternoColors.cyan, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: InternoColors.cyan, shape: BoxShape.circle),
             child: IconButton(
               icon: const Icon(Icons.send, color: Colors.black, size: 20),
               onPressed: _sendComment,
@@ -491,58 +446,49 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  // ─── CAPA tab ─────────────────────────────────────────────────────────────────
-
-  Widget _buildCapaTab() {
+  Widget _buildCapaTab(ColorScheme cs, Color cardBg, Color scaffoldBg) {
     return Column(
       children: [
         Expanded(
           child: _actionsLoading
-              ? const Center(
-                  child:
-                      CircularProgressIndicator(color: InternoColors.cyan))
+              ? const Center(child: CircularProgressIndicator(color: InternoColors.cyan))
               : _actions.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.checklist_outlined,
-                              color: Colors.white12, size: 44),
-                          SizedBox(height: 12),
-                          Text('Sin acciones registradas',
-                              style: TextStyle(
-                                  color: Colors.white38, fontSize: 13)),
+                          Icon(Icons.checklist_outlined, color: cs.onSurface.withValues(alpha: 0.12), size: 44),
+                          const SizedBox(height: 12),
+                          Text('ticket_chat.no_actions'.tr(), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 13)),
                         ],
                       ),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                       itemCount: _actions.length,
-                      itemBuilder: (context, index) =>
-                          _buildActionCard(_actions[index]),
+                      itemBuilder: (context, index) => _buildActionCard(_actions[index], cs, cardBg),
                     ),
         ),
-        _buildActionForm(),
+        _buildActionForm(cs, cardBg, scaffoldBg),
       ],
     );
   }
 
-  Widget _buildActionCard(TicketAction action) {
+  Widget _buildActionCard(TicketAction action, ColorScheme cs, Color cardBg) {
     final closed = action.isClosed;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
+        color: cardBg,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: closed ? Colors.white10 : InternoColors.cyan.withValues(alpha: 0.2),
+          color: closed ? cs.onSurface.withValues(alpha: 0.08) : InternoColors.cyan.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Circular checkbox — tap to close (min 44px touch target for gloves)
           GestureDetector(
             onTap: closed ? null : () => _closeAction(action),
             child: SizedBox(
@@ -557,19 +503,16 @@ class _TicketChatScreenState extends State<TicketChatScreen>
                     shape: BoxShape.circle,
                     color: closed ? InternoColors.success : Colors.transparent,
                     border: Border.all(
-                      color: closed ? InternoColors.success : Colors.white24,
+                      color: closed ? InternoColors.success : cs.onSurface.withValues(alpha: 0.24),
                       width: 2,
                     ),
                   ),
-                  child: closed
-                      ? const Icon(Icons.check, color: Colors.white, size: 14)
-                      : null,
+                  child: closed ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 4),
-          // Content
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,21 +520,21 @@ class _TicketChatScreenState extends State<TicketChatScreen>
                 Text(
                   action.description,
                   style: TextStyle(
-                    color: closed ? Colors.white38 : Colors.white,
+                    color: closed ? cs.onSurface.withValues(alpha: 0.38) : cs.onSurface,
                     fontSize: 13,
                     decoration: closed ? TextDecoration.lineThrough : null,
-                    decorationColor: Colors.white38,
+                    decorationColor: cs.onSurface.withValues(alpha: 0.38),
                   ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     if (action.commitDate != null) ...[
-                      const Icon(Icons.calendar_today_outlined, size: 11, color: Colors.white38),
+                      Icon(Icons.calendar_today_outlined, size: 11, color: cs.onSurface.withValues(alpha: 0.38)),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('d MMM, HH:mm').format(action.commitDate!.toLocal()),
-                        style: const TextStyle(color: Colors.white38, fontSize: 10),
+                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 10),
                       ),
                       const SizedBox(width: 10),
                     ],
@@ -605,11 +548,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
                         ),
                         child: Text(
                           action.assigneeName!,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: _assigneeColor(action.assigneeType),
-                          ),
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: _assigneeColor(action.assigneeType)),
                         ),
                       ),
                   ],
@@ -622,62 +561,54 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  Widget _buildActionForm() {
+  Widget _buildActionForm(ColorScheme cs, Color cardBg, Color scaffoldBg) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF080808),
-        border: Border(top: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        color: scaffoldBg,
+        border: Border(top: BorderSide(color: cs.onSurface.withValues(alpha: 0.08))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'NUEVA ACCIÓN',
-            style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                color: Colors.white24),
+          Text(
+            'ticket_chat.new_action'.tr(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: cs.onSurface.withValues(alpha: 0.24)),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _actionDescController,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: cs.onSurface, fontSize: 16),
             maxLines: 3,
             maxLength: 200,
             decoration: InputDecoration(
               filled: true,
-              fillColor: const Color(0xFF131313),
-              hintText: 'Descripción de la acción...',
-              hintStyle:
-                  const TextStyle(color: Colors.white24, fontSize: 16),
-              counterStyle:
-                  const TextStyle(color: Colors.white24, fontSize: 10),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              fillColor: cardBg,
+              hintText: 'ticket_chat.action_hint'.tr(),
+              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 16),
+              counterStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.white12),
+                borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.12)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.white12),
+                borderSide: BorderSide(color: cs.onSurface.withValues(alpha: 0.12)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: InternoColors.cyan, width: 1.5),
+                borderSide: const BorderSide(color: InternoColors.cyan, width: 1.5),
               ),
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildDateButton()),
+              Expanded(child: _buildDateButton(cs, cardBg)),
               const SizedBox(width: 10),
-              _buildTimeButton(),
+              _buildTimeButton(cs, cardBg),
             ],
           ),
           const SizedBox(height: 12),
@@ -688,24 +619,14 @@ class _TicketChatScreenState extends State<TicketChatScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: InternoColors.cyan,
                 foregroundColor: Colors.black,
-                disabledBackgroundColor:
-                    InternoColors.cyan.withValues(alpha: 0.25),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                disabledBackgroundColor: InternoColors.cyan.withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: _submittingAction
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 2.5),
-                    )
-                  : const Text(
-                      'REGISTRAR ACCIÓN',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2),
+                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                  : Text(
+                      'ticket_chat.register_action'.tr(),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.2),
                     ),
             ),
           ),
@@ -714,7 +635,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  Widget _buildDateButton() {
+  Widget _buildDateButton(ColorScheme cs, Color cardBg) {
     final hasDate = _actionDate != null;
     return GestureDetector(
       onTap: _pickDate,
@@ -722,29 +643,21 @@ class _TicketChatScreenState extends State<TicketChatScreen>
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF131313),
+          color: cardBg,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: hasDate
-                ? InternoColors.cyan.withValues(alpha: 0.5)
-                : Colors.white12,
+            color: hasDate ? InternoColors.cyan.withValues(alpha: 0.5) : cs.onSurface.withValues(alpha: 0.12),
           ),
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_month_outlined,
-                size: 20,
-                color: hasDate ? InternoColors.cyan : Colors.white38),
+            Icon(Icons.calendar_month_outlined, size: 20, color: hasDate ? InternoColors.cyan : cs.onSurface.withValues(alpha: 0.38)),
             const SizedBox(width: 10),
             Flexible(
               child: Text(
-                hasDate
-                    ? DateFormat('d MMM yyyy').format(_actionDate!)
-                    : 'Fecha compromiso',
+                hasDate ? DateFormat('d MMM yyyy').format(_actionDate!) : 'ticket_chat.commit_date'.tr(),
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 15,
-                    color: hasDate ? Colors.white : Colors.white38),
+                style: TextStyle(fontSize: 15, color: hasDate ? cs.onSurface : cs.onSurface.withValues(alpha: 0.38)),
               ),
             ),
           ],
@@ -753,7 +666,7 @@ class _TicketChatScreenState extends State<TicketChatScreen>
     );
   }
 
-  Widget _buildTimeButton() {
+  Widget _buildTimeButton(ColorScheme cs, Color cardBg) {
     final hasTime = _actionTime != null;
     return GestureDetector(
       onTap: _pickTime,
@@ -762,29 +675,23 @@ class _TicketChatScreenState extends State<TicketChatScreen>
         width: 104,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF131313),
+          color: cardBg,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: hasTime
-                ? InternoColors.cyan.withValues(alpha: 0.5)
-                : Colors.white12,
+            color: hasTime ? InternoColors.cyan.withValues(alpha: 0.5) : cs.onSurface.withValues(alpha: 0.12),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.access_time_outlined,
-                size: 20,
-                color: hasTime ? InternoColors.cyan : Colors.white38),
+            Icon(Icons.access_time_outlined, size: 20, color: hasTime ? InternoColors.cyan : cs.onSurface.withValues(alpha: 0.38)),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                hasTime ? _actionTime!.format(context) : 'Hora',
+                hasTime ? _actionTime!.format(context) : 'ticket_chat.hour'.tr(),
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 15,
-                    color: hasTime ? Colors.white : Colors.white38),
+                style: TextStyle(fontSize: 15, color: hasTime ? cs.onSurface : cs.onSurface.withValues(alpha: 0.38)),
               ),
             ),
           ],

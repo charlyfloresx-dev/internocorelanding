@@ -410,8 +410,8 @@ python backend/scripts/generate_code_graph.py
 
 | Prioridad | Item |
 |---|---|
-| CRÍTICA | **MES** `WorkOrder` model↔handler mismatch — creación de WO falla (`order_qty` vs `order_quantity`, `due_date`, `alias`, `release_date` inexistentes) |
-| CRÍTICA | **MES/Inventory** `BOM.__repr__` referencia `parent_item_code` que no existe en el modelo |
+| ~~CRÍTICA~~ | ~~**MES** `WorkOrder` model↔handler mismatch~~ — ✅ RESUELTO Phase 149 |
+| ~~CRÍTICA~~ | ~~**MES/Inventory** `BOM.__repr__` referencia `parent_item_code`~~ — ✅ RESUELTO Phase 149 |
 | ALTA | **MES** Backflush de materiales al cerrar corrida — BOM components no se consumen de inventario |
 | ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza al reportar producción |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
