@@ -1,4 +1,64 @@
-# Implementation History — 2026-05-28 (Phase 150)
+# Implementation History — 2026-05-28 (Phases 150 → 154)
+
+---
+
+## Phase 154 — Resource Monitor: Análisis Arquitectónico
+
+### Objetivo
+Diseñar la implementación para conectar `ResourceMonitorComponent` (Angular, 100% mock) al `mes_service` real, portando la lógica del legacy `.NET` `Interno.Production`.
+
+### Hallazgos del Legacy (portados al plan Python)
+
+**`Resource : Warehouse` — identidad compartida**
+En .NET, un `Resource` de producción hereda directamente de `Warehouse`. Comparte: `Code (PK string max 13)`, `Name`, `Description`, `TypeId/Type`, `Capacity`, `Unit`, `Group`, `Active`, timestamps. Solo agrega `BreakGroupId` y `ProductionArea`.
+
+**Implicación Python (Iron Wall ADR-02):**
+`Resource(MultiTenantBase)` en `mes_service` con `warehouse_id: Optional[UUID]` como soft FK — sin FK a nivel BD. El `code` es la clave de negocio. No hay herencia cross-servicio.
+
+**Jerarquía de dominio:**
+```
+Facility(code, name, location)
+  └─ ProductionArea(name, description, facility_id)
+       └─ Resource(code, name, resource_type, warehouse_id[soft], production_area_id)
+            └─ BreakGroup → Break[] (horarios de descanso del turno)
+```
+
+**`Result` = sesión de producción (equivale a `ProductionRun` en Python):**
+- `ResourceCode + ShiftId + Date + Priority` — clave natural.
+- Colecciones: `HourByHour[]` (→ `HourlyProductionSnapshot`), `Labor[]`, `Downtime[]`, `Goals[]`.
+- KPIs calculados: OEE, OE, TEP, Availability, Efficiency, FirstPassYield.
+- Fechas logísticas: `ShippingDate`, `WHSDate`, `SMKTDate`.
+
+**Algoritmo `GetGraphic()` — portado a Python:**
+```
+1. Detectar turno: 5h < now.hour < 17h → turno diurno; else nocturno
+2. Generar slots: [shift.start .. shift.end] en horas enteras
+3. Disponible[i] = 1.0 por defecto
+4. Aplicar breaks:
+   - break inicia en slot i → Disponible[i] = break.start.hours - slot_hour
+   - break termina en slot i → Disponible[i] = next_slot_hour - break.end.hours
+5. Para cada Result (WO planificada) ordenado por Priority:
+   if OperationTime: qtyPerHour = floor(Disponible[i] / operationTime.set_time)
+   else:             qtyPerHour = round(plan_qty / total_horas_necesarias)
+   Meta[i] = qtyPerHour; Faltante[i] = qtyPerHour
+6. Cargar HourlyProductionSnapshot (GROUP BY hora):
+   if actual > meta → Excedente[i] = actual - meta; Faltante[i] = 0
+   else             → Faltante[i] = meta - actual; Producidas[i] = actual
+7. Eficiencia[i] = ceil((Producidas[i] * 100) / Meta[i])
+```
+
+### Arquitectura de la solución (4 partes)
+
+| Parte | Alcance | Estimado |
+|---|---|---|
+| 1 | `Facility` + `ProductionArea` + `Resource` + migration + seed + CRUD | 1 sesión |
+| 2 | Endpoint `/graphic` (algoritmo hora×hora) + `/active-workorder` + `/planned-workorders` | 1 sesión |
+| 3 | `ResourceService` Angular + desconectar mock + `:code` param + selector | 1 sesión |
+| 4 | Nginx upstream verificación + smoke test E2E | ½ sesión |
+
+---
+
+## Phase 150 — MES Service: WorkOrder Document+Lines Pattern
 
 ## MES Service: WorkOrder Document+Lines Pattern
 

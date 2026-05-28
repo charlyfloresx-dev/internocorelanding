@@ -21,13 +21,40 @@
 | 15 | `CLAUDE.md` deuda técnica actualizada | docs | ✅ |
 | 16 | `REPO_LOG.md` + `SERVICE_LOG.md` actualizados | docs | ✅ |
 
+## Phase 153 — Kiosk Company Binding + ID Pattern + Light Theme (2026-05-28)
+
+| # | Tarea | Servicio | Resultado |
+|---|---|---|---|
+| 1 | Migration `internal_id_pattern` en `companies` | auth_service | ✅ |
+| 2 | Validación `re.fullmatch()` en `collaborator_login_command` Step 0 | auth_service | ✅ |
+| 3 | `PATCH /companies/my/id-pattern` endpoint | auth_service | ✅ |
+| 4 | HCM hotfix: `department.name` en `collaborator_verify_service` | hcm_service | ✅ |
+| 5 | Flutter: `_handleAutoLogin` guarda `kiosk_company_id` desde QR | mobile | ✅ |
+| 6 | Flutter: `_buildKioskCompanyBadge` estado sin provisionar con instrucciones | mobile | ✅ |
+| 7 | Flutter: light theme `receipts_screen.dart` (reescritura completa) | mobile | ✅ |
+| 8 | Flutter: light theme `sales_screen.dart` (bottom sheet + modals) | mobile | ✅ |
+| 9 | `kiosk_auth_flow.py` — 4-test suite (RFID, PIN, company-bound, pattern) | auth_service | ✅ |
+| 10 | SERVICE_LOG auth + hcm actualizados | docs | ✅ |
+
+## Phase 154 — Análisis Architecture Resource Monitor (2026-05-28)
+
+| # | Tarea | Resultado |
+|---|---|---|
+| 1 | Análisis `ResourceMonitorComponent` — 100% mock, 0 HTTP calls | ✅ |
+| 2 | Análisis legacy `Interno.Production` — 12 modelos + 7 controllers | ✅ |
+| 3 | Decisión: `Resource : Warehouse` → soft FK en Python (Iron Wall) | ✅ |
+| 4 | Plan de 4 partes en `PENDIENTES_INDUSTRIAL_CORE.md` con checkboxes | ✅ |
+| 5 | Phase 153 + 154 añadidos a `REPO_LOG.md` | ✅ |
+
 ## Pendientes carryover
 
 | Prioridad | Item |
 |---|---|
-| ALTA | `WorkOrder.manufactured_quantity` → hook en ScannerService |
+| ALTA | **Phase 154 Parte 1**: `Facility` + `ProductionArea` + `Resource` + migration + seed + CRUD |
+| ALTA | **Phase 154 Parte 2**: `GET /graphic` algoritmo hora×hora + `active-workorder` + `planned-workorders` |
+| ALTA | **Phase 154 Parte 3**: `ResourceService` Angular + desconectar mock + `:code` param |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end |
-| MEDIA | MES: transición automática DRAFT → IN_PROGRESS → COMPLETED |
-| MEDIA | Rate limit por endpoint en MES |
+| MEDIA | Rate limit por endpoint en WMS, MES, HCM, Subscription |
+| MEDIA | Precio según partner seleccionado en SalesScreen (PriceAgreement en lookup) |
 | BAJA | `mes_app.schemas.planning` PydanticUserError (campo name clash) |
-| BAJA | `test_mes_core.py` xfail: services requieren repo injection — actualizar cuando se estabilice API |
+| BAJA | `test_mes_core.py` xfail: services requieren repo injection |

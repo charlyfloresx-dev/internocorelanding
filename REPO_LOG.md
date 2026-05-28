@@ -3,6 +3,64 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 154: Análisis Arquitectónico — Resource Monitor MES ↔ Frontend (Plan)
+
+**Objetivo:** Diseñar la implementación del Monitor de Recurso real: conectar `ResourceMonitorComponent` (Angular, actualmente 100% mock) al backend `mes_service`.
+
+**Análisis del frontend:**
+- `ResourceMonitorComponent` (`/monitor/resources`): UI completa con gráfica hora×hora, tabla acumulada, equipo de soporte y horarios de descanso — todo en signals estáticos hardcodeados. Cero llamadas HTTP.
+- `MesItemConfigComponent`: único componente MES ya conectado al backend (scan patterns Phase 152).
+
+**Análisis del legacy `.NET` (`Interno.Production`):**
+- `Resource : Warehouse` — en el legacy el recurso hereda directamente del almacén (mismo `Code` string max 13, `Name`, `Type`, `Capacity`, `Group`). Agrega `BreakGroupId` y `ProductionArea`.
+- Jerarquía: `Facility → ProductionArea → Resource`, con `BreaksGroup → Break[]` para horarios de descanso.
+- `Result` = sesión de producción (fecha + turno + recurso + prioridad). Contiene `HourByHour[]`, `Labor[]`, `Downtime[]`, `Goal[]`. Tiene KPIs: OEE, OE, TEP, Availability, Efficiency, FirstPassYield.
+- `GetGraphic()` en `ResultController` es el "algoritmo ~120L": genera slots horarios → aplica breaks → calcula meta por OperationTime → carga actual de `HourByHour` → computa Faltante/Excedente/Eficiencia.
+
+**Decisión arquitectónica (Iron Wall):**
+- `Resource` en `mes_service` NO hereda Warehouse (cross-service prohibido).
+- Tendrá `warehouse_id: Optional[UUID]` como soft FK hacia `inventory_service.warehouses` — sin FK de BD.
+- El `code` (max 13) sigue siendo la clave de negocio operacional.
+
+**Plan plasmado en `docs/historial/PENDIENTES_INDUSTRIAL_CORE.md`** (4 partes con checkboxes):
+- Parte 1: `Facility` + `ProductionArea` + `Resource` + tabla pivote soporte + migration + seed.
+- Parte 2: `GET /graphic` con algoritmo hora×hora portado de .NET + endpoints `active-workorder` + `planned-workorders`.
+- Parte 3: `ResourceService` Angular + desconectar los 3 signals mock + parámetro `:code` + `ResourceSelectorComponent`.
+- Parte 4: Verificar nginx upstream MES.
+
+**Archivos clave:** `docs/historial/PENDIENTES_INDUSTRIAL_CORE.md`
+
+---
+### [2026-05-28] Phase 153: Kiosk Company Binding + ID Pattern Validation + Light Theme ✅
+
+**Objetivo:** Tres mejoras de producción: vincular el kiosko a una empresa específica en login industrial, validar el formato del ID interno por tenant, y corregir el tema claro en la app Flutter.
+
+**`internal_id_pattern` (auth_service):**
+- Migration `c7d4e5f6a8b9`: columna `internal_id_pattern VARCHAR(200) NULL` en tabla `companies`.
+- `collaborator_login_command.py` Step 0: si la empresa tiene patrón, valida `re.fullmatch()` antes de autenticar. Inválido → 422 con mensaje descriptivo.
+- `PATCH /companies/my/id-pattern` endpoint: admin configura/limpia el regex de su empresa.
+
+**Kiosk Company Binding (Flutter `LoginScreen`):**
+- `_handleAutoLogin`: cuando el QR de provisioning contiene `companyId`, lo guarda en `SharedPreferences` como `kiosk_company_id`.
+- `_buildKioskCompanyBadge`: estado sin provisionar muestra alerta amber con instrucciones explícitas (admin config o QR scan).
+- El `company_id` en `POST /collaborator-login` limita el login al tenant correcto — colaboradores de otras empresas reciben 401.
+
+**Light Theme Flutter (Phase 153):**
+- `receipts_screen.dart`: reescrito completo — todas las referencias `Colors.black`/`Colors.white*` reemplazadas por `cs.onSurface.withValues(alpha:…)` y `Theme.of(context).cardColor`.
+- `sales_screen.dart`: bottom sheet, modal partner, dialog catálogo — todos theme-aware. Camera overlay intencionalmente oscuro.
+
+**HCM Hotfix:**
+- `collaborator_verify_service.py` línea 93: `department=collaborator.department` → `department=collaborator.department.name if collaborator.department else None`. El campo era ORM relationship, Pydantic esperaba string.
+
+**Archivos clave:**
+- `backend/auth_service/alembic/versions/c7d4e5f6a8b9_add_internal_id_pattern.py`
+- `backend/auth_service/app/commands/collaborator_login_command.py`
+- `backend/hcm_service/hcm_app/services/collaborator_verify_service.py`
+- `src/interno_billing_app/lib/features/auth/presentation/login_screen.dart`
+- `src/interno_billing_app/lib/features/home/presentation/receipts_screen.dart`
+- `src/interno_billing_app/lib/features/home/presentation/sales_screen.dart`
+
+---
 ### [2026-05-28] Phase 151: MES — manufactured_quantity + WO Status Transitions ✅
 
 **Objetivo:** Conectar el flujo de escaneo con el contador de progreso de la WorkOrder.
