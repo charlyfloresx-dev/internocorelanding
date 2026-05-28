@@ -23,7 +23,7 @@ import inventory_app.models.document           # noqa: F401
 import inventory_app.models.inter_company_transfer  # noqa: F401
 import inventory_app.models.movement           # noqa: F401
 import inventory_app.models.stock              # noqa: F401
-import common.models.audit_log       # noqa: F401
+import common.models.audit            # noqa: F401
 
 # ── SQLite In-Memory Engine ──────────────────────────────────────────────────
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

@@ -15,12 +15,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # is_active already existed in the baseline table definition
     op.add_column('inventory_boms', sa.Column('parent_item_code', sa.String(100), nullable=True))
-    op.add_column('inventory_boms', sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False))
     op.create_index('ix_inventory_boms_parent_item_code', 'inventory_boms', ['parent_item_code'])
 
 
 def downgrade() -> None:
     op.drop_index('ix_inventory_boms_parent_item_code', table_name='inventory_boms')
-    op.drop_column('inventory_boms', 'is_active')
     op.drop_column('inventory_boms', 'parent_item_code')

@@ -31,6 +31,32 @@ Jornada de tickets: corrección de loop infinito en Angular, fix de triage multi
 
 ---
 
+## Phase 148 — Mobile Full Theme + i18n ✅ COMPLETADO (2026-05-27)
+
+- `[x]` `ticket_chat_screen.dart` — Theme tokens + i18n `ticket_chat.*`
+- `[x]` `warehouse_selection_screen.dart` — Theme tokens + i18n `warehouse.*` + fix `context.mounted`
+- `[x]` `inventory_stock_screen.dart` — Theme tokens + i18n `inventory.*`
+- `[x]` `checkout_screen.dart` — Theme tokens (sub-widgets) + i18n `checkout.*`
+- `[x]` `payment_confirmation_screen.dart` — Theme tokens + i18n `payment.*` + fix `State<T>` return type
+- `[x]` `login_screen.dart` — Theme tokens + i18n `login.*` + cleanup imports/campos no usados
+- `[x]` `setup_screen.dart` — i18n `setup.*` (Colors.black conservado — cámara)
+- `[x]` `scanner_screen.dart` — i18n `scanner.*` (paleta Uber POS conservada)
+- `[x]` `es.json` + `en.json` — 60+ keys nuevas
+- `[x]` `flutter analyze` 0 errores · `flutter build apk --debug` ✅
+
+## Phase 149 — MES WorkOrder + BOM CRITICAL Fixes ✅ COMPLETADO (2026-05-27)
+
+- `[x]` `mes_app/models/work_order.py` — añadir `alias` + `release_date` (campos que el handler requería)
+- `[x]` `mes_app/core/handlers/work_order_handler.py` — fix 4 mismatches: `order_qty→order_quantity`, `due_date→request_date`, `status="PLANNED"→"DRAFT"`, `release_date` + `alias` ahora existen
+- `[x]` `alembic/versions/007_add_workorder_alias_release_date.py` — migración MES
+- `[x]` `inventory_app/models/bom.py` — añadir `parent_item_code` (indexed) + `is_active`
+- `[x]` `alembic/versions/005_add_bom_parent_item_code.py` — migración inventory (solo `parent_item_code`; `is_active` ya estaba en baseline)
+- `[x]` `hcm_service/alembic/versions/004_merge_heads.py` — merge migration que resuelve dos heads divergentes (`002_split_last_name` + `003_add_department_description`) — fix al `Restarting` de HCM
+- `[x]` BOM integration tests (5/5 ✅) contra PostgreSQL real (`inventory_db`)
+- `[x]` CLAUDE.md deuda técnica — dos CRITICALs marcados resueltos
+
+---
+
 ## PENDIENTES — Phase 143+
 
 ### P1: Multi-asignados (tabla `ticket_assignees`)

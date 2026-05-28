@@ -412,19 +412,23 @@ python backend/scripts/generate_code_graph.py
 |---|---|
 | ~~CRÍTICA~~ | ~~**MES** `WorkOrder` model↔handler mismatch~~ — ✅ RESUELTO Phase 149 |
 | ~~CRÍTICA~~ | ~~**MES/Inventory** `BOM.__repr__` referencia `parent_item_code`~~ — ✅ RESUELTO Phase 149 |
-| ALTA | **MES** Backflush de materiales al cerrar corrida — BOM components no se consumen de inventario |
-| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza al reportar producción |
+| ALTA | **MES** WorkOrder Patrón Documento+Líneas — `WorkOrderLine` faltante, `WorkOrder` no hereda `WorkOrderBase`. Spec: `docs/specs/MES_WORKORDER_DOCUMENT_PATTERN.md` |
+| ALTA | **MES** Backflush de materiales — se resuelve con `WorkOrderLine(MATERIAL_INPUT)` (bloqueado por tarea anterior) |
+| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza — se resuelve con `WorkOrderLine(ACTUAL_OUTPUT)` (bloqueado por tarea anterior) |
+| ALTA | **MES** Dockerfile usa paths obsoletos (`app` en vez de `mes_app`) — servicio no desplegable. Corregir COPY + CMD + agregar a docker-compose + nginx |
+| ALTA | **MES** `mes_db` vacía (0 tablas) — `alembic upgrade head` nunca corrió. Bloqueado por tarea de Dockerfile |
+| ALTA | **MES** Tests de integración WorkOrder contra `mes_db` real — bloqueados por las dos tareas anteriores |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
-| MEDIA | **MES** Transición automática de WO status: RELEASED → IN_PROGRESS → COMPLETED |
+| MEDIA | **MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
 | MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
-| MEDIA | **Mobile** Tab Soporte → formulario Crear Ticket (igual que Angular: Asunto, Prioridad, Área, Descripción) — ✅ COMPLETADO 2026-05-27 |
+| MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
 | MEDIA | **HCM** CRUD de Departamentos en Angular (configuración de áreas por empresa) |
 | BAJA | **HCM** `JobPosition` catálogo propio (actualmente solo `job_title: str`) |
 | BAJA | **HCM** `shift_id` en Collaborator → bridge HCM↔MES |
 | BAJA | **HCM** jerarquía 3 niveles: `manager_id` + `director_id` (actualmente solo `supervisor_id`) |
-| BAJA | WMS y MES no desplegados en dev stack |
+| BAJA | WMS no desplegado en dev stack |
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
 
@@ -439,6 +443,7 @@ python backend/scripts/generate_code_graph.py
 | Tareas diarias | `docs/historial/tasks/consolidated_tasksYYYYMMDD.md` |
 | Implementación por sesión | `docs/historial/implementation/master_implementation_historyYYYYMMDD.md` |
 | Precios y catálogos fiscales | `docs/specs/06_PRICES_AND_FISCAL_CATALOGS.md` |
+| MES WorkOrder Documento+Líneas | `docs/specs/MES_WORKORDER_DOCUMENT_PATTERN.md` |
 | Specs OpenAPI | `docs/specs/*.json` (auth, inventory, master_data, tickets, wms, subscription, mes) |
 | Log por servicio | `backend/<svc>/SERVICE_LOG.md` |
 | Contexto de negocio | `docs/historial/backend/<svc>/CONTEXTO.md` |
