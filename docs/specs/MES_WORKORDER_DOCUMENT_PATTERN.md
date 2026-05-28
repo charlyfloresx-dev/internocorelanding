@@ -404,3 +404,211 @@ Graphic algorithm (por hora):
 
 > **Nota de fase:** Los items 10.3–10.6 son **Phase 152+** — no bloquean Phase 150 (WorkOrderLine) ni Phase 151 (MES deployment).  
 > Los items 10.2 (campos en modelos parciales) pueden hacerse como migration addenda en Phase 151 durante el deploy.
+
+---
+
+## 11. Patrones UX del Sistema DJO/Enovis (Referencia de Diseño — 2022)
+
+Capturas del sistema real desplegado en Enovis Baja Fur (Tijuana). Referencia autoritativa para el
+diseño de pantallas MES en Angular 19 / Core-Live.
+
+### 11.1 Vista de Módulo (`GET /resources/{code}/graphic`)
+
+El **layout de 3 paneles** es el patrón validado en planta:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ [Module code] [Employee] [Scan] [Send]     KPI STRIP        │
+│ ┌──────────────────────────────┐ ┌────────────────────────┐ │
+│ │  Gráfico barras + línea Goal  │ │ HourByHour table       │ │
+│ │  (Excedent|Missing|Real|Goal) │ │ Hr|Item|Pcs|Std|Paid|  │ │
+│ │  Eje X: horas turno           │ │ Gain|EFF               │ │
+│ │  Eje Y: piezas/hora           │ │                        │ │
+│ └──────────────────────────────┘ └────────────────────────┘ │
+├─────────────────────────────────┬───────────────────────────┤
+│ DOWNTIME   [Set Downtime]       │ LABOR   [Employees: 37]   │
+│ Id|Created|Emp|Issue|Desc|      │ [Set Labor] [Employee]    │
+│ Status|Closed|Transcurred       │ Emp|Issue|Start|End|Trans │
+└─────────────────────────────────┴───────────────────────────┘
+```
+
+**KPI Strip (5 valores):**
+```
+720 ShiftPlan | 790 Actuals | 109% Attainment | 37.08% Efficiency | 12.00% OEE
+```
+- `ShiftPlan` = suma de `ProductionRun.planned_qty` para el turno activo
+- `Attainment` = `Actuals / ShiftPlan` — resaltado en amarillo si < 100%, verde si ≥ 100%
+- `Efficiency` = `GainHrs / PaidHrs` global del turno
+- `OEE` = métrica compuesta del turno
+
+**Gráfico horario (series):**
+
+| Serie | Color | Fuente |
+|---|---|---|
+| `Goal` | Línea negra | Meta por hora (de `Goal` model) |
+| `Real` | Barra naranja | Piezas escaneadas reales (`HourlySnapshot.actual_quantity`) |
+| `Excedent` | Verde | Real > Goal |
+| `Missing` | Rojo | Goal > Real |
+
+**Tabla HourByHour:**
+
+| Columna | Fuente Python |
+|---|---|
+| `Hour` | `HourlySnapshot.hour` (0-23) |
+| `Item` | `HourlySnapshot.item_code` |
+| `Pieces` | `HourlySnapshot.actual_quantity` |
+| `Std` | `StandardTime.set_time_hours` (ej: `0.1563` h/pieza) |
+| `PaidHrs` | `HourlySnapshot.paid_hours` (campo faltante — ver §10.2) |
+| `GainHrs` | `Pieces × Std` (calculado) |
+| `EFF%` | `GainHrs / PaidHrs` (calculado) |
+
+**Panel Downtime:** `id | created_at | employee_number | issue_type | description | status (Stand By→Closed) | closed_at | transcurred`
+
+**Panel Labor:** contador total + tabla `employee_number | issue_type | clock_in | clock_out | transcurred_minutes`
+
+---
+
+### 11.2 Dashboard Principal (`GET /production/dashboard`)
+
+Grid de tarjetas, una por `Resource` activo en el turno:
+
+```
+┌──────────────────────────────┐
+│ M-25            70 pz        │
+│ 191.3% ██████████████████    │  ← Verde (≥100%)
+│                 104goal       │
+└──────────────────────────────┘
+┌──────────────────────────────┐
+│ M-80           120 pz        │
+│ 0.0%  ░░░░░░░░░░░░░░░░░░░░  │  ← Rojo (<50%)
+│                 660goal       │
+└──────────────────────────────┘
+```
+
+**Paleta de colores por Attainment:**
+- `≥ 100%` → verde (barra llena)
+- `50–99%` → naranja / amarillo
+- `< 50%` → rojo (crítico)
+
+**Filtro**: `Select Value Stream` — dropdown con los ValueStreams (Upper Extremity, Molding, Machine Shop, Cold Therapy, Sub Assy, Chattanooga...)
+
+---
+
+### 11.3 Analytics — Eficiencia (`GET /production/analytics`)
+
+Tabla planta-completa, ordenada por `Eficiency` ascendente (peor→mejor):
+
+**Columnas:**
+
+| Columna | Fuente Python | Tipo |
+|---|---|---|
+| `ValueStream` | `Resource.value_stream` o `ProductionArea.name` | str |
+| `Module` | `Resource.code` | str |
+| `Goal` | Sum `Goal.target_qty` del turno | int |
+| `Pieces` | Sum `HourlySnapshot.actual_quantity` | int |
+| `Attainment` | `Pieces / Goal × 100` | % |
+| `Operators` | `LaborAllocation.operator_count` | int |
+| `Paid Hrs` | Sum `HourlySnapshot.paid_hours` | Decimal |
+| `Gain Hrs` | Sum `Pieces × Std` | Decimal |
+| `Eficiency` | `Gain Hrs / Paid Hrs × 100` | % |
+| `Issues` | Count `Downtime` del turno | int |
+| `Downtime` | Sum `Downtime.transcurred` | HH:mm:ss |
+| `Last Issue` | Último `Downtime.description` | str |
+
+**Fila summary (aggregado):**
+```
+General | 66 módulos | 47117 goal | 56772 piezas | 124% | 411 ops | 1770 paid | 961 gain | 54.3% EFF | 53 issues | — | 19.37% OEE
+```
+
+**Colores:** Rojo si `Attainment < 100%`, blanco si `≥ 100%`, verde si `≥ 125%`.
+
+---
+
+### 11.4 Planned Work Orders (panel colapsable en Module View)
+
+Muestra el plan de WOs para el módulo activo:
+
+| WO# | Qty | Complete | Date | Req | Date | Required |
+|---|---|---|---|---|---|---|
+| A1.802619B | 700 | 0 | 2022-10 | B22 | 09:45 | — |
+
+**Columnas de resumen WO (header strip):**
+```
+WO-VWV | SMAP | 3635 Partials | 1/170 Partials | 1140 [pending] | 90% Attainment
+```
+
+Este panel muestra el estado de la `WorkOrder` asociada al `ProductionRun` activo.
+
+---
+
+### 11.4b Taxonomía de Downtime (del video Sequence 01 — sistema en vivo Enovis 2023)
+
+El modal `Downtime Register` muestra una jerarquía de 2 niveles para Issue:
+
+```
+INDS       — Discrepancia de Inventario Almacen
+Method
+  ├── Método Inexistente
+  └── Método Ineficiente
+Prueba Piloto
+Personal
+  ├── Enfermería          ├── Auditorías
+  ├── Recursos Humanos    ├── Entrenamiento
+  ├── Inventarios         ├── Juntas
+  ├── Baños               ├── Cambio de Modulo
+  └── Ausencia
+Service
+  ├── Aire Comprimido     ├── Intranet
+  ├── Corriente Eléctrica └── Programa de Computadora
+Equipment
+  └── Equipo Caído
+Material
+  ├── Falta de Insumos
+  └── Falta de Herramienta
+```
+
+→ En Python: `DowntimeReason.category` (actualmente `String(50)`) debe refactorizarse a
+`category` (grupo: Method/Personal/Service/Equipment/Material/INDS) + `subcategory` (tipo específico).
+O bien un modelo `IssueCategory → IssueSubcategory` con registros de catálogo.
+
+### 11.4c Panel Planned Work Orders (panel colapsable)
+
+Toggle `Planned Work Orders true/false` que muestra/oculta panel lateral con columnas:
+
+| Columna | Descripción |
+|---|---|
+| `WO` | `WorkOrder.order_number` (ej: `A14302017`) |
+| `Qty` | `WorkOrder.order_quantity` |
+| `Complete` | `WorkOrder.manufactured_quantity` |
+| `Item` | `WorkOrder.item_code` |
+| `Due Date` | `WorkOrder.request_date` (fecha) |
+| `Required` | `OrderQty × StandardTime.set_time_hours` — horas necesarias para completar |
+
+KPI strip completo (6 valores):
+```
+WO's Release | OpenQty | Partials | ShiftPlan | Actuals | % Attainment
+```
+- `WO's Release` = WOs en estado RELEASED para este recurso
+- `OpenQty` = suma de `order_quantity - manufactured_quantity` de WOs activas
+- `Partials` = WOs parcialmente completadas (`manufactured_qty > 0 AND < order_qty`)
+- `ShiftPlan` = suma de `ProductionRun.planned_qty` del turno
+- `Attainment` = `Actuals / ShiftPlan × 100%` — color: rojo < 100%, amarillo, verde ≥ 100%
+
+### 11.5 Implicaciones para la implementación Angular
+
+| Pantalla | Componente Angular propuesto |
+|---|---|
+| Module View (operador) | `mes/module/:code` → `ModuleViewComponent` |
+| Dashboard grid | `mes/dashboard` → `ProductionDashboardComponent` |
+| Analytics table | `mes/analytics` → `ProductionAnalyticsComponent` |
+| WO panel (colapsable) | `WorkOrdersPanelComponent` (child del Module View) |
+| Downtime panel | `DowntimePanelComponent` (child del Module View) |
+| Labor panel | `LaborPanelComponent` (child del Module View) |
+
+**Paleta recomendada** (del legacy DJO):
+- Sidebar: `bg-red-700` (rojo oscuro DJO)
+- Cards bajo meta: `bg-red-50 border-red-200`
+- Barras sobre meta: `bg-green-500`
+- Barras bajo meta: `bg-red-500`
+- KPI Attainment ≥ 100%: `bg-green-600 text-white`
+- KPI Attainment < 100%: `bg-yellow-400 text-black`
