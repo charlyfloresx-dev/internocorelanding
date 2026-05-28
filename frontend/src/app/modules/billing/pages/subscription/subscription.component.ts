@@ -7,11 +7,12 @@ import { ThemeService } from '../../../../core/services/theme.service';
 import { TranslationService } from '../../../../core/services/translation.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { Router } from '@angular/router';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-subscription',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="min-h-screen p-4 md:p-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
       <!-- Header -->
@@ -37,7 +38,7 @@ import { Router } from '@angular/router';
                 {{ sub.status === 'TRIAL' ? 'Periodo de Prueba' : 'Suscripción ' + sub.status }}
               </h2>
               <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Tu plan actual es <b>{{ sub.plan.name }}</b>. Vence el: {{ sub.current_period_end | date:'mediumDate' }}
+                Tu plan actual es <b>{{ sub.plan.name }}</b>. Vence el: {{ sub.current_period_end | localDate:'mediumDate' }}
               </p>
             </div>
           </div>

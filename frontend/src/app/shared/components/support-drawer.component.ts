@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { SupportService } from '../../core/services/support.service';
 import { Ticket, TicketPriority, TicketStatus, TicketComment } from '../../core/models/support.types';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-support-drawer',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, MatIconModule, FormsModule, TranslatePipe, LocalDatePipe],
   template: `
     <div 
       class="fixed inset-y-0 right-0 w-96 bg-surface-card border-l border-surface-border shadow-2xl z-[100] transform transition-transform duration-500 ease-out flex flex-col"
@@ -75,7 +76,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
                 </p>
                 <div class="mt-3 pt-3 border-t border-surface-border flex items-center justify-between">
                   <span class="text-[8px] font-bold text-surface-text-muted uppercase">
-                    {{ ticket.created_at | date:'short' }}
+                    {{ ticket.created_at | localDate:'short' }}
                   </span>
                   <div class="flex items-center gap-1">
                     <div class="w-1.5 h-1.5 rounded-full" [ngClass]="getPriorityColor(ticket.priority)"></div>
@@ -172,7 +173,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
                     {{ msg.content }}
                   </div>
                   <span class="text-[8px] font-bold text-surface-text-muted uppercase tracking-tighter mt-1 px-1">
-                    Operador • {{ msg.created_at | date:'HH:mm' }}
+                    Operador • {{ msg.created_at | localDate:'HH:mm' }}
                   </span>
                 </div>
               }

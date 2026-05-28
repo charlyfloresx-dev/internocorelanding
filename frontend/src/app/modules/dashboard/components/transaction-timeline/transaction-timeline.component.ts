@@ -3,11 +3,12 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardService } from '../../../../core/services/dashboard.service';
 import { MatIconModule } from '@angular/material/icon';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-transaction-timeline',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="rounded-3xl flex flex-col h-full overflow-hidden transition-all
                 bg-white border border-slate-200 dark:bg-slate-900/40 dark:border-white/5">
@@ -48,7 +49,7 @@ import { MatIconModule } from '@angular/material/icon';
                 <p class="text-[10px] font-black uppercase tracking-tighter italic text-slate-900 dark:text-white">
                   {{ doc.folio }} <span class="text-slate-500 dark:text-slate-600 ml-2">[{{ doc.concept_type }}]</span>
                 </p>
-                <span class="text-[9px] font-bold tabular-nums text-slate-400 dark:text-slate-500">{{ doc.created_at | date:'HH:mm:ss' }}</span>
+                <span class="text-[9px] font-bold tabular-nums text-slate-400 dark:text-slate-500">{{ doc.created_at | localDate:'HH:mm:ss' }}</span>
               </div>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                 <span class="text-primary dark:text-cyan-400/80 mr-1 font-black">#{{ doc.created_by }}</span>

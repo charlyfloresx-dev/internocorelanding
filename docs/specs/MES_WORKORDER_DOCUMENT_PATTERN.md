@@ -256,3 +256,66 @@ Una vez MES esté desplegado, crear `tests/integration/test_work_order.py` que:
 | `inventory_service/inventory_app/models/bom.py` | Source de componentes para explosion BOM |
 | `mes_service/mes_app/core/handlers/work_order_handler.py` | Handler a extender con creación de líneas |
 | `inventory_service/inventory_app/events/consumers/production_consumer.py` | Backflush consumer que lee `BOM.parent_item_code` |
+
+---
+
+## 10. Gaps vs. Legacy .NET Interno.Production (Phase 149 Analysis)
+
+Análisis del código `archive/legacy-dotnet/src/Interno.Production` realizado en Phase 149.  
+Los siguientes modelos/endpoints existen en el legacy pero **no están en la implementación Python actual**.  
+Se documentan aquí para que no se pierdan al planificar fases futuras.
+
+### 10.1 Modelos Faltantes
+
+| Modelo | Descripción | Prioridad |
+|---|---|---|
+| `Tracking` | Trazabilidad lote/folio con flujo 3 empleados (Operator, QC, Supervisor). Campos: `lot_number`, `folio`, `operator_id`, `qc_id`, `supervisor_id`, `start_time`, `end_time`. | BAJA |
+| `Goal` | Metas de producción por recurso y hora. Necesario para OEE real: `resource_id`, `target_units_per_hour`, `valid_from`, `valid_until`. | BAJA |
+| `Rout` | Secuencias de routing / rutas de proceso (operaciones ordenadas). `work_order_id`, `sequence`, `operation_code`, `machine_id`, `setup_time`, `run_time`. | BAJA |
+| `Facility` | Instalaciones de planta (edificios, líneas). Padre de `ProductionArea`. | BAJA |
+| `ProductionArea` | Área específica dentro de una `Facility` donde corren los WorkOrders. | BAJA |
+| `Planning` | Plan de producción vinculado a órdenes de compra/venta (`so_id`, `po_id`, `kit_date`, `planned_start`, `planned_end`). | BAJA |
+| `ResultWorkOrder` | Tabla pivote many-to-many entre `Result` y `WorkOrder` (un run puede afectar múltiples WO). | BAJA |
+| `ProdIssue` | Incidencia de producción (paros, fallas). Vinculada a `WorkOrder` + `ProdIssueType`. | BAJA |
+
+### 10.2 Enums Faltantes
+
+| Enum | Valores | Dónde usar |
+|---|---|---|
+| `WOType` | `NonStandard`, `Standard`, `Repair`, `Rework`, `Test`, `Tooling`, `ScrapReplacement` | `WorkOrder.order_type` — actualmente solo `PRODUCTION` |
+| `ProdIssueType` | `ScheduledStops`, `EquipmentFailures`, `ToolingFailures`, `OperatorErrors`, `MaterialShortage`, `QualityRejects`, `ProcessChangeover`, `Other` | `ProdIssue.issue_type` |
+
+### 10.3 Campos Faltantes en `Result` (OEE)
+
+El modelo `Result` actual tiene campos básicos. El legacy tenía:
+
+```
+OEE, OE (Overall Equipment), TEP (Total Effective Performance)
+Availability, Performance, Quality (los 3 factores OEE)
+FirstPassYield
+OverTime (tiempo extra en minutos)
+PlannedDowntime, UnplannedDowntime
+LeaderId, SupervisorId (quién validó el resultado)
+ApprovedAt, ApprovedBy
+StartTime, EndTime, ActualStartTime, ActualEndTime (4 timestamps, no 2)
+```
+
+### 10.4 Campos Faltantes en `HourByHour`
+
+```
+GainedHrs (horas ganadas = output / goal_rate)
+Attainment (% de cumplimiento de meta)
+Eficiency (piezas buenas / piezas totales en ese intervalo)
+```
+
+### 10.5 Endpoints Faltantes
+
+| Endpoint | Descripción |
+|---|---|
+| `GET /mes/graphic` | Dashboard gráfico OEE con series de tiempo por turno/día/semana |
+| `GET /mes/dashboard` | KPIs consolidados: OEE, disponibilidad, rendimiento, calidad, top-5 fallas |
+| `POST /mes/work-orders/upload` | Bulk upload WorkOrders desde Excel |
+| `POST /mes/planning/upload` | Bulk upload Planning desde Excel |
+| `POST /mes/times/upload` | Bulk upload tiempos de proceso desde Excel |
+
+> **Nota:** Estos gaps son de **Fase 152+**. No bloquean Phase 150 (WorkOrder Document+Lines) ni Phase 151 (MES deployment). Registrados aquí para que el arquitecto los planifique con contexto completo.

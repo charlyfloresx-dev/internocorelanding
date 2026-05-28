@@ -1,11 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductionService } from '../../../core/services/production.service';
+import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-production-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LocalDatePipe],
   template: `
     <div class="p-6 space-y-6 animate-fade-in">
       
@@ -86,7 +87,7 @@ import { ProductionService } from '../../../core/services/production.service';
                 </div>
                 <div class="flex-1 min-w-0">
                   <h4 class="text-sm font-bold text-white truncate">{{ log.issue_name }}</h4>
-                  <p class="text-xs text-slate-500">{{ log.start_time | date:'HH:mm' }} &bull; {{ log.duration_minutes }} min</p>
+                  <p class="text-xs text-slate-500">{{ log.start_time | localDate:'HH:mm' }} &bull; {{ log.duration_minutes }} min</p>
                 </div>
                 <span class="px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-slate-950 text-slate-400 border border-slate-800">
                   {{ log.status }}

@@ -431,6 +431,14 @@ python backend/scripts/generate_code_graph.py
 | BAJA | WMS no desplegado en dev stack |
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
+| BAJA | **MES** `Tracking` model faltante (trazabilidad lote/folio, flujo 3 empleados) — análisis legacy Phase 149 |
+| BAJA | **MES** `Goal` model faltante (metas producción por recurso/hora, necesario para OEE real) |
+| BAJA | **MES** `WOType` enum faltante (NonStandard, Standard, Repair, Rework, Test, Tooling, ScrapReplacement) |
+| BAJA | **MES** `ProdIssueType` enum + `ProdIssue` model faltantes (8 tipos: ScheduledStops, EquipmentFailures, etc.) |
+| BAJA | **MES** `Rout`/routing sequences, `Facility`, `ProductionArea`, `Planning` models faltantes |
+| BAJA | **MES** `Result` model incompleto — faltan 15+ métricas OEE (OE, TEP, FirstPassYield, OverTime, Leader/Supervisor roles) |
+| BAJA | **MES** `HourByHour` incompleto — faltan GainedHrs, Attainment, Eficiency |
+| BAJA | **MES** Endpoints faltantes: Graphic/Dashboard OEE, bulk upload Excel (WorkOrder, Planning, Times) |
 
 ---
 

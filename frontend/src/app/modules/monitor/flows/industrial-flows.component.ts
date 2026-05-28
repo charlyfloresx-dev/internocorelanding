@@ -4,11 +4,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '../../../shared/pipes/translate.pipe';
 import { SupportService } from '../../../core/services/support.service';
 import { TicketPriority } from '../../../core/models/support.types';
+import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-industrial-flows',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe],
+  imports: [CommonModule, MatIconModule, TranslatePipe, LocalDatePipe],
   template: `
     <div class="p-8 animate-fade-in max-w-5xl mx-auto">
       <header class="mb-10 flex items-center justify-between">
@@ -98,7 +99,7 @@ import { TicketPriority } from '../../../core/models/support.types';
         <div class="p-6 h-[300px] overflow-y-auto font-mono text-[11px] bg-black/90 custom-scrollbar">
           @for (entry of log(); track entry.timestamp) {
             <div class="mb-2 flex gap-4 animate-slide-in">
-              <span class="text-white/30">{{ entry.timestamp | date:'HH:mm:ss' }}</span>
+              <span class="text-white/30">{{ entry.timestamp | localDate:'HH:mm:ss' }}</span>
               <span [ngClass]="{
                 'text-purple-400': entry.type === 'info',
                 'text-emerald-400': entry.type === 'success',

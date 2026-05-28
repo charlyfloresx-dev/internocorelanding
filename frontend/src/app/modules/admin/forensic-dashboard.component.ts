@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { interval, Subscription } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
+import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
 
 interface AuditLog {
   id: string;
@@ -40,7 +41,7 @@ interface SecurityEvent {
 @Component({
   selector: 'app-forensic-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="p-12 space-y-10 animate-fade-in bg-white min-h-screen">
 
@@ -202,7 +203,7 @@ interface SecurityEvent {
                     {{ ev.message || ev.event_type }}
                   </span>
                 </div>
-                <span class="text-xs font-mono text-slate-400 shrink-0 ml-4">{{ ev.timestamp | date:'short' }}</span>
+                <span class="text-xs font-mono text-slate-400 shrink-0 ml-4">{{ ev.timestamp | localDate:'short' }}</span>
               </div>
               <div class="mt-3 grid grid-cols-3 gap-4 text-xs font-mono text-slate-600">
                 <div>

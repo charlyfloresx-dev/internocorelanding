@@ -8,7 +8,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Router } from '@angular/router';
 import { MasterDataService } from '../../core/services/master-data.service';
-
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 interface TransferItem {
   id: string;
@@ -26,7 +26,7 @@ interface TransferItem {
 @Component({
   selector: 'app-inventory-transfer',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, ItemSearchComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, ItemSearchComponent, LocalDatePipe],
   templateUrl: './inventory-transfer.component.html',
   styleUrl: './inventory-transfer.component.css'
 })

@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, Subscription } from 'rxjs';
 import { InventoryService } from '../../core/services/inventory.service';
 import { TranslatePipe } from '../../shared/pipes/translate.pipe';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-stock-level',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, FormsModule],
+  imports: [CommonModule, TranslatePipe, FormsModule, LocalDatePipe],
   template: `
     <div class="p-6 h-full flex flex-col bg-slate-50 relative">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -95,7 +96,7 @@ import { TranslatePipe } from '../../shared/pipes/translate.pipe';
               </td>
               <td class="px-6 py-4">
                 <div class="flex flex-col">
-                  <span class="text-xs font-medium">{{ item.expiry_date ? (item.expiry_date | date:'dd/MM/yyyy') : 'N/A' }}</span>
+                  <span class="text-xs font-medium">{{ item.expiry_date ? (item.expiry_date | localDate:'dd/MM/yyyy') : 'N/A' }}</span>
                   <span *ngIf="item.days_to_expiry !== null" class="text-[10px]" [ngClass]="item.is_at_risk ? 'text-red-500 font-bold' : 'text-slate-400'">
                     {{ item.days_to_expiry }} días restantes
                   </span>

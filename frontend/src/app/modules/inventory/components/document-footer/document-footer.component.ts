@@ -1,11 +1,12 @@
 // temp_future/src/app/modules/inventory/components/document-footer/document-footer.component.ts
 import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-document-footer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LocalDatePipe],
   template: `
     <div class="glass-effect rounded-2xl p-6 border border-white/5 mt-6">
       <div class="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -46,7 +47,7 @@ import { CommonModule } from '@angular/common';
       <!-- Audit Tracking Shadow -->
       <div class="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[8px] font-bold text-slate-600 uppercase tracking-[0.3em]">
         <span>REGISTRO GENERADO POR: CHARLY FLORES</span>
-        <span class="text-cyan-900/50">INTERNO CORE v2.1.0 // {{ today | date:'medium' }}</span>
+        <span class="text-cyan-900/50">INTERNO CORE v2.1.0 // {{ today | localDate:'medium' }}</span>
       </div>
     </div>
   `,

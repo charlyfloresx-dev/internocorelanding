@@ -12,6 +12,7 @@ import { DashboardDTO, StockAlert, Money, Currency, ValidationStatus } from '../
 import { CurrencyFormatPipe } from '../../shared/pipes/currency-format.pipe';
 import { DensityAlertPanelComponent } from './components/density-alert-panel.component';
 import { OverflowBadgeComponent } from '../../shared/components/overflow-badge.component';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 interface StockWidget {
   warehouse: string;
@@ -34,7 +35,7 @@ interface CriticalItem {
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule, TranslatePipe, StatusBadgeComponent, ItemSearchComponent, CurrencyFormatPipe, DensityAlertPanelComponent, OverflowBadgeComponent],
+  imports: [CommonModule, MatIconModule, TranslatePipe, StatusBadgeComponent, ItemSearchComponent, CurrencyFormatPipe, DensityAlertPanelComponent, OverflowBadgeComponent, LocalDatePipe],
   template: `
     <div class="space-y-8 p-1">
       <!-- Header Section -->
@@ -283,7 +284,7 @@ interface CriticalItem {
                           <app-overflow-badge [status]="m.validation_status"></app-overflow-badge>
                         }
                       </td>
-                      <td class="px-6 py-4 text-right font-mono text-[10px]">{{ m.date | date:'shortTime' }}</td>
+                      <td class="px-6 py-4 text-right font-mono text-[10px]">{{ m.date | localDate:'shortTime' }}</td>
                       <td class="px-6 py-4 text-right font-black">{{ m.valuation.amount | currencyFormat }}</td>
                     </tr>
                   }

@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 interface AuditLog {
   id: string | null;
@@ -20,7 +21,7 @@ interface AuditLog {
 @Component({
   selector: 'app-inventory-audit',
   standalone: true,
-  imports: [CommonModule, MatIconModule, FormsModule],
+  imports: [CommonModule, MatIconModule, FormsModule, LocalDatePipe],
   template: `
     <div class="space-y-8 animate-fade-in pb-24 relative">
       <!-- Forensic Background Pattern -->
@@ -125,10 +126,10 @@ interface AuditLog {
                       <div class="w-1 bg-slate-200 dark:bg-white/10 group-hover:bg-primary h-10 rounded-full transition-all"></div>
                       <div class="flex flex-col">
                         <span class="text-xs font-mono font-black text-slate-400 dark:text-slate-500 tabular-nums italic">
-                          {{ log.timestamp | date:'dd/MM/yyyy' }}
+                          {{ log.timestamp | localDate:'dd/MM/yyyy' }}
                         </span>
                         <span class="text-[14px] font-mono font-bold text-slate-900 dark:text-primary tracking-tight tabular-nums">
-                          {{ log.timestamp | date:'HH:mm:ss' }}
+                          {{ log.timestamp | localDate:'HH:mm:ss' }}
                         </span>
                       </div>
                     </div>
@@ -280,7 +281,7 @@ interface AuditLog {
               <div class="pt-8 border-t border-slate-100 dark:border-white/5 flex flex-wrap justify-between items-center gap-4">
                 <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                   <mat-icon class="text-sm">schedule</mat-icon>
-                  <span class="text-[10px] font-mono uppercase tracking-widest italic font-bold">Ejecución: {{ log.timestamp | date:'full' }}</span>
+                  <span class="text-[10px] font-mono uppercase tracking-widest italic font-bold">Ejecución: {{ log.timestamp | localDate:'full' }}</span>
                 </div>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500">

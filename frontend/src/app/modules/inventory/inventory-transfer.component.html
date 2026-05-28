@@ -458,7 +458,7 @@
                                <div class="flex items-center gap-1.5 opacity-60">
                                   <mat-icon class="text-[10px]">location_on</mat-icon>
                                   <span class="text-[8px] font-bold uppercase tracking-widest">{{ batch.location || 'SIN UBICACIÓN' }}</span>
-                                  <span class="ml-auto text-[7px] font-medium opacity-50">{{ batch.date | date:'dd/MM/yy' }}</span>
+                                  <span class="ml-auto text-[7px] font-medium opacity-50">{{ batch.date | localDate:'dd/MM/yy' }}</span>
                                </div>
                              </div>
                            } @empty {

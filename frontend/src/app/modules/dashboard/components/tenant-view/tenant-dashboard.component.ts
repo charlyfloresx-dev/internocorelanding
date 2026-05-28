@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { TenantDashboardService } from '../../../../core/services/tenant-dashboard.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-tenant-dashboard',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
@@ -114,7 +115,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <div class="flex-1">
                   <div class="flex justify-between items-start">
                     <h5 class="text-[11px] font-black text-white tracking-tight">{{ ev.action }}</h5>
-                    <span class="text-[9px] font-mono text-slate-500">{{ ev.timestamp | date:'HH:mm:ss' }}</span>
+                    <span class="text-[9px] font-mono text-slate-500">{{ ev.timestamp | localDate:'HH:mm:ss' }}</span>
                   </div>
                   <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                     {{ ev.user }} • <span class="text-primary/70">{{ ev.module }}</span>

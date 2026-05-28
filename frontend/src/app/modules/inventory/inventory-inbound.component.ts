@@ -8,6 +8,7 @@ import { InventoryService } from '../../core/services/inventory.service';
 import { MasterDataService } from '../../core/services/master-data.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 // ─── Audio Context (Industrial Scanner Feedback) ──────────────────────────────
 function playBeep(type: 'success' | 'warning' | 'error') {
@@ -36,7 +37,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
 @Component({
   selector: 'app-inventory-inbound',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="min-h-screen bg-surface-bg text-surface-text font-sans">
 
@@ -218,7 +219,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
               class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
               <mat-icon class="text-emerald-400 text-3xl block mb-2">check_circle</mat-icon>
               <p class="text-sm font-black text-emerald-400">Transferencia ya recibida.</p>
-              <p class="text-[10px] text-surface-text-muted mt-1">Recibida: {{ selectedTransfer()?.received_at | date:'short' }}</p>
+              <p class="text-[10px] text-surface-text-muted mt-1">Recibida: {{ selectedTransfer()?.received_at | localDate:'short' }}</p>
             </div>
           </div>
         </div>
@@ -264,7 +265,7 @@ function playBeep(type: 'success' | 'warning' | 'error') {
               </div>
               <div>
                 <p class="text-[9px] text-surface-text-muted uppercase tracking-wider">Enviado</p>
-                <p class="text-xs font-bold text-surface-text">{{ t.shipped_at | date:'d MMM' }}</p>
+                <p class="text-xs font-bold text-surface-text">{{ t.shipped_at | localDate:'d MMM' }}</p>
               </div>
             </div>
           </div>

@@ -14,6 +14,7 @@ import { ExcelNavigationDirective } from '../../../../shared/directives/excel-na
 import { CurrencyFormatPipe } from '../../../../shared/pipes/currency-format.pipe';
 import { CurrencyService } from '../../../../core/services/currency.service';
 import { TranslationService } from '../../../../core/services/translation.service';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 
 const WEIGHT_TOLERANCE = 0.0001;
 
@@ -62,7 +63,8 @@ interface ConfirmedDocument {
     ItemSearchComponent,
     PartnerModalComponent,
     ExcelNavigationDirective,
-    CurrencyFormatPipe
+    CurrencyFormatPipe,
+    LocalDatePipe
   ],
   styles: [`
     :host { display: block; }
@@ -577,7 +579,7 @@ interface ConfirmedDocument {
                     Movement Folio
                   </div>
                   <p class="text-xl font-black font-mono tracking-tighter">{{ doc.id }}</p>
-                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ doc.timestamp | date:'MMM dd, yyyy | HH:mm:ss' }}</p>
+                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ doc.timestamp | localDate:'MMM dd, yyyy | HH:mm:ss' }}</p>
                 </div>
               </div>
             </div>
@@ -706,7 +708,7 @@ interface ConfirmedDocument {
             <div class="grid grid-cols-2 gap-4 text-left">
               <div>
                 <p class="text-[8px] font-black uppercase text-gray-400">Fecha</p>
-                <p class="text-[10px] font-bold">{{ doc.timestamp | date:'shortDate' }}</p>
+                <p class="text-[10px] font-bold">{{ doc.timestamp | localDate:'shortDate' }}</p>
               </div>
               <div>
                 <p class="text-[8px] font-black uppercase text-gray-400">Tipo</p>
