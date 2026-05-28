@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { interval, Subscription } from 'rxjs';
 import { firstValueFrom } from 'rxjs';
-import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 interface AuditLog {
   id: string;

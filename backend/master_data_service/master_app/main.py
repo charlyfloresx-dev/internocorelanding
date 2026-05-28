@@ -86,3 +86,6 @@ app.include_router(locations.router, prefix="/api/v1/locations", tags=["Warehous
 
 from master_app.api.v1.endpoints import variants as variants_router
 app.include_router(variants_router.router, prefix="/api/v1", tags=["Item Variants (Supplier Mappings)"])
+
+from master_app.api.v1.endpoints.product_scan_patterns import router as scan_patterns_router
+app.include_router(scan_patterns_router, prefix="/api/v1/products", tags=["Scan Patterns"])

@@ -275,6 +275,15 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       parsedCode = parsedCode.split('/').last;
     }
 
+    // Parse quantity multiplier: "5*ITEM123" → scanQty=5, parsedCode="ITEM123"
+    int scanQty = 1;
+    final multiplierMatch = RegExp(r'^(\d+)\*(.+)$').firstMatch(parsedCode);
+    if (multiplierMatch != null) {
+      scanQty = int.tryParse(multiplierMatch.group(1)!) ?? 1;
+      if (scanQty < 1) scanQty = 1;
+      parsedCode = multiplierMatch.group(2)!;
+    }
+
     if (_lastProcessedCode == parsedCode &&
         _lastScanTime != null &&
         now.difference(_lastScanTime!).inMilliseconds < 1500) {
@@ -316,10 +325,20 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         return;
       }
 
+      // Validate scan patterns for this item
+      for (final pattern in product.scanPatterns) {
+        final regex = RegExp(pattern.regex);
+        if (!regex.hasMatch(parsedCode)) {
+          HapticFeedback.heavyImpact();
+          emit(state.copyWith(isLoading: false, error: pattern.errorMessage));
+          return;
+        }
+      }
+
       HapticFeedback.mediumImpact();
       emit(state.copyWith(
         isLoading: false,
-        detectedProduct: CartItem(product: product, taxRate: taxRate),
+        detectedProduct: CartItem(product: product, quantity: scanQty, taxRate: taxRate),
       ));
     } catch (e) {
       _handleError(e, emit);

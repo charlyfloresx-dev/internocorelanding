@@ -5,6 +5,20 @@
 
 ---
 
+### [2026-05-28] - Phase 152: Scan Pattern Validation (MES) ✅
+
+- **`schemas/scan_pattern.py`**: DTO `ScanPatternRead` local (sin cross-service import — regla Muro de Hierro).
+- **`services/pattern_validator.py`**: `PatternValidatorService.validate()` — función pura, `re.fullmatch()`, patrones ordenados por `priority`, retorna primer `error_message` o `None`. 10 unit tests, 100% passing.
+- **`infrastructure/clients/master_data_client.py`**: `MasterDataClient.get_scan_patterns()` — httpx best-effort (timeout 3s, retorna `[]` en cualquier error de red/HTTP).
+- **`services/scanner_service.py`**: `_MULTI_COUNT_PATTERN` ya existía; añadido 6° argumento `master_data_client`. En `process_scan()`: stripping del prefijo multiplicador antes de validar, llamada best-effort a `get_scan_patterns()`, raise `BusinessRuleException` solo si el input no matchea un patrón activo.
+- **`dependencies.py`**: `get_master_data_client()` registrado.
+- **`api/v1/endpoints/scan.py`**: `master_data_client` inyectado vía `Depends`.
+- **`schemas/planning.py`**: Fix `production_date` (renombrado de `date` para evitar shadowing del tipo `date` importado — bug preexistente que impedía startup).
+- **Tests**: 19 tests passing (unit + refactor de `test_mes_core.py` — eliminados 4 xfails, reemplazados por 6 tests que cubren `ShiftService.is_time_in_shift`, `_MULTI_COUNT_PATTERN` y `KPIService._get_total_downtime`).
+- **Status**: ✅ COMPLETED — 19 passed, 0 xfail, 0 CRITICAL en Code Graph.
+
+---
+
 ### [2026-05-28] - Phase 151: manufactured_quantity + WO Status Transitions ✅
 
 - **`IWorkOrderRepository`** (nueva): `increment_manufactured_quantity(work_order_id, qty, company_id)` — incrementa contador header + actual_quantity de PLANNED_OUTPUT line.

@@ -24,6 +24,7 @@ from mes_app.infrastructure.repositories.event_repositories import (
     SQLAlchemyProductionEventRepository, SQLAlchemyProductionSessionRepository
 )
 from mes_app.infrastructure.clients.wms_adapter import SQLAlchemyWMSClient
+from mes_app.infrastructure.clients.master_data_client import MasterDataClient
 
 async def get_current_company() -> uuid.UUID:
     ctx = request_context.get()
@@ -67,3 +68,6 @@ def get_wms_client() -> IWMSClient:
 
 def get_work_order_repo(db: AsyncSession = Depends(get_db)) -> IWorkOrderRepository:
     return SQLAlchemyWorkOrderRepository(db)
+
+def get_master_data_client() -> MasterDataClient:
+    return MasterDataClient()

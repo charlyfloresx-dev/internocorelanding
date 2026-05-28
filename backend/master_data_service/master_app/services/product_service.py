@@ -193,8 +193,30 @@ class ProductService:
             product.price = {"amount": Decimal(str(resolved_price)), "currency": resolved_currency}
         else:
             product.price = {"amount": 0.0, "currency": "MXN"}
- 
+
+        # Load scan patterns for this item (Phase 152)
+        product.scan_patterns = await self._load_scan_patterns(product.sku, company_id)
+
         return product
+
+    async def _load_scan_patterns(self, item_code: str, company_id: UUID) -> list:
+        from master_app.models.product_scan_pattern import ProductScanPattern
+        from master_app.schemas.product_scan_pattern import ScanPatternRead
+        from sqlalchemy import select
+        try:
+            result = await self.repo.db.execute(
+                select(ProductScanPattern)
+                .where(
+                    ProductScanPattern.item_code == item_code,
+                    ProductScanPattern.company_id == company_id,
+                    ProductScanPattern.is_active == True,
+                )
+                .order_by(ProductScanPattern.priority)
+            )
+            return [ScanPatternRead.model_validate(p) for p in result.scalars().all()]
+        except Exception as e:
+            logger.warning(f"Could not load scan patterns for {item_code}: {e}")
+            return []
 
 
     async def create_product(self, product_in: ProductCreate, photo: Optional[UploadFile] = None) -> Any:

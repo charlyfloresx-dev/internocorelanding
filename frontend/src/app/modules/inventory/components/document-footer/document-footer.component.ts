@@ -1,7 +1,7 @@
 // temp_future/src/app/modules/inventory/components/document-footer/document-footer.component.ts
 import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LocalDatePipe } from '../../../shared/pipes/local-date.pipe';
+import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-document-footer',

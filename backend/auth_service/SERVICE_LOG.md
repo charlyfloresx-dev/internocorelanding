@@ -1,5 +1,11 @@
 # Auth Service - Service Log
 
+## [2026-05-28] Hotfix: select-company 500 — timezone parameter shadowing ✅
+- **`core/security.py`** `create_final_access_token`: parámetro `timezone: str` renombrado a `tz_name: str`. El nombre `timezone` sombreaba el import `from datetime import timezone`, haciendo que `datetime.now(timezone.utc)` fallara con `AttributeError: 'str' object has no attribute 'utc'`.
+- **Caller `create_access_token`**: kwarg actualizado a `tz_name=data.get("timezone", "UTC")`.
+- **Verificado**: `POST /api/v1/auth/select-company` → 200 ✅. `full_auth_flow.py` pasa completamente.
+- **Status**: ✅ COMPLETED
+
 ## [2026-05-27] Phase 147: Multi-Tenant Timezone Integration ✅
 - **`models/company.py`**: Added `timezone` string column with `UTC` default to the `Company` model to support dynamic multitenant timezones.
 - **`alembic/versions/99a023377b4d_add_timezone_to_company.py`**: Alembic migration to add the column.

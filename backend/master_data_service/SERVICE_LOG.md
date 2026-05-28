@@ -1,3 +1,14 @@
+### [2026-05-28] Phase 152: Scan Pattern Validation per Item ✅
+- **`models/product_scan_pattern.py`**: Nuevo modelo `ProductScanPattern` (tabla `master_product_scan_patterns`). Campos: `item_code`, `pattern_name`, `regex`, `error_message`, `priority`, `is_active` (heredado). UniqueConstraint por `(company_id, item_code, pattern_name)`. Índice compuesto `(company_id, item_code, is_active)`.
+- **`schemas/product_scan_pattern.py`**: `ScanPatternRead`, `ScanPatternCreate`, `ScanPatternUpdate`.
+- **`schemas/product.py`**: `ProductRead` extendido con `scan_patterns: List[ScanPatternRead] = []`.
+- **`services/product_service.py`**: `lookup_product_by_code()` carga patrones activos ordenados por `priority` y los embebe en `ProductRead.scan_patterns` (evita 2do HTTP call en scan latency-critical).
+- **`api/v1/endpoints/product_scan_patterns.py`**: CRUD REST: `GET /{item_code}/scan-patterns` (scope `master_data:read`), `POST` con validación de regex vía `re.compile()`, `PATCH`, `DELETE` (soft-delete: `is_active=False`). Rate limit 30–60/min.
+- **`alembic/versions/b5c2d3e4f5a6_add_product_scan_patterns.py`**: Migración aplicada ✅.
+- **`main.py`**: Router registrado en `/api/v1/products`.
+- **Fix**: `ScanPatternCreate.item_code` eliminado del body schema (el endpoint lo recibe por path param, evitaba 422).
+- **Status**: ✅ COMPLETED — 0 CRITICAL en Code Graph. Tabla verificada en `master_data_db`.
+
 ### [2026-05-27] Phase 147: Multi-Tenant Timezone Integration ✅
 - **`alembic/versions/a6b1698e23e1_add_timezone_to_company.py`**: Alembic migration to add the `timezone` string column with `UTC` default to the `companies` table, matching the identity definition in `auth_service`.
 - **Status**: ✅ COMPLETED

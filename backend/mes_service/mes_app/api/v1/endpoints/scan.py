@@ -4,11 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mes_app.dependencies import (
     get_production_run_repo, get_ledger_repo, get_labor_repo,
     get_wms_client, get_current_company, get_work_order_repo,
+    get_master_data_client,
 )
 from mes_app.domain.repositories.interfaces import (
     IProductionRunRepository, IManufacturingLedgerRepository,
     ILaborRepository, IWMSClient, IWorkOrderRepository,
 )
+from mes_app.infrastructure.clients.master_data_client import MasterDataClient
 from mes_app.services.scanner_service import ScannerService
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -41,12 +43,13 @@ async def process_scan(
     labor_repo: ILaborRepository = Depends(get_labor_repo),
     wms_client: IWMSClient = Depends(get_wms_client),
     wo_repo: IWorkOrderRepository = Depends(get_work_order_repo),
+    master_data_client: MasterDataClient = Depends(get_master_data_client),
 ):
     """
     Procesa un escaneo de producción. Los errores de negocio lanzan BusinessRuleException
     capturada por el domain_exception_handler.
     """
-    service = ScannerService(run_repo, ledger_repo, labor_repo, wms_client, wo_repo)
+    service = ScannerService(run_repo, ledger_repo, labor_repo, wms_client, wo_repo, master_data_client)
     ledger_entry, warning = await service.process_scan(
         resource_result_id=request.resource_result_id,
         scan_input=request.scan_input,

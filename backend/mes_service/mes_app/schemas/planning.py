@@ -8,10 +8,10 @@ class PlanningEntry(BaseModel):
     work_order_id: uuid.UUID = Field(description="WorkOrder to schedule")
     resource_id: uuid.UUID = Field(description="Production resource (machine/line)")
     shift_id: uuid.UUID = Field(description="Shift for this run")
-    date: date = Field(description="Production date (cannot be in the past)")
+    production_date: date = Field(description="Production date (cannot be in the past)")
     planned_quantity: int = Field(gt=0, description="Units planned for this run")
 
-    @field_validator("date")
+    @field_validator("production_date")
     @classmethod
     def date_not_in_past(cls, v: date) -> date:
         if v < date.today():

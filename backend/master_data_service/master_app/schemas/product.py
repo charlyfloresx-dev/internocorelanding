@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 from common.domain import ProductType, ProductStatus, VersionStatus
+from master_app.schemas.product_scan_pattern import ScanPatternRead
 
 class ProductVersionRead(BaseModel):
     id: uuid.UUID
@@ -47,6 +48,9 @@ class ProductRead(BaseModel):
     category_name: Optional[str] = None
     uom_name: Optional[str] = None
     current_stock: Optional[Decimal] = None
+
+    # Per-item scan validation patterns (Phase 152)
+    scan_patterns: List[ScanPatternRead] = []
 
     model_config = ConfigDict(from_attributes=True)
 

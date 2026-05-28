@@ -1,12 +1,20 @@
+import re
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 from mes_app.domain.repositories.interfaces import (
     IProductionRunRepository, IManufacturingLedgerRepository,
     ILaborRepository, IWMSClient, IWorkOrderRepository,
 )
 from mes_app.services.parser_service import ParserService
+from mes_app.services.pattern_validator import PatternValidatorService
 from common.exceptions import BusinessRuleException
+
+if TYPE_CHECKING:
+    from mes_app.infrastructure.clients.master_data_client import MasterDataClient
+
+_MULTI_COUNT_PATTERN = re.compile(r"^(\d+)\*(.+)$")
+
 
 class ScannerService:
     """
@@ -23,12 +31,14 @@ class ScannerService:
         labor_repo: ILaborRepository,
         wms_client: IWMSClient,
         wo_repo: IWorkOrderRepository,
+        master_data_client: "MasterDataClient",
     ):
         self.run_repo = run_repo
         self.ledger_repo = ledger_repo
         self.labor_repo = labor_repo
         self.wms = wms_client
         self.wo_repo = wo_repo
+        self.master_data = master_data_client
         self.parser = ParserService()
 
     async def process_scan(
@@ -39,6 +49,21 @@ class ScannerService:
         local_txn_id: Optional[uuid.UUID] = None
     ) -> tuple[Any, Optional[str]]:
         sku, qty = self.parser.parse_scan(scan_input)
+
+        # Strip multiplier prefix (N*) to get the bare item code for pattern validation
+        stripped = _MULTI_COUNT_PATTERN.sub(r"\2", scan_input.strip().upper())
+
+        # Validate scan patterns (best-effort — fetch error never rejects a scan)
+        try:
+            patterns = await self.master_data.get_scan_patterns(sku, company_id)
+            if patterns:
+                error = PatternValidatorService().validate(stripped, patterns)
+                if error:
+                    raise BusinessRuleException(error)
+        except BusinessRuleException:
+            raise
+        except Exception:
+            pass  # network/parse failure → skip validation, proceed with scan
 
         if local_txn_id:
             existing = await self.ledger_repo.get_by_id(local_txn_id) # local_txn_id is the PK in some flows

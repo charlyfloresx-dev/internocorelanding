@@ -14,3 +14,4 @@ from master_app.models.partner import Partner  # noqa: F401
 from master_app.models.price_agreement import PriceAgreement # noqa: F401
 from master_app.models.location import InventoryLocation # noqa: F401
 from master_app.models.exchange_rate import CurrencyExchangeRate # noqa: F401
+from master_app.models.product_scan_pattern import ProductScanPattern  # noqa: F401

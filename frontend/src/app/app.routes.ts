@@ -151,6 +151,12 @@ export const routes: Routes = [
           {
             path: 'dashboard',
             loadComponent: () => import('./modules/production/dashboard/production-dashboard.component').then(m => m.ProductionDashboardComponent)
+          },
+          {
+            path: 'item-config',
+            canActivate: [permissionGuard],
+            data: { requiredPermission: ['master_data:write', 'admin.user.manage'] },
+            loadComponent: () => import('./modules/production/item-config/mes-item-config.component').then(m => m.MesItemConfigComponent)
           }
         ]
       },
