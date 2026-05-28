@@ -1,11 +1,12 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { LocalDatePipe } from '../../shared/pipes/local-date.pipe';
 
 @Component({
   selector: 'app-audit-footer',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, LocalDatePipe],
   template: `
     <div class="flex items-center justify-between mt-6 pt-4 border-t border-surface-border text-[10px] text-surface-text-muted font-mono uppercase tracking-widest relative group">
       <div class="flex items-center gap-4">
@@ -29,7 +30,7 @@ import { MatIconModule } from '@angular/material/icon';
 
       <div class="flex items-center gap-1.5 cursor-help" title="Última modificación">
         <mat-icon class="text-[14px] w-3.5 h-3.5">calendar_today</mat-icon>
-        <span>{{ createdAt() | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+        <span>{{ createdAt() | localDate:'yyyy-MM-dd HH:mm:ss' }}</span>
       </div>
     </div>
 

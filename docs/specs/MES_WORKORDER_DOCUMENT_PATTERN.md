@@ -259,63 +259,148 @@ Una vez MES esté desplegado, crear `tests/integration/test_work_order.py` que:
 
 ---
 
-## 10. Gaps vs. Legacy .NET Interno.Production (Phase 149 Analysis)
+## 10. Gaps vs. Legacy .NET Interno.Production (Phase 149 Analysis — revisado Phase 150)
 
-Análisis del código `archive/legacy-dotnet/src/Interno.Production` realizado en Phase 149.  
-Los siguientes modelos/endpoints existen en el legacy pero **no están en la implementación Python actual**.  
-Se documentan aquí para que no se pierdan al planificar fases futuras.
+Análisis profundo del código `archive/legacy-dotnet/src/Interno.Production` comparado contra
+los modelos Python actuales en `mes_service/mes_app/models/`.  
+La implementación Python es **más avanzada de lo documentado** — muchos modelos ya existen.
 
-### 10.1 Modelos Faltantes
+### 10.1 Estado real: Python vs. Legacy
 
-| Modelo | Descripción | Prioridad |
+| Legacy .NET | Python actual | Estado |
 |---|---|---|
-| `Tracking` | Trazabilidad lote/folio con flujo 3 empleados (Operator, QC, Supervisor). Campos: `lot_number`, `folio`, `operator_id`, `qc_id`, `supervisor_id`, `start_time`, `end_time`. | BAJA |
-| `Goal` | Metas de producción por recurso y hora. Necesario para OEE real: `resource_id`, `target_units_per_hour`, `valid_from`, `valid_until`. | BAJA |
-| `Rout` | Secuencias de routing / rutas de proceso (operaciones ordenadas). `work_order_id`, `sequence`, `operation_code`, `machine_id`, `setup_time`, `run_time`. | BAJA |
-| `Facility` | Instalaciones de planta (edificios, líneas). Padre de `ProductionArea`. | BAJA |
-| `ProductionArea` | Área específica dentro de una `Facility` donde corren los WorkOrders. | BAJA |
-| `Planning` | Plan de producción vinculado a órdenes de compra/venta (`so_id`, `po_id`, `kit_date`, `planned_start`, `planned_end`). | BAJA |
-| `ResultWorkOrder` | Tabla pivote many-to-many entre `Result` y `WorkOrder` (un run puede afectar múltiples WO). | BAJA |
-| `ProdIssue` | Incidencia de producción (paros, fallas). Vinculada a `WorkOrder` + `ProdIssueType`. | BAJA |
+| `WorkOrder` | `WorkOrder` (`mes_work_orders`) | ⚠️ Partial — falta `wo_type` enum, `rout_id` |
+| `Result` | `ProductionRun` (`mes_production_runs`) | ⚠️ Partial — falta OE, TEP, FPY, OverTime, Improve |
+| `HourByHour` | `HourlyProductionSnapshot` | ⚠️ Partial — falta std_time, paid_hrs, employees_qty, GainedHrs, Eficiency, Attainment |
+| `Goal` | `Goal` (`mes_goals`, en `kpi.py`) | ✅ OK — usa UUID FK (mejor que string code) |
+| `Downtime` | `Downtime` (`mes_downtimes`) | ✅ OK — versión Python más rica (4-estado workflow, escalation) |
+| `Issue`/`ProdIssue` | `DowntimeReason` | ⚠️ Partial — `category` es String libre, no `ProdIssueType` enum |
+| `Labor` | `Labor` (`mes_labors`) | ✅ OK |
+| `LaborType` | `LaborType` (`mes_labor_types`) | ✅ OK |
+| `Resource` | `Resource` (`mes_resources`) | ✅ OK (simplificado, suficiente) |
+| `Shift` | `Shift` (`mes_shifts`) | ✅ OK — incluye `is_overnight`, `break_minutes`, override por resource |
+| `OperationTime` | `StandardTime` (`mes_standard_times`) | ✅ OK — `set_time_hours` + `cycle_time_seconds` |
+| `Tracking` | `Tracking` (`mes_tracking`, en `ledger.py`) | ⚠️ Partial — falta reject flow, usuarios start/close/reject |
+| `Rout` | `routing.py` | ❌ Archivo vacío |
+| `Planning` | — | ❌ No existe |
+| `Facility` | — | ❌ No existe |
+| `ProductionArea` | — | ❌ No existe |
+| `ResultWorkOrder` | — | ❌ No existe (pivot many-to-many) |
 
-### 10.2 Enums Faltantes
+### 10.2 Campos faltantes en modelos parciales
 
-| Enum | Valores | Dónde usar |
+#### `WorkOrder` (mes_work_orders)
+```
+wo_type: WOType enum  ← actualmente status es String libre
+rout_id: UUID FK → mes_routings.id
+```
+
+#### `HourlyProductionSnapshot` (vs. legacy HourByHour)
+```
+std_time_seconds: Decimal   ← OperationTime.RunTime (para calcular GainedHrs)
+paid_hours: Decimal         ← horas-operador pagadas (headcount * hora)
+employees_qty: int          ← operadores presentes ese intervalo
+issues_count: int           ← paros ocurridos en ese intervalo
+-- computed (se pueden calcular al leer, no necesitan columna) --
+gained_hours = actual_quantity * std_time_seconds / 3600
+eficiency = gained_hours / paid_hours
+attainment = actual_quantity / goal_quantity
+```
+
+#### `RunMetricsSnapshot` (vs. legacy Result OEE)
+```
+oe: Decimal(5,4)            ← Operation Efficiency = ProductiveTime / OperativeTime
+tep: Decimal(5,4)           ← Total Efficiency Performance = OperativeTime / ProductiveTime
+first_pass_yield: Decimal   ← piezas buenas / piezas totales
+over_time_minutes: Decimal  ← minutos trabajados más allá del turno
+improvement: Decimal        ← mejora vs. baseline (LMPU actual vs. standard)
+```
+
+#### `Tracking` (mes_tracking)
+```
+alias: str              ← nombre alternativo del ítem
+target: str             ← línea/familia destino
+comment: str
+start_user_id: UUID     ← quién inició el tracking
+close_user_id: UUID     ← quién cerró
+reject_time: datetime   ← timestamp de rechazo
+reject_user_id: UUID    ← quién rechazó
+```
+
+### 10.3 Modelos faltantes por crear
+
+| Modelo | Tabla propuesta | Descripción | Prioridad |
+|---|---|---|---|
+| `Rout` | `mes_routings` | Definición de ruta de proceso: `code`, `name`, `revision`, `target`, `1:N → StandardTime` | BAJA |
+| `Planning` | `mes_planning` | Plan WHS: `line`, `part_number`, `order_qty`, `shipping_date`, `so`, `po`, `kit_date`, `status`, `whs_updated_at` | BAJA |
+| `Facility` | `mes_facilities` | Instalaciones de planta: `code`, `name`, `location_id` | BAJA |
+| `ProductionArea` | `mes_production_areas` | Áreas dentro de Facility, linked to HCM Dept | BAJA |
+| `ProductionRunWorkOrder` | `mes_production_run_work_orders` | Pivot many-to-many: `(production_run_id, work_order_id)` | BAJA |
+
+### 10.4 Enums faltantes en `core/enums.py`
+
+```python
+class WOType(str, Enum):
+    NonStandard       = "NON_STANDARD"
+    Standard          = "STANDARD"
+    Repair            = "REPAIR"
+    Rework            = "REWORK"
+    Test              = "TEST"
+    Tooling           = "TOOLING"
+    ScrapReplacement  = "SCRAP_REPLACEMENT"
+
+class ProdIssueType(str, Enum):
+    ScheduledStops    = "SCHEDULED_STOPS"
+    EquipmentFailures = "EQUIPMENT_FAILURES"
+    PartsToolChange   = "PARTS_TOOL_CHANGE"
+    SettingAdjust     = "SETTING_ADJUSTMENT"
+    StartUp           = "START_UP"
+    MinorStoppages    = "MINOR_STOPPAGES"
+    ReducedSpeed      = "REDUCED_SPEED"
+    Others            = "OTHERS"
+
+class IssueType(str, Enum):
+    Personal   = "PERSONAL"
+    Material   = "MATERIAL"
+    Method     = "METHOD"
+    Equipment  = "EQUIPMENT"
+    Service    = "SERVICE"
+    Management = "MANAGEMENT"
+```
+
+### 10.5 Endpoints faltantes (business logic clave del legacy)
+
+| Endpoint | Descripción | Complejidad |
 |---|---|---|
-| `WOType` | `NonStandard`, `Standard`, `Repair`, `Rework`, `Test`, `Tooling`, `ScrapReplacement` | `WorkOrder.order_type` — actualmente solo `PRODUCTION` |
-| `ProdIssueType` | `ScheduledStops`, `EquipmentFailures`, `ToolingFailures`, `OperatorErrors`, `MaterialShortage`, `QualityRejects`, `ProcessChangeover`, `Other` | `ProdIssue.issue_type` |
+| `GET /resources/{code}/graphic` | Visualización horaria por recurso: meta vs. real, eficiencia, excedente/faltante, breaks. Algoritmo ~120 líneas en legacy. | ALTA |
+| `GET /production/dashboard` | KPIs consolidados hoy: OEE, availability, efficiency, quality por línea | MEDIA |
+| `GET /results/available-time` | Calcula tiempo disponible para scheduling (shift - breaks - planned runs) | MEDIA |
+| `POST /work-orders/upload` | Bulk import desde Excel (col 0: ID, 1: type, 2: item, 5: qty, 7: start, 8: request). Enrich con StandardTime. | MEDIA |
+| `POST /planning/upload` | Bulk import planning desde Excel 90 columnas (jerarquía producto-fecha-turno). Crea Planning + ProductionRun. | ALTA |
+| `POST /items/times/update` | Bulk update StandardTime desde Excel. SetTime = RunTime * 0.85 si vacío. | BAJA |
 
-### 10.3 Campos Faltantes en `Result` (OEE)
-
-El modelo `Result` actual tiene campos básicos. El legacy tenía:
-
-```
-OEE, OE (Overall Equipment), TEP (Total Effective Performance)
-Availability, Performance, Quality (los 3 factores OEE)
-FirstPassYield
-OverTime (tiempo extra en minutos)
-PlannedDowntime, UnplannedDowntime
-LeaderId, SupervisorId (quién validó el resultado)
-ApprovedAt, ApprovedBy
-StartTime, EndTime, ActualStartTime, ActualEndTime (4 timestamps, no 2)
-```
-
-### 10.4 Campos Faltantes en `HourByHour`
+### 10.6 Lógica de negocio clave a portar
 
 ```
-GainedHrs (horas ganadas = output / goal_rate)
-Attainment (% de cumplimiento de meta)
-Eficiency (piezas buenas / piezas totales en ese intervalo)
+Shift detection (actual en legacy — hardcoded):
+  Si hora actual ∈ [5, 17) → Shift 1 (diurno)
+  Si hora actual ∉ [5, 17) → Shift 2 (nocturno)
+  → Python debe consultar mes_shifts por time range (no hardcoded)
+
+Available time para scheduling:
+  Shift.AvailableTime = End - Start - TotalBreaks
+  Planned = SUM(ProductionRun.planned_qty * StandardTime.set_time_hours)
+  Available = ShiftAvailable - Planned
+  → Necesario para POST /production-runs/ (evitar overbook)
+
+Graphic algorithm (por hora):
+  1. Genera timeline de horas desde Shift.start_time
+  2. Marca horas de break como no disponibles
+  3. Distribuye PlanQty entre horas disponibles usando StandardTime.set_time_hours
+  4. Superpone HourlyProductionSnapshot.actual_quantity
+  5. Calcula excedente/faltante y eficiencia por hora
+  6. Retorna ResourceGraphic DTO con todas las series
 ```
 
-### 10.5 Endpoints Faltantes
-
-| Endpoint | Descripción |
-|---|---|
-| `GET /mes/graphic` | Dashboard gráfico OEE con series de tiempo por turno/día/semana |
-| `GET /mes/dashboard` | KPIs consolidados: OEE, disponibilidad, rendimiento, calidad, top-5 fallas |
-| `POST /mes/work-orders/upload` | Bulk upload WorkOrders desde Excel |
-| `POST /mes/planning/upload` | Bulk upload Planning desde Excel |
-| `POST /mes/times/upload` | Bulk upload tiempos de proceso desde Excel |
-
-> **Nota:** Estos gaps son de **Fase 152+**. No bloquean Phase 150 (WorkOrder Document+Lines) ni Phase 151 (MES deployment). Registrados aquí para que el arquitecto los planifique con contexto completo.
+> **Nota de fase:** Los items 10.3–10.6 son **Phase 152+** — no bloquean Phase 150 (WorkOrderLine) ni Phase 151 (MES deployment).  
+> Los items 10.2 (campos en modelos parciales) pueden hacerse como migration addenda en Phase 151 durante el deploy.

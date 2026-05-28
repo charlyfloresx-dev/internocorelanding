@@ -431,14 +431,14 @@ python backend/scripts/generate_code_graph.py
 | BAJA | WMS no desplegado en dev stack |
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
-| BAJA | **MES** `Tracking` model faltante (trazabilidad lote/folio, flujo 3 empleados) — análisis legacy Phase 149 |
-| BAJA | **MES** `Goal` model faltante (metas producción por recurso/hora, necesario para OEE real) |
-| BAJA | **MES** `WOType` enum faltante (NonStandard, Standard, Repair, Rework, Test, Tooling, ScrapReplacement) |
-| BAJA | **MES** `ProdIssueType` enum + `ProdIssue` model faltantes (8 tipos: ScheduledStops, EquipmentFailures, etc.) |
-| BAJA | **MES** `Rout`/routing sequences, `Facility`, `ProductionArea`, `Planning` models faltantes |
-| BAJA | **MES** `Result` model incompleto — faltan 15+ métricas OEE (OE, TEP, FirstPassYield, OverTime, Leader/Supervisor roles) |
-| BAJA | **MES** `HourByHour` incompleto — faltan GainedHrs, Attainment, Eficiency |
-| BAJA | **MES** Endpoints faltantes: Graphic/Dashboard OEE, bulk upload Excel (WorkOrder, Planning, Times) |
+| BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar (archivo existe, cuerpo vacío). FK `wo_type` en WorkOrder también falta |
+| BAJA | **MES** `Planning` + `Facility` + `ProductionArea` models faltantes (warehouse scheduling, planta física) |
+| BAJA | **MES** `ProductionRunWorkOrder` pivot (many-to-many ProductionRun↔WorkOrder) faltante |
+| BAJA | **MES** Enums faltantes en `core/enums.py`: `WOType` (7 valores), `ProdIssueType` (8 valores), `IssueType` (6 valores) |
+| BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |
+| BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count (para calcular GainedHrs/Attainment/Eficiency) |
+| BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |
+| BAJA | **MES** Endpoints faltantes: `GET /resources/{code}/graphic` (algoritmo ~120L), `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
 
 ---
 
