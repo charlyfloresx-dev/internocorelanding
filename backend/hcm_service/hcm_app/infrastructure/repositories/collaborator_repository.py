@@ -35,7 +35,10 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
             home_warehouse_id=orm.home_warehouse_id,
             is_supervisor=orm.is_supervisor,
             tenant_id=orm.tenant_id,
-            photo_path=orm.photo_path
+            photo_path=orm.photo_path,
+            assigned_plant=orm.assigned_plant,
+            shift=orm.shift,
+            global_entry_id=orm.global_entry_id
         )
 
     def _to_orm(self, domain: DomainCollaborator) -> ORMCollaborator:
@@ -49,7 +52,10 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
             home_warehouse_id=domain.home_warehouse_id,
             is_supervisor=domain.is_supervisor,
             tenant_id=domain.tenant_id,
-            photo_path=domain.photo_path
+            photo_path=domain.photo_path,
+            assigned_plant=domain.assigned_plant,
+            shift=domain.shift,
+            global_entry_id=domain.global_entry_id
         )
 
     async def get_by_internal_id(self, internal_id: str, company_id: uuid.UUID) -> Optional[DomainCollaborator]:
@@ -79,6 +85,9 @@ class SQLAlchemyCollaboratorRepository(ICollaboratorRepository):
             orm.home_warehouse_id = collaborator.home_warehouse_id
             orm.is_supervisor = collaborator.is_supervisor
             orm.photo_path = collaborator.photo_path
+            orm.assigned_plant = collaborator.assigned_plant
+            orm.shift = collaborator.shift
+            orm.global_entry_id = collaborator.global_entry_id
             await self.db.flush()
         return self._to_domain(orm)
 

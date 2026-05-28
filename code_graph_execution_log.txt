@@ -2,7 +2,7 @@
  CODE GRAPH AUDITOR - EXECUTION LOG
 ================================================================================
 
-Total files scanned: 883
+Total files scanned: 890
 
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
@@ -413,6 +413,7 @@ AUDITED: backend/master_data_service/master_app/api/v1/endpoints/gis_validator.p
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/locations.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/partners.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/prices.py [master_data_service]
+AUDITED: backend/master_data_service/master_app/api/v1/endpoints/product_scan_patterns.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/products.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/sync.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/api/v1/endpoints/uom_router.py [master_data_service]
@@ -449,6 +450,7 @@ AUDITED: backend/master_data_service/master_app/models/product.py [master_data_s
 AUDITED: backend/master_data_service/master_app/models/product_brand.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/models/product_category.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/models/product_price.py [master_data_service]
+AUDITED: backend/master_data_service/master_app/models/product_scan_pattern.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/models/uom.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/models/uom_conversion.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/models/uom_service.py [master_data_service]
@@ -462,6 +464,7 @@ AUDITED: backend/master_data_service/master_app/schemas/partner.py [master_data_
 AUDITED: backend/master_data_service/master_app/schemas/product.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/schemas/product_brand.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/schemas/product_category.py [master_data_service]
+AUDITED: backend/master_data_service/master_app/schemas/product_scan_pattern.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/schemas/uom.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/schemas/warehouse.py [master_data_service]
 AUDITED: backend/master_data_service/master_app/scripts/__init__.py [master_data_service]
@@ -519,6 +522,7 @@ AUDITED: backend/mes_service/mes_app/core/services/manufacturing_math.py [mes_se
 AUDITED: backend/mes_service/mes_app/dependencies.py [mes_service]
 AUDITED: backend/mes_service/mes_app/domain/repositories/event_interfaces.py [mes_service]
 AUDITED: backend/mes_service/mes_app/domain/repositories/interfaces.py [mes_service]
+AUDITED: backend/mes_service/mes_app/infrastructure/clients/master_data_client.py [mes_service]
 AUDITED: backend/mes_service/mes_app/infrastructure/clients/wms_adapter.py [mes_service]
 AUDITED: backend/mes_service/mes_app/infrastructure/repositories/event_repositories.py [mes_service]
 AUDITED: backend/mes_service/mes_app/infrastructure/repositories/sqlalchemy_repositories.py [mes_service]
@@ -543,11 +547,14 @@ AUDITED: backend/mes_service/mes_app/models/scrap_entry.py [mes_service]
 AUDITED: backend/mes_service/mes_app/models/shift.py [mes_service]
 AUDITED: backend/mes_service/mes_app/models/standard_time.py [mes_service]
 AUDITED: backend/mes_service/mes_app/models/work_order.py [mes_service]
+AUDITED: backend/mes_service/mes_app/models/work_order_line.py [mes_service]
 AUDITED: backend/mes_service/mes_app/schemas/planning.py [mes_service]
 AUDITED: backend/mes_service/mes_app/schemas/production_event.py [mes_service]
+AUDITED: backend/mes_service/mes_app/schemas/scan_pattern.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/event_publisher.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/kpi_service.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/parser_service.py [mes_service]
+AUDITED: backend/mes_service/mes_app/services/pattern_validator.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/production_service.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/scanner_service.py [mes_service]
 AUDITED: backend/mes_service/mes_app/services/shift_service.py [mes_service]

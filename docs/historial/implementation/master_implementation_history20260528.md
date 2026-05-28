@@ -1,4 +1,4 @@
-# Implementation History — 2026-05-28 (Phases 150 → 154)
+# Implementation History — 2026-05-28 (Phases 150 → 155)
 
 ---
 
@@ -106,3 +106,36 @@ mes_service/tests/
 - 22 tablas en mes_db, 8 migraciones Alembic aplicadas
 - 20 tests passing, 1 skipped, 4 xfailed
 - Code Graph: 0 CRITICALs, mes_service 100% compliant
+
+---
+
+## Phase 155 — HCM — Industrial Identity & Cross-Border Eligibility Hardening
+
+### Objetivo
+Incorporar campos de identidad industrial (`assigned_plant`, `shift`) y de credenciales satelitales (`global_entry_id`) al modelo de colaboradores en el servicio `hcm_service`, y refactorizar el cálculo de elegibilidad cross-border para aplicar validaciones de vencimiento robustas con un margen de seguridad (`cross_border_expiry_threshold_days`) configurable por tenant.
+
+### Decisiones Arquitectónicas
+
+**1. Expansión del Expediente de Colaborador**
+- Se añadieron `assigned_plant` (VARCHAR(100)), `shift` (VARCHAR(50)) y `global_entry_id` (VARCHAR(100)) en la tabla `collaborators` de `hcm_db` (Migración `005`).
+- Los campos son opcionales en BD y se mapearon a través de la entidad de dominio y los schemas de lectura/creación/edición Pydantic.
+
+**2. Umbral de Expiración por Tenant**
+- Se añadió la columna `cross_border_expiry_threshold_days` (INTEGER, default 30) a `HrTenantConfig` para que cada empresa defina de forma independiente el margen de días de gracia/seguridad necesarios para permitir el despacho internacional.
+
+**3. Hardening de Reglas de Elegibilidad**
+El endpoint de validación de elegibilidad (`_calculate_eligibility` en `api/v1/endpoints/collaborators.py`) fue endurecido y ahora implementa las siguientes reglas:
+- **Licencia CDL**: Debe estar activa y la fecha de vencimiento (`cdl_expiry`) debe ser mayor a `hoy + threshold_days`.
+- **Certificado Médico (SCT/DOT)**: Debe estar activo y la fecha de vencimiento (`medical_expiry`) debe ser mayor a `hoy + threshold_days`.
+- **Visa Americana**: Debe estar activa y la fecha de vencimiento (`visa_expiry`) debe ser mayor a `hoy + threshold_days`.
+- **Identificación Satelital de Cruce**: El operador debe contar con un identificador de cruce rápido activo (`sentry_id` OR `global_entry_id`).
+- Si alguna de estas condiciones falla, el colaborador no es elegible (`eligible = False`), detallando las razones del rechazo en el campo `reason` (ej. "Visa estadounidense vencida o próxima a vencer", "Falta Sentry o Global Entry").
+
+### Sincronización del Seed Industrial Unificado
+- `scripts/unified_industrial_seed.py` fue actualizado con las importaciones necesarias (`date`, `Department`, `HrTenantConfig`) y adaptado para sembrar las empresas de prueba con sus umbrales específicos de expiración y colaboradores industriales con todos los datos y fechas de vencimiento realistas (Carlos MX, Carlos US, Luis MX, Luis US, etc.) cumpliendo con la regla de Sentry/Global Entry.
+
+### Resultados
+- Migración `005` aplicada en `hcm_db`.
+- El script de semilla unificado se ejecuta correctamente, poblando el ecosistema para desarrollo local de manera consistente.
+- Code Graph: 0 CRITICALs, hcm_service 100% compliant.
+

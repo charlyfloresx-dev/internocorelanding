@@ -3,6 +3,32 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 155: HCM — Industrial Identity & Cross-Border Eligibility Hardening ✅
+
+**Objetivos:**
+- Incorporar atributos de identidad industrial y credenciales binacionales/satelitales al expediente de colaboradores en el servicio HCM.
+- Endurecer el motor de elegibilidad cross-border con reglas estrictas de vencimiento (CDL, Visa, Certificado Médico, Sentry/Global Entry).
+- Hacer configurable por tenant/empresa el margen de seguridad de días de expiración.
+- Sincronizar el seed unificado de base de datos industrial para pruebas de integración locales.
+
+**Decisiones Arquitectónicas:**
+- **Esquema de Base de Datos:** Se crearon las columnas `assigned_plant`, `shift` y `global_entry_id` en la tabla `collaborators` de `hcm_db` (Migración `005`).
+- **Elegibilidad Hardened:** El cálculo verifica: Licencia CDL no expirada, Certificado Médico (SCT/DOT) no expirado, Visa estadounidense no expirada, y presencia de Sentry ID o Global Entry ID activo.
+- **Configuración Dinámica:** Se extendió el modelo `HrTenantConfig` para almacenar la columna `cross_border_expiry_threshold_days` a nivel empresa. La elegibilidad consulta este umbral para calcular los márgenes de seguridad.
+- **Seed Unificado:** Se portaron las dependencias y catálogos correctos a `scripts/unified_industrial_seed.py` para asegurar que el seed industrial del ecosistema inserte correctamente los nuevos campos de colaboradores y las configuraciones de empresa.
+
+**Workarounds / Deuda Técnica:**
+- Ninguno en esta fase; las migraciones de Alembic se diseñaron de manera idempotente y limpia en `hcm_db`.
+
+**Archivos clave:**
+- `backend/hcm_service/hcm_app/models/collaborator.py`
+- `backend/hcm_service/hcm_app/models/tenant_settings.py`
+- `backend/hcm_service/hcm_app/domain/entities/collaborator_entities.py`
+- `backend/hcm_service/hcm_app/api/v1/endpoints/collaborators.py`
+- `backend/hcm_service/alembic/versions/005_add_plant_shift_global_entry.py`
+- `backend/scripts/unified_industrial_seed.py`
+
+---
 ### [2026-05-28] Phase 154: Análisis Arquitectónico — Resource Monitor MES ↔ Frontend (Plan)
 
 **Objetivo:** Diseñar la implementación del Monitor de Recurso real: conectar `ResourceMonitorComponent` (Angular, actualmente 100% mock) al backend `mes_service`.

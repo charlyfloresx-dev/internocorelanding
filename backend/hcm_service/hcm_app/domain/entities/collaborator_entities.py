@@ -14,3 +14,6 @@ class Collaborator:
     is_supervisor: bool = False
     tenant_id: Optional[UUID] = None
     photo_path: Optional[str] = None
+    assigned_plant: Optional[str] = None
+    shift: Optional[str] = None
+    global_entry_id: Optional[str] = None

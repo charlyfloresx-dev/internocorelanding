@@ -46,6 +46,18 @@
 | 4 | Plan de 4 partes en `PENDIENTES_INDUSTRIAL_CORE.md` con checkboxes | ✅ |
 | 5 | Phase 153 + 154 añadidos a `REPO_LOG.md` | ✅ |
 
+## Phase 155 — HCM — Industrial Identity & Cross-Border Eligibility Hardening (2026-05-28)
+
+| # | Tarea | Servicio | Resultado |
+|---|---|---|---|
+| 1 | Añadir campos `assigned_plant`, `shift`, `global_entry_id` a Collaborator ORM, entity, schemas | hcm_service | ✅ |
+| 2 | Añadir `cross_border_expiry_threshold_days` a `HrTenantConfig` model | hcm_service | ✅ |
+| 3 | Refactorizar `_calculate_eligibility` para usar el threshold del tenant y validar Visa + CDL + Med + (Sentry OR Global Entry) | hcm_service | ✅ |
+| 4 | Crear migración Alembic `005_add_plant_shift_global_entry` y aplicar | hcm_service | ✅ |
+| 5 | Sincronizar script de siembra unificada `unified_industrial_seed.py` | scripts | ✅ |
+| 6 | Ejecutar el seed y validar la siembra de colaboradores binacionales | hcm_service | ✅ |
+| 7 | Actualizar documentación del repositorio (CLAUDE.md, REPO_LOG, SERVICE_LOG) | docs | ✅ |
+
 ## Pendientes carryover
 
 | Prioridad | Item |

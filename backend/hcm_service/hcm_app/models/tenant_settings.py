@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from sqlalchemy import String, UUID
+from sqlalchemy import String, UUID, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from common.infrastructure.models.base import MultiTenantBase
 
@@ -17,3 +17,6 @@ class HrTenantConfig(MultiTenantBase):
 
     # Custom message to show when validation fails
     pattern_error_message: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Cross-border grace period/safety margin in days per company
+    cross_border_expiry_threshold_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

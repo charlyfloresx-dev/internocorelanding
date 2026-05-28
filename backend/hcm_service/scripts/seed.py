@@ -15,6 +15,7 @@ import sys
 import asyncio
 import logging
 import uuid
+from datetime import date
 
 # ─── Path Setup ───────────────────────────────────────────────────────────────
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -72,17 +73,20 @@ async def run_seed():
                 {
                     "cid": ENTERPRISE_ID,
                     "pattern": r"^[0-9]{6}[A-Z]$", 
-                    "msg": "Format Error: Enterprise IDs must be 6 digits followed by a letter (e.g., 003709A)."
+                    "msg": "Format Error: Enterprise IDs must be 6 digits followed by a letter (e.g., 003709A).",
+                    "threshold": 15
                 },
                 {
                     "cid": LOGISTICS_MX_ID,
                     "pattern": r"^\d{3,6}[A-Z]?$",
-                    "msg": "Format Error: Logistics IDs support 3-6 digits + optional letter (e.g., 123456A)."
+                    "msg": "Format Error: Logistics IDs support 3-6 digits + optional letter (e.g., 123456A).",
+                    "threshold": 30
                 },
                 {
                     "cid": LOGISTICS_US_ID,
                     "pattern": r"^\d{3,6}[A-Z]?$",
-                    "msg": "Format Error: Logistics US IDs support 3-6 digits + optional letter (e.g., 123456A)."
+                    "msg": "Format Error: Logistics US IDs support 3-6 digits + optional letter (e.g., 123456A).",
+                    "threshold": 5
                 }
             ]
             for cfg in configs:
@@ -95,11 +99,13 @@ async def run_seed():
                         tenant_id=cfg["cid"],
                         group_id=GROUP_ID,
                         internal_id_pattern=cfg["pattern"],
-                        pattern_error_message=cfg["msg"]
+                        pattern_error_message=cfg["msg"],
+                        cross_border_expiry_threshold_days=cfg["threshold"]
                     ))
                     log.info(f"  [OK] Config para {cfg['cid']} creada.")
                 else:
                     existing_cfg.internal_id_pattern = cfg["pattern"]
+                    existing_cfg.cross_border_expiry_threshold_days = cfg["threshold"]
                     log.info(f"  [INFO] Config para {cfg['cid']} actualizada.")
 
             # ── [STEP 0.5] Default Departments per company ────────────────────────
@@ -158,6 +164,8 @@ async def run_seed():
                     tenant_id=ENTERPRISE_ID,
                     group_id=GROUP_ID,
                     user_id=CHARLY_ID,
+                    assigned_plant="Tijuana Plant A",
+                    shift="Turno Matutino",
                     version_id=1,
                 ))
                 await db.flush()
@@ -166,6 +174,8 @@ async def run_seed():
                 carlos.rfid_tag = hash_rfid("960091919")
                 carlos.pin_code = hash_pin("1234")
                 carlos.internal_id = "003709A"
+                carlos.assigned_plant = "Tijuana Plant A"
+                carlos.shift = "Turno Matutino"
                 log.info("  [INFO] Carlos ya existe y credenciales actualizadas.")
 
             # ── Carlos Ramírez — LOGISTICS MX (Mismo RFID para probar selección) ──
@@ -189,9 +199,23 @@ async def run_seed():
                     tenant_id=LOGISTICS_MX_ID,
                     group_id=GROUP_ID,
                     user_id=CHARLY_ID,
+                    assigned_plant="Tijuana Logistics Hub",
+                    shift="Turno Vespertino",
+                    # Cross-border credentials (active CDL and medical, but missing sentry/GE to test failure)
+                    driver_license_number="CDL-MX-88",
+                    driver_license_expiry=date(2027, 12, 31),
+                    medical_certificate_expiry=date(2027, 12, 31),
+                    visa_number="VISA-MX-88",
+                    visa_expiry=date(2027, 12, 31),
                     version_id=1,
                 ))
                 log.info("  [OK] Carlos (Logistic MX) creado.")
+            else:
+                carlos_mx.assigned_plant = "Tijuana Logistics Hub"
+                carlos_mx.shift = "Turno Vespertino"
+                carlos_mx.driver_license_expiry = date(2027, 12, 31)
+                carlos_mx.medical_certificate_expiry = date(2027, 12, 31)
+                carlos_mx.visa_expiry = date(2027, 12, 31)
 
             # ── Carlos Ramírez — LOGISTICS US (Tercera Identidad) ──
             CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
@@ -214,9 +238,25 @@ async def run_seed():
                     tenant_id=LOGISTICS_US_ID,
                     group_id=GROUP_ID,
                     user_id=CHARLY_ID,
+                    assigned_plant="San Diego WH",
+                    shift="Turno Nocturno",
+                    # Fully compliant cross-border operator (Global Entry active)
+                    global_entry_id="GE-US-777",
+                    driver_license_number="CDL-US-77",
+                    driver_license_expiry=date(2027, 12, 31),
+                    medical_certificate_expiry=date(2027, 12, 31),
+                    visa_number="VISA-US-77",
+                    visa_expiry=date(2027, 12, 31),
                     version_id=1,
                 ))
                 log.info("  [OK] Carlos (Logistic US) creado.")
+            else:
+                carlos_us.assigned_plant = "San Diego WH"
+                carlos_us.shift = "Turno Nocturno"
+                carlos_us.global_entry_id = "GE-US-777"
+                carlos_us.driver_license_expiry = date(2027, 12, 31)
+                carlos_us.medical_certificate_expiry = date(2027, 12, 31)
+                carlos_us.visa_expiry = date(2027, 12, 31)
 
             # ── Luis Torres — Logistics MX (RFID, Supervisor) ──
             log.info("[2/3] Luis Torres (Supervisor, Logistics MX)...")
@@ -237,6 +277,15 @@ async def run_seed():
                     company_id=LOGISTICS_MX_ID,
                     tenant_id=LOGISTICS_MX_ID,
                     group_id=GROUP_ID,
+                    assigned_plant="Tijuana Logistics Hub",
+                    shift="Turno Matutino",
+                    # Fully compliant cross-border operator (Sentry active)
+                    sentry_id="SENTRY-MX-123",
+                    driver_license_number="CDL-MX-123",
+                    driver_license_expiry=date(2027, 12, 31),
+                    medical_certificate_expiry=date(2027, 12, 31),
+                    visa_number="VISA-MX-123",
+                    visa_expiry=date(2027, 12, 31),
                     version_id=1,
                 ))
                 await db.flush()
@@ -247,6 +296,12 @@ async def run_seed():
                 luis.company_id = LOGISTICS_MX_ID
                 luis.tenant_id = LOGISTICS_MX_ID
                 luis.home_warehouse_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ")
+                luis.assigned_plant = "Tijuana Logistics Hub"
+                luis.shift = "Turno Matutino"
+                luis.sentry_id = "SENTRY-MX-123"
+                luis.driver_license_expiry = date(2027, 12, 31)
+                luis.medical_certificate_expiry = date(2027, 12, 31)
+                luis.visa_expiry = date(2027, 12, 31)
                 log.info("  [INFO] Luis ya existe y rfid actualizado.")
 
             # ── Luis Torres — ENTERPRISE (Mismo RFID para probar selección) ──
@@ -269,10 +324,15 @@ async def run_seed():
                     company_id=ENTERPRISE_ID,
                     tenant_id=ENTERPRISE_ID,
                     group_id=GROUP_ID,
+                    assigned_plant="Tijuana Plant A",
+                    shift="Turno Matutino",
                     version_id=1,
                 ))
                 await db.flush()
                 log.info("  [OK] Luis (Enterprise) creado.")
+            else:
+                luis_ent.assigned_plant = "Tijuana Plant A"
+                luis_ent.shift = "Turno Matutino"
 
             # ── Luis Torres — LOGISTIC US (Tercera Identidad) ──
             LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
@@ -294,10 +354,15 @@ async def run_seed():
                     company_id=LOGISTICS_US_ID,
                     tenant_id=LOGISTICS_US_ID,
                     group_id=GROUP_ID,
+                    assigned_plant="San Diego WH",
+                    shift="Turno Matutino",
                     version_id=1,
                 ))
                 await db.flush()
                 log.info("  [OK] Luis (USA) creado.")
+            else:
+                luis_us.assigned_plant = "San Diego WH"
+                luis_us.shift = "Turno Matutino"
 
             # ── Ana García — Logistics MX, PIN, subordinada de Luis ──
             log.info("[3/3] Ana García (Operadora, subordinada de Luis)...")
@@ -319,6 +384,8 @@ async def run_seed():
                     company_id=LOGISTICS_MX_ID,
                     tenant_id=LOGISTICS_MX_ID,
                     group_id=GROUP_ID,
+                    assigned_plant="Tijuana Logistics Hub",
+                    shift="Turno Matutino",
                     version_id=1,
                 ))
                 await db.flush()
@@ -328,6 +395,8 @@ async def run_seed():
                 ana.company_id = LOGISTICS_MX_ID
                 ana.tenant_id = LOGISTICS_MX_ID
                 ana.home_warehouse_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ")
+                ana.assigned_plant = "Tijuana Logistics Hub"
+                ana.shift = "Turno Matutino"
                 log.info("  [INFO] Ana ya existe.")
 
             await db.commit()

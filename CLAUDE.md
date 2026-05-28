@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 127 completada (2026-05-22). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 155 completada (2026-05-28). Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---
@@ -45,13 +45,15 @@ docker ps (estado actual)
 | interno-subscription-dev | 8002 | interno-subscription-service | subscription_db |
 | interno-master-data-dev | 8003 | interno-master-data-service | master_data_db |
 | interno-hcm-dev | 8004 | interno-hcm-service | hcm_db |
+| interno-mes-dev | 8005 | interno-mes-service | mes_db |
 | interno-inventory-dev | 8006 | interno-inventory-service | inventory_db |
 | interno-tickets-dev | 8008 | interno-tickets-service | dbname (shared) |
 | interno-notification-dev | 8009 | interno-notification-service | dbname (shared) |
+| interno-whatsapp-gateway-dev | 3011 | interno-whatsapp-gateway | — |
 | interno-db-dev | 5433 | postgres:15-alpine | — |
 | interno-redis-dev | 6379 | redis:7-alpine | — |
 
-**NO desplegados:** wms_service (8007), mes_service — upstreams comentados en nginx.conf.
+**NO desplegados:** wms_service (8007) — upstreams comentados en nginx.conf.
 
 ---
 
@@ -283,7 +285,10 @@ WHERE created_at <= :document_date
 - Colaboradores, RFID/PIN, departamentos, certificaciones.
 - DB propia: `hcm_db` (separada de dbname).
 - `CORE_HCM_RFID_SALT` para hashing de tarjetas RFID.
-- **Vinculación:** `user_id` en `Collaborator` conecta con auth_service.
+- **Vinculación:** `user_id` en `Collaborator` conecta with auth_service.
+- **Industrial Identity & Cross-Border:** Campos `assigned_plant`, `shift`, `global_entry_id` añadidos al perfil del colaborador (Phase 155).
+- **Elegibilidad Cross-Border:** Endpoint para validar si un colaborador es apto para cruce internacional (CDL activa + Medical Certificate activo + Visa activa + (Sentry OR Global Entry)).
+- **Configuración por Tenant:** `cross_border_expiry_threshold_days` configurable por empresa en `hr_tenant_configs`.
 - **`Department` model** (Phase 118): Entidad `Department` con CRUD `/departments`. Habilita routing de tickets a área de planta.
 - **`audit_logs`** en `hcm_db`: creada (Phase 118) — `AuditService` funcional.
 - **`internal_id_pattern`** en `hr_tenant_configs`: columna añadida (Phase 118).
@@ -308,9 +313,12 @@ WHERE created_at <= :document_date
 - Warehouse management, ubicaciones, despacho.
 - `InventoryClient` HTTP para comunicarse con inventory_service.
 
-### mes_service — NO desplegado en dev
-- OEE, producción en piso, turnos, Andon.
-- `MISSING_DOMAIN_LOGIC_WARNING` conocido en Code Graph.
+### mes_service (8005)
+- OEE, producción en piso, turnos (overnight shift calculations), Andon, Standard Times.
+- DB propia: `mes_db` (separada de dbname).
+- **WorkOrder Document+Lines Pattern:** `MATERIAL_INPUT` (BOM explode) + `PLANNED_OUTPUT` (Phase 150).
+- **Scanner Integration:** Incremento automático de cantidad fabricada y transiciones de estado DRAFT -> IN_PROGRESS -> COMPLETED al escanear (Phase 151).
+- **Security & Math:** Aritmética de turnos nocturnos, carga masiva de planificación `/planning/bulk-load`, seguridad vía scopes.
 
 ---
 

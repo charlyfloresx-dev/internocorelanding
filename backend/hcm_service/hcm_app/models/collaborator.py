@@ -47,6 +47,8 @@ class Collaborator(MultiTenantBase):
     )
     translation_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     job_title: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    assigned_plant: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    shift: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Payroll classification (from legacy: Direct=True, Indirect=False)
     is_direct: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -110,6 +112,9 @@ class Collaborator(MultiTenantBase):
 
     # CBP FAST / Sentry card
     sentry_id: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+
+    # Global Entry card
+    global_entry_id: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
 
     # Commercial driver's license (CDL / Licencia Federal)
     driver_license_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)

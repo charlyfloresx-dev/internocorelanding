@@ -66,6 +66,8 @@ class CollaboratorRead(BaseModel):
     department_id: Optional[uuid.UUID] = None
     department: Optional[DepartmentRead] = None
     job_title: Optional[str] = None
+    assigned_plant: Optional[str] = None
+    shift: Optional[str] = None
     translation_key: Optional[str] = None
     is_active: bool = True
     is_direct: bool = True
@@ -90,6 +92,7 @@ class CollaboratorSensitiveRead(CollaboratorRead):
     visa_number: Optional[str] = None
     visa_expiry: Optional[date] = None
     sentry_id: Optional[str] = None
+    global_entry_id: Optional[str] = None
     driver_license_number: Optional[str] = None
     driver_license_expiry: Optional[date] = None
     medical_certificate_expiry: Optional[date] = None
@@ -122,6 +125,8 @@ class CollaboratorCreate(BaseModel):
     # Classification
     department_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = Field(None, max_length=100)
+    assigned_plant: Optional[str] = Field(None, max_length=100)
+    shift: Optional[str] = Field(None, max_length=50)
     is_direct: bool = True
     home_warehouse_id: Optional[uuid.UUID] = None
     supervisor_id: Optional[uuid.UUID] = None
@@ -144,6 +149,7 @@ class CollaboratorCreate(BaseModel):
     visa_number: Optional[str] = Field(None, max_length=20)
     visa_expiry: Optional[date] = None
     sentry_id: Optional[str] = Field(None, max_length=30)
+    global_entry_id: Optional[str] = Field(None, max_length=30)
     driver_license_number: Optional[str] = Field(None, max_length=30)
     driver_license_expiry: Optional[date] = None
 
@@ -169,6 +175,8 @@ class CollaboratorUpdate(BaseModel):
     last_name_maternal: Optional[str] = Field(None, max_length=50)
     department_id: Optional[uuid.UUID] = None
     job_title: Optional[str] = None
+    assigned_plant: Optional[str] = None
+    shift: Optional[str] = None
     translation_key: Optional[str] = None
     is_direct: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -185,6 +193,7 @@ class CollaboratorUpdate(BaseModel):
     visa_number: Optional[str] = None
     visa_expiry: Optional[date] = None
     sentry_id: Optional[str] = None
+    global_entry_id: Optional[str] = None
     driver_license_number: Optional[str] = None
     driver_license_expiry: Optional[date] = None
 

@@ -40,7 +40,7 @@ for s in services:
     if path not in sys.path:
         sys.path.append(path)
 from decimal import Decimal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from sqlalchemy import select, text, and_
 from sqlalchemy.exc import IntegrityError
 
@@ -65,6 +65,8 @@ from inventory_app.models.warehouse import Warehouse as InvWarehouse
 from tickets_app.models.ticket import Ticket
 from tickets_app.core.constants import TicketStatus, TicketPriority, TicketType
 from hcm_app.models.collaborator import Collaborator
+from hcm_app.models.department import Department
+from hcm_app.models.tenant_settings import HrTenantConfig
 from common.models.external_contact import ExternalContact
 from subscription_app.models.subscription import Plan, Subscription, Entitlement
 from subscription_app.core.enums import ModuleCode, SubscriptionStatus
@@ -733,10 +735,82 @@ async def seed_tickets(session):
         await _safe_add(session, t, f"Ticket: {t.reference_code}")
 
 async def seed_industrial_identities(session):
-    log.info("[+] Seeding Triple Identity contacts (Collaborators & External)...")
+    log.info("[+] Seeding HCM Industrial Core (Configs, Departments, Collaborators, External)...")
     from hcm_app.core.security import hash_rfid, hash_pin
-    
-    # ── Carlos Ramírez (Enterprise/Logistics, Supervisor) ──
+
+    # ── [STEP 0] Tenant Configurations (Cross-Border Thresholds) ──────────────
+    log.info("  [0] Seeding Tenant Configs (Patterns + Cross-Border Threshold)...")
+    configs = [
+        {
+            "cid": ENTERPRISE_ID,
+            "pattern": r"^[0-9]{6}[A-Z]$",
+            "msg": "Format Error: Enterprise IDs must be 6 digits followed by a letter (e.g., 003709A).",
+            "threshold": 15
+        },
+        {
+            "cid": LOGISTICS_MX_ID,
+            "pattern": r"^\d{3,6}[A-Z]?$",
+            "msg": "Format Error: Logistics IDs support 3-6 digits + optional letter (e.g., 123456A).",
+            "threshold": 30
+        },
+        {
+            "cid": LOGISTICS_US_ID,
+            "pattern": r"^\d{3,6}[A-Z]?$",
+            "msg": "Format Error: Logistics US IDs support 3-6 digits + optional letter (e.g., 123456A).",
+            "threshold": 5
+        },
+    ]
+    for cfg in configs:
+        existing_cfg = (await session.execute(
+            select(HrTenantConfig).where(HrTenantConfig.company_id == cfg["cid"])
+        )).scalar_one_or_none()
+        if not existing_cfg:
+            await _safe_add(session, HrTenantConfig(
+                id=uuid.uuid4(),
+                company_id=cfg["cid"],
+                tenant_id=cfg["cid"],
+                group_id=GROUP_ID,
+                internal_id_pattern=cfg["pattern"],
+                pattern_error_message=cfg["msg"],
+                cross_border_expiry_threshold_days=cfg["threshold"]
+            ), f"TenantConfig: {cfg['cid']}")
+        else:
+            existing_cfg.internal_id_pattern = cfg["pattern"]
+            existing_cfg.cross_border_expiry_threshold_days = cfg["threshold"]
+            log.info(f"  UPDATE TenantConfig: {cfg['cid']}")
+
+    # ── [STEP 0.5] Default Departments ────────────────────────────────────────
+    log.info("  [0.5] Seeding default departments...")
+    _DEFAULT_DEPTS = [
+        ("Producción",     "PROD",  "Operadores directos de línea de producción"),
+        ("Calidad",        "QUAL",  "Control e inspección de calidad"),
+        ("Mantenimiento",  "MANT",  "Mantenimiento preventivo y correctivo de equipos"),
+        ("Almacén",        "ALM",   "Recepción, almacenaje y despacho de materiales"),
+        ("Administración", "ADMIN", "Gestión administrativa y recursos humanos"),
+        ("Ingeniería",     "ENG",   "Ingeniería de procesos y manufactura"),
+    ]
+    for company_id in [ENTERPRISE_ID, LOGISTICS_MX_ID, LOGISTICS_US_ID]:
+        for (name, code, desc) in _DEFAULT_DEPTS:
+            dept_id = uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{company_id}.{code}")
+            existing = await session.get(Department, dept_id)
+            if not existing:
+                await _safe_add(session, Department(
+                    id=dept_id,
+                    company_id=company_id,
+                    tenant_id=company_id,
+                    group_id=GROUP_ID,
+                    name=name,
+                    code=code,
+                    description=desc,
+                    is_active=True,
+                    version_id=1,
+                ), f"Dept: {name} ({code}) → {company_id}")
+            else:
+                existing.description = desc
+    await session.flush()
+    log.info("  [OK] Departamentos por defecto listos.")
+
+    # ── Carlos Ramírez — Enterprise (Supervisor, RFID) ────────────────────────
     CARLOS_ID = uuid.UUID("11111111-0001-4001-a001-000000000001")
     if not await session.get(Collaborator, CARLOS_ID):
         await _safe_add(session, Collaborator(
@@ -744,6 +818,8 @@ async def seed_industrial_identities(session):
             internal_id="003709A",
             first_name="Carlos",
             last_name_paternal="Ramírez",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{ENTERPRISE_ID}.ALM"),
+            translation_key="dept.warehouse",
             is_direct=True,
             supervisor_id=None,
             home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
@@ -753,12 +829,48 @@ async def seed_industrial_identities(session):
             tenant_id=ENTERPRISE_ID,
             group_id=GROUP_ID,
             user_id=CHARLY_ID,
+            assigned_plant="Tijuana Plant A",
+            shift="Turno Matutino",
             is_active=True,
             version_id=1
         ), "Collaborator: Carlos Ramírez (Enterprise)")
     else:
         log.info("  SKIP Collaborator: Carlos Ramírez (Enterprise) (already exists)")
 
+    # ── Carlos Ramírez — Logistics MX (Same RFID, cross-border partial) ───────
+    CARLOS_MX_ID = uuid.UUID("11111111-0001-4001-b001-000000000001")
+    if not await session.get(Collaborator, CARLOS_MX_ID):
+        await _safe_add(session, Collaborator(
+            id=CARLOS_MX_ID,
+            internal_id="003709A",
+            first_name="Carlos",
+            last_name_paternal="Ramírez",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.ALM"),
+            translation_key="dept.warehouse",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
+            rfid_tag=hash_rfid("960091919"),
+            pin_code=hash_pin("1234"),
+            company_id=LOGISTICS_MX_ID,
+            tenant_id=LOGISTICS_MX_ID,
+            group_id=GROUP_ID,
+            user_id=CHARLY_ID,
+            assigned_plant="Tijuana Logistics Hub",
+            shift="Turno Vespertino",
+            # Cross-border credentials (active CDL + medical + visa, but NO sentry/GE → should FAIL eligibility)
+            driver_license_number="CDL-MX-88",
+            driver_license_expiry=date(2027, 12, 31),
+            medical_certificate_expiry=date(2027, 12, 31),
+            visa_number="VISA-MX-88",
+            visa_expiry=date(2027, 12, 31),
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Carlos Ramírez (Logistics MX — partial cross-border)")
+    else:
+        log.info("  SKIP Collaborator: Carlos Ramírez (Logistics MX) (already exists)")
+
+    # ── Carlos Ramírez — Logistics US (Fully compliant, Global Entry) ─────────
     CARLOS_US_ID = uuid.UUID("11111111-0001-4001-c001-000000000001")
     if not await session.get(Collaborator, CARLOS_US_ID):
         await _safe_add(session, Collaborator(
@@ -766,6 +878,8 @@ async def seed_industrial_identities(session):
             internal_id="003709A",
             first_name="Carlos",
             last_name_paternal="Ramírez",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_US_ID}.ALM"),
+            translation_key="dept.warehouse",
             is_direct=True,
             supervisor_id=None,
             home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
@@ -775,13 +889,81 @@ async def seed_industrial_identities(session):
             tenant_id=LOGISTICS_US_ID,
             group_id=GROUP_ID,
             user_id=CHARLY_ID,
+            assigned_plant="San Diego WH",
+            shift="Turno Nocturno",
+            # Fully compliant cross-border operator (Global Entry active)
+            global_entry_id="GE-US-777",
+            driver_license_number="CDL-US-77",
+            driver_license_expiry=date(2027, 12, 31),
+            medical_certificate_expiry=date(2027, 12, 31),
+            visa_number="VISA-US-77",
+            visa_expiry=date(2027, 12, 31),
             is_active=True,
             version_id=1
-        ), "Collaborator: Carlos Ramírez (Logistics US)")
+        ), "Collaborator: Carlos Ramírez (Logistics US — full cross-border)")
     else:
         log.info("  SKIP Collaborator: Carlos Ramírez (Logistics US) (already exists)")
 
-    # ── Luis Torres (Logistics US/MX, Supervisor) ──
+    # ── Luis Torres — Logistics MX (Supervisor, Sentry compliant) ─────────────
+    LUIS_ID = uuid.UUID("11111111-0002-4001-a001-000000000002")
+    if not await session.get(Collaborator, LUIS_ID):
+        await _safe_add(session, Collaborator(
+            id=LUIS_ID,
+            internal_id="201",
+            first_name="Luis",
+            last_name_paternal="Torres",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.PROD"),
+            translation_key="dept.logistics",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
+            rfid_tag=hash_rfid("2327559684"),
+            pin_code=None,
+            company_id=LOGISTICS_MX_ID,
+            tenant_id=LOGISTICS_MX_ID,
+            group_id=GROUP_ID,
+            assigned_plant="Tijuana Logistics Hub",
+            shift="Turno Matutino",
+            # Fully compliant cross-border operator (Sentry active)
+            sentry_id="SENTRY-MX-123",
+            driver_license_number="CDL-MX-123",
+            driver_license_expiry=date(2027, 12, 31),
+            medical_certificate_expiry=date(2027, 12, 31),
+            visa_number="VISA-MX-123",
+            visa_expiry=date(2027, 12, 31),
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Luis Torres (Logistics MX — Sentry)")
+    else:
+        log.info("  SKIP Collaborator: Luis Torres (Logistics MX) (already exists)")
+
+    # ── Luis Torres — Enterprise (Same RFID) ──────────────────────────────────
+    LUIS_ENT_ID = uuid.UUID("11111111-0002-4001-e001-000000000002")
+    if not await session.get(Collaborator, LUIS_ENT_ID):
+        await _safe_add(session, Collaborator(
+            id=LUIS_ENT_ID,
+            internal_id="901",
+            first_name="Luis",
+            last_name_paternal="Torres",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{ENTERPRISE_ID}.ALM"),
+            translation_key="dept.warehouse",
+            is_direct=True,
+            supervisor_id=None,
+            home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{ENTERPRISE_ID}.WH-TIJ"),
+            rfid_tag=hash_rfid("2327559684"),
+            pin_code=None,
+            company_id=ENTERPRISE_ID,
+            tenant_id=ENTERPRISE_ID,
+            group_id=GROUP_ID,
+            assigned_plant="Tijuana Plant A",
+            shift="Turno Matutino",
+            is_active=True,
+            version_id=1
+        ), "Collaborator: Luis Torres (Enterprise)")
+    else:
+        log.info("  SKIP Collaborator: Luis Torres (Enterprise) (already exists)")
+
+    # ── Luis Torres — Logistics US ────────────────────────────────────────────
     LUIS_US_ID = uuid.UUID("11111111-0002-4001-c001-000000000002")
     if not await session.get(Collaborator, LUIS_US_ID):
         await _safe_add(session, Collaborator(
@@ -789,6 +971,8 @@ async def seed_industrial_identities(session):
             internal_id="801",
             first_name="Luis (USA)",
             last_name_paternal="Torres",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_US_ID}.PROD"),
+            translation_key="dept.logistics",
             is_direct=True,
             supervisor_id=None,
             home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_US_ID}.WH-SDY"),
@@ -797,35 +981,42 @@ async def seed_industrial_identities(session):
             company_id=LOGISTICS_US_ID,
             tenant_id=LOGISTICS_US_ID,
             group_id=GROUP_ID,
+            assigned_plant="San Diego WH",
+            shift="Turno Matutino",
             is_active=True,
             version_id=1
         ), "Collaborator: Luis Torres (Logistics US)")
     else:
         log.info("  SKIP Collaborator: Luis Torres (Logistics US) (already exists)")
 
-    # ── Ana García (Logistics MX, Subordinada de Luis) ──
+    # ── Ana García — Logistics MX (Subordinada de Luis, PIN only) ─────────────
     ANA_ID = uuid.UUID("11111111-0003-4001-a001-000000000003")
+    LUIS_MX_ID = uuid.UUID("11111111-0002-4001-a001-000000000002")
     if not await session.get(Collaborator, ANA_ID):
         await _safe_add(session, Collaborator(
             id=ANA_ID,
             internal_id="301",
             first_name="Ana",
             last_name_paternal="García",
+            department_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.dept.{LOGISTICS_MX_ID}.ALM"),
+            translation_key="dept.warehouse",
             is_direct=True,
-            supervisor_id=LUIS_US_ID,
+            supervisor_id=LUIS_MX_ID,
             home_warehouse_id=uuid.uuid5(uuid.NAMESPACE_DNS, f"interno.warehouse.{LOGISTICS_MX_ID}.WH-TIJ"),
             rfid_tag=None,
             pin_code=hash_pin("1234"),
             company_id=LOGISTICS_MX_ID,
             tenant_id=LOGISTICS_MX_ID,
             group_id=GROUP_ID,
+            assigned_plant="Tijuana Logistics Hub",
+            shift="Turno Matutino",
             is_active=True,
             version_id=1
         ), "Collaborator: Ana García (Logistics MX)")
     else:
         log.info("  SKIP Collaborator: Ana García (Logistics MX) (already exists)")
 
-    # 2. External Contact (Provider)
+    # ── External Contact (Provider) ───────────────────────────────────────────
     contact_data = {
         "full_name": "Ing. Alicia Torres",
         "email": "charly.flores.x@gmail.com",
@@ -836,18 +1027,17 @@ async def seed_industrial_identities(session):
         "version_id": 1
     }
     
-    # Try to find existing
     stmt = select(ExternalContact).where(ExternalContact.id == uuid.UUID("22222222-0002-4002-b002-000000000002"))
     existing = (await session.execute(stmt)).scalar_one_or_none()
     
     if existing:
         for k, v in contact_data.items():
             setattr(existing, k, v)
-        print(f"  UPDATE External Contact: {existing.full_name}")
+        log.info(f"  UPDATE External Contact: {existing.full_name}")
     else:
         contact = ExternalContact(id=uuid.UUID("22222222-0002-4002-b002-000000000002"), **contact_data)
         session.add(contact)
-        print(f"  CREATE External Contact: {contact.full_name}")
+        log.info(f"  CREATE External Contact: {contact_data['full_name']}")
 
 async def seed_subscriptions(session):
     log.info("[1.5/5] Subscriptions: Plans, Subscriptions and Entitlements...")

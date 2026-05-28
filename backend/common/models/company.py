@@ -27,6 +27,10 @@ class Company(AuditBase):
     default_tax_rate: Mapped[Decimal] = mapped_column(default=0.16)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
 
+    # Collaborator ID validation regex (optional, per-company)
+    # e.g. "^EMP-\\d{4}$" — enforced at collaborator login before HCM lookup
+    internal_id_pattern: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
     # Relation to BusinessGroup
     business_group: Mapped[Optional["BusinessGroup"]] = relationship(
         "BusinessGroup", 

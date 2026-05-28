@@ -378,7 +378,7 @@ async def seed_manufacturing_collaborators():
                             id=collab_id,
                             internal_id=template["internal_id"],
                             first_name=template["first_name"],
-                            last_name=template["last_name"],
+                            last_name_paternal=template["last_name"],
                             department_id=dept_id,
                             translation_key=template["translation_key"],
                             job_title=template["job_title"],
@@ -390,6 +390,8 @@ async def seed_manufacturing_collaborators():
                             company_id=company_uuid,
                             tenant_id=company_uuid,
                             group_id=GROUP_ID,
+                            assigned_plant="Tijuana Plant A" if company_uuid == ENTERPRISE_COMPANY_ID else "Sample Plant 1",
+                            shift="Turno A" if "Turno A" in template["job_title"] else ("Turno B" if "Turno B" in template["job_title"] else "Turno Matutino"),
                             version_id=1
                         )
                         db.add(c)
@@ -399,6 +401,8 @@ async def seed_manufacturing_collaborators():
                         dept_code = KEY_TO_CODE.get(template["translation_key"])
                         dept_id = departments_by_code.get(dept_code)
                         existing.department_id = dept_id
+                        existing.assigned_plant = "Tijuana Plant A" if company_uuid == ENTERPRISE_COMPANY_ID else "Sample Plant 1"
+                        existing.shift = "Turno A" if "Turno A" in template["job_title"] else ("Turno B" if "Turno B" in template["job_title"] else "Turno Matutino")
                         supervisors_by_title[template["job_title"]] = existing.id
                         log.info(f"  [INFO] Supervisor '{existing.full_name}' ({template['job_title']}) migrado/actualizado.")
 
@@ -438,7 +442,7 @@ async def seed_manufacturing_collaborators():
                             id=collab_id,
                             internal_id=template["internal_id"],
                             first_name=template["first_name"],
-                            last_name=template["last_name"],
+                            last_name_paternal=template["last_name"],
                             department_id=dept_id,
                             translation_key=template["translation_key"],
                             job_title=template["job_title"],
@@ -450,6 +454,8 @@ async def seed_manufacturing_collaborators():
                             company_id=company_uuid,
                             tenant_id=company_uuid,
                             group_id=GROUP_ID,
+                            assigned_plant="Tijuana Plant A" if company_uuid == ENTERPRISE_COMPANY_ID else "Sample Plant 1",
+                            shift="Turno A" if "Turno A" in template["job_title"] else ("Turno B" if "Turno B" in template["job_title"] else "Turno Matutino"),
                             version_id=1
                         )
                         collaborators_to_insert.append(c)
@@ -470,6 +476,8 @@ async def seed_manufacturing_collaborators():
                         
                         existing.department_id = dept_id
                         existing.supervisor_id = supervisor_id
+                        existing.assigned_plant = "Tijuana Plant A" if company_uuid == ENTERPRISE_COMPANY_ID else "Sample Plant 1"
+                        existing.shift = "Turno A" if "Turno A" in template["job_title"] else ("Turno B" if "Turno B" in template["job_title"] else "Turno Matutino")
                         log.info(f"  [INFO] Operativo '{existing.full_name}' ({template['job_title']}) migrado/actualizado.")
 
                 if collaborators_to_insert:

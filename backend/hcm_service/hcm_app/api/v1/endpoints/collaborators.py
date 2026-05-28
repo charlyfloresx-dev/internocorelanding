@@ -232,8 +232,13 @@ async def validate_scan(
             reason="Operador no encontrado o inactivo en esta empresa.",
         )
 
+    # Fetch custom safety threshold margin for the company if configured
+    repo = SQLAlchemyCollaboratorRepository(db)
+    config = await repo.get_tenant_config(token.company_id)
+    threshold = config.cross_border_expiry_threshold_days if (config and config.cross_border_expiry_threshold_days is not None) else settings.CROSS_BORDER_EXPIRY_THRESHOLD_DAYS
+
     # Delegate to the shared eligibility logic
-    return _calculate_eligibility(collaborator, eligibility_type)
+    return _calculate_eligibility(collaborator, eligibility_type, threshold)
 
 
 @router.get("/{collaborator_id}/eligibility", response_model=EligibilityResponse)
@@ -260,19 +265,23 @@ async def get_eligibility(
     if not collaborator:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collaborator not found.")
 
-    return _calculate_eligibility(collaborator, eligibility_type)
+    # Fetch custom safety threshold margin for the company if configured
+    repo = SQLAlchemyCollaboratorRepository(db)
+    config = await repo.get_tenant_config(token.company_id)
+    threshold = config.cross_border_expiry_threshold_days if (config and config.cross_border_expiry_threshold_days is not None) else settings.CROSS_BORDER_EXPIRY_THRESHOLD_DAYS
+
+    return _calculate_eligibility(collaborator, eligibility_type, threshold)
 
 
-def _calculate_eligibility(collaborator: Collaborator, eligibility_type: str) -> EligibilityResponse:
+def _calculate_eligibility(collaborator: Collaborator, eligibility_type: str, threshold: int) -> EligibilityResponse:
     """
     Core eligibility logic. Evaluates all relevant documents against today's date
-    with a configurable grace period (CROSS_BORDER_EXPIRY_THRESHOLD_DAYS).
+    with a configurable grace period (cross_border_expiry_threshold_days / CROSS_BORDER_EXPIRY_THRESHOLD_DAYS).
 
-    Priority order: Critical docs are checked first (License > Medical > Visa > Sentry).
+    Priority order: Critical docs are checked first (License > Medical > Visa > Sentry/Global Entry).
     The first failing document short-circuits and is returned in `details`.
     """
     today = date.today()
-    threshold = settings.CROSS_BORDER_EXPIRY_THRESHOLD_DAYS
     full_name = collaborator.full_name
 
     if eligibility_type == "CROSS_BORDER":
@@ -282,10 +291,6 @@ def _calculate_eligibility(collaborator: Collaborator, eligibility_type: str) ->
             _check_expiry(collaborator.medical_certificate_expiry, "Certificado Médico (SCT/DOT)", threshold, today),
             _check_expiry(collaborator.visa_expiry, "Visa Láser / B1-B2", threshold, today),
         ]
-
-        # Sentry is optional — only fail if the ID exists but no expiry is expected
-        # (Sentry/Global Entry does have an expiry; we check it if the field is present)
-        # For now, treat sentry_id presence as sufficient (it's a membership, not a date field).
 
         for failing_doc in checks:
             if failing_doc is not None:
@@ -304,6 +309,23 @@ def _calculate_eligibility(collaborator: Collaborator, eligibility_type: str) ->
                     full_name=full_name,
                     details=failing_doc
                 )
+
+        # Enforce that either sentry_id or global_entry_id is present and active (non-empty)
+        sentry_ok = collaborator.sentry_id is not None and len(collaborator.sentry_id.strip()) > 0
+        global_entry_ok = hasattr(collaborator, "global_entry_id") and collaborator.global_entry_id is not None and len(collaborator.global_entry_id.strip()) > 0
+
+        if not (sentry_ok or global_entry_ok):
+            return EligibilityResponse(
+                eligible=False,
+                reason="Operador requiere credencial FAST/Sentry o Global Entry activa para cruce internacional.",
+                collaborator_id=collaborator.id,
+                full_name=full_name,
+                details=EligibilityDetail(
+                    document="FAST/Sentry o Global Entry ID",
+                    expiry_date=None,
+                    days_remaining=None
+                )
+            )
 
         return EligibilityResponse(
             eligible=True,

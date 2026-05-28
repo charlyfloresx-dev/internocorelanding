@@ -4,6 +4,20 @@
 > **Status:** Operational / Industrial Identity Source of Truth
 > **Compliance:** Multi-tenant Isolation Verified
 
+### [2026-05-28] - Phase 155: Industrial Identity & Cross-Border Eligibility Hardening ✅
+- **DB Migration (`005_add_plant_shift_global_entry.py`)**: Añadido soporte para los campos `assigned_plant` (VARCHAR(100)), `shift` (VARCHAR(50)) y `global_entry_id` (VARCHAR(100)) en la tabla `collaborators` de `hcm_db`.
+- **Tenant Configuration (`models/tenant_settings.py`)**: Añadida la columna `cross_border_expiry_threshold_days` (INTEGER, por defecto 30) a `hr_tenant_configs` para definir el margen de seguridad de vencimiento por empresa.
+- **Domain & Repository Integration**:
+  - `domain/entities/collaborator_entities.py`: Añadidos campos a la entidad `Collaborator`.
+  - `infrastructure/repositories/collaborator_repository.py`: Mapeados campos nuevos entre ORM y Entidad de Dominio.
+  - `schemas/collaborator.py`: Campos expuestos en `CollaboratorRead`, `CollaboratorCreate` y `CollaboratorUpdate`.
+- **Motor de Elegibilidad (`api/v1/endpoints/collaborators.py`)**: Refactorizada la función `_calculate_eligibility` para:
+  - Recuperar dinámicamente el umbral de expiración por tenant (`cross_border_expiry_threshold_days`).
+  - Validar de forma endurecida que la Licencia CDL, el Certificado Médico (SCT/DOT) y la Visa no estén vencidos (considerando el umbral de seguridad).
+  - Validar que el operador posea al menos un identificador de cruce activo: `sentry_id` OR `global_entry_id`.
+- **Seed Updates (`scripts/seed.py`)**: Añadida la importación de `date` para fijar fechas de expiración en las semillas de prueba de colaboradores binacionales.
+- **Status**: ✅ COMPLETED — Endpoint y modelos validados con éxito.
+
 ---
 
 ### [2026-05-28] - Phase 153 Hotfix: CollaboratorVerifyResponse department field ✅
