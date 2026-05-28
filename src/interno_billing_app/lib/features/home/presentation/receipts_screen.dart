@@ -50,10 +50,13 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: scaffoldBg,
         title: const Text(
           'MIS RECIBOS',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 2),
@@ -62,7 +65,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white54),
+            icon: Icon(Icons.refresh_rounded, color: cs.onSurface.withValues(alpha: 0.54)),
             onPressed: _loadDocuments,
             tooltip: 'Actualizar',
           ),
@@ -90,7 +93,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? InternoColors.cyan.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.05),
+                          : cs.onSurface.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected ? InternoColors.cyan : Colors.transparent,
@@ -100,7 +103,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                     child: Text(
                       _filters[i].label,
                       style: TextStyle(
-                        color: isSelected ? InternoColors.cyan : Colors.white60,
+                        color: isSelected ? InternoColors.cyan : cs.onSurface.withValues(alpha: 0.6),
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -112,18 +115,20 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           ),
 
           // Content
-          Expanded(child: _buildBody()),
+          Expanded(child: _buildBody(cs)),
         ],
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(ColorScheme cs) {
+    final cardBg = Theme.of(context).cardColor;
+
     if (_isLoading) {
       return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: 6,
-        itemBuilder: (context, i) => _buildSkeletonCard(),
+        itemBuilder: (context, i) => _buildSkeletonCard(cardBg),
       );
     }
 
@@ -132,9 +137,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: Colors.white.withValues(alpha: 0.15)),
+            Icon(Icons.cloud_off_rounded, size: 48, color: cs.onSurface.withValues(alpha: 0.15)),
             const SizedBox(height: 16),
-            Text(_error!, style: const TextStyle(color: Colors.white38, fontSize: 14)),
+            Text(_error!, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 14)),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _loadDocuments,
@@ -151,11 +156,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.white.withValues(alpha: 0.1)),
+            Icon(Icons.receipt_long_outlined, size: 64, color: cs.onSurface.withValues(alpha: 0.1)),
             const SizedBox(height: 16),
-            const Text('No hay recibos recientes', style: TextStyle(color: Colors.white38, fontSize: 16)),
+            Text('No hay recibos recientes', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 16)),
             const SizedBox(height: 8),
-            const Text('Tus documentos aparecerán aquí', style: TextStyle(color: Colors.white24, fontSize: 12)),
+            Text('Tus documentos aparecerán aquí', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 12)),
           ],
         ),
       );
@@ -164,27 +169,27 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     return RefreshIndicator(
       onRefresh: _loadDocuments,
       color: InternoColors.cyan,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: cardBg,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         itemCount: _documents.length,
-        itemBuilder: (_, index) => _buildDocumentCard(_documents[index]),
+        itemBuilder: (_, index) => _buildDocumentCard(_documents[index], cs, cardBg),
       ),
     );
   }
 
-  Widget _buildDocumentCard(InventoryDocumentRow doc) {
-    final typeColor = _typeColor(doc.type);
-    final statusColor = _statusColor(doc.status);
+  Widget _buildDocumentCard(InventoryDocumentRow doc, ColorScheme cs, Color cardBg) {
+    final typeColor = _typeColor(doc.type, cs);
+    final statusColor = _statusColor(doc.status, cs);
     final dateLabel = _formatDate(doc.date);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -211,8 +216,8 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   children: [
                     Text(
                       doc.folio,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: cs.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                         letterSpacing: 0.3,
@@ -235,7 +240,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '${doc.itemsCount} ${doc.itemsCount == 1 ? 'artículo' : 'artículos'} · $dateLabel',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 11),
                 ),
               ],
             ),
@@ -256,7 +261,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               const SizedBox(height: 2),
               Text(
                 doc.currency,
-                style: const TextStyle(color: Colors.white24, fontSize: 10),
+                style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 10),
               ),
             ],
           ),
@@ -265,19 +270,19 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     );
   }
 
-  Widget _buildSkeletonCard() {
+  Widget _buildSkeletonCard(Color cardBg) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       height: 72,
       decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const _Shimmer(),
     );
   }
 
-  Color _typeColor(String type) {
+  Color _typeColor(String type, ColorScheme cs) {
     switch (type) {
       case 'OUT':
         return InternoColors.error;
@@ -286,7 +291,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       case 'TRANSFER':
         return InternoColors.cyan;
       default:
-        return Colors.white54;
+        return cs.onSurface.withValues(alpha: 0.54);
     }
   }
 
@@ -303,7 +308,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
     }
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(String status, ColorScheme cs) {
     switch (status) {
       case 'PROCESSED':
         return InternoColors.success;
@@ -312,7 +317,7 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       case 'CANCELLED':
         return Colors.red;
       default:
-        return Colors.white38;
+        return cs.onSurface.withValues(alpha: 0.38);
     }
   }
 
@@ -377,11 +382,12 @@ class _ShimmerState extends State<_Shimmer> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) => Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: _animation.value),
+          color: onSurface.withValues(alpha: _animation.value),
           borderRadius: BorderRadius.circular(16),
         ),
       ),

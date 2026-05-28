@@ -8,6 +8,7 @@ import 'package:interno_billing_app/core/di/injection.dart';
 import 'package:interno_billing_app/core/theme/app_theme.dart';
 import 'package:interno_billing_app/features/auth/presentation/company_selection_screen.dart';
 import 'package:interno_billing_app/features/auth/presentation/warehouse_selection_screen.dart';
+import 'package:interno_billing_app/features/kiosk/presentation/kiosk_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isCorporate = true;
   bool _isLoading = false;
   bool _isConfigured = false;
+  String? _kioskCompanyId;
+  String? _kioskCompanyName;
 
   @override
   void initState() {
@@ -33,7 +36,17 @@ class _LoginScreenState extends State<LoginScreen> {
     final prefs = sl<SharedPreferences>();
     setState(() {
       _isConfigured = prefs.getString('api_url') != null;
+      _kioskCompanyId = prefs.getString('kiosk_company_id');
+      _kioskCompanyName = prefs.getString('kiosk_company_name');
     });
+  }
+
+  Future<void> _openKioskSetup() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const KioskSetupScreen()),
+    );
+    if (result == true) _checkConfiguration();
   }
 
   @override
@@ -64,6 +77,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   _buildTypeSelector(cs, cardBg),
+                  if (!_isCorporate) ...[
+                    const SizedBox(height: 16),
+                    _buildKioskCompanyBadge(cs, cardBg),
+                  ],
                   const SizedBox(height: 32),
                   _buildTextField(
                     controller: _emailController,
@@ -256,6 +273,113 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildKioskCompanyBadge(ColorScheme cs, Color cardBg) {
+    final isProvisioned = _kioskCompanyId != null;
+
+    if (isProvisioned) {
+      return GestureDetector(
+        onLongPress: _openKioskSetup,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: InternoColors.cyan.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: InternoColors.cyan.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.business, size: 16, color: InternoColors.cyan),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _kioskCompanyName ?? _kioskCompanyId!,
+                  style: const TextStyle(color: InternoColors.cyan, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+              GestureDetector(
+                onTap: _openKioskSetup,
+                child: Icon(Icons.settings_outlined, size: 16, color: cs.onSurface.withValues(alpha: 0.4)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Unprovisioned — show configuration instructions
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.amber),
+              const SizedBox(width: 8),
+              Text(
+                'Kiosko sin empresa asignada',
+                style: TextStyle(color: Colors.amber.shade700, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Para activar este kiosko tienes dos opciones:',
+            style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 11),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.admin_panel_settings_outlined, size: 14, color: cs.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Pide al administrador que configure este dispositivo.',
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.qr_code_scanner, size: 14, color: cs.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Escanea el QR de sincronización desde el portal web (incluye empresa automáticamente).',
+                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openKioskSetup,
+              icon: const Icon(Icons.settings_outlined, size: 14),
+              label: const Text('Configurar ahora', style: TextStyle(fontSize: 12)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.amber.shade700,
+                side: BorderSide(color: Colors.amber.withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleManualLogin() async {
     setState(() => _isLoading = true);
     try {
@@ -273,6 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
           'internal_id': _emailController.text,
           'identity_identifier': _passwordController.text,
           'access_method': 'PIN_PAD',
+          if (_kioskCompanyId != null) 'company_id': _kioskCompanyId,
         });
       }
 
@@ -368,6 +493,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await prefs.setString('api_url', fullApiUrl);
       dio.options.baseUrl = fullApiUrl;
+      // If QR includes company info, pre-provision the kiosk company
+      if (companyId.isNotEmpty) {
+        await prefs.setString('kiosk_company_id', companyId);
+        if (companyName.isNotEmpty) await prefs.setString('kiosk_company_name', companyName);
+        if (mounted) setState(() { _kioskCompanyId = companyId; _kioskCompanyName = companyName.isEmpty ? null : companyName; });
+      }
       if (mounted) setState(() => _isConfigured = true);
 
       if (mounted) {

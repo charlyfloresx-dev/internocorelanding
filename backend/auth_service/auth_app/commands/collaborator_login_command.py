@@ -78,6 +78,20 @@ async def collaborator_login(
     if pin_code:
         pin_code = pin_code.strip()
 
+    # ── Step 0: Validate internal_id against company pattern (if configured) ──
+    if internal_id and company_id:
+        import re
+        company_cfg = await db.get(Company, company_id)
+        if company_cfg and company_cfg.internal_id_pattern:
+            try:
+                if not re.fullmatch(company_cfg.internal_id_pattern, internal_id):
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"Formato de ID inválido para esta empresa. Patrón esperado: {company_cfg.internal_id_pattern}",
+                    )
+            except re.error:
+                pass  # patrón inválido en DB → ignorar validación (best-effort)
+
     # ── Step 1: Call hr_service internal verification ──────────────────────────
     payload = {
         "company_id": str(company_id) if company_id else None,

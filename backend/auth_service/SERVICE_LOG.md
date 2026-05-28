@@ -1,5 +1,14 @@
 # Auth Service - Service Log
 
+## [2026-05-28] Phase 153: Kiosk Company Binding + internal_id_pattern ✅
+- **`common/models/company.py`**: Columna `internal_id_pattern VARCHAR(200) NULL` añadida al modelo `Company` (SSOT en el modelo compartido).
+- **`alembic/versions/c7d4e5f6a8b9_add_internal_id_pattern_to_company.py`**: Migración Alembic (down_revision: `99a023377b4d`). Aplica `ALTER TABLE companies ADD COLUMN internal_id_pattern`.
+- **`commands/collaborator_login_command.py`**: Paso 0 antes del HTTP call a HCM — valida `internal_id` contra `company.internal_id_pattern` si está configurado. `re.fullmatch()`. Best-effort: regex inválida en DB se ignora silenciosamente.
+- **`api/v1/endpoints/companies.py`**: Endpoint `PATCH /companies/my/id-pattern` — admin JWT requiere scope `admin.user.manage`. Permite set/clear del patrón regex. PUT `/companies/{id}` extendido para soportar `timezone` e `internal_id_pattern`.
+- **`schemas/company.py`**: `CompanyUpdate` y `CompanyResponse` actualizados con `timezone` e `internal_id_pattern`.
+- **Scripts**: `scripts/kiosk_auth_flow.py` actualizado con 4 tests: RFID clásico, PIN clásico, login company-bound, validación de patrón.
+- **Status**: ✅ COMPLETED — Migration aplicada, `POST /login` 500 resuelto.
+
 ## [2026-05-28] Hotfix: select-company 500 — timezone parameter shadowing ✅
 - **`core/security.py`** `create_final_access_token`: parámetro `timezone: str` renombrado a `tz_name: str`. El nombre `timezone` sombreaba el import `from datetime import timezone`, haciendo que `datetime.now(timezone.utc)` fallara con `AttributeError: 'str' object has no attribute 'utc'`.
 - **Caller `create_access_token`**: kwarg actualizado a `tz_name=data.get("timezone", "UTC")`.

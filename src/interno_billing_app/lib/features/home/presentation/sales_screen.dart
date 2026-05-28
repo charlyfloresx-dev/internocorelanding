@@ -186,11 +186,13 @@ class _SalesScreenState extends State<SalesScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF12141A),
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return Padding(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -201,7 +203,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 width: 40,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: cs.onSurface.withValues(alpha: 0.24),
                   borderRadius: BorderRadius.circular(2.5),
                 ),
               ),
@@ -209,14 +211,14 @@ class _SalesScreenState extends State<SalesScreen> {
             const SizedBox(height: 16),
             Text(
               item.product.name,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
               item.product.code ?? item.product.sku,
-              style: const TextStyle(color: Colors.white38, fontSize: 12, letterSpacing: 0.5),
+              style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontSize: 12, letterSpacing: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -233,11 +235,11 @@ class _SalesScreenState extends State<SalesScreen> {
                       Navigator.pop(ctx);
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
+                      side: BorderSide(color: cs.onSurface.withValues(alpha: 0.24)),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                    child: Text('Cancelar', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.54))),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -264,7 +266,8 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
           ],
         ),
-      ),
+      );
+      },
     ).whenComplete(() => _isProductModalShown = false);
   }
 
@@ -282,13 +285,15 @@ class _SalesScreenState extends State<SalesScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
+        final cardBg = Theme.of(dialogContext).cardColor;
         final currentPartner = bloc.state.selectedPartner;
         return AlertDialog(
-          backgroundColor: const Color(0xFF12141A),
+          backgroundColor: cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
+          title: Text(
             'Seleccionar Cliente',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -297,11 +302,11 @@ class _SalesScreenState extends State<SalesScreen> {
               children: [
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  title: const Text(
+                  title: Text(
                     'Público General',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
                   ),
-                  subtitle: const Text('CUST-0000', style: TextStyle(color: Colors.white38)),
+                  subtitle: Text('CUST-0000', style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38))),
                   trailing: currentPartner == null
                       ? const Icon(Icons.check_circle, color: InternoColors.success)
                       : null,
@@ -314,9 +319,9 @@ class _SalesScreenState extends State<SalesScreen> {
                   contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                   title: Text(
                     p.name,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text(p.code, style: const TextStyle(color: Colors.white38)),
+                  subtitle: Text(p.code, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38))),
                   trailing: currentPartner?.id == p.id
                       ? const Icon(Icons.check_circle, color: InternoColors.success)
                       : null,
@@ -479,11 +484,13 @@ class _SalesScreenState extends State<SalesScreen> {
                 minChildSize: 0.11,
                 maxChildSize: 0.85,
                 builder: (BuildContext ctx, ScrollController scrollController) {
+                  final cs = Theme.of(ctx).colorScheme;
+                  final sheetBg = Theme.of(ctx).scaffoldBackgroundColor;
                   return Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                      boxShadow: [
+                    decoration: BoxDecoration(
+                      color: sheetBg,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                      boxShadow: const [
                         BoxShadow(color: Colors.black87, blurRadius: 20, spreadRadius: 5),
                       ],
                     ),
@@ -497,7 +504,7 @@ class _SalesScreenState extends State<SalesScreen> {
                             width: 40,
                             height: 5,
                             decoration: BoxDecoration(
-                              color: Colors.white24,
+                              color: cs.onSurface.withValues(alpha: 0.24),
                               borderRadius: BorderRadius.circular(2.5),
                             ),
                           ),
@@ -512,10 +519,10 @@ class _SalesScreenState extends State<SalesScreen> {
                             children: [
                               // Partner selector
                               IconButton(
-                                icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 24),
+                                icon: Icon(Icons.tune_rounded, color: cs.onSurface, size: 24),
                                 onPressed: () => _showPartnerSelectionDialog(bloc),
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.04),
+                                  backgroundColor: cs.onSurface.withValues(alpha: 0.04),
                                   padding: const EdgeInsets.all(12),
                                 ),
                               ),
@@ -527,8 +534,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                     state.items.isEmpty
                                         ? 'Escaneando...'
                                         : '${state.totalItems} ${state.totalItems == 1 ? 'artículo' : 'artículos'}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: cs.onSurface,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 18,
                                       letterSpacing: -0.5,
@@ -537,7 +544,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Cliente: ${state.selectedPartner?.name ?? 'Público General'}',
-                                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                    style: TextStyle(color: cs.onSurface.withValues(alpha: 0.54), fontSize: 12),
                                   ),
                                   // Sync indicator
                                   GestureDetector(
@@ -567,7 +574,7 @@ class _SalesScreenState extends State<SalesScreen> {
                                           '$_cachedProductCount SKUs · $_syncStatusText',
                                           style: TextStyle(
                                             color: _cachedProductCount > 0
-                                                ? Colors.white30
+                                                ? cs.onSurface.withValues(alpha: 0.3)
                                                 : Colors.amber.shade300,
                                             fontSize: 9,
                                           ),
@@ -579,10 +586,10 @@ class _SalesScreenState extends State<SalesScreen> {
                               ),
 
                               IconButton(
-                                icon: const Icon(Icons.list_rounded, color: Colors.white, size: 24),
+                                icon: Icon(Icons.list_rounded, color: cs.onSurface, size: 24),
                                 onPressed: _toggleCartSheet,
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.04),
+                                  backgroundColor: cs.onSurface.withValues(alpha: 0.04),
                                   padding: const EdgeInsets.all(12),
                                 ),
                               ),
@@ -591,7 +598,7 @@ class _SalesScreenState extends State<SalesScreen> {
                         ),
 
                         const SizedBox(height: 16),
-                        const Divider(color: Colors.white10, height: 1),
+                        Divider(color: cs.onSurface.withValues(alpha: 0.1), height: 1),
 
                         // Cart content
                         if (state.items.isEmpty) ...[
@@ -602,27 +609,27 @@ class _SalesScreenState extends State<SalesScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.02),
+                                    color: cs.onSurface.withValues(alpha: 0.02),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.receipt_long_outlined,
-                                    color: Colors.white24,
+                                    color: cs.onSurface.withValues(alpha: 0.24),
                                     size: 48,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'No hay productos agregados',
-                                  style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 6),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 40),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 40),
                                   child: Text(
                                     'Apunta la cámara a un código de barras o utiliza la lupa arriba para agregarlos.',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.white10, fontSize: 12),
+                                    style: TextStyle(color: cs.onSurface.withValues(alpha: 0.1), fontSize: 12),
                                   ),
                                 ),
                               ],
@@ -640,10 +647,10 @@ class _SalesScreenState extends State<SalesScreen> {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.03),
+                                  color: cs.onSurface.withValues(alpha: 0.03),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.04),
+                                    color: cs.onSurface.withValues(alpha: 0.04),
                                   ),
                                 ),
                                 child: Row(
@@ -656,8 +663,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                             item.product.name,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Colors.white,
+                                            style: TextStyle(
+                                              color: cs.onSurface,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 15,
                                             ),
@@ -667,8 +674,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                             item.product.code ?? item.product.sku,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Colors.white38,
+                                            style: TextStyle(
+                                              color: cs.onSurface.withValues(alpha: 0.38),
                                               fontSize: 11,
                                               letterSpacing: 0.5,
                                             ),
@@ -681,8 +688,8 @@ class _SalesScreenState extends State<SalesScreen> {
                                       child: Text(
                                         '\$${item.lineTotal.toStringAsFixed(2)}',
                                         textAlign: TextAlign.right,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: cs.onSurface,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
                                         ),
@@ -692,9 +699,9 @@ class _SalesScreenState extends State<SalesScreen> {
                                     Row(
                                       children: [
                                         IconButton(
-                                          icon: const Icon(
+                                          icon: Icon(
                                             Icons.remove_circle,
-                                            color: Colors.white54,
+                                            color: cs.onSurface.withValues(alpha: 0.54),
                                             size: 30,
                                           ),
                                           onPressed: () {
@@ -715,17 +722,17 @@ class _SalesScreenState extends State<SalesScreen> {
                                           padding: const EdgeInsets.symmetric(horizontal: 10),
                                           child: Text(
                                             '${item.quantity}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
+                                            style: TextStyle(
+                                              color: cs.onSurface,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
                                             ),
                                           ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(
+                                          icon: Icon(
                                             Icons.add_circle,
-                                            color: Colors.white,
+                                            color: cs.onSurface,
                                             size: 30,
                                           ),
                                           onPressed: () => bloc.add(
@@ -758,10 +765,10 @@ class _SalesScreenState extends State<SalesScreen> {
                                   width: sliderWidth,
                                   height: 56,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
+                                    color: cs.onSurface.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(28),
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.1),
+                                      color: cs.onSurface.withValues(alpha: 0.1),
                                     ),
                                   ),
                                   child: Stack(
@@ -788,16 +795,16 @@ class _SalesScreenState extends State<SalesScreen> {
                                           child: Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.keyboard_double_arrow_right_rounded,
-                                                color: Colors.white,
+                                                color: cs.onSurface,
                                                 size: 20,
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
                                                 'DESLIZAR PARA COBRAR (\$${state.grandTotal.toStringAsFixed(2)})',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
+                                                style: TextStyle(
+                                                  color: cs.onSurface,
                                                   fontWeight: FontWeight.w900,
                                                   fontSize: 13,
                                                   letterSpacing: 0.5,
@@ -900,15 +907,17 @@ class _SalesScreenState extends State<SalesScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
+        final cardBg = Theme.of(dialogContext).cardColor;
         return AlertDialog(
-          backgroundColor: const Color(0xFF12141A),
+          backgroundColor: cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Búsqueda Rápida',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
               ),
               IconButton(
                 icon: _isSyncing
@@ -938,17 +947,17 @@ class _SalesScreenState extends State<SalesScreen> {
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.cloud_download_outlined, color: Colors.white24, size: 48),
+                      Icon(Icons.cloud_download_outlined, color: cs.onSurface.withValues(alpha: 0.24), size: 48),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'No hay productos en caché local.',
-                        style: TextStyle(color: Colors.white38, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38), fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Pulsa el botón de sincronización para descargar el catálogo del servidor.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white24, fontSize: 12),
+                        style: TextStyle(color: cs.onSurface.withValues(alpha: 0.24), fontSize: 12),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
@@ -973,11 +982,11 @@ class _SalesScreenState extends State<SalesScreen> {
                         contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                         title: Text(
                           p['name'] as String,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           'Código: ${p['code']}  ·  \$${(p['price'] as double).toStringAsFixed(2)}',
-                          style: const TextStyle(color: Colors.white38),
+                          style: TextStyle(color: cs.onSurface.withValues(alpha: 0.38)),
                         ),
                         trailing: const Icon(Icons.add_circle, color: Color(0xFF00E676)),
                         onTap: () {

@@ -90,7 +90,7 @@ async def verify_collaborator(
             internal_id=collaborator.internal_id,
             full_name=collaborator.full_name,
             home_warehouse_id=collaborator.home_warehouse_id,
-            department=collaborator.department,
+            department=collaborator.department.name if collaborator.department else None,
             is_supervisor=is_supervisor,
             company_id=collaborator.company_id,
             tenant_id=collaborator.tenant_id,

@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,8 @@ from common.responses import ApiResponse
 from common.config import settings
 from auth_app.models import Company
 from common.repository import BaseRepository
+from common.security.dependencies import require_scope
+from common.domain.entities.user_context import UserContext
 
 router = APIRouter()
 
@@ -126,7 +129,6 @@ async def update_company(
         )
 
     if company_in.name is not None:
-        # Check if the new name already exists for another company
         existing_company_query = select(Company).where(Company.name == company_in.name, Company.id != company_id)
         existing_company_result = await db.execute(existing_company_query)
         if existing_company_result.scalar_one_or_none():
@@ -135,7 +137,18 @@ async def update_company(
                 detail="Company with this name already exists"
             )
         company.name = company_in.name
-    
+
+    if company_in.timezone is not None:
+        company.timezone = company_in.timezone
+
+    if "internal_id_pattern" in company_in.model_fields_set:
+        if company_in.internal_id_pattern is not None:
+            try:
+                re.compile(company_in.internal_id_pattern)
+            except re.error as exc:
+                raise HTTPException(status_code=422, detail=f"Regex inválido: {exc}")
+        company.internal_id_pattern = company_in.internal_id_pattern
+
     await db.commit()
     await db.refresh(company)
     return ApiResponse(
@@ -143,6 +156,42 @@ async def update_company(
         data=CompanyResponse.model_validate(company),
         message="Company updated successfully",
     )
+
+@router.patch(
+    "/my/id-pattern",
+    response_model=ApiResponse,
+    summary="Admin JWT: set collaborator internal_id_pattern for own company",
+)
+async def set_company_id_pattern(
+    request: Request,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserContext = Depends(require_scope(["admin.user.manage"])),
+):
+    """
+    Requires admin JWT. Sets (or clears) internal_id_pattern for the caller's company.
+    Pass `{"internal_id_pattern": "^EMP-\\\\d{4}$"}` or `{"internal_id_pattern": null}` to clear.
+    """
+    pattern = body.get("internal_id_pattern")
+    if pattern is not None:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise HTTPException(status_code=422, detail=f"Regex inválido: {exc}")
+
+    company = await db.get(Company, current_user.company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    company.internal_id_pattern = pattern
+    await db.commit()
+    await db.refresh(company)
+    return ApiResponse(
+        status="success",
+        data={"internal_id_pattern": company.internal_id_pattern},
+        message="Pattern actualizado" if pattern else "Pattern eliminado",
+    )
+
 
 @router.delete(
     "/{company_id}",

@@ -6,6 +6,10 @@
 
 ---
 
+### [2026-05-28] - Phase 153 Hotfix: CollaboratorVerifyResponse department field ✅
+- **`services/collaborator_verify_service.py`** line 93: `department=collaborator.department` → `department=collaborator.department.name if collaborator.department else None`. El campo `department` en `Collaborator` es un ORM relationship (`Department` object), no un string directo — Pydantic no podía serializarlo causando 500 en `POST /api/v1/auth/collaborator-login`.
+- **Status**: ✅ COMPLETED
+
 ### [2026-05-27] - Phase 145: Department Description + Seed Hardening + Mobile Departments ✅
 - **Migration `003_add_department_description`**: Columna `description VARCHAR(250) NULL` añadida a `departments`. Alembic múltiples heads resuelto — usar `alembic upgrade heads` (plural) para respetar las dos ramas paralelas `001_add_audit_logs` y `001_add_id_pattern`.
 - **Model `Department`** (`models/department.py`): Campo `description: Mapped[Optional[str]]` añadido. Espeja `Department.Description` del .NET legacy (max 250 chars).

@@ -17,12 +17,18 @@ class CompanyCreate(CompanyBase):
 # Properties to receive on company update
 class CompanyUpdate(CompanyBase):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    logo: Optional[str] = None # Explicitly add to allow updating logo
+    logo: Optional[str] = None
+    timezone: Optional[str] = Field(None, max_length=50)
+    internal_id_pattern: Optional[str] = Field(
+        None, max_length=200,
+        description="Regex para validar internal_id en login kiosko. Ej: ^EMP-\\\\d{4}$"
+    )
 
 # Properties to return to client
 class CompanyResponse(CompanyBase):
-    # CORRECCIÓN: Tipo UUID en lugar de int
     id: UUID
-    logo: Optional[str] = None # Include logo in response
-    
+    logo: Optional[str] = None
+    timezone: Optional[str] = None
+    internal_id_pattern: Optional[str] = None
+
     model_config = ConfigDict(from_attributes=True)
