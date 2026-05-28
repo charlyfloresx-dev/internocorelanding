@@ -8,7 +8,7 @@ import uuid
 from mes_app.domain.repositories.interfaces import (
     IProductionRunRepository, IManufacturingLedgerRepository,
     IDowntimeRepository, ILaborRepository, IGoalRepository,
-    IShiftRepository, IResourceRepository, IWMSClient
+    IShiftRepository, IResourceRepository, IWMSClient, IWorkOrderRepository,
 )
 from mes_app.domain.repositories.event_interfaces import (
     IProductionEventRepository, IProductionSessionRepository
@@ -18,7 +18,7 @@ from mes_app.domain.repositories.event_interfaces import (
 from mes_app.infrastructure.repositories.sqlalchemy_repositories import (
     SQLAlchemyProductionRunRepository, SQLAlchemyManufacturingLedgerRepository,
     SQLAlchemyDowntimeRepository, SQLAlchemyLaborRepository, SQLAlchemyGoalRepository,
-    SQLAlchemyShiftRepository, SQLAlchemyResourceRepository
+    SQLAlchemyShiftRepository, SQLAlchemyResourceRepository, SQLAlchemyWorkOrderRepository,
 )
 from mes_app.infrastructure.repositories.event_repositories import (
     SQLAlchemyProductionEventRepository, SQLAlchemyProductionSessionRepository
@@ -64,3 +64,6 @@ def get_resource_repo(db: AsyncSession = Depends(get_db)) -> IResourceRepository
 
 def get_wms_client() -> IWMSClient:
     return SQLAlchemyWMSClient()
+
+def get_work_order_repo(db: AsyncSession = Depends(get_db)) -> IWorkOrderRepository:
+    return SQLAlchemyWorkOrderRepository(db)

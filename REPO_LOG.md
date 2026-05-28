@@ -3,6 +3,29 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 151: MES — manufactured_quantity + WO Status Transitions ✅
+
+**Objetivo:** Conectar el flujo de escaneo con el contador de progreso de la WorkOrder.
+
+**`IWorkOrderRepository`** (nueva interfaz + implementación):
+- `increment_manufactured_quantity(work_order_id, qty, company_id)`: incrementa `manufactured_quantity`, actualiza `actual_quantity` de la línea PLANNED_OUTPUT, y conduce transiciones de estado.
+
+**Transiciones de status automáticas:**
+- `DRAFT → IN_PROGRESS`: en el primer escaneo registrado.
+- `IN_PROGRESS → COMPLETED`: cuando `manufactured_quantity >= order_quantity`.
+- Sobreproducción permitida (sigue acumulando, status=COMPLETED).
+
+**`ScannerService`**: inyección de `wo_repo`; llama `increment_manufactured_quantity()` post-ledger-entry (best-effort: excepción en WO no rechaza el escaneo).
+
+**Archivos clave:**
+- `mes_app/domain/repositories/interfaces.py` — `IWorkOrderRepository`
+- `mes_app/infrastructure/repositories/sqlalchemy_repositories.py` — `SQLAlchemyWorkOrderRepository`
+- `mes_app/services/scanner_service.py` — `wo_repo` injection
+- `mes_app/api/v1/endpoints/scan.py` — `get_work_order_repo` dependency
+- `tests/integration/test_manufactured_quantity.py` — 9 tests
+
+---
+
 ### [2026-05-28] Phase 150: MES Service — WorkOrder Document+Lines Pattern + Deployment ✅
 
 **Objetivo:** Implementar el Patrón Documento+Líneas en MES, desplegar mes-service en el stack Docker y escribir tests de integración contra mes_db real.

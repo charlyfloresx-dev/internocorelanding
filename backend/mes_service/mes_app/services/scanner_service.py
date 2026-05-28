@@ -2,30 +2,33 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Any
 from mes_app.domain.repositories.interfaces import (
-    IProductionRunRepository, IManufacturingLedgerRepository, ILaborRepository, IWMSClient
+    IProductionRunRepository, IManufacturingLedgerRepository,
+    ILaborRepository, IWMSClient, IWorkOrderRepository,
 )
 from mes_app.services.parser_service import ParserService
 from common.exceptions import BusinessRuleException
 
 class ScannerService:
     """
-    Orquestador principal del proceso de escaneo. 
+    Orquestador principal del proceso de escaneo.
     100% Shielded from Infrastructure and app.models.
     """
-    
+
     GRACE_PERIOD_MINUTES = 10
 
     def __init__(
-        self, 
+        self,
         run_repo: IProductionRunRepository,
-        ledger_repo: IManufacturingLedgerRepository, 
+        ledger_repo: IManufacturingLedgerRepository,
         labor_repo: ILaborRepository,
-        wms_client: IWMSClient
+        wms_client: IWMSClient,
+        wo_repo: IWorkOrderRepository,
     ):
         self.run_repo = run_repo
         self.ledger_repo = ledger_repo
         self.labor_repo = labor_repo
         self.wms = wms_client
+        self.wo_repo = wo_repo
         self.parser = ParserService()
 
     async def process_scan(
@@ -64,6 +67,18 @@ class ScannerService:
             local_txn_id=local_txn_id,
             is_synced=True
         )
+
+        # Update WorkOrder progress counters (best-effort — scan is never blocked by WO state)
+        run = await self.run_repo.get_by_id(resource_result_id)
+        if run and run.work_order_id:
+            try:
+                await self.wo_repo.increment_manufactured_quantity(
+                    work_order_id=run.work_order_id,
+                    qty=qty,
+                    company_id=company_id,
+                )
+            except Exception:
+                pass  # WO update failure must not reject a valid scan
 
         return ledger_entry, warning
 

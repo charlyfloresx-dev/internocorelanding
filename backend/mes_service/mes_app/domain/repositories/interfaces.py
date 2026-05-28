@@ -1,7 +1,8 @@
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, TYPE_CHECKING
 from datetime import datetime
+from decimal import Decimal
 
 class IProductionRunRepository(ABC):
     @abstractmethod
@@ -61,4 +62,23 @@ class IResourceRepository(ABC):
 class IWMSClient(ABC):
     @abstractmethod
     async def check_stock(self, sku: str, company_id: str) -> Dict[str, Any]:
+        pass
+
+
+class IWorkOrderRepository(ABC):
+    """Updates WorkOrder progress counters when a scan is recorded."""
+
+    @abstractmethod
+    async def increment_manufactured_quantity(
+        self,
+        work_order_id: uuid.UUID,
+        qty: "Decimal",
+        company_id: uuid.UUID,
+    ) -> None:
+        """
+        Atomically increments WorkOrder.manufactured_quantity and the
+        PLANNED_OUTPUT line's actual_quantity.  Also drives status transitions:
+          DRAFT → IN_PROGRESS (on first scan)
+          IN_PROGRESS → COMPLETED (when manufactured_quantity >= order_quantity)
+        """
         pass

@@ -5,9 +5,9 @@ from typing import List, Optional, Any
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from mes_app.domain.repositories.interfaces import (
-    IProductionRunRepository, IManufacturingLedgerRepository, 
+    IProductionRunRepository, IManufacturingLedgerRepository,
     IDowntimeRepository, ILaborRepository, IGoalRepository,
-    IShiftRepository, IResourceRepository
+    IShiftRepository, IResourceRepository, IWorkOrderRepository,
 )
 from mes_app.models.production_run import ProductionRun
 from mes_app.models.ledger import ManufacturingLedger
@@ -16,6 +16,9 @@ from mes_app.models.labor import Labor
 from mes_app.models.kpi import Goal
 from mes_app.models.shift import Shift
 from mes_app.models.resource import Resource
+from mes_app.models.work_order import WorkOrder
+from mes_app.models.work_order_line import WorkOrderLine
+from mes_app.core.enums import WorkOrderLineType, WorkOrderLineStatus
 
 class SQLAlchemyProductionRunRepository(IProductionRunRepository):
     def __init__(self, db: AsyncSession):
@@ -141,3 +144,41 @@ class SQLAlchemyResourceRepository(IResourceRepository):
             query = query.where(Resource.company_id == company_id)
         res = await self.db.execute(query)
         return res.scalars().first()
+
+
+class SQLAlchemyWorkOrderRepository(IWorkOrderRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def increment_manufactured_quantity(
+        self,
+        work_order_id: uuid.UUID,
+        qty: Decimal,
+        company_id: uuid.UUID,
+    ) -> None:
+        wo = await self.db.get(WorkOrder, work_order_id)
+        if not wo:
+            return
+
+        int_qty = int(qty)
+        wo.manufactured_quantity = (wo.manufactured_quantity or 0) + int_qty
+
+        if wo.status == "DRAFT":
+            wo.status = "IN_PROGRESS"
+        if wo.manufactured_quantity >= wo.order_quantity:
+            wo.status = "COMPLETED"
+
+        result = await self.db.execute(
+            select(WorkOrderLine).where(
+                WorkOrderLine.work_order_id == work_order_id,
+                WorkOrderLine.line_type == WorkOrderLineType.PLANNED_OUTPUT,
+                WorkOrderLine.company_id == company_id,
+            )
+        )
+        output_line = result.scalar_one_or_none()
+        if output_line:
+            output_line.actual_quantity = output_line.actual_quantity + qty
+            if output_line.actual_quantity >= output_line.planned_quantity:
+                output_line.status = WorkOrderLineStatus.COMPLETED
+            elif output_line.actual_quantity > 0:
+                output_line.status = WorkOrderLineStatus.IN_PROGRESS

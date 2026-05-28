@@ -433,9 +433,9 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**MES** Dockerfile paths obsoletos + servicio no desplegable~~ — ✅ RESUELTO Phase 150 |
 | ~~ALTA~~ | ~~**MES** `mes_db` vacía~~ — ✅ RESUELTO Phase 150 (22 tablas, 8 migraciones aplicadas) |
 | ~~ALTA~~ | ~~**MES** Tests de integración WorkOrder~~ — ✅ RESUELTO Phase 150 (17 tests contra mes_db real) |
-| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza — requiere `WorkOrderLine(ACTUAL_OUTPUT)` + ScannerService hook |
+| ~~ALTA~~ | ~~**MES** `WorkOrder.manufactured_quantity` nunca se actualiza~~ — ✅ RESUELTO Phase 151 (ScannerService hook + status transitions DRAFT→IN_PROGRESS→COMPLETED) |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
-| MEDIA | **MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED |
+| ~~MEDIA~~ | ~~**MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED~~ — ✅ RESUELTO Phase 151 |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
 | MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |

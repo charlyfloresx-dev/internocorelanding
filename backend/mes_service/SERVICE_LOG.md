@@ -5,6 +5,18 @@
 
 ---
 
+### [2026-05-28] - Phase 151: manufactured_quantity + WO Status Transitions ✅
+
+- **`IWorkOrderRepository`** (nueva): `increment_manufactured_quantity(work_order_id, qty, company_id)` — incrementa contador header + actual_quantity de PLANNED_OUTPUT line.
+- **Status transitions automáticas:** DRAFT→IN_PROGRESS (primer scan), IN_PROGRESS→COMPLETED (manufactured_qty >= order_qty). Sobreproducción permitida.
+- **`ScannerService`**: añadido `wo_repo: IWorkOrderRepository` al constructor. Post-ledger, llama increment best-effort (excepción en WO nunca rechaza scan).
+- **`scan.py` endpoint**: inyecta `get_work_order_repo` vía Depends.
+- **`dependencies.py`**: `get_work_order_repo()` registrado.
+- **Tests**: 9 integration tests en `tests/integration/test_manufactured_quantity.py` — todos pasan.
+- **Status**: ✅ COMPLETED — 29 tests passing en suite MES.
+
+---
+
 ### [2026-05-28] - Phase 150: WorkOrder Document+Lines Pattern + Deployment ✅
 
 - **Infraestructura desplegada:** `Dockerfile` reescrito (`app` → `mes_app`), `entrypoint.sh` creado, `docker-compose.dev.yml` + `nginx.conf` + `migrate_all.ps1` actualizados. `interno-mes-dev` corriendo en puerto 8005.
