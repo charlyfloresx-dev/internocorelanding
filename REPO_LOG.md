@@ -3,6 +3,51 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 150: MES Service — WorkOrder Document+Lines Pattern + Deployment ✅
+
+**Objetivo:** Implementar el Patrón Documento+Líneas en MES, desplegar mes-service en el stack Docker y escribir tests de integración contra mes_db real.
+
+**Infraestructura:**
+- `Dockerfile` reescrito: paths `app` → `mes_app`, entrypoint.sh estándar (migrate→seed→serve).
+- `docker-compose.dev.yml`: añadido bloque `mes-service` (puerto 8005, `mes_db`).
+- `nginx.conf`: descomentada ruta `/api/v1/mes` → `mes-service:8000`.
+- `migrate_all.ps1`: añadido `interno-mes-dev` al array de servicios.
+
+**Modelos:**
+- `WorkOrder`: añadidos `wo_type: WOType` (enum PostgreSQL), `rout_id` (UUID nullable), `lines` relationship.
+- `WorkOrderLine` (NUEVO): Patrón Documento+Líneas — `MATERIAL_INPUT` (BOM explode) + `PLANNED_OUTPUT` (pieza terminada). `work_order_id` con `ForeignKey` + `ondelete=CASCADE`.
+- Enums nuevos en `mes_app/core/enums.py`: `WOType`, `WorkOrderLineType`, `WorkOrderLineStatus`, `ProdIssueType`, `IssueType`.
+
+**Migration 008** (`008_wo_doc_pattern`):
+- Crea 3 enums PostgreSQL nativos con DO blocks idempotentes (docker restart safe).
+- Añade `tenant_id` (nullable) a las 10 tablas existentes en `mes_db`.
+- Crea `mes_work_order_lines` con FK cascade, unique constraint `(work_order_id, line_number)`.
+- Usa `postgresql.ENUM(..., create_type=False)` para evitar conflictos de tipo existente.
+
+**WorkOrderHandler:**
+- `_fetch_bom()`: GET best-effort a inventory-service; retorna `[]` si falla (WO se crea igual).
+- `handle_create()`: BOM explode → `N` líneas `MATERIAL_INPUT` + 1 línea `PLANNED_OUTPUT`. CQRS `begin_nested()`.
+
+**Endpoints nuevos:**
+- `GET /api/v1/mes/work-orders/{order_number}/lines` → `List[WorkOrderLineRead]`.
+
+**Tests (17 integration tests + 3 unit tests):**
+- `tests/integration/test_work_order_lines.py`: schema verification, CRUD, handler BOM explode, cascade delete, FK constraint — todos contra PostgreSQL real.
+- `conftest.py` (root + integration): carga `.env` raíz con `python-dotenv` antes de imports de `common`.
+- `test_work_order.py`: migrado de SQLite a PostgreSQL (SQLite incompatible con JSONB/UUID).
+
+**Bug encontrado durante tests:** `WorkOrderLine.work_order_id` faltaba declaración `ForeignKey` en el ORM — migrado al definir la columna correctamente.
+
+**Archivos clave:**
+- `backend/mes_service/Dockerfile`
+- `backend/mes_service/entrypoint.sh`
+- `backend/mes_service/mes_app/models/work_order_line.py`
+- `backend/mes_service/mes_app/core/handlers/work_order_handler.py`
+- `backend/mes_service/alembic/versions/008_add_workorder_document_pattern.py`
+- `backend/mes_service/tests/integration/test_work_order_lines.py`
+- `infrastructure/docker/docker-compose.dev.yml`
+
+---
 ### [2026-05-27] Phase 149: MES WorkOrder + Inventory BOM — CRITICAL Bug Fixes ✅
 
 **Objetivo:** Corregir dos bugs CRÍTICOS que impedían la creación de WorkOrders en MES y causaban `AttributeError` en cualquier representación de objetos BOM en inventory.

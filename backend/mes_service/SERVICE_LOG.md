@@ -5,6 +5,20 @@
 
 ---
 
+### [2026-05-28] - Phase 150: WorkOrder Document+Lines Pattern + Deployment ✅
+
+- **Infraestructura desplegada:** `Dockerfile` reescrito (`app` → `mes_app`), `entrypoint.sh` creado, `docker-compose.dev.yml` + `nginx.conf` + `migrate_all.ps1` actualizados. `interno-mes-dev` corriendo en puerto 8005.
+- **`models/work_order_line.py`** (NUEVO): `WorkOrderLine(MultiTenantBase)` — `work_order_id` con `ForeignKey("mes_work_orders.id", ondelete="CASCADE")`, `line_type: WorkOrderLineType` (MATERIAL_INPUT / PLANNED_OUTPUT / SCRAP), `planned_quantity / actual_quantity: Decimal`, `bom_id: UUID nullable`, unique constraint `(work_order_id, line_number)`.
+- **`models/work_order.py`**: `wo_type: WOType` (nullable), `rout_id: UUID` (nullable), `lines: List[WorkOrderLine]` relationship (selectin, cascade delete-orphan).
+- **`core/enums.py`**: Añadidos `WOType` (7 valores), `WorkOrderLineType`, `WorkOrderLineStatus`, `ProdIssueType`, `IssueType`.
+- **`core/handlers/work_order_handler.py`**: BOM explode — `_fetch_bom()` GET best-effort a `inventory-service:8000`; N líneas `MATERIAL_INPUT` (qty = bom.qty × order_qty) + 1 línea `PLANNED_OUTPUT`. `begin_nested()` para CQRS atomicity.
+- **`api/v1/endpoints/work_order.py`**: Nuevo endpoint `GET /{order_number}/lines → List[WorkOrderLineRead]`. `WorkOrderCreate` acepta `wo_type`.
+- **Migration 008** (`008_wo_doc_pattern`): 3 enums PostgreSQL con DO blocks idempotentes; `tenant_id` a 10 tablas existentes; crea `mes_work_order_lines`.
+- **Tests:** 17 integration tests contra `mes_db` real + 3 unit tests (todos pasan). Bug descubierto: `work_order_id` sin `ForeignKey` en modelo — corregido en esta fase.
+- **Status**: ✅ COMPLETED — 22 tablas en mes_db, 8 migraciones, servicio live en puerto 8005.
+
+---
+
 ### [2026-05-27] - Phase 149: WorkOrder CRITICAL Bug Fix ✅
 
 - **`models/work_order.py`**: Añadidas dos columnas ausentes: `alias: Mapped[Optional[str]]` (String 100, nullable) y `release_date: Mapped[Optional[datetime]]` (DateTime tz-aware, nullable). El handler las requería desde Phase 137 pero no existían en el modelo → `WorkOrder()` constructor fallaba en runtime.

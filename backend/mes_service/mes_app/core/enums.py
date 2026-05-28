@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ProductionEventType(str, Enum):
     START = "START"
     PAUSE = "PAUSE"
@@ -7,3 +8,46 @@ class ProductionEventType(str, Enum):
     STOP = "STOP"
     SCRAP = "SCRAP"
     FINISH = "FINISH"
+
+
+class WOType(str, Enum):
+    NON_STANDARD = "NON_STANDARD"
+    STANDARD = "STANDARD"
+    REPAIR = "REPAIR"
+    REWORK = "REWORK"
+    TEST = "TEST"
+    TOOLING = "TOOLING"
+    SCRAP_REPLACEMENT = "SCRAP_REPLACEMENT"
+
+
+class ProdIssueType(str, Enum):
+    SCHEDULED_STOPS = "SCHEDULED_STOPS"
+    EQUIPMENT_FAILURES = "EQUIPMENT_FAILURES"
+    PARTS_TOOL_CHANGE = "PARTS_TOOL_CHANGE"
+    SETTING_ADJUSTMENT = "SETTING_ADJUSTMENT"
+    START_UP = "START_UP"
+    MINOR_STOPPAGES = "MINOR_STOPPAGES"
+    REDUCED_SPEED = "REDUCED_SPEED"
+    OTHERS = "OTHERS"
+
+
+class IssueType(str, Enum):
+    PERSONAL = "PERSONAL"
+    MATERIAL = "MATERIAL"
+    METHOD = "METHOD"
+    EQUIPMENT = "EQUIPMENT"
+    SERVICE = "SERVICE"
+    MANAGEMENT = "MANAGEMENT"
+
+
+class WorkOrderLineType(str, Enum):
+    MATERIAL_INPUT = "MATERIAL_INPUT"
+    PLANNED_OUTPUT = "PLANNED_OUTPUT"
+    SCRAP = "SCRAP"
+
+
+class WorkOrderLineStatus(str, Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"

@@ -246,6 +246,35 @@ services:
     restart: unless-stopped
 
   # ==================================
+  # MES Service (Manufacturing)
+  # ==================================
+  mes-service:
+    build:
+      context: ../../backend
+      dockerfile: mes_service/Dockerfile
+    container_name: interno-mes-dev
+    image: interno-mes-service:latest
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/mes_service:/app
+      - ../../backend/common:/app/common
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/mes_db
+      CORE_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-internocore_db_pass_2026}@interno-db-dev:5432/mes_db
+    ports:
+      - "8005:8000"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - interno-network
+    restart: unless-stopped
+
+  # ==================================
   # WhatsApp Gateway (Local Multitenant)
   # ==================================
   whatsapp-gateway:
@@ -290,6 +319,8 @@ services:
       notification-service:
         condition: service_started
       hcm-service:
+        condition: service_started
+      mes-service:
         condition: service_started
     networks:
       - interno-network

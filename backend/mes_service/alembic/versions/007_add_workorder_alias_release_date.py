@@ -8,7 +8,7 @@ Create Date: 2026-05-27
 from alembic import op
 import sqlalchemy as sa
 
-revision = '007_add_workorder_alias_release_date'
+revision = '007_wo_alias'
 down_revision = '006_mes_cycle_time_and_breaks'
 branch_labels = None
 depends_on = None

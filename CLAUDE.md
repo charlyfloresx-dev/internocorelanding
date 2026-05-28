@@ -7,6 +7,22 @@
 
 ---
 
+## 0. Protocolo de Modelos (Leer Primero)
+
+**MODELO BASE** → `/model opus` al inicio de cada sesión. Opus planifica, Sonnet ejecuta. Automático.
+
+**ESCALAR A OPUS** → arquitectura desde cero, bugs que Sonnet no resuelve en 2 intentos, decisiones críticas de dominio.
+
+**BAJAR A SONNET** → tests, cambios repetitivos, preguntas de sintaxis.
+
+**CONTEXTO** → `/compact` cada ~30 mensajes. `/clear` al cambiar de tarea. Solo añade el archivo que Claude necesita, nunca carpetas enteras.
+
+**FLUJO** → activa Plan Mode (Shift+Tab) → Opus planifica → apruebas → Sonnet ejecuta → `/clear` al terminar.
+
+**LO QUE DISPARA LA FACTURA** → cancelar y rehacer sin limpiar contexto, refactors masivos sin Plan Mode, usar Opus para boilerplate.
+
+---
+
 ## 1. Arquitectura General
 
 **Modo actual:** Microservicios en Docker local orquestados por Nginx Gateway (puerto 8000).  
@@ -406,18 +422,18 @@ python backend/scripts/generate_code_graph.py
 
 ---
 
-## 13. Deuda Técnica Activa (al 2026-05-27)
+## 13. Deuda Técnica Activa (al 2026-05-28)
 
 | Prioridad | Item |
 |---|---|
 | ~~CRÍTICA~~ | ~~**MES** `WorkOrder` model↔handler mismatch~~ — ✅ RESUELTO Phase 149 |
 | ~~CRÍTICA~~ | ~~**MES/Inventory** `BOM.__repr__` referencia `parent_item_code`~~ — ✅ RESUELTO Phase 149 |
-| ALTA | **MES** WorkOrder Patrón Documento+Líneas — `WorkOrderLine` faltante, `WorkOrder` no hereda `WorkOrderBase`. Spec: `docs/specs/MES_WORKORDER_DOCUMENT_PATTERN.md` |
-| ALTA | **MES** Backflush de materiales — se resuelve con `WorkOrderLine(MATERIAL_INPUT)` (bloqueado por tarea anterior) |
-| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza — se resuelve con `WorkOrderLine(ACTUAL_OUTPUT)` (bloqueado por tarea anterior) |
-| ALTA | **MES** Dockerfile usa paths obsoletos (`app` en vez de `mes_app`) — servicio no desplegable. Corregir COPY + CMD + agregar a docker-compose + nginx |
-| ALTA | **MES** `mes_db` vacía (0 tablas) — `alembic upgrade head` nunca corrió. Bloqueado por tarea de Dockerfile |
-| ALTA | **MES** Tests de integración WorkOrder contra `mes_db` real — bloqueados por las dos tareas anteriores |
+| ~~ALTA~~ | ~~**MES** WorkOrder Patrón Documento+Líneas~~ — ✅ RESUELTO Phase 150 |
+| ~~ALTA~~ | ~~**MES** Backflush MATERIAL_INPUT lines~~ — ✅ RESUELTO Phase 150 (BOM explode en WorkOrderHandler) |
+| ~~ALTA~~ | ~~**MES** Dockerfile paths obsoletos + servicio no desplegable~~ — ✅ RESUELTO Phase 150 |
+| ~~ALTA~~ | ~~**MES** `mes_db` vacía~~ — ✅ RESUELTO Phase 150 (22 tablas, 8 migraciones aplicadas) |
+| ~~ALTA~~ | ~~**MES** Tests de integración WorkOrder~~ — ✅ RESUELTO Phase 150 (17 tests contra mes_db real) |
+| ALTA | **MES** `WorkOrder.manufactured_quantity` nunca se actualiza — requiere `WorkOrderLine(ACTUAL_OUTPUT)` + ScannerService hook |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
 | MEDIA | **MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
@@ -431,10 +447,10 @@ python backend/scripts/generate_code_graph.py
 | BAJA | WMS no desplegado en dev stack |
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
-| BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar (archivo existe, cuerpo vacío). FK `wo_type` en WorkOrder también falta |
+| BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar (archivo existe, cuerpo vacío). FK `rout_id` en WorkOrder existe pero es nullable |
 | BAJA | **MES** `Planning` + `Facility` + `ProductionArea` models faltantes (warehouse scheduling, planta física) |
 | BAJA | **MES** `ProductionRunWorkOrder` pivot (many-to-many ProductionRun↔WorkOrder) faltante |
-| BAJA | **MES** Enums faltantes en `core/enums.py`: `WOType` (7 valores), `ProdIssueType` (8 valores), `IssueType` (6 valores) |
+| BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
 | BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |
 | BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count (para calcular GainedHrs/Attainment/Eficiency) |
 | BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |

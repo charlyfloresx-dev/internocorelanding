@@ -2,7 +2,7 @@ FROM python:3.11-slim-bullseye
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH=/app:/app/mes_service
+ENV PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -20,18 +20,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # 3. Copia de la estructura del servicio
 COPY common /app/common
-COPY mes_service/app /app/app
+COPY mes_service/mes_app /app/mes_app
 COPY mes_service/scripts /app/scripts
 COPY mes_service/alembic /app/alembic
 COPY mes_service/alembic.ini /app/alembic.ini
+COPY mes_service/entrypoint.sh /app/entrypoint.sh
 
 # 4. Ajuste de permisos
 RUN addgroup --system app && adduser --system --group app && \
+    chmod +x /app/entrypoint.sh && \
     chown -R app:app /app
 
 USER app
 
 EXPOSE 8000
 
-# 5. Ejecución: Estandarizada
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["/bin/sh", "/app/entrypoint.sh"]

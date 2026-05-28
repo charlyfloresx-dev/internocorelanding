@@ -1,32 +1,15 @@
-import pytest
-import asyncio
-from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from app.infrastructure.database import get_db
-from app.main import app
-from common.models import Base
+import sys
+import os
+from dotenv import load_dotenv
 
-# Usar base de datos en memoria para tests
-DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# ── Path resolution ────────────────────────────────────────────────────────────
+_service_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_backend_root = os.path.abspath(os.path.join(_service_root, ".."))
+_repo_root    = os.path.abspath(os.path.join(_backend_root, ".."))
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+for _p in [_service_root, _backend_root]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-@pytest.fixture(scope="session")
-async def db_engine():
-    engine = create_async_engine(DATABASE_URL, pool_pre_ping=True, echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
-
-@pytest.fixture
-async def db(db_engine) -> AsyncGenerator[AsyncSession, None]:
-    async_session = async_sessionmaker(
-        db_engine, class_=AsyncSession, expire_on_commit=False
-    )
-    async with async_session() as session:
-        yield session
+# Load root .env before importing common (which validates config at import time)
+load_dotenv(os.path.join(_repo_root, ".env"), override=False)
