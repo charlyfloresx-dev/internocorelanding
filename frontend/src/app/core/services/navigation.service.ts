@@ -61,11 +61,14 @@ export class NavigationService {
       label: 'Producción',
       translation_key: 'menu.production',
       icon: 'precision_manufacturing',
-      permissions: ['mes:admin', 'production:manage'],
+      permissions: ['mes:admin', 'production:manage', 'admin.user.manage', 'master_data:write'],
       subItems: [
-        { id: 'prod-dash', label: 'Dashboard Producción', translation_key: 'menu.production_dashboard', route: '/production/dashboard' },
-        { id: 'prod-monitor', label: 'Monitor de Línea', translation_key: 'menu.production_monitor', route: '/monitor/resources' },
-        { id: 'prod-orders', label: 'Órdenes de Trabajo', translation_key: 'menu.production_lines', route: '/production/orders' }
+        { id: 'prod-dash',     label: 'Dashboard Producción',    translation_key: 'menu.production_dashboard', route: '/production/dashboard' },
+        { id: 'prod-monitor',  label: 'Monitor de Línea',        translation_key: 'menu.production_monitor',   route: '/monitor/resources' },
+        { id: 'prod-planning', label: 'Planificación Diaria',    translation_key: 'menu.production_planning',  route: '/production/planning', permissions: ['admin.user.manage', 'master_data:write'] },
+        { id: 'prod-config-resources', label: 'Recursos (Celdas/Máq)', translation_key: 'menu.production_resources', route: '/production/config/resources', permissions: ['admin.user.manage', 'master_data:write'] },
+        { id: 'prod-config-shifts',    label: 'Turnos y Horarios',      translation_key: 'menu.production_shifts',    route: '/production/config/shifts',    permissions: ['admin.user.manage', 'master_data:write'] },
+        { id: 'prod-item-config',      label: 'Config. Ítems MES',      translation_key: 'menu.production_item_cfg',  route: '/production/item-config',      permissions: ['admin.user.manage', 'master_data:write'] }
       ]
     },
     {

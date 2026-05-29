@@ -163,6 +163,12 @@ export const routes: Routes = [
             loadComponent: () => import('./modules/production/item-config/mes-item-config.component').then(m => m.MesItemConfigComponent)
           },
           {
+            path: 'planning',
+            canActivate: [permissionGuard],
+            data: { requiredPermission: ['admin.user.manage', 'master_data:write'] },
+            loadComponent: () => import('./modules/production/planning/daily-planning.component').then(m => m.DailyPlanningComponent)
+          },
+          {
             path: 'config',
             children: [
               {
