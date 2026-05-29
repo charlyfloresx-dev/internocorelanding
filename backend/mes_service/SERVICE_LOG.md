@@ -5,6 +5,34 @@
 
 ---
 
+### [2026-05-28] - Phase 154: Resource Monitor Domain — Facility, ProductionArea, Resource expanded, ShiftBreak, GraphicService ✅
+
+**Parte 1 — Modelos + Migration 009:**
+- **`models/facility.py`**: `Facility(MultiTenantBase)` — `mes_facilities`, `UQ(company_id, code)`, `location_description`.
+- **`models/production_area.py`**: `ProductionArea(MultiTenantBase)` — `mes_production_areas`, `facility_id FK SET NULL`.
+- **`models/resource.py`** (expandido): añadidos `description`, `resource_type (CELL|MACHINE|AREA|LINE)`, `capacity Decimal`, `warehouse_id UUID` (soft FK — Iron Wall ADR-02, sin FK DB hacia `inventory_db`), `production_area_id FK`, `code` resizado a `VARCHAR(13)` (paridad con legacy `Warehouse.Code`), `UQ(company_id, code)`.
+- **`models/resource_support_member.py`**: `ResourceSupportMember` — `collaborator_id` soft FK (Iron Wall hacia `hcm_db`), `role VARCHAR(50)` (acepta valores de `HumanResource.Catalog.Autority`).
+- **`models/shift_break.py`**: `ShiftBreak` — portado de `Interno.HumanResource.Models.Catalog.Break + BreaksGroup`: `code (VARCHAR 15)`, `label`, `break_type (BREAK|MEAL|MAINTENANCE)`, `start_time`, `end_time`, `duration_minutes`. Simplifica `BreaksGroup` → breaks directamente vinculados al `Shift`.
+- **`alembic/versions/009_...py`**: usa `_base_cols()` para incluir todos los campos de `MultiTenantBase` (`group_id`, `version_id`, `is_active`, `deleted_at`, `transaction_id`). Bug corregido: `index=True` en `sa.Column()` dentro de `create_table` crea el índice internamente — no usar `op.create_index()` duplicado.
+- **`api/v1/endpoints/resource.py`**: CRUD completo + `GET/POST /facilities`, `GET/POST /production-areas`.
+- **Tests**: 18 integration tests contra `mes_db` real.
+
+**Parte 2 — ResourceGraphicService:**
+- **`services/graphic_service.py`**: `ResourceGraphicService` porta `ResultController.GetGraphic()` del legacy .NET:
+  1. Detecta turno activo (resource-level override → fallback company-wide).
+  2. Genera slots horarios `[shift.start .. shift.end)`, incluyendo turnos nocturnos cross-midnight.
+  3. Aplica `ShiftBreak`s: reduce `disponible[i]` en horas para slots que solapan un descanso.
+  4. Distribuye `planned_qty` como `Meta[]` usando `StandardTime.set_time_hours` (fallback: `round(qty/horas)`).
+  5. Carga `HourlyProductionSnapshot` para `actual[]` por hora.
+  6. Computa `missing/excess/efficiency` por slot.
+  7. Retorna `ResourceGraphicResponse`: `hours[], breaks[], cumulative_table[], total_goal, total_actual`.
+- `get_active_workorder()`: WO con `status=IN_PROGRESS` para el recurso hoy.
+- `get_planned_workorders()`: WOs `DRAFT+IN_PROGRESS` del turno actual.
+- **3 endpoints HTTP**: `GET /{code}/graphic`, `/{code}/active-workorder`, `/{code}/planned-workorders`.
+- **Tests**: 11 integration tests — **55/55 pasando** (0 regresiones).
+
+---
+
 ### [2026-05-28] - Phase 152: Scan Pattern Validation (MES) ✅
 
 - **`schemas/scan_pattern.py`**: DTO `ScanPatternRead` local (sin cross-service import — regla Muro de Hierro).

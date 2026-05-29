@@ -3,6 +3,41 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 154: MES — Resource Monitor Domain + Hourly Graphic Algorithm ✅
+
+**Objetivo:** Implementar la capa de dominio del Monitor de Recurso en `mes_service` (Phase 154 Partes 1 y 2) y documentar la propuesta de valor industrial de Interno Core.
+
+**Parte 1 — Modelos + Migration 009:**
+- `Facility(MultiTenantBase)`: `mes_facilities` — planta física con `UQ(company_id, code)`.
+- `ProductionArea(MultiTenantBase)`: `mes_production_areas` — zona dentro de planta, `facility_id FK SET NULL`.
+- `Resource` expandido: `description`, `resource_type (CELL|MACHINE|AREA|LINE)`, `capacity Decimal`, `warehouse_id` (soft FK — Iron Wall ADR-02, sin FK de BD hacia `inventory_db`), `production_area_id FK`, `code VARCHAR(13)` (paridad con legacy `Warehouse.Code`), `UQ(company_id, code)`.
+- `ResourceSupportMember`: `mes_resource_support_members` — equipo de soporte con `collaborator_id` soft FK (Iron Wall hacia `hcm_db`), `role VARCHAR(50)` (valores de `HumanResource.Catalog.Autority`: DIRECTOR, MANAGER, SUPERVISOR, SPECIALIST…).
+- `ShiftBreak`: `mes_shift_breaks` — portado de `Interno.HumanResource.Catalog.Break + BreaksGroup`: `code (15)`, `label`, `break_type (BREAK|MEAL|MAINTENANCE)`, `start_time`, `end_time`, `duration_minutes`.
+- Migration `009`: usa `_base_cols()` helper para incluir todos los campos de `MultiTenantBase` (`group_id`, `version_id`, `is_active`, `deleted_at`, `transaction_id`).
+- Endpoints REST: `GET/POST /facilities`, `GET/POST /production-areas`, `GET/POST/PATCH /{code}` (Resources).
+
+**Parte 2 — ResourceGraphicService + endpoints:**
+- `ResourceGraphicService.get_graphic()`: porta `ResultController.GetGraphic()` del legacy .NET — genera slots horarios, aplica `ShiftBreak`s para reducir `disponible[i]`, distribuye `planned_qty` como `Meta[]` usando `StandardTime.set_time_hours` (o fallback `round(qty/horas)`), carga `HourlyProductionSnapshot` para `actual[]`, computa `missing/excess/efficiency` por slot. Retorna `ResourceGraphicResponse` con `hours[], breaks[], cumulative_table[]`.
+- `ResourceGraphicService.get_active_workorder()`: WO con `status=IN_PROGRESS` para el recurso hoy.
+- `ResourceGraphicService.get_planned_workorders()`: WOs `DRAFT+IN_PROGRESS` del turno actual.
+- 3 endpoints HTTP: `GET /{code}/graphic`, `/{code}/active-workorder`, `/{code}/planned-workorders`.
+
+**Tests:** 18 + 11 tests nuevos → **55/55 integration tests passing** (0 regresiones).
+
+**Documentación:**
+- `README.md` sección 2: "4 Pilares Industriales" — diagrama de flujo ERP→MES→WMS→HCM.
+- `PENDIENTES_INDUSTRIAL_CORE.md`: estrategia PLM/BOM documentada — no PLM propio, API abierta para integración externa.
+
+**Decisión arquitectónica clave:** `Resource` en Python usa `warehouse_id` soft FK (no herencia cross-service). `ShiftBreak` simplifica `BreaksGroup` → breaks directamente en shift. El `role` de `ResourceSupportMember` acepta valores de `Autority.cs` legacy.
+
+**Archivos clave:**
+- `backend/mes_service/mes_app/models/facility.py`, `production_area.py`, `resource.py`, `resource_support_member.py`, `shift_break.py`
+- `backend/mes_service/alembic/versions/009_add_facility_production_area_resource_expanded.py`
+- `backend/mes_service/mes_app/services/graphic_service.py`
+- `backend/mes_service/mes_app/api/v1/endpoints/resource.py`
+- `backend/mes_service/tests/integration/test_resource_expanded.py`, `test_resource_graphic.py`
+
+---
 ### [2026-05-28] Phase 155: HCM — Industrial Identity & Cross-Border Eligibility Hardening ✅
 
 **Objetivos:**

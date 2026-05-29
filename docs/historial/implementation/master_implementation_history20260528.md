@@ -58,6 +58,27 @@ Facility(code, name, location)
 
 ---
 
+## Phase 154 Parte 2 — ResourceGraphicService
+
+### Objetivo
+Portar el algoritmo `ResultController.GetGraphic()` del legacy .NET a Python, conectando `HourlyProductionSnapshot` + `ProductionRun` + `ShiftBreak` + `StandardTime`.
+
+### Decisiones
+
+**`ProductionRun` como `Result` equivalente**
+`ProductionRun(resource_id + work_order_id + shift_id + date)` mapea exactamente al `Result` del legacy. El `UQ(resource_id, date, shift_id, company_id)` en el modelo existente impide dos runs en el mismo turno — esto es correcto para producción real (un recurso en un turno = una corrida). Para múltiples WOs en un turno se usan sub-turnos (bloques horarios distintos).
+
+**Algoritmo `_apply_breaks()` simplificado**
+Legacy usaba fracciones de hora exactas (`break.Start.TotalHours - slot.TotalHours`). La simplificación Python usa `start_time.minute / 60.0` para horas con break-start y `(60 - end_time.minute) / 60.0` para horas con break-end. Suficiente precisión para el cálculo de meta.
+
+**Detección de turno activo**
+Prioridad: turno con `resource_id` asignado → fallback company-wide por `start_time` ascendente. Legacy usaba `hour > 5 && hour < 17 → turno 1`. Nuestra versión es más flexible.
+
+**`StandardTime.set_time_hours` vs fallback**
+Si existe `StandardTime` para el `item_code` → `qtyPerHour = floor(disponible / set_time_hours)`. Si no → distribución uniforme `round(planned_qty / total_hours)`. Este fallback cubre los ítems sin tiempo de operación documentado.
+
+---
+
 ## Phase 150 — MES Service: WorkOrder Document+Lines Pattern
 
 ## MES Service: WorkOrder Document+Lines Pattern

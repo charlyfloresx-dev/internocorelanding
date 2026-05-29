@@ -58,14 +58,37 @@
 | 6 | Ejecutar el seed y validar la siembra de colaboradores binacionales | hcm_service | ✅ |
 | 7 | Actualizar documentación del repositorio (CLAUDE.md, REPO_LOG, SERVICE_LOG) | docs | ✅ |
 
+## Phase 154 Parte 1 — MES Resource Domain Models (2026-05-28)
+
+| # | Tarea | Servicio | Resultado |
+|---|---|---|---|
+| 1 | `Facility` model + `ProductionArea` model | mes_service | ✅ |
+| 2 | `Resource` expandido: description, resource_type, warehouse_id soft FK, production_area_id | mes_service | ✅ |
+| 3 | `ResourceSupportMember` (collaborator_id soft FK → HCM Iron Wall) | mes_service | ✅ |
+| 4 | `ShiftBreak`: portado de `Break.cs + BreaksGroup` con code, break_type, duration_minutes | mes_service | ✅ |
+| 5 | Migration 009 con `_base_cols()` completo (group_id, version_id, is_active...) | mes_service | ✅ |
+| 6 | Resource endpoint CRUD full + Facility/ProductionArea endpoints | mes_service | ✅ |
+| 7 | 18 integration tests — 44/44 pasando | mes_service | ✅ |
+
+## Phase 154 Parte 2 — ResourceGraphicService (2026-05-28)
+
+| # | Tarea | Servicio | Resultado |
+|---|---|---|---|
+| 1 | `ResourceGraphicService.get_graphic()` — algoritmo hora×hora portado del .NET legacy | mes_service | ✅ |
+| 2 | `get_active_workorder()` — WO IN_PROGRESS para el recurso hoy | mes_service | ✅ |
+| 3 | `get_planned_workorders()` — WOs DRAFT+IN_PROGRESS del turno | mes_service | ✅ |
+| 4 | 3 endpoints HTTP: `/graphic`, `/active-workorder`, `/planned-workorders` | mes_service | ✅ |
+| 5 | 11 nuevos tests — 55/55 pasando sin regresiones | mes_service | ✅ |
+| 6 | README sección "4 Pilares Industriales" + diagrama ERP→MES→WMS→HCM | docs | ✅ |
+| 7 | PENDIENTES: estrategia PLM/BOM documentada como decisión arquitectónica | docs | ✅ |
+
 ## Pendientes carryover
 
 | Prioridad | Item |
 |---|---|
-| ALTA | **Phase 154 Parte 1**: `Facility` + `ProductionArea` + `Resource` + migration + seed + CRUD |
-| ALTA | **Phase 154 Parte 2**: `GET /graphic` algoritmo hora×hora + `active-workorder` + `planned-workorders` |
 | ALTA | **Phase 154 Parte 3**: `ResourceService` Angular + desconectar mock + `:code` param |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end |
+| MEDIA | `Rout` model MES — BOM + Rutas de Producción (combustible para Work Orders) |
 | MEDIA | Rate limit por endpoint en WMS, MES, HCM, Subscription |
 | MEDIA | Precio según partner seleccionado en SalesScreen (PriceAgreement en lookup) |
 | BAJA | `mes_app.schemas.planning` PydanticUserError (campo name clash) |
