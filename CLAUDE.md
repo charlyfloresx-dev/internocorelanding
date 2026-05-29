@@ -460,19 +460,31 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**MES** `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas en `/production/config/resources`~~ — ✅ RESUELTO Phase 156-B |
 | ~~ALTA~~ | ~~**MES** `ShiftConfigComponent` Angular con ShiftBreak inline en `/production/config/shifts`~~ — ✅ RESUELTO Phase 156-B |
 | ~~ALTA~~ | ~~**MES** `WorkOrderFormComponent` + `DailyPlanningComponent`~~ — ✅ RESUELTO Phase 156-D |
-| ALTA | **HCM** Entidad `BreakGroup` con `capacity_per_slot` — grupos de descanso por capacidad de áreas comunes (baños/cafetería). `Resource.break_group_id` soft FK ya existe, pendiente implementar endpoint `/hcm/break-groups` y consumo en `ResourceGraphicService` |
-| ALTA | **MES** `material_status` badge en `ResourceMonitorComponent` cuando WO activa tiene `PENDING_ISSUE` |
+| ~~ALTA~~ | ~~**HCM** Entidad `BreakGroup` con `capacity_per_slot`~~ — ✅ RESUELTO Phase 157 (2026-05-29): `hcm_break_groups` + `hcm_break_slots`, endpoints CRUD `/hcm/break-groups`, consumo HTTP en `ResourceGraphicService` |
+| ~~ALTA~~ | ~~**MES** `material_status` badge en `ResourceMonitorComponent`~~ — ✅ RESUELTO Phase 157 (2026-05-29): badge ámbar pulsante cuando WO activa tiene `material_status=PENDING_ISSUE` |
+| ALTA | **POS** Validar `POST /api/v1/pos/checkout` end-to-end — script `flow_pos_checkout.py` listo, bloqueado por `auth_service` en modificación activa |
 | MEDIA | **MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`) |
-| MEDIA | **MES** WO bulk import CSV — `WorkOrderBulkFormComponent` para importar desde ERP |
-| BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
-| BAJA | **MES** `ProductionRunWorkOrder` pivot (many-to-many ProductionRun↔WorkOrder) faltante |
-| BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
+| MEDIA | **MES** WO bulk import CSV — `WorkOrderBulkFormComponent` para importar OTs desde ERP (mismo patrón que bulk de recursos) |
+| MEDIA | **MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno (actualmente tabla plana) |
+| MEDIA | **MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar |
+| MEDIA | **HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI |
+| MEDIA | Rate limit por endpoint faltante en WMS, MES, HCM, Subscription |
+| MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
+| MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
+| MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
+| BAJA | **HCM** `JobPosition` catálogo propio (actualmente solo `job_title: str`) |
+| BAJA | **HCM** `shift_id` en Collaborator → bridge HCM↔MES |
+| BAJA | **HCM** jerarquía 3 niveles: `manager_id` + `director_id` (actualmente solo `supervisor_id`) |
+| BAJA | WMS no desplegado en dev stack |
+| BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
+| BAJA | Self-Service Stripe Checkout para tenants UNPAID |
+| BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar. FK `rout_id` en WorkOrder existe pero nullable |
 | BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |
-| BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count (para calcular GainedHrs/Attainment/Eficiency) |
+| BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count |
 | BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |
-| ~~BAJA~~ | ~~**MES** Endpoints faltantes: `GET /resources/{code}/graphic` (algoritmo ~120L)~~ — ✅ RESUELTO Phase 154 Parte 2 |
 | BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
-| MEDIA | **MES** `WorkOrderFormComponent` + `DailyPlanningComponent` — UI para crear WO y asignarlas al recurso/turno del día |
+| BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
+| BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
 
 ---
 

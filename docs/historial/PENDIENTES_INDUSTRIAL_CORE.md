@@ -118,26 +118,47 @@ Para que el graphic tenga datos, supervisor debe poder:
 
 ---
 
-## 🆕 Phase 157 — Pendientes Descubiertos en Phase 156 (2026-05-29)
+## 🆕 Phase 157 — Pendientes (al 2026-05-29)
 
 ### Alta Prioridad
 
-| Item | Descripción |
-|---|---|
-| **HCM BreakGroups** | Grupos de descanso basados en capacidad de áreas comunes (baños, cafetería). Pertenecen a HCM, no a MES. `Resource.break_group_id` soft FK ya existe. Requiere: entidad `BreakGroup` en HCM + endpoint `/hcm/break-groups` + `ResourceGraphicService` consume HCM vía HTTP cuando `break_group_id != NULL` |
-| **StandardTime CRUD** | Endpoints REST `GET/POST/DELETE /mes/standard-times` + `StandardTimeFormComponent` (drawer) integrado en `MesItemConfigComponent` |
-| **Material Badge en Monitor** | `ResourceMonitorComponent` debe mostrar badge "⚠️ Material sin surtir" si la WO activa tiene `material_status=PENDING_ISSUE` |
-| **Menú: agregar link Planificación** | `navigation.service.ts` tiene `prod-planning` → `/production/planning` pero falta verificar que el icono `assignment` esté disponible en Material Icons |
+| # | Item | Estado |
+|---|---|---|
+| 1 | **MES** Badge `⚠️ Material sin surtir` en `ResourceMonitorComponent` | ✅ RESUELTO (2026-05-29) |
+| 2 | **HCM** `BreakGroup` + endpoint + consumo en `ResourceGraphicService` | ✅ RESUELTO (2026-05-29) |
+| 3 | **POS** Validar `POST /api/v1/pos/checkout` end-to-end | ⏸ BLOQUEADO — `auth_service` en modificación. Script `flow_pos_checkout.py` listo |
 
 ### Media Prioridad
 
-| Item | Descripción |
-|---|---|
-| **WO bulk import CSV** | Equivalente al bulk de recursos pero para WOs — `WorkOrderBulkFormComponent` para importar desde ERP |
-| **DailyPlanning — mini Gantt** | Visualización tipo Gantt horizontal por recurso/turno (actualmente tabla plana) |
-| **StandardTime import Excel** | Bulk load de tiempos estándar desde Excel (deuda técnica ya registrada en CLAUDE.md) |
-| **`.github/agents/*.agent.md`** | Archivos de agentes en `.github/agents/` referencian "NexoSuite" (nombre antiguo). Actualizar a "InternoCore" |
-| **Validar checkout POS** | `POST /api/v1/pos/checkout` — validación end-to-end con flows de prueba |
+| # | Item | Estado |
+|---|---|---|
+| 4 | **MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`) | Pendiente |
+| 5 | **MES** WO bulk import CSV — `WorkOrderBulkFormComponent` para importar OTs desde ERP | Pendiente |
+| 6 | **MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno (actualmente tabla plana) | Pendiente |
+| 7 | **MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar | Pendiente |
+| 8 | **HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI | Pendiente |
+| 9 | **General** Rate limit por endpoint — falta en WMS, MES, HCM, Subscription | Pendiente |
+| 10 | **Catálogo** Precio según partner en typeahead (`PriceAgreement` context en `GET /products/?q=`) | Pendiente |
+| 11 | **Mobile** Revisar app en AVD Pixel 7 API 34 — theme dark/light + flujo completo de venta | Pendiente |
+| 12 | **Fiscal** `default_tax_rate` Planta US = 0.0 (actualmente 0.16) | Pendiente |
+
+### Baja Prioridad
+
+| # | Item | Estado |
+|---|---|---|
+| 13 | **HCM** `JobPosition` catálogo propio (actualmente solo `job_title: str`) | Pendiente |
+| 14 | **HCM** `shift_id` en Collaborator → bridge HCM↔MES | Pendiente |
+| 15 | **HCM** Jerarquía 3 niveles: `manager_id` + `director_id` | Pendiente |
+| 16 | **WMS** Desplegar en dev stack (upstreams comentados en nginx.conf) | Pendiente |
+| 17 | **Mobile** Offline buffer SQLite para zonas sin conectividad | Pendiente |
+| 18 | **Billing** Self-Service Stripe Checkout para tenants UNPAID | Pendiente |
+| 19 | **MES** `routing.py` vacío — `Rout` model sin implementar | Pendiente |
+| 20 | **MES** `RunMetricsSnapshot` incompleto — faltan OE, TEP, FirstPassYield, OverTime, Improvement | Pendiente |
+| 21 | **MES** `HourlyProductionSnapshot` incompleto — faltan std_time_seconds, paid_hours, employees_qty, issues_count | Pendiente |
+| 22 | **MES** `Tracking` incompleto — faltan alias, target, comment, start/close/reject user_ids | Pendiente |
+| 23 | **MES** Dashboard OEE + bulk Excel (WO/Planning/StandardTimes) | Pendiente |
+| 24 | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` — migrar a `enumerations` en master_data | Pendiente |
+| 25 | **Agentes** `.github/agents/` — Migration, Orquestator, Supervisor, global_rules referencian "NexoSuite" | Pendiente |
 
 ---
 
