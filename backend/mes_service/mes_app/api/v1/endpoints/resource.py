@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +9,13 @@ from sqlalchemy.orm import selectinload
 from pydantic import BaseModel, ConfigDict, Field
 
 from common.infrastructure.database import get_db
+from mes_app.services.graphic_service import (
+    ResourceGraphicService,
+    ResourceGraphicResponse as _GraphicResponse,
+    ActiveWorkOrderRead as _ActiveWO,
+    PlannedWorkOrderRead as _PlannedWO,
+    HourlySlot, BreakSlot, CumulativeRow,
+)
 from common.context import request_context
 from mes_app.models.facility import Facility
 from mes_app.models.production_area import ProductionArea
@@ -269,3 +277,121 @@ async def update_resource(
     await db.commit()
     await db.refresh(resource)
     return resource
+
+
+# ── Graphic endpoints ─────────────────────────────────────────────────────────
+
+class HourlySlotOut(BaseModel):
+    time: str
+    goal: int
+    actual: int
+    missing: int
+    excess: int
+    efficiency: float
+
+class BreakSlotOut(BaseModel):
+    code: str
+    label: str
+    start_time: str
+    end_time: str
+    duration_minutes: int
+
+class CumulativeRowOut(BaseModel):
+    time: str
+    goal_cumulative: int
+    actual_cumulative: int
+
+class ResourceGraphicOut(BaseModel):
+    resource_code: str
+    shift_name: str
+    shift_start: str
+    shift_end: str
+    total_goal: int
+    total_actual: int
+    breaks: List[BreakSlotOut] = []
+    hours: List[HourlySlotOut] = []
+    cumulative_table: List[CumulativeRowOut] = []
+
+
+class ActiveWorkOrderOut(BaseModel):
+    work_order_id: uuid.UUID
+    order_number: str
+    item_code: str
+    manufactured_quantity: int
+    order_quantity: int
+    progress_pct: float
+    status: str
+
+
+class PlannedWorkOrderOut(BaseModel):
+    work_order_id: uuid.UUID
+    order_number: str
+    item_code: str
+    planned_quantity: int
+    actual_quantity: int
+    status: str
+
+
+@router.get("/{code}/graphic", response_model=ResourceGraphicOut, tags=["Resources"])
+async def get_resource_graphic(
+    code: str,
+    target_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gráfica de producción hora×hora — portada del algoritmo GetGraphic() del legacy .NET."""
+    from datetime import date as _date
+    company_id = _company_id()
+    d = target_date or _date.today()
+
+    svc = ResourceGraphicService(db)
+    result = await svc.get_graphic(code, company_id, d)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Resource '{code}' not found")
+
+    return ResourceGraphicOut(
+        resource_code=result.resource_code,
+        shift_name=result.shift_name,
+        shift_start=result.shift_start,
+        shift_end=result.shift_end,
+        total_goal=result.total_goal,
+        total_actual=result.total_actual,
+        breaks=[BreakSlotOut(**vars(b)) for b in result.breaks],
+        hours=[HourlySlotOut(**vars(h)) for h in result.hours],
+        cumulative_table=[CumulativeRowOut(**vars(c)) for c in result.cumulative_table],
+    )
+
+
+@router.get("/{code}/active-workorder", response_model=Optional[ActiveWorkOrderOut],
+            tags=["Resources"])
+async def get_active_workorder(
+    code: str,
+    target_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """WO con status IN_PROGRESS para el recurso hoy."""
+    from datetime import date as _date
+    company_id = _company_id()
+    d = target_date or _date.today()
+
+    svc = ResourceGraphicService(db)
+    result = await svc.get_active_workorder(code, company_id, d)
+    if not result:
+        return None
+    return ActiveWorkOrderOut(**vars(result))
+
+
+@router.get("/{code}/planned-workorders", response_model=List[PlannedWorkOrderOut],
+            tags=["Resources"])
+async def get_planned_workorders(
+    code: str,
+    target_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """WOs del turno (DRAFT + IN_PROGRESS) para el recurso hoy."""
+    from datetime import date as _date
+    company_id = _company_id()
+    d = target_date or _date.today()
+
+    svc = ResourceGraphicService(db)
+    results = await svc.get_planned_workorders(code, company_id, d)
+    return [PlannedWorkOrderOut(**vars(r)) for r in results]

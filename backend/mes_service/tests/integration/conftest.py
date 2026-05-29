@@ -26,6 +26,9 @@ import mes_app.models.shift                    # noqa: F401
 import mes_app.models.shift_break              # noqa: F401
 import mes_app.models.work_order               # noqa: F401
 import mes_app.models.work_order_line          # noqa: F401
+import mes_app.models.production_run           # noqa: F401
+import mes_app.models.production_snapshot      # noqa: F401
+import mes_app.models.standard_time            # noqa: F401
 
 # ── Real PostgreSQL (mes_db) ───────────────────────────────────────────────────
 MES_TEST_DB_URL = os.environ.get(
