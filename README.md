@@ -27,7 +27,55 @@ Principios: **Clean Architecture** y **CQRS**, asegurando un desacoplamiento tot
 
 ---
 
-## 💎 2. Identidad Financiera (La Triada)
+## 🏭 2. Propuesta de Valor — Los 4 Pilares Industriales
+
+Mientras las empresas de manufactura tradicionales sufren integrando un ERP, un MES y un WMS de marcas distintas, **Interno Core unifica los tres** en una arquitectura multi-tenant nativa.
+
+### 1. Núcleo de Planificación (ERP)
+Interno Core asume el rol del ERP para la gestión del negocio a alto nivel:
+- Estructura jerárquica multiempresa (acceso controlado por `company_id`).
+- Catálogos maestros globales: proveedores, clientes, productos, monedas.
+- Generación de Work Orders globales basadas en la demanda.
+
+### 2. Núcleo de Ejecución en Planta (MES)
+El módulo MES toma las Work Orders del ERP de forma nativa, sin integraciones propensas a fallos:
+- **Monitoreo en piso:** Estaciones de trabajo (`Resource`), operadores y tiempos.
+- **Captura rápida:** Integración con hardware industrial (QR/barcodes, terminales Zebra/Honeywell) para registrar avance de producción y Quality Inspection sin fricción.
+- **Gráfica hora×hora:** `ResourceGraphicService` — portado del legacy .NET — calcula Meta/Real/Faltante/Excedente por turno en tiempo real.
+
+> **Estrategia BOM/PLM:** No se implementa un módulo PLM propio (Teamcenter, Windchill, etc. son software masivo). En su lugar, Interno Core mantiene un maestro de **BOMs y Rutas de Producción** en el ERP/MES como combustible para las Work Orders. La arquitectura es abierta: si un cliente usa un PLM externo, puede inyectar la BOM directamente vía API. Ver deuda técnica: `Rout` model en MES.
+
+### 3. Eslabón de Suministro (WMS / Inventarios)
+El módulo WMS/Inventory gestiona el flujo de materiales entre ERP y MES:
+- Existencias por almacén y empresa con aislamiento estricto de tenant.
+- **Material Issuance:** surtido a líneas de producción con validación móvil en tiempo real.
+- **Goods Receipt:** entrada de producto terminado desde MES con Density Guard.
+
+### 4. Fuerza Laboral (HCM)
+El módulo HCM conecta la gestión de personas directamente con el piso de planta:
+- Turnos, roles, asistencia y habilidades de operadores vinculadas a `Resource`.
+- Identidad física (RFID/PIN) para autorización en estaciones MES.
+- Cross-Border Eligibility: validación de credenciales para despachos binacionales MX↔US.
+
+### Flujo de datos integrado
+
+```
+[ Interno Core: ERP ] ──(Work Order multi-tenant)──► [ Interno Core: MES ]
+        ▲                                                      │
+        │ (Reporte de consumo e inventario terminado)          │ (Asignación a estación
+        │                                                      │  + escaneo QR/Zebra)
+        ▼                                                      ▼
+[ Interno Core: WMS ] ◄────────────────────────────────────────┘
+        ▲
+        │ (Identidad física del operador autorizado)
+[ Interno Core: HCM ]
+```
+
+Un cambio de estado en producción afecta al inventario y a la contabilidad de la empresa de forma **inmediata, segura y aislada por tenant**. Esta integración nativa elimina las fricciones que existen cuando el ERP, el MES y el WMS son de marcas distintas.
+
+---
+
+## 💎 3. Identidad Financiera (La Triada)
 
 En Interno Core, el valor y la existencia de un producto no son propiedades globales simples. Todo precio, costo o saldo se rige por la relación jerárquica:
 
@@ -37,7 +85,7 @@ En Interno Core, el valor y la existencia de un producto no son propiedades glob
 
 ---
 
-## 💰 3. Valuación y Precios (SSOT)
+## 💰 4. Valuación y Precios (SSOT)
 
 El sistema distingue y registra obligatoriamente cuatro valores financieros fundamentales para cada producto/almacén:
 
@@ -74,7 +122,7 @@ El sistema no es permisivo para garantizar la integridad financiera:
 
 ---
 
-## 📡 4. Infraestructura y Mapa de Puertos
+## 📡 5. Infraestructura y Mapa de Puertos
 
 | Microservicio | Puerto | Responsabilidad Core |
 | :--- | :--- | :--- |

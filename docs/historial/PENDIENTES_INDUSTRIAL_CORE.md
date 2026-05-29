@@ -126,6 +126,18 @@ Retorna: `{hours[], meta[], actual[], missing[], excess[], efficiency[], breaks[
 - [ ] **Density Guard V2**: Extender la validación de capacidad para incluir volumen (m3) además de piezas.
 - [ ] **Inter-Company Stress Test**: Validar transferencias masivas entre MX y US bajo carga de red simulada (Fase 48).
 
+## 🧬 Estrategia BOM / PLM (Decisión Arquitectónica)
+
+> **Decisión:** No implementar un módulo PLM propio. Concentrar esfuerzo en BOM + Rutas de Producción dentro del ERP/MES.
+
+- **Fase actual (simplificada):** Maestro de BOMs (`inventory_service` — tablas `bom`, `bom_lines`) + Rutas de Producción (`mes_service` — tabla `mes_routings`, actualmente `routing.py` vacío).
+- **Fase futura (API abierta):** Si un cliente usa Teamcenter, Windchill o Fusion 360, puede inyectar la BOM directamente a `POST /api/v1/inventory/bom` sin que Interno Core tenga que reimplementar el PLM.
+- **Por qué no un PLM propio:** PLM = software masivo y muy específico de industria. La propuesta de valor de Interno Core es la integración ERP+MES+WMS+HCM, no el diseño de producto.
+- [ ] **Pendiente:** Implementar `Rout` model en MES (actualmente `routing.py` vacío) para cerrar el ciclo BOM → WorkOrder → Ruta de Producción.
+- [ ] **Pendiente:** Endpoint `POST /inventory/bom` de bulk-import para ingesta desde PLM externo vía API.
+
+---
+
 ## 🏛️ Arquitectura & Documentación
 - [ ] **Diagramas C4**: Actualizar diagramas de contenedores para reflejar el estándar de prefijo `CORE_`.
 - [ ] **API Reference**: Generar documentación OpenAPI unificada en el portal `DOCS_INTERNOCORE.html`.
