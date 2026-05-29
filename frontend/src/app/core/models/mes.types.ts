@@ -82,6 +82,7 @@ export interface ActiveWorkOrderResponse {
   order_quantity: number;
   progress_pct: number;
   status: string;
+  material_status?: string;  // "PENDING_ISSUE" | "ISSUED" | null
 }
 
 export interface PlannedWorkOrderResponse {

@@ -366,6 +366,7 @@ class ActiveWorkOrderOut(BaseModel):
     order_quantity: int
     progress_pct: float
     status: str
+    material_status: Optional[str] = None
 
 
 class PlannedWorkOrderOut(BaseModel):

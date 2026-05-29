@@ -74,6 +74,7 @@ class ActiveWorkOrderRead:
     order_quantity: int
     progress_pct: float
     status: str
+    material_status: Optional[str] = None
 
 
 @dataclass
@@ -312,6 +313,7 @@ class ResourceGraphicService:
             order_quantity=wo.order_quantity,
             progress_pct=progress,
             status=wo.status,
+            material_status=wo.material_status,
         )
 
     async def get_planned_workorders(

@@ -86,6 +86,16 @@ import { ResourceService } from '../../core/services/resource.service';
                   </div>
                 } @else if (svc.activeWO()) {
                   <div class="space-y-4">
+                    <!-- Material pending badge -->
+                    @if (materialPending()) {
+                      <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 animate-pulse-slow">
+                        <mat-icon class="text-sm text-amber-400 flex-shrink-0">warning</mat-icon>
+                        <div>
+                          <p class="text-[9px] text-amber-400 font-black uppercase tracking-widest">Material sin surtir</p>
+                          <p class="text-[8px] text-amber-300/70 leading-tight">Almacén pendiente de entregar componentes a esta celda</p>
+                        </div>
+                      </div>
+                    }
                     <div class="flex flex-col">
                       <span class="text-[9px] text-surface-text-muted uppercase font-bold">ID Operación</span>
                       <span class="text-surface-text font-mono font-bold">{{ svc.activeWO()!.order_number }}</span>
@@ -339,7 +349,11 @@ import { ResourceService } from '../../core/services/resource.service';
       </div>
     </div>
   `,
-  styles: [':host { display: block; }']
+  styles: [`
+    :host { display: block; }
+    @keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.7} }
+    .animate-pulse-slow { animation: pulse-slow 2.5s ease-in-out infinite; }
+  `]
 })
 export class ResourceMonitorComponent implements OnInit, OnDestroy {
   readonly svc   = inject(ResourceService);
@@ -349,8 +363,11 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   readonly activeTab    = signal<'scan' | 'planned'>('scan');
   readonly resourceCode = signal<string>('—');
 
-  readonly hasActiveWO = computed(() => !!this.svc.activeWO());
+  readonly hasActiveWO    = computed(() => !!this.svc.activeWO());
   readonly supportMembers = computed(() => this.svc.resource()?.support_members ?? []);
+  readonly materialPending = computed(() =>
+    this.svc.activeWO()?.material_status === 'PENDING_ISSUE'
+  );
 
   ngOnInit(): void {
     const code = this.route.snapshot.paramMap.get('code');
