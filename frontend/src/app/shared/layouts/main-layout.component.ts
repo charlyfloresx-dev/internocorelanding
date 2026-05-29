@@ -197,7 +197,7 @@ import {WhatsAppGatewayComponent} from '../../modules/admin/whatsapp-gateway.com
                     <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_users' | translate:'Usuarios' }}</span>
                   </a>
 
-                  <a 
+                  <a
                     routerLink="/admin/staff"
                     (click)="navService.closeSubMenu()"
                     routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
@@ -205,6 +205,16 @@ import {WhatsAppGatewayComponent} from '../../modules/admin/whatsapp-gateway.com
                   >
                     <mat-icon class="text-lg">badge</mat-icon>
                     <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_staff' | translate:'Personal de Planta' }}</span>
+                  </a>
+
+                  <a
+                    routerLink="/admin/departments"
+                    (click)="navService.closeSubMenu()"
+                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
+                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
+                  >
+                    <mat-icon class="text-lg">corporate_fare</mat-icon>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_departments' | translate:'Áreas y Departamentos' }}</span>
                   </a>
 
                   <a

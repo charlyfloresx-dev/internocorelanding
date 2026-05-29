@@ -211,6 +211,10 @@ export const routes: Routes = [
           {
             path: 'whatsapp',
             loadComponent: () => import('./modules/admin/whatsapp-gateway.component').then(m => m.WhatsAppGatewayComponent)
+          },
+          {
+            path: 'departments',
+            loadComponent: () => import('./modules/admin/department-catalog.component').then(m => m.DepartmentCatalogComponent)
           }
         ]
       },
