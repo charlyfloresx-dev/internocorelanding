@@ -19,6 +19,7 @@ interface WorkOrderOption {
   order_quantity: number;
   manufactured_quantity: number;
   status: string;
+  material_status?: string;
 }
 
 interface ProductionRunRead {
@@ -141,11 +142,19 @@ interface PlanningRow {
                 } @else {
                   <div class="flex flex-wrap gap-3">
                     @for (run of row.runs; track run.id) {
-                      <div class="flex items-start gap-3 p-4 bg-surface-bg border border-surface-border rounded-xl group min-w-[240px] max-w-xs">
+                      <div class="flex items-start gap-3 p-4 bg-surface-bg border border-surface-border rounded-xl group min-w-[260px] max-w-xs"
+                        [class.border-amber-500/30]="woMaterialPending(run.work_order_id)">
                         <div class="flex-1 min-w-0">
-                          <div class="flex items-center gap-2 mb-1">
+                          <div class="flex items-center gap-2 mb-1 flex-wrap">
                             <span class="text-xs font-black text-primary font-mono">{{ run.order_number }}</span>
                             <span class="text-[9px] text-surface-text-muted font-mono uppercase">{{ run.shift_name }}</span>
+                            <!-- Material pending badge -->
+                            @if (woMaterialPending(run.work_order_id)) {
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25 text-[8px] font-black uppercase">
+                                <mat-icon class="text-[9px]">warning</mat-icon>
+                                Sin surtir
+                              </span>
+                            }
                           </div>
                           <div class="text-[10px] text-surface-text">{{ run.item_code }}</div>
                           <div class="flex items-center gap-2 mt-2">
@@ -157,6 +166,15 @@ interface PlanningRow {
                               {{ run.actual_quantity }}/{{ run.planned_quantity }}
                             </span>
                           </div>
+                          <!-- Surtir button -->
+                          @if (woMaterialPending(run.work_order_id)) {
+                            <button (click)="issueMaterial(run)"
+                              [disabled]="issuingId() === run.work_order_id"
+                              class="mt-2 flex items-center gap-1 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                              <mat-icon class="text-[10px]">{{ issuingId() === run.work_order_id ? 'sync' : 'inventory' }}</mat-icon>
+                              Surtir Material
+                            </button>
+                          }
                         </div>
                         <button (click)="deleteRun(run)"
                           class="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-rose-500/10 text-rose-400 rounded-lg flex-shrink-0"
@@ -252,8 +270,9 @@ export class DailyPlanningComponent implements OnInit {
   private base = `${environment.productionUrl}/mes`;
 
   selectedDate = new Date().toISOString().split('T')[0];
-  loading   = signal(false);
-  assigning = signal(false);
+  loading    = signal(false);
+  assigning  = signal(false);
+  issuingId  = signal<string | null>(null);
 
   resources  = signal<ResourceRead[]>([]);
   runs       = signal<ProductionRunRead[]>([]);
@@ -384,6 +403,33 @@ export class DailyPlanningComponent implements OnInit {
       this.notif.success('Eliminado', `${run.order_number} removido del plan`);
     } catch (err: any) {
       this.notif.error('Error', err?.error?.detail ?? 'No se pudo eliminar');
+    }
+  }
+
+  woMaterialPending(workOrderId: string): boolean {
+    const wo = this.workOrders().find(w => w.id === workOrderId);
+    return wo?.material_status === 'PENDING_ISSUE';
+  }
+
+  async issueMaterial(run: ProductionRunRead) {
+    const wo = this.workOrders().find(w => w.id === run.work_order_id);
+    if (!wo) return;
+    if (!confirm(`¿Surtir material para OT ${wo.order_number}?\n\nEsto explota el BOM de ${wo.item_code} y genera las líneas de componentes.`)) return;
+
+    this.issuingId.set(run.work_order_id);
+    try {
+      await lastValueFrom(
+        this.http.post(`${this.base}/orders/${wo.order_number}/issue-material`, {})
+      );
+      this.notif.success('Material surtido', `${wo.order_number} — líneas MATERIAL_INPUT creadas`);
+      // Update local state
+      this.workOrders.update(list =>
+        list.map(w => w.id === wo.id ? { ...w, material_status: 'ISSUED' } : w)
+      );
+    } catch (err: any) {
+      this.notif.error('Error', err?.error?.detail ?? 'No se pudo surtir el material');
+    } finally {
+      this.issuingId.set(null);
     }
   }
 

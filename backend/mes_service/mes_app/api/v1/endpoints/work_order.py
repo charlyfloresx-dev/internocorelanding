@@ -48,6 +48,7 @@ class WorkOrderRead(BaseModel):
     order_quantity: int
     manufactured_quantity: int
     status: str
+    material_status: Optional[str] = None
     wo_type: Optional[WOType] = None
     alias: Optional[str] = None
     request_date: Optional[datetime] = None
@@ -78,6 +79,9 @@ class WorkOrderCreate(BaseModel):
 class CommandResponse(BaseModel):
     id: str
     status: str
+    material_status: Optional[str] = None
+    bom_lines_created: Optional[int] = None
+    message: Optional[str] = None
     timestamp: str
 
 
@@ -154,6 +158,29 @@ async def get_work_order_lines(
     return lines_result.scalars().all()
 
 
+@router.get(
+    "/types",
+    response_model=List[dict],
+    dependencies=[Depends(require_scope(["mes:read"]))],
+    summary="Lista los tipos de OT disponibles",
+)
+async def get_work_order_types():
+    """Returns configurable WO type catalog from server enum — not hardcoded on client."""
+    labels = {
+        "STANDARD":         "Estándar",
+        "NON_STANDARD":     "No Estándar",
+        "REPAIR":           "Reparación",
+        "REWORK":           "Retrabajo",
+        "TEST":             "Prototipo / Prueba",
+        "TOOLING":          "Herramental",
+        "SCRAP_REPLACEMENT":"Reposición por Scrap",
+    }
+    return [
+        {"value": t.value, "label": labels.get(t.value, t.value)}
+        for t in WOType
+    ]
+
+
 @router.post(
     "/",
     response_model=CommandResponse,
@@ -166,11 +193,9 @@ async def create_work_order(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Crea una nueva Orden de Trabajo.
-
-    Automáticamente explota el BOM desde inventory_service y crea líneas
-    MATERIAL_INPUT por componente + 1 línea PLANNED_OUTPUT para la pieza terminada.
-    Si el BOM no está disponible, crea la orden igualmente (best-effort).
+    Crea OT con PLANNED_OUTPUT únicamente.
+    El material se surte por separado via POST /{number}/issue-material.
+    material_status="PENDING_ISSUE" genera alerta en UI sin bloquear el flujo.
     """
     handler = WorkOrderHandler(db)
     cmd = CreateWorkOrderCommand(
@@ -185,3 +210,22 @@ async def create_work_order(
     response = await handler.handle_create(cmd)
     await db.commit()
     return response
+
+
+@router.post(
+    "/{order_number}/issue-material",
+    response_model=CommandResponse,
+    dependencies=[Depends(require_scope(["mes:write"]))],
+    summary="Surtir material a la OT (explotar BOM → MATERIAL_INPUT lines)",
+)
+async def issue_material(
+    order_number: str,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Paso de surtido: explota el BOM de inventario y crea las líneas MATERIAL_INPUT.
+    Idempotente — si ya fue surtida, retorna sin cambios.
+    """
+    handler = WorkOrderHandler(db)
+    return await handler.handle_issue_material(order_number, company_id)

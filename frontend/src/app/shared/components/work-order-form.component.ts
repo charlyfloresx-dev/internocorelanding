@@ -8,6 +8,8 @@ import { environment } from '../../../environments/environment';
 import { NotificationService } from '../../core/services/notification.service';
 import { SideDrawerService } from '../../core/services/side-drawer.service';
 
+interface WoTypeOption { value: string; label: string; }
+
 @Component({
   selector: 'app-work-order-form',
   standalone: true,
@@ -77,24 +79,35 @@ import { SideDrawerService } from '../../core/services/side-drawer.service';
                 class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-xs outline-none focus:border-primary transition-all" />
             </div>
             <div class="space-y-2">
-              <label class="text-[9px] font-black text-surface-text-muted uppercase tracking-widest block">Tipo</label>
-              <select formControlName="wo_type"
-                class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-xs cursor-pointer outline-none focus:border-primary transition-all">
-                <option value="">— Sin clasificar —</option>
-                <option value="STANDARD">Standard</option>
-                <option value="REWORK">Retrabajo</option>
-                <option value="PROTOTYPE">Prototipo</option>
-              </select>
+              <label class="text-[9px] font-black text-surface-text-muted uppercase tracking-widest block">Tipo de OT</label>
+              @if (typesLoading()) {
+                <div class="h-12 bg-surface-card rounded-xl animate-pulse"></div>
+              } @else {
+                <select formControlName="wo_type"
+                  class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-xs cursor-pointer outline-none focus:border-primary transition-all">
+                  <option value="">— Sin clasificar —</option>
+                  @for (t of woTypes(); track t.value) {
+                    <option [value]="t.value">{{ t.label }}</option>
+                  }
+                </select>
+              }
             </div>
           </div>
 
-          <!-- Info: BOM explode -->
-          <div class="p-4 bg-violet-500/5 rounded-xl border border-violet-500/10 flex items-start gap-3">
-            <mat-icon class="text-sm text-violet-400 mt-0.5">info</mat-icon>
-            <p class="text-[10px] text-surface-text-muted leading-relaxed">
-              Al crear la OT se explotan automáticamente los componentes del BOM (si existe en Inventario)
-              y se generan líneas <span class="text-violet-400 font-mono font-bold">MATERIAL_INPUT</span> + <span class="text-violet-400 font-mono font-bold">PLANNED_OUTPUT</span>.
-            </p>
+          <!-- Material issue info (corrected flow) -->
+          <div class="p-4 bg-amber-500/5 rounded-xl border border-amber-500/15 flex items-start gap-3">
+            <mat-icon class="text-sm text-amber-400 mt-0.5 flex-shrink-0">warning</mat-icon>
+            <div class="space-y-1">
+              <p class="text-[10px] text-amber-300 font-bold">Material no surtido automáticamente</p>
+              <p class="text-[10px] text-surface-text-muted leading-relaxed">
+                Al crear la OT se genera la línea
+                <span class="text-violet-400 font-mono font-bold">PLANNED_OUTPUT</span> únicamente.
+                El almacenista debe <strong class="text-surface-text">surtir el material</strong> desde
+                la vista de Planificación para generar las líneas
+                <span class="text-violet-400 font-mono font-bold">MATERIAL_INPUT</span>.
+                La orden puede ejecutarse con la alerta activa — no bloquea el flujo.
+              </p>
+            </div>
           </div>
 
         </form>
@@ -119,13 +132,16 @@ import { SideDrawerService } from '../../core/services/side-drawer.service';
   `,
   styles: [`:host { display: block; }`]
 })
-export class WorkOrderFormComponent {
+export class WorkOrderFormComponent implements OnInit {
   private http   = inject(HttpClient);
   private notif  = inject(NotificationService);
   drawer         = inject(SideDrawerService);
   private fb     = inject(FormBuilder);
 
-  saving = signal(false);
+  saving      = signal(false);
+  typesLoading = signal(false);
+  woTypes     = signal<WoTypeOption[]>([]);
+
   private base = `${environment.productionUrl}/mes/orders`;
 
   form: FormGroup = this.fb.group({
@@ -137,21 +153,37 @@ export class WorkOrderFormComponent {
     wo_type:      [''],
   });
 
+  async ngOnInit() {
+    this.typesLoading.set(true);
+    try {
+      const resp: any = await lastValueFrom(
+        this.http.get(`${this.base}/types`)
+      );
+      const data = resp?.data ?? resp;
+      this.woTypes.set(Array.isArray(data) ? data : []);
+    } catch {
+      // Fallback to empty — user can still create without type
+    } finally {
+      this.typesLoading.set(false);
+    }
+  }
+
   async save() {
     if (this.form.invalid) return;
     this.saving.set(true);
     const v = this.form.value;
-    const payload = {
+    const payload: any = {
       order_number: v.order_number,
       item_code:    v.item_code.toUpperCase(),
       order_qty:    Number(v.order_qty),
       due_date:     new Date(v.due_date).toISOString(),
-      alias:        v.alias || undefined,
-      wo_type:      v.wo_type || undefined,
     };
+    if (v.alias)   payload.alias   = v.alias;
+    if (v.wo_type) payload.wo_type = v.wo_type;
+
     try {
       await lastValueFrom(this.http.post(this.base + '/', payload));
-      this.notif.success('Orden creada', `${v.order_number} — ${v.item_code}`);
+      this.notif.success('Orden creada', `${v.order_number} — Material pendiente de surtir`);
       this.drawer.notifyRefresh();
       this.drawer.close();
     } catch (err: any) {

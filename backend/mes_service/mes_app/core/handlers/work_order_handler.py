@@ -5,7 +5,8 @@ from decimal import Decimal
 from typing import Optional
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from common.exceptions import BusinessRuleException
+from sqlalchemy import select
+from common.exceptions import BusinessRuleException, NotFoundException
 from mes_app.models.work_order import WorkOrder
 from mes_app.models.work_order_line import WorkOrderLine
 from mes_app.core.enums import WOType, WorkOrderLineType, WorkOrderLineStatus
@@ -13,8 +14,10 @@ from mes_app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Internal service URL (within Docker network)
 _INVENTORY_BASE = "http://inventory-service:8000"
+
+MATERIAL_STATUS_PENDING = "PENDING_ISSUE"
+MATERIAL_STATUS_ISSUED  = "ISSUED"
 
 
 class CreateWorkOrderCommand:
@@ -43,18 +46,17 @@ class WorkOrderHandler:
 
     async def handle_create(self, command: CreateWorkOrderCommand) -> dict:
         """
-        Atomic creation of a WorkOrder + WorkOrderLines (Document+Lines pattern).
+        Creates a WorkOrder header + single PLANNED_OUTPUT line.
 
-        Lines are built from two sources:
-          1. BOM from inventory_service (MATERIAL_INPUT lines — one per component)
-          2. Finished product itself (PLANNED_OUTPUT line)
+        MATERIAL_INPUT lines are NOT created automatically — they must be
+        issued explicitly via handle_issue_material() once the warehouse
+        physically supplies the components to the production cell.
 
-        If the BOM HTTP call fails, the WO is still created with just the output line.
-        BOM explosion is best-effort to avoid blocking production floor creation.
+        material_status="PENDING_ISSUE" signals the alert in the UI without
+        blocking the workflow.
         """
         async with self.db.begin_nested() as tx:
             try:
-                # 1. Create WorkOrder header
                 wo = WorkOrder(
                     id=uuid.uuid4(),
                     company_id=command.company_id,
@@ -67,42 +69,18 @@ class WorkOrderHandler:
                     release_date=datetime.now(timezone.utc),
                     wo_type=command.wo_type,
                     status="DRAFT",
+                    material_status=MATERIAL_STATUS_PENDING,
                 )
                 self.db.add(wo)
-                await self.db.flush()  # get wo.id before building lines
+                await self.db.flush()
 
-                # 2. Fetch BOM components from inventory_service (best-effort)
-                bom_lines = await self._fetch_bom(
-                    item_code=command.item_code,
-                    company_id=command.company_id,
-                )
-
-                # 3. Create MATERIAL_INPUT lines from BOM
-                line_number = 1
-                for bom in bom_lines:
-                    line = WorkOrderLine(
-                        id=uuid.uuid4(),
-                        company_id=command.company_id,
-                        tenant_id=command.company_id,
-                        work_order_id=wo.id,
-                        line_number=line_number,
-                        line_type=WorkOrderLineType.MATERIAL_INPUT,
-                        item_code=bom["component_item_code"],
-                        planned_quantity=Decimal(str(bom["quantity"])) * command.order_qty,
-                        uom=bom.get("uom", "EA"),
-                        status=WorkOrderLineStatus.PENDING,
-                        bom_id=uuid.UUID(bom["id"]) if bom.get("id") else None,
-                    )
-                    self.db.add(line)
-                    line_number += 1
-
-                # 4. Create PLANNED_OUTPUT line (always present)
+                # Only PLANNED_OUTPUT at creation — material is issued separately
                 output_line = WorkOrderLine(
                     id=uuid.uuid4(),
                     company_id=command.company_id,
                     tenant_id=command.company_id,
                     work_order_id=wo.id,
-                    line_number=line_number,
+                    line_number=1,
                     line_type=WorkOrderLineType.PLANNED_OUTPUT,
                     item_code=command.item_code,
                     planned_quantity=Decimal(command.order_qty),
@@ -110,10 +88,11 @@ class WorkOrderHandler:
                     status=WorkOrderLineStatus.PENDING,
                 )
                 self.db.add(output_line)
-
                 await self.db.flush()
+
                 logger.info(
-                    f"[WO] Created {wo.order_number} — {len(bom_lines)} BOM lines + 1 output line"
+                    f"[WO] Created {wo.order_number} — PLANNED_OUTPUT only, "
+                    f"material_status={MATERIAL_STATUS_PENDING}"
                 )
 
             except Exception as e:
@@ -123,16 +102,91 @@ class WorkOrderHandler:
         return {
             "id": str(wo.id),
             "status": wo.status,
+            "material_status": MATERIAL_STATUS_PENDING,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    async def _fetch_bom(
-        self, item_code: str, company_id: uuid.UUID
-    ) -> list[dict]:
+    async def handle_issue_material(
+        self, order_number: str, company_id: uuid.UUID
+    ) -> dict:
         """
-        Fetches BOM components from inventory_service.
-        Returns empty list if service is unavailable — WO creation continues.
+        Issues material to a WorkOrder by fetching the BOM and creating
+        MATERIAL_INPUT lines. Idempotent — skips if already issued.
+
+        Raises NotFoundException if WO does not belong to this company.
         """
+        result = await self.db.execute(
+            select(WorkOrder).where(
+                WorkOrder.order_number == order_number,
+                WorkOrder.company_id == company_id,
+            )
+        )
+        wo = result.scalar_one_or_none()
+        if not wo:
+            raise NotFoundException("WorkOrder not found")
+
+        if wo.material_status == MATERIAL_STATUS_ISSUED:
+            return {
+                "id": str(wo.id),
+                "status": wo.status,
+                "material_status": MATERIAL_STATUS_ISSUED,
+                "message": "Material already issued — no changes made",
+            }
+
+        async with self.db.begin_nested() as tx:
+            try:
+                bom_lines = await self._fetch_bom(
+                    item_code=wo.item_code,
+                    company_id=company_id,
+                )
+
+                # Remove any existing MATERIAL_INPUT lines (idempotency)
+                existing = await self.db.execute(
+                    select(WorkOrderLine).where(
+                        WorkOrderLine.work_order_id == wo.id,
+                        WorkOrderLine.line_type == WorkOrderLineType.MATERIAL_INPUT,
+                    )
+                )
+                for old_line in existing.scalars().all():
+                    await self.db.delete(old_line)
+
+                # Create fresh MATERIAL_INPUT lines from BOM
+                for i, bom in enumerate(bom_lines, start=1):
+                    self.db.add(WorkOrderLine(
+                        id=uuid.uuid4(),
+                        company_id=company_id,
+                        tenant_id=company_id,
+                        work_order_id=wo.id,
+                        line_number=i,
+                        line_type=WorkOrderLineType.MATERIAL_INPUT,
+                        item_code=bom["component_item_code"],
+                        planned_quantity=Decimal(str(bom["quantity"])) * wo.order_quantity,
+                        uom=bom.get("uom", "EA"),
+                        status=WorkOrderLineStatus.PENDING,
+                        bom_id=uuid.UUID(bom["id"]) if bom.get("id") else None,
+                    ))
+
+                wo.material_status = MATERIAL_STATUS_ISSUED
+                await self.db.flush()
+
+                logger.info(
+                    f"[WO] Material issued for {wo.order_number} — "
+                    f"{len(bom_lines)} MATERIAL_INPUT lines created"
+                )
+
+            except Exception as e:
+                await tx.rollback()
+                raise e
+
+        await self.db.commit()
+        return {
+            "id": str(wo.id),
+            "status": wo.status,
+            "material_status": MATERIAL_STATUS_ISSUED,
+            "bom_lines_created": len(bom_lines),
+        }
+
+    async def _fetch_bom(self, item_code: str, company_id: uuid.UUID) -> list[dict]:
         url = f"{_INVENTORY_BASE}/api/v1/inventory/boms/"
         params = {"parent_item_code": item_code}
         headers = {
@@ -144,9 +198,10 @@ class WorkOrderHandler:
                 resp = await client.get(url, params=params, headers=headers)
                 if resp.status_code == 200:
                     payload = resp.json()
-                    # ApiResponse wrapper: {"status": "success", "data": [...]}
                     data = payload.get("data", payload) if isinstance(payload, dict) else payload
                     return data if isinstance(data, list) else []
         except Exception as exc:
-            logger.warning(f"[WO] BOM fetch failed for {item_code}: {exc} — creating WO without BOM lines")
+            logger.warning(
+                f"[WO] BOM fetch failed for {item_code}: {exc} — no MATERIAL_INPUT lines"
+            )
         return []

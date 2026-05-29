@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ResourceFormComponent } from '../../../shared/components/resource-form.component';
 import { ResourceBulkFormComponent } from '../../../shared/components/resource-bulk-form.component';
 import { ShiftFormComponent } from '../../../shared/components/shift-form.component';
+import { ProductionAreaFormComponent } from '../../../shared/components/production-area-form.component';
 import { ResourceRead } from '../../../core/models/mes.types';
 
 const TYPE_ICON: Record<string, string> = {
@@ -64,6 +65,13 @@ const TYPE_COLOR: Record<string, string> = {
             class="p-3 bg-surface-bg border border-surface-border hover:bg-primary/10 text-surface-text rounded-2xl transition-all"
             title="Actualizar">
             <mat-icon class="text-sm">refresh</mat-icon>
+          </button>
+
+          <!-- Manage areas -->
+          <button (click)="openAreas()"
+            class="flex items-center gap-2 px-5 py-3 bg-surface-bg border border-surface-border hover:bg-sky-500/10 hover:border-sky-500/30 text-sky-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+            <mat-icon class="text-sm">account_tree</mat-icon>
+            Áreas / Plantas
           </button>
 
           <!-- Bulk upload -->
@@ -267,6 +275,15 @@ export class ResourceConfigComponent implements OnInit {
       subtitle: 'Importar desde CSV',
       icon: 'upload_file',
       width: 'w-[520px]',
+    });
+  }
+
+  openAreas() {
+    this.drawer.open(ProductionAreaFormComponent, {
+      title: 'Estructura de Planta',
+      subtitle: 'Facilidades y Áreas de Producción',
+      icon: 'account_tree',
+      width: 'w-[480px]',
     });
   }
 
