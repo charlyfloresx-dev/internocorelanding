@@ -60,17 +60,40 @@ class Collaborator(MultiTenantBase):
     )
 
     # ── Organizational Hierarchy ───────────────────────────────────────────────
+    # Three-level reporting chain: director → manager → supervisor → this collaborator.
+    # All are soft FKs (no DB constraint) consistent with Iron Wall ADR-02.
 
+    authority_level: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True, index=True,
+    )
     supervisor_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=True,
-        index=True,
+        UUID(as_uuid=True), nullable=True, index=True,
     )
     supervisor: Mapped[Optional["Collaborator"]] = relationship(
         "Collaborator",
         primaryjoin="Collaborator.id == Collaborator.supervisor_id",
         remote_side="Collaborator.id",
         foreign_keys=[supervisor_id],
+        lazy="select",
+    )
+    manager_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True,
+    )
+    manager: Mapped[Optional["Collaborator"]] = relationship(
+        "Collaborator",
+        primaryjoin="Collaborator.id == Collaborator.manager_id",
+        remote_side="Collaborator.id",
+        foreign_keys=[manager_id],
+        lazy="select",
+    )
+    director_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True,
+    )
+    director: Mapped[Optional["Collaborator"]] = relationship(
+        "Collaborator",
+        primaryjoin="Collaborator.id == Collaborator.director_id",
+        remote_side="Collaborator.id",
+        foreign_keys=[director_id],
         lazy="select",
     )
 

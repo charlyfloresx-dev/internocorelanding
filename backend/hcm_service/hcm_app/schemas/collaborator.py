@@ -13,7 +13,6 @@ from datetime import date
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-
 from hcm_app.schemas.department import DepartmentRead
 
 
@@ -77,8 +76,13 @@ class CollaboratorRead(BaseModel):
     blood_type: Optional[str] = None
     emergency_contact: Optional[EmergencyContact] = None
     photo_path: Optional[str] = None
-    profile_url: Optional[str] = None # Virtual field for frontend
+    profile_url: Optional[str] = None  # Virtual field for frontend
     company_id: uuid.UUID
+    # Organizational hierarchy (authority_level keys from enumerations.type="AUTHORITY_LEVEL")
+    authority_level: Optional[str] = None
+    supervisor_id: Optional[uuid.UUID] = None
+    manager_id: Optional[uuid.UUID] = None
+    director_id: Optional[uuid.UUID] = None
 
     class Config:
         from_attributes = True
@@ -129,7 +133,11 @@ class CollaboratorCreate(BaseModel):
     shift: Optional[str] = Field(None, max_length=50)
     is_direct: bool = True
     home_warehouse_id: Optional[uuid.UUID] = None
+    # Hierarchy (keys from enumerations.type="AUTHORITY_LEVEL" in master_data)
+    authority_level: Optional[str] = Field(None, max_length=20)
     supervisor_id: Optional[uuid.UUID] = None
+    manager_id: Optional[uuid.UUID] = None
+    director_id: Optional[uuid.UUID] = None
 
     # ERP
     m3_operator_id: Optional[str] = Field(None, max_length=30)
@@ -180,7 +188,10 @@ class CollaboratorUpdate(BaseModel):
     translation_key: Optional[str] = None
     is_direct: Optional[bool] = None
     is_active: Optional[bool] = None
+    authority_level: Optional[str] = Field(None, max_length=20)
     supervisor_id: Optional[uuid.UUID] = None
+    manager_id: Optional[uuid.UUID] = None
+    director_id: Optional[uuid.UUID] = None
     home_warehouse_id: Optional[uuid.UUID] = None
     m3_operator_id: Optional[str] = None
 

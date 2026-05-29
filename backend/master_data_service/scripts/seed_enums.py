@@ -52,6 +52,15 @@ async def seed_enums():
             {"type": "PAYMENT_METHOD", "key": "TRANSFER", "label": "Transferencia Bancaria", "t_key": "enums.payment_method.transfer", "sort": 3},
             {"type": "PAYMENT_METHOD", "key": "STRIPE", "label": "Stripe / Pago Online", "t_key": "enums.payment_method.stripe", "sort": 4},
             {"type": "PAYMENT_METHOD", "key": "CREDIT", "label": "Crédito / Cuenta Corriente", "t_key": "enums.payment_method.credit", "sort": 5},
+
+            # AUTHORITY_LEVEL — jerarquía organizacional HCM (migrado de legacy .NET Autority.cs)
+            {"type": "AUTHORITY_LEVEL", "key": "DIRECTOR",   "label": "Director",    "t_key": "enums.authority_level.director",   "sort": 1},
+            {"type": "AUTHORITY_LEVEL", "key": "MANAGER",    "label": "Gerente",     "t_key": "enums.authority_level.manager",    "sort": 2},
+            {"type": "AUTHORITY_LEVEL", "key": "SUPERVISOR", "label": "Supervisor",  "t_key": "enums.authority_level.supervisor", "sort": 3},
+            {"type": "AUTHORITY_LEVEL", "key": "SPECIALIST", "label": "Especialista","t_key": "enums.authority_level.specialist", "sort": 4},
+            {"type": "AUTHORITY_LEVEL", "key": "TECHNICAL",  "label": "Técnico",     "t_key": "enums.authority_level.technical",  "sort": 5},
+            {"type": "AUTHORITY_LEVEL", "key": "EMPLOYEE",   "label": "Empleado",    "t_key": "enums.authority_level.employee",   "sort": 6},
+            {"type": "AUTHORITY_LEVEL", "key": "ASSISTANT",  "label": "Asistente",   "t_key": "enums.authority_level.assistant",  "sort": 7},
         ]
 
         for e in enums_to_seed:
