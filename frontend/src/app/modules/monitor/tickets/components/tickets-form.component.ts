@@ -6,6 +6,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { SideDrawerService } from '../../../../core/services/side-drawer.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { DepartmentService } from '../../../../core/services/department.service';
 import { MatIconModule } from '@angular/material/icon';
 import { finalize } from 'rxjs/operators';
 import { TranslatePipe } from '../../../../shared/pipes/translate.pipe';
@@ -95,9 +96,15 @@ import { TicketStatus, TicketComment, TicketAction } from '../../../../core/mode
               <div class="space-y-2">
                 <label class="text-[11px] font-bold text-slate-500 uppercase tracking-widest block">ÁREA</label>
                 <select formControlName="area" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-800 outline-none focus:border-sky-400 appearance-none">
-                  <option value="Sistemas">Sistemas</option>
-                  <option value="Mantenimiento">Mantenimiento</option>
-                  <option value="Producción">Producción</option>
+                  @if (deptService.loading()) {
+                    <option disabled>Cargando áreas...</option>
+                  } @else if (deptService.departments().length === 0) {
+                    <option value="">Sin áreas configuradas</option>
+                  } @else {
+                    @for (dept of deptService.departments(); track dept.id) {
+                      <option [value]="dept.name">{{ dept.name }}</option>
+                    }
+                  }
                 </select>
               </div>
             </div>
@@ -425,6 +432,7 @@ export class TicketsFormComponent implements OnInit {
   private adminService = inject(AdminService);
   private authService = inject(AuthService);
   drawerService = inject(SideDrawerService);
+  deptService = inject(DepartmentService);
 
   readonly SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -495,12 +503,14 @@ export class TicketsFormComponent implements OnInit {
       this.loadTickets();
     }
     this.loadUsersMap();
+    this.deptService.load(true); // solo activos
   }
 
   switchView(newView: 'list' | 'form' | 'triage') {
     this.view.set(newView);
     if (newView === 'form') {
-      this.ticketForm.reset({ priority: 'Media', area: 'Sistemas' });
+      const firstDept = this.deptService.departments()[0]?.name ?? '';
+      this.ticketForm.reset({ priority: 'Media', area: firstDept });
     }
   }
 
