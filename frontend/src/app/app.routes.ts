@@ -32,6 +32,10 @@ export const routes: Routes = [
       },
       {
         path: 'monitor/resources',
+        loadComponent: () => import('./modules/monitor/resource-selector.component').then(m => m.ResourceSelectorComponent)
+      },
+      {
+        path: 'monitor/resources/:code',
         loadComponent: () => import('./modules/monitor/resource-monitor.component').then(m => m.ResourceMonitorComponent)
       },
       {
