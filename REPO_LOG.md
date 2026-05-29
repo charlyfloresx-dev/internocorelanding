@@ -3,6 +3,38 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-29] Phase 156: MES Cold-Start — seed_mes_config + Migración 010 + Shift CRUD REST ✅
+
+**Objetivo:** Poblar `mes_db` con configuración de planta (Facilities, Resources, Shifts) para que `ResourceMonitorComponent` muestre datos reales en lugar de "Sin datos".
+
+**`alembic/versions/010_fix_shift_code_unique_per_company.py`** (NUEVO):
+- Corrige bug de diseño: `mes_shifts.code` era unique global → migrado a `UQ(company_id, code)`.
+- Permite que múltiples empresas tengan turnos con código "MAT"/"VES"/"NOC" sin conflicto.
+
+**`scripts/seed_mes_config.py`** (NUEVO — Phase 156-A):
+- Siembra datos de planta para 3 empresas (ENTERPRISE, LOGISTICS_MX, LOGISTICS_US).
+- Por empresa: 1 Facility, 3 ProductionAreas, 4 Resources (CELDA-58D/59A, TURRET-01, PRENSA-01), 3 Shifts (MAT 06-14 / VES 14-22 / NOC 22-06), 2 ShiftBreaks/turno (Descanso + Comida 30min c/u), 5 StandardTimes (ECM-600, TRB-700, BRK-800, FLI-900, SUS-100).
+- IDs determinísticos via `uuid5(NAMESPACE_DNS, "mes156.<tipo>.<company_id>.<code>")`.
+- Acepta `db_url` param para uso en tests (evita colisión con `CORE_DATABASE_URL` del `.env` raíz).
+- Idempotente: usa `_get_or_create()` por ID — segundas ejecuciones son no-op.
+
+**`scripts/seed.py`** (ACTUALIZADO): llama `seed_mes_config()` al arrancar el contenedor.
+
+**`api/v1/endpoints/shift.py`** (EXPANDIDO — Phase 156-C):
+- `GET /` existente mejorado con `breaks` embebidos.
+- **NUEVO** `POST /` — crear turno, valida código duplicado → 409.
+- **NUEVO** `GET /{shift_id}` — turno con breaks.
+- **NUEVO** `PATCH /{shift_id}` — actualizar nombre/tiempos/estado (partial).
+- **NUEVO** `DELETE /{shift_id}` — soft-delete (is_active=False).
+- **NUEVO** `GET /{shift_id}/breaks` — listar breaks del turno.
+- **NUEVO** `POST /{shift_id}/breaks` — crear break.
+- **NUEVO** `DELETE /{shift_id}/breaks/{break_id}` — eliminar break (hard).
+- Parser `_parse_time()` convierte "HH:MM" → `datetime.time`.
+
+**Tests**: 87 integration tests (74 anteriores + 19 seed + 13 shift CRUD) — 0 regresiones. Code Graph: 0 CRITICALs.
+
+---
+
 ### [2026-05-28] Phase 154 Parte 3: Angular — ResourceService + ResourceMonitor conectado a MES ✅
 
 **Objetivo:** Conectar `ResourceMonitorComponent` (Angular) a los endpoints reales del `mes_service`. Reemplazar los 3 signals hardcodeados por llamadas HTTP reales.

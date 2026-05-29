@@ -5,6 +5,25 @@
 
 ---
 
+### [2026-05-29] - Phase 156: MES Cold-Start — seed_mes_config + Migration 010 + Shift CRUD REST ✅
+
+**Migration 010** (`010_fix_shift_code_unique_per_company.py`):
+- Corrige `UQ(code)` global → `UQ(company_id, code)` en `mes_shifts`. Bug: bloqueaba multi-tenant con códigos compartidos (MAT/VES/NOC).
+
+**`scripts/seed_mes_config.py`** (Phase 156-A):
+- Para 3 empresas × [1 Facility, 3 Areas, 4 Resources, 3 Shifts, 6 ShiftBreaks, 5 StandardTimes].
+- Acepta `db_url` parámetro para tests (evita `CORE_DATABASE_URL` → `dbname`).
+- Idempotente via `uuid5` determinístico.
+
+**`api/v1/endpoints/shift.py`** (Phase 156-C — FULL CRUD):
+- `POST /` create, `GET /{id}` with breaks, `PATCH /{id}` partial update, `DELETE /{id}` soft-delete.
+- `GET /{id}/breaks`, `POST /{id}/breaks`, `DELETE /{id}/breaks/{brk_id}`.
+- `ShiftRead` ahora incluye `breaks[]` embebidos y expone tiempos como "HH:MM" string.
+
+**Tests**: 87 integration — 0 regresiones. Code Graph: 0 CRITICALs.
+
+---
+
 ### [2026-05-28] - Phase 154: Resource Monitor Domain — Facility, ProductionArea, Resource expanded, ShiftBreak, GraphicService ✅
 
 **Parte 1 — Modelos + Migration 009:**
