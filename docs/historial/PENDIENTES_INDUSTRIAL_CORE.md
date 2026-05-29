@@ -5,6 +5,116 @@
 
 Este documento centraliza los bloqueos y tareas críticas para el núcleo industrial, ignorando el ecosistema de eventos.
 
+## 🏭 MES Cold-Start: Configuración Inicial Completa (Phase 156 Plan)
+
+> **Por qué:** `ResourceMonitorComponent` ya consume la API real, pero el monitor muestra "Sin datos" porque `mes_db` está vacía de configuración operacional. Se necesitan 4 capas de datos antes de que la gráfica hora×hora tenga algo que mostrar.
+
+### Capas de Datos (orden obligatorio)
+
+```
+Capa 1 — Infraestructura Física (admin, setup único)
+  Facility → ProductionArea → Resource (+ warehouse_id soft FK)
+  Shift + ShiftBreak
+
+Capa 2 — Planificación Diaria (supervisor, cada turno)
+  WorkOrder (desde ERP) → ProductionRun (WO + Resource + Shift + Date)
+
+Capa 3 — Tiempo Estándar (ing. industrial, por ítem)
+  StandardTime (item_code, set_time_hours) — habilita goal exacto vs fallback
+
+Capa 4 — Datos en tiempo real (automático, por scanner)
+  HourlyProductionSnapshot → actualizado por ScannerService
+  ManufacturingLedger → scan entries inmutables
+```
+
+---
+
+### Parte A — Seed de Configuración MES (`seed_mes_config.py`) ← CREAR
+
+**Archivo:** `backend/mes_service/scripts/seed_mes_config.py`
+Usar UUIDs deterministas `uuid.uuid5(NAMESPACE_DNS, ...)` alineados con `unified_industrial_seed.py`.
+
+| Entidad | Registros a crear |
+|---|---|
+| `Facility` | 1 por empresa (3 total): "Planta Tijuana" (ENT), "Planta TJ Logística" (MX), "Plant San Diego" (US) |
+| `ProductionArea` | 3 por empresa: "Líneas de Ensamble", "Área de Calidad", "Almacén WIP" |
+| `Resource` | 4 por empresa: `CELDA-58D`, `CELDA-59A`, `TURRET-01`, `PRENSA-01` — resource_type: CELL/CELL/MACHINE/MACHINE |
+| `Shift` | 3 por empresa (sin resource_id = company-wide): Matutino 06:00-14:00, Vespertino 14:00-22:00, Nocturno 22:00-06:00 |
+| `ShiftBreak` | 2 por turno: Primer descanso (30 min), Comida (30 min) con horarios reales |
+| `StandardTime` | 5 por empresa — ítems de los productos del seed (set_time_hours calculados del legacy) |
+
+**Cómo integrar al stack:**
+Agregar llamada en `entrypoint.sh` del mes_service O como step separado en `migrate_all.ps1`.
+
+---
+
+### Parte B — Admin Angular: CRUD de Configuración MES ← CREAR
+
+**Ruta propuesta:** `/production/config` (ya existe `/production/item-config` como patrón)
+
+Componentes a crear:
+
+| Componente | Ruta | Endpoints backend |
+|---|---|---|
+| `FacilityConfigComponent` | `/production/config/facilities` | `GET/POST /mes/facilities`, `PATCH /mes/facilities/{id}` |
+| `ProductionAreaConfigComponent` | `/production/config/areas` | `GET/POST /mes/production-areas` |
+| `ResourceConfigComponent` | `/production/config/resources` | `GET/POST/PATCH /mes/resources/{code}` |
+| `ShiftConfigComponent` | `/production/config/shifts` | `GET/POST/PATCH /mes/shifts` (endpoint faltante — ver Parte C) |
+| `ShiftBreakConfigComponent` | Dentro de ShiftConfig | `GET/POST /mes/shifts/{id}/breaks` (faltante — ver Parte C) |
+| `StandardTimeConfigComponent` | `/production/item-config` | Ya existe parcialmente (scan patterns), extender |
+
+**Patrón de diseño:** seguir `MesItemConfigComponent` — campo de búsqueda + tabla de resultados + formulario lateral.
+
+---
+
+### Parte C — Backend MES: Endpoints faltantes ← CREAR
+
+Los modelos `Shift` y `ShiftBreak` existen en DB pero no tienen endpoints HTTP expuestos:
+
+```
+GET  /api/v1/mes/shifts                         → lista turnos activos de la empresa
+POST /api/v1/mes/shifts                         → crear turno
+PATCH /api/v1/mes/shifts/{id}                   → editar turno (start/end/name)
+DELETE /api/v1/mes/shifts/{id}                  → desactivar
+
+GET  /api/v1/mes/shifts/{shift_id}/breaks       → lista descansos del turno
+POST /api/v1/mes/shifts/{shift_id}/breaks       → crear descanso
+DELETE /api/v1/mes/shifts/{shift_id}/breaks/{id} → eliminar descanso
+
+GET  /api/v1/mes/standard-times                 → lista por empresa
+POST /api/v1/mes/standard-times                 → crear (item_code, operation_name, set_time_hours)
+DELETE /api/v1/mes/standard-times/{id}          → eliminar
+```
+
+---
+
+### Parte D — Planificación Diaria: WorkOrder + ProductionRun UI ← CREAR
+
+Para que el graphic tenga datos, supervisor debe poder:
+1. Crear/importar `WorkOrder` (order_number, item_code, order_quantity, due_date)
+2. Asignar a un recurso y turno como `ProductionRun` para la fecha de hoy
+
+**Endpoints ya existen** (`/mes/work-orders`, `/mes/production-runs` — verificar).
+**UI pendiente:**
+- `WorkOrderFormComponent` — formulario de creación rápida de WO
+- `DailyPlanningComponent` — arrastrar WO a un recurso/turno para el día (tabla Gantt simple)
+
+---
+
+### Checkboxes de seguimiento Phase 156
+
+- [ ] **A.1** `seed_mes_config.py`: Facility + ProductionArea + Resource + Shift + ShiftBreak
+- [ ] **A.2** Integrar `seed_mes_config.py` en `entrypoint.sh` o `migrate_all.ps1`
+- [ ] **A.3** Verificar que `unified_industrial_seed.py` llama al seed MES (o crear orquestador unificado)
+- [ ] **B.1** `ResourceConfigComponent` Angular (CRUD visual de celdas/máquinas)
+- [ ] **B.2** `ShiftConfigComponent` Angular con ShiftBreak inline
+- [ ] **C.1** Endpoints REST para `Shift` + `ShiftBreak` en `mes_service`
+- [ ] **C.2** Endpoints REST para `StandardTime` en `mes_service`
+- [ ] **D.1** `WorkOrderFormComponent` — creación rápida de WO
+- [ ] **D.2** Verificar endpoint `POST /mes/production-runs` funciona con nueva estructura
+
+---
+
 ## 🏭 Phase 154 — Monitor de Recurso: MES ↔ Frontend (PENDIENTE)
 
 > **Contexto:** `ResourceMonitorComponent` (`/monitor/resources`) tiene UI completa pero **100% hardcodeada** en signals estáticos. El `mes_service` ya corre en puerto 8005 y está expuesto por Nginx. Necesita conectarse.
@@ -99,11 +209,11 @@ Retorna: `{hours[], meta[], actual[], missing[], excess[], efficiency[], breaks[
 ### Parte 4 — Nginx (verificación)
 - Confirmar upstream `mes-service` en `nginx.conf` apunta al nombre de contenedor correcto (puerto interno 8000, no host 8005)
 
-### Checkboxes de seguimiento
-- [ ] Parte 1: `Facility` + `ProductionArea` + `Resource` + migration + seed + CRUD endpoints
-- [ ] Parte 2: `GET /graphic` con algoritmo hora×hora + `active-workorder` + `planned-workorders`
-- [ ] Parte 3: `ResourceService` Angular + desconectar mock + parámetro `:code` + `ResourceSelectorComponent`
-- [ ] Parte 4: Validar nginx upstream MES + smoke test E2E
+### Checkboxes de seguimiento Phase 154 ✅ COMPLETADO
+- [x] Parte 1: `Facility` + `ProductionArea` + `Resource` + migration 009 + CRUD endpoints (commit `b9c2f05`)
+- [x] Parte 2: `ResourceGraphicService` + `/graphic` + `/active-workorder` + `/planned-workorders` (commit `76c6488`)
+- [x] Parte 3: `ResourceService` Angular + `ResourceSelectorComponent` + mock desconectado + `:code` param (commit `ebe5bfa`)
+- [ ] Parte 4 → **Phase 156** MES Cold-Start: seed config + Admin UI + endpoints Shift/StandardTime (ver sección arriba)
 
 ---
 

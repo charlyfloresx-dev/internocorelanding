@@ -82,14 +82,29 @@
 | 6 | README sección "4 Pilares Industriales" + diagrama ERP→MES→WMS→HCM | docs | ✅ |
 | 7 | PENDIENTES: estrategia PLM/BOM documentada como decisión arquitectónica | docs | ✅ |
 
+## Phase 154 Parte 3 — Angular Resource Monitor (2026-05-28)
+
+| # | Tarea | Resultado |
+|---|---|---|
+| 1 | `mes.types.ts` — ResourceRead, HourlySlot, BreakSlot, GraphicResponse, ActiveWO, PlannedWO | ✅ |
+| 2 | `ResourceService` — CQRS signals + `loadAll()` paralelo | ✅ |
+| 3 | `ResourceMonitorComponent` — mock desconectado, ActivatedRoute :code, skeleton loaders | ✅ |
+| 4 | `ResourceSelectorComponent` — grid de recursos en `/monitor/resources` | ✅ |
+| 5 | `app.routes.ts` — `/monitor/resources` → selector, `/:code` → monitor | ✅ |
+| 6 | Angular build: 0 errores TypeScript | ✅ |
+| 7 | PENDIENTES Phase 156 — MES Cold-Start 4 capas documentado | ✅ |
+
 ## Pendientes carryover
 
 | Prioridad | Item |
 |---|---|
-| ALTA | **Phase 154 Parte 3**: `ResourceService` Angular + desconectar mock + `:code` param |
+| ALTA | **Phase 156 A.1**: `seed_mes_config.py` — Facility + ProductionArea + Resource + Shift + ShiftBreak |
+| ALTA | **Phase 156 C.1**: Endpoints REST Shift + ShiftBreak en `mes_service` |
+| ALTA | **Phase 156 B.1**: `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas |
+| ALTA | **Phase 156 B.2**: `ShiftConfigComponent` Angular con ShiftBreak inline |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end |
-| MEDIA | `Rout` model MES — BOM + Rutas de Producción (combustible para Work Orders) |
+| MEDIA | **Phase 156 D.1**: `WorkOrderFormComponent` + `DailyPlanningComponent` |
+| MEDIA | `Rout` model MES — BOM + Rutas de Producción |
 | MEDIA | Rate limit por endpoint en WMS, MES, HCM, Subscription |
 | MEDIA | Precio según partner seleccionado en SalesScreen (PriceAgreement en lookup) |
 | BAJA | `mes_app.schemas.planning` PydanticUserError (campo name clash) |
-| BAJA | `test_mes_core.py` xfail: services requieren repo injection |

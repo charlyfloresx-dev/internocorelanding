@@ -3,6 +3,37 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-28] Phase 154 Parte 3: Angular — ResourceService + ResourceMonitor conectado a MES ✅
+
+**Objetivo:** Conectar `ResourceMonitorComponent` (Angular) a los endpoints reales del `mes_service`. Reemplazar los 3 signals hardcodeados por llamadas HTTP reales.
+
+**`frontend/src/app/core/models/mes.types.ts`** (NUEVO):
+- Interfaces TypeScript que espejean las respuestas del backend: `ResourceRead`, `HourlySlot`, `BreakSlot`, `CumulativeRow`, `ResourceGraphicResponse`, `ActiveWorkOrderResponse`, `PlannedWorkOrderResponse`.
+
+**`frontend/src/app/core/services/resource.service.ts`** (NUEVO):
+- CQRS signals: `resource`, `graphic`, `activeWO`, `plannedWOs`, `resourceList`.
+- Computed convenience: `hourlySlots()`, `breaks()`, `cumulativeTable()`, `shiftName()`, `progressPct()`.
+- Métodos: `loadAll(code)` — llama en paralelo `loadResource + loadGraphic + loadActiveWorkOrder + loadPlannedWorkOrders`.
+
+**`ResourceMonitorComponent`** (REESCRITO):
+- Inyecta `ResourceService` + `ActivatedRoute`.
+- Lee `:code` del parámetro de ruta en `ngOnInit()`.
+- Los 3 signals hardcodeados (`productionData`, `tableData`, `plannedOrders`) reemplazados por `svc.hourlySlots()`, `svc.cumulativeTable()`, `svc.plannedWOs()`.
+- Skeleton loaders en todos los estados de carga.
+- `ngOnDestroy()` llama `svc.reset()` para limpiar estado.
+
+**`ResourceSelectorComponent`** (NUEVO — `/monitor/resources`):
+- Grid de recursos activos de la empresa.
+- Navega a `/monitor/resources/:code` al hacer clic.
+
+**`app.routes.ts`**: `/monitor/resources` → `ResourceSelectorComponent`; `/monitor/resources/:code` → `ResourceMonitorComponent`.
+
+**Angular build:** 0 errores TypeScript, bundle generation complete.
+
+**Documentación:**
+- `PENDIENTES_INDUSTRIAL_CORE.md`: Phase 156 plan completo — MES Cold-Start con 4 capas: Facility/ProductionArea/Resource/Shift/ShiftBreak seed, Admin UI CRUD, endpoints Shift+StandardTime, UI de planificación diaria.
+
+---
 ### [2026-05-28] Phase 154: MES — Resource Monitor Domain + Hourly Graphic Algorithm ✅
 
 **Objetivo:** Implementar la capa de dominio del Monitor de Recurso en `mes_service` (Phase 154 Partes 1 y 2) y documentar la propuesta de valor industrial de Interno Core.
