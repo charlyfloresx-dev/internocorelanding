@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 156 completada (2026-05-29). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 156 completo (2026-05-29). Phase 157 en progreso. Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---
@@ -457,8 +457,14 @@ python backend/scripts/generate_code_graph.py
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
 | BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar (archivo existe, cuerpo vacío). FK `rout_id` en WorkOrder existe pero es nullable |
 | ~~BAJA~~ | ~~**MES** `Planning` + `Facility` + `ProductionArea` models faltantes (warehouse scheduling, planta física)~~ — ✅ RESUELTO Phase 154 (Facility/ProductionArea) + Phase 156 (seed de configuración) |
-| ALTA | **MES** `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas en `/production/config/resources` |
-| ALTA | **MES** `ShiftConfigComponent` Angular con ShiftBreak inline en `/production/config/shifts` |
+| ~~ALTA~~ | ~~**MES** `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas en `/production/config/resources`~~ — ✅ RESUELTO Phase 156-B |
+| ~~ALTA~~ | ~~**MES** `ShiftConfigComponent` Angular con ShiftBreak inline en `/production/config/shifts`~~ — ✅ RESUELTO Phase 156-B |
+| ~~ALTA~~ | ~~**MES** `WorkOrderFormComponent` + `DailyPlanningComponent`~~ — ✅ RESUELTO Phase 156-D |
+| ALTA | **HCM** Entidad `BreakGroup` con `capacity_per_slot` — grupos de descanso por capacidad de áreas comunes (baños/cafetería). `Resource.break_group_id` soft FK ya existe, pendiente implementar endpoint `/hcm/break-groups` y consumo en `ResourceGraphicService` |
+| ALTA | **MES** `material_status` badge en `ResourceMonitorComponent` cuando WO activa tiene `PENDING_ISSUE` |
+| MEDIA | **MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`) |
+| MEDIA | **MES** WO bulk import CSV — `WorkOrderBulkFormComponent` para importar desde ERP |
+| BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
 | BAJA | **MES** `ProductionRunWorkOrder` pivot (many-to-many ProductionRun↔WorkOrder) faltante |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
 | BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |

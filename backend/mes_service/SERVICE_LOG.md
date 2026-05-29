@@ -5,6 +5,32 @@
 
 ---
 
+### [2026-05-29] - Phase 156-B/C/D: Angular Admin UI + Planning + WO Material Flow ✅
+
+**Phase 156-B — Angular Admin UI:**
+- `ResourceConfigComponent` (`/production/config/resources`): tabla con tipo/código, acciones, filtro
+- `ShiftConfigComponent` (`/production/config/shifts`): tabla con breaks expandibles, filtro empresa/recurso
+- `ProductionAreaFormComponent` (drawer): Facility CRUD + ProductionArea CRUD con selector de facilidad
+- `ResourceFormComponent`, `ShiftFormComponent`, `ResourceBulkFormComponent` (todos en drawer)
+- `POST /mes/resources/bulk`: batch create con skip de duplicados
+- `ShiftService` Angular con full CRUD + break management
+- Navigation: `prod-planning`, `prod-config-resources`, `prod-config-shifts`, `prod-item-config`
+
+**Phase 156-C — Shift CRUD REST:** (ver entrada anterior)
+
+**Phase 156-D — Planificación + WO:**
+- `DailyPlanningComponent` (`/production/planning`): date picker, recursos por fila, runs asignados, inline modal asignar WO
+- `WorkOrderFormComponent` (drawer): WO types cargados de API, banner de alerta material
+- `planning.py`: FIXES críticos (`entry.date→production_date`, `status` no existe, falta `tenant_id`) + GET/POST/DELETE `/runs`
+- `GET /mes/orders/types`: catálogo dinámico de tipos de OT desde enum
+- `WorkOrderHandler`: REMOVIDA explosión automática de BOM. WO crea solo `PLANNED_OUTPUT` + `material_status="PENDING_ISSUE"`
+- `POST /mes/orders/{n}/issue-material`: surtido explícito → explota BOM → `MATERIAL_INPUT` lines + `material_status="ISSUED"`
+- Badge `⚠️ Sin surtir` + botón "Surtir Material" en `DailyPlanningComponent`
+
+**Decisión:** BreakGroups → HCM. `Resource.break_group_id` pendiente conectar a `/hcm/break-groups`.
+
+---
+
 ### [2026-05-29] - Phase 156: MES Cold-Start — seed_mes_config + Migration 010 + Shift CRUD REST ✅
 
 **Migration 010** (`010_fix_shift_code_unique_per_company.py`):

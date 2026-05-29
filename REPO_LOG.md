@@ -3,6 +3,31 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+### [2026-05-29] Phase 156 Completo: MES Cold-Start → Seed + UI Admin + Planificación Diaria ✅
+
+**Objetivo:** Llevar el `ResourceMonitorComponent` de "Sin datos" a datos reales. Configuración completa de planta, gestión de turnos, planificación diaria de OTs y flujo correcto de surtido de material.
+
+**Decisiones arquitectónicas clave:**
+- **BreakGroups → HCM** (no MES): los horarios de descanso por capacidad de áreas comunes pertenecen al módulo HCM. `Resource.break_group_id` soft FK ya existe, pendiente implementar en HCM.
+- **WO material separado del BOM**: `WorkOrderHandler` ya no explota el BOM automáticamente. La OT se crea con solo `PLANNED_OUTPUT` + `material_status="PENDING_ISSUE"`. El surtido es un paso explícito (`POST /mes/orders/{n}/issue-material`) que crea las líneas `MATERIAL_INPUT`. No bloquea el flujo — solo alerta visible.
+- **Migration 010**: corrige `mes_shifts.code` de unique global → `UQ(company_id, code)`.
+- **WO types dinámicos**: `GET /mes/orders/types` devuelve catálogo desde el enum del servidor, no hardcodeado en el cliente.
+
+**Archivos clave:**
+- `backend/mes_service/scripts/seed_mes_config.py` — seed completo 3 empresas × [Facility, Areas, Resources, Shifts, Breaks, StandardTimes]
+- `backend/mes_service/alembic/versions/010_fix_shift_code_unique_per_company.py`
+- `backend/mes_service/mes_app/api/v1/endpoints/shift.py` — CRUD completo
+- `backend/mes_service/mes_app/api/v1/endpoints/planning.py` — fixed bugs + GET/POST/DELETE runs
+- `backend/mes_service/mes_app/api/v1/endpoints/work_order.py` — tipos dinámicos + issue-material
+- `backend/mes_service/mes_app/core/handlers/work_order_handler.py` — flujo correcto surtido
+- `frontend/src/app/modules/production/config/` — ResourceConfig + ShiftConfig
+- `frontend/src/app/modules/production/planning/daily-planning.component.ts`
+- `frontend/src/app/shared/components/` — ResourceForm + ShiftForm + BulkForm + ProductionAreaForm + WorkOrderForm
+
+**Tests:** 87 integration (MES) — 0 regresiones. Code Graph: 0 CRITICALs.
+
+---
+
 ### [2026-05-29] Phase 156: MES Cold-Start — seed_mes_config + Migración 010 + Shift CRUD REST ✅
 
 **Objetivo:** Poblar `mes_db` con configuración de planta (Facilities, Resources, Shifts) para que `ResourceMonitorComponent` muestre datos reales en lugar de "Sin datos".

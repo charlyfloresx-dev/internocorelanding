@@ -103,15 +103,41 @@ Para que el graphic tenga datos, supervisor debe poder:
 
 ### Checkboxes de seguimiento Phase 156
 
-- [ ] **A.1** `seed_mes_config.py`: Facility + ProductionArea + Resource + Shift + ShiftBreak
-- [ ] **A.2** Integrar `seed_mes_config.py` en `entrypoint.sh` o `migrate_all.ps1`
-- [ ] **A.3** Verificar que `unified_industrial_seed.py` llama al seed MES (o crear orquestador unificado)
-- [ ] **B.1** `ResourceConfigComponent` Angular (CRUD visual de celdas/máquinas)
-- [ ] **B.2** `ShiftConfigComponent` Angular con ShiftBreak inline
-- [ ] **C.1** Endpoints REST para `Shift` + `ShiftBreak` en `mes_service`
-- [ ] **C.2** Endpoints REST para `StandardTime` en `mes_service`
-- [ ] **D.1** `WorkOrderFormComponent` — creación rápida de WO
-- [ ] **D.2** Verificar endpoint `POST /mes/production-runs` funciona con nueva estructura
+- [x] **A.1** `seed_mes_config.py`: Facility + ProductionArea + Resource + Shift + ShiftBreak ✅ Phase 156-A (2026-05-29)
+- [x] **A.2** Integrar `seed_mes_config.py` en `entrypoint.sh` via `scripts/seed.py` ✅ Phase 156-A
+- [x] **A.3** `unified_industrial_seed.py` no llama MES directamente; `entrypoint.sh` del contenedor lo hace ✅
+- [x] **B.1** `ResourceConfigComponent` (`/production/config/resources`) + `ResourceFormComponent` (drawer) + CSV bulk ✅ Phase 156-B
+- [x] **B.2** `ShiftConfigComponent` (`/production/config/shifts`) + `ShiftFormComponent` con breaks inline ✅ Phase 156-B
+- [x] **B.3** `ProductionAreaFormComponent` — Facilidades + Áreas vía drawer "Áreas/Plantas" ✅ Phase 156-B (2026-05-29)
+- [x] **C.1** Endpoints REST Shift: GET/POST/PATCH/DELETE + ShiftBreak sub-resource ✅ Phase 156-C
+- [ ] **C.2** Endpoints REST para `StandardTime` — CRUD completo (seed existe, falta UI + endpoints)
+- [x] **D.1** `WorkOrderFormComponent` + `DailyPlanningComponent` (`/production/planning`) ✅ Phase 156-D
+- [x] **D.2** `POST /mes/planning/runs` corregido (field bugs, tenant_id, new GET+DELETE) ✅ Phase 156-D
+- [x] **D.3** Flujo de surtido de material separado — `POST /mes/orders/{n}/issue-material` ✅ Phase 156-D (2026-05-29)
+- [x] **D.4** WO types catalog desde API (`GET /mes/orders/types`) — no hardcodeado ✅ Phase 156-D
+
+---
+
+## 🆕 Phase 157 — Pendientes Descubiertos en Phase 156 (2026-05-29)
+
+### Alta Prioridad
+
+| Item | Descripción |
+|---|---|
+| **HCM BreakGroups** | Grupos de descanso basados en capacidad de áreas comunes (baños, cafetería). Pertenecen a HCM, no a MES. `Resource.break_group_id` soft FK ya existe. Requiere: entidad `BreakGroup` en HCM + endpoint `/hcm/break-groups` + `ResourceGraphicService` consume HCM vía HTTP cuando `break_group_id != NULL` |
+| **StandardTime CRUD** | Endpoints REST `GET/POST/DELETE /mes/standard-times` + `StandardTimeFormComponent` (drawer) integrado en `MesItemConfigComponent` |
+| **Material Badge en Monitor** | `ResourceMonitorComponent` debe mostrar badge "⚠️ Material sin surtir" si la WO activa tiene `material_status=PENDING_ISSUE` |
+| **Menú: agregar link Planificación** | `navigation.service.ts` tiene `prod-planning` → `/production/planning` pero falta verificar que el icono `assignment` esté disponible en Material Icons |
+
+### Media Prioridad
+
+| Item | Descripción |
+|---|---|
+| **WO bulk import CSV** | Equivalente al bulk de recursos pero para WOs — `WorkOrderBulkFormComponent` para importar desde ERP |
+| **DailyPlanning — mini Gantt** | Visualización tipo Gantt horizontal por recurso/turno (actualmente tabla plana) |
+| **StandardTime import Excel** | Bulk load de tiempos estándar desde Excel (deuda técnica ya registrada en CLAUDE.md) |
+| **`.github/agents/*.agent.md`** | Archivos de agentes en `.github/agents/` referencian "NexoSuite" (nombre antiguo). Actualizar a "InternoCore" |
+| **Validar checkout POS** | `POST /api/v1/pos/checkout` — validación end-to-end con flows de prueba |
 
 ---
 
