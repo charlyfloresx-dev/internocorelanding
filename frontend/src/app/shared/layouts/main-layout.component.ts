@@ -184,31 +184,6 @@ import {WhatsAppGatewayComponent} from '../../modules/admin/whatsapp-gateway.com
               </div>
 
               @if (navService.isAdmin()) {
-                <!-- ── Recursos Humanos ── -->
-                <div class="pt-4 border-t border-slate-100 dark:border-white/5 space-y-1">
-                  <span class="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-2 block px-2">Recursos Humanos</span>
-
-                  <a
-                    routerLink="/admin/staff"
-                    (click)="navService.closeSubMenu()"
-                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
-                  >
-                    <mat-icon class="text-lg">badge</mat-icon>
-                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_staff' | translate:'Personal de Planta' }}</span>
-                  </a>
-
-                  <a
-                    routerLink="/admin/departments"
-                    (click)="navService.closeSubMenu()"
-                    routerLinkActive="bg-primary/10 text-primary border-primary/20 shadow-inner"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-all border border-transparent group/sub"
-                  >
-                    <mat-icon class="text-lg">corporate_fare</mat-icon>
-                    <span class="text-[10px] font-bold uppercase tracking-widest">{{ 'menu.settings_departments' | translate:'Áreas y Departamentos' }}</span>
-                  </a>
-                </div>
-
                 <!-- ── Administración ── -->
                 <div class="pt-4 border-t border-slate-100 dark:border-white/5 space-y-1">
                   <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block px-2">Administración</span>

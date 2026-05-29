@@ -72,6 +72,17 @@ export class NavigationService {
       ]
     },
     {
+      id: 'hcm',
+      label: 'Recursos Humanos',
+      translation_key: 'menu.hcm',
+      icon: 'people_alt',
+      permissions: ['admin.user.manage', 'hcm:read', 'hcm:write'],
+      subItems: [
+        { id: 'hcm-staff',       label: 'Personal de Planta',    translation_key: 'menu.hcm_staff',       route: '/admin/staff' },
+        { id: 'hcm-departments', label: 'Áreas y Departamentos', translation_key: 'menu.hcm_departments', route: '/admin/departments' }
+      ]
+    },
+    {
       id: 'wms',
       label: 'WMS / Logística',
       translation_key: 'menu.wms',
