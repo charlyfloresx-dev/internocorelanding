@@ -18,11 +18,13 @@ Algorithm (from Interno.Production.Controllers.ResultController):
        - else → Faltante = meta - actual; producidas = actual
   6. Efficiency[i] = ceil((producidas[i] * 100) / meta[i])  if meta > 0
 """
+import logging
 import math
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, time, datetime, timezone
 from typing import List, Optional
+import httpx
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,6 +37,21 @@ from mes_app.models.work_order import WorkOrder
 from mes_app.models.production_run import ProductionRun
 from mes_app.models.production_snapshot import HourlyProductionSnapshot
 from mes_app.models.standard_time import StandardTime
+from mes_app.core.config import settings
+
+logger = logging.getLogger(__name__)
+_HCM_BASE = "http://hcm-service:8000"
+
+
+@dataclass
+class BreakInfo:
+    """Internal break abstraction — unifies MES ShiftBreak and HCM BreakSlot."""
+    code: str
+    label: str
+    start_time: time
+    end_time: time
+    duration_minutes: int
+    break_type: str = "BREAK"
 
 
 # ── Response dataclasses ──────────────────────────────────────────────────────
@@ -137,11 +154,27 @@ class ResourceGraphicService:
                 total_actual=0,
             )
 
-        # ── 3. Load breaks for this shift ─────────────────────────────────────
-        breaks_row = await self.db.execute(
-            select(ShiftBreak).where(ShiftBreak.shift_id == shift.id)
-        )
-        breaks: List[ShiftBreak] = list(breaks_row.scalars().all())
+        # ── 3. Load breaks ────────────────────────────────────────────────────
+        # Priority: HCM BreakGroup (capacity-based, staggered) > MES ShiftBreak fallback
+        breaks: List[BreakInfo] = []
+        if resource.break_group_id:
+            breaks = await self._fetch_hcm_breaks(resource.break_group_id, company_id)
+        if not breaks:
+            # Fallback: MES ShiftBreak local overrides
+            breaks_row = await self.db.execute(
+                select(ShiftBreak).where(ShiftBreak.shift_id == shift.id)
+            )
+            breaks = [
+                BreakInfo(
+                    code=sb.code,
+                    label=sb.label,
+                    start_time=sb.start_time,
+                    end_time=sb.end_time,
+                    duration_minutes=sb.duration_minutes,
+                    break_type=sb.break_type or "BREAK",
+                )
+                for sb in breaks_row.scalars().all()
+            ]
 
         # ── 4. Generate hourly slots ──────────────────────────────────────────
         slots = self._generate_slots(shift, breaks)  # List[str] "HH:MM"
@@ -254,7 +287,7 @@ class ResourceGraphicService:
                 end_time=b.end_time.strftime("%H:%M"),
                 duration_minutes=b.duration_minutes,
             )
-            for b in breaks
+            for b in breaks  # breaks is now List[BreakInfo]
         ]
 
         return ResourceGraphicResponse(
@@ -409,8 +442,44 @@ class ResourceGraphicService:
 
         return slots
 
+    async def _fetch_hcm_breaks(
+        self, break_group_id: uuid.UUID, company_id: uuid.UUID
+    ) -> List[BreakInfo]:
+        """
+        Fetches break slots from HCM service for a BreakGroup.
+        Best-effort: returns [] on any failure so MES ShiftBreak fallback kicks in.
+        """
+        url = f"{_HCM_BASE}/api/v1/hcm/break-groups/{break_group_id}/slots"
+        headers = {
+            "X-Company-ID": str(company_id),
+            "X-Internal-Secret": settings.INTERNAL_API_KEY,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code != 200:
+                    return []
+                payload = resp.json()
+                data = payload.get("data", payload) if isinstance(payload, dict) else payload
+                result = []
+                for i, slot in enumerate(data or []):
+                    start = time.fromisoformat(slot["start_time"])
+                    end   = time.fromisoformat(slot["end_time"])
+                    result.append(BreakInfo(
+                        code=f"HCM-{i+1}",
+                        label=slot.get("label", f"Break {i+1}"),
+                        start_time=start,
+                        end_time=end,
+                        duration_minutes=slot.get("duration_minutes", 30),
+                        break_type=slot.get("break_type", "BREAK"),
+                    ))
+                return result
+        except Exception as exc:
+            logger.warning(f"[Graphic] HCM break fetch failed for group {break_group_id}: {exc}")
+            return []
+
     def _apply_breaks(
-        self, slots: List[str], shift: Shift, breaks: List[ShiftBreak]
+        self, slots: List[str], shift: Shift, breaks: List[BreakInfo]
     ) -> List[float]:
         """
         Returns disponible[i] in hours for each slot.
