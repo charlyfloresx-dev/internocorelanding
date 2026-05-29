@@ -1,6 +1,11 @@
+from .facility import Facility
+from .production_area import ProductionArea
+from .resource import Resource
+from .resource_support_member import ResourceSupportMember
+from .shift import Shift
+from .shift_break import ShiftBreak
 from .work_order import WorkOrder
 from .work_order_line import WorkOrderLine
-from .resource import Resource
 from .standard_time import StandardTime
 from .production_run import ProductionRun
 from .downtime import DowntimeReason, Downtime
@@ -11,12 +16,16 @@ from .production_snapshot import HourlyProductionSnapshot
 from .run_metrics_snapshot import RunMetricsSnapshot
 from .scrap_entry import ScrapEntry
 from .ledger import ManufacturingLedger, Tracking
-from .shift import Shift
 
 __all__ = [
+    "Facility",
+    "ProductionArea",
+    "Resource",
+    "ResourceSupportMember",
+    "Shift",
+    "ShiftBreak",
     "WorkOrder",
     "WorkOrderLine",
-    "Resource",
     "StandardTime",
     "ProductionRun",
     "DowntimeReason",
@@ -30,5 +39,4 @@ __all__ = [
     "ScrapEntry",
     "ManufacturingLedger",
     "Tracking",
-    "Shift",
 ]

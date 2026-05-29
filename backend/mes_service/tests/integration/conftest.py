@@ -18,8 +18,14 @@ for _p in [_service_root, _backend_root]:
 load_dotenv(os.path.join(_repo_root, ".env"), override=False)
 
 # Force all MES models to register with Base.metadata
-import mes_app.models.work_order       # noqa: F401
-import mes_app.models.work_order_line  # noqa: F401
+import mes_app.models.facility                 # noqa: F401
+import mes_app.models.production_area          # noqa: F401
+import mes_app.models.resource                 # noqa: F401
+import mes_app.models.resource_support_member  # noqa: F401
+import mes_app.models.shift                    # noqa: F401
+import mes_app.models.shift_break              # noqa: F401
+import mes_app.models.work_order               # noqa: F401
+import mes_app.models.work_order_line          # noqa: F401
 
 # ── Real PostgreSQL (mes_db) ───────────────────────────────────────────────────
 MES_TEST_DB_URL = os.environ.get(

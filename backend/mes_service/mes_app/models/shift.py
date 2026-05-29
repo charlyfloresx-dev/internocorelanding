@@ -1,9 +1,14 @@
 import uuid
 from datetime import time
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Time, Boolean, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from common.infrastructure.models.base import MultiTenantBase
+
+if TYPE_CHECKING:
+    from .resource import Resource
+    from .shift_break import ShiftBreak
+
 
 class Shift(MultiTenantBase):
     """
@@ -30,3 +35,8 @@ class Shift(MultiTenantBase):
     resource_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("mes_resources.id"), nullable=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    resource: Mapped[Optional["Resource"]] = relationship("Resource", back_populates="shifts")
+    breaks: Mapped[list["ShiftBreak"]] = relationship(
+        "ShiftBreak", back_populates="shift", cascade="all, delete-orphan", lazy="selectin"
+    )
