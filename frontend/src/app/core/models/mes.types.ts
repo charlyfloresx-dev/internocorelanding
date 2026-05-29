@@ -92,3 +92,63 @@ export interface PlannedWorkOrderResponse {
   actual_quantity: number;
   status: string;
 }
+
+// ── Phase 156-B: Resource + Shift config types ─────────────────────────────
+
+export interface ResourceCreate {
+  code: string;
+  name: string;
+  description?: string | null;
+  resource_type?: 'CELL' | 'MACHINE' | 'AREA' | 'LINE' | null;
+  capacity?: number | null;
+  production_area_id?: string | null;
+}
+
+export interface ResourceUpdate {
+  name?: string;
+  description?: string | null;
+  resource_type?: 'CELL' | 'MACHINE' | 'AREA' | 'LINE' | null;
+  capacity?: number | null;
+  production_area_id?: string | null;
+  active?: boolean;
+}
+
+export interface ShiftRead {
+  id: string;
+  code: string;
+  name: string;
+  start_time: string;   // "HH:MM"
+  end_time: string;     // "HH:MM"
+  is_overnight: boolean;
+  break_minutes: number;
+  is_active: boolean;
+  resource_id: string | null;
+  breaks: BreakSlot[];
+}
+
+export interface ShiftCreate {
+  code: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  is_overnight?: boolean;
+  break_minutes?: number;
+}
+
+export interface ShiftUpdate {
+  name?: string;
+  start_time?: string;
+  end_time?: string;
+  is_overnight?: boolean;
+  break_minutes?: number;
+  is_active?: boolean;
+}
+
+export interface ShiftBreakCreate {
+  code: string;
+  label: string;
+  break_type?: 'BREAK' | 'MEAL' | 'MAINTENANCE';
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+}

@@ -4,9 +4,13 @@ import { lastValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ResourceRead,
+  ResourceCreate,
+  ResourceUpdate,
   ResourceGraphicResponse,
   ActiveWorkOrderResponse,
   PlannedWorkOrderResponse,
+  FacilityRead,
+  ProductionAreaRead,
 } from '../models/mes.types';
 
 @Injectable({ providedIn: 'root' })
@@ -100,15 +104,18 @@ export class ResourceService {
 
   // ── listResources ──────────────────────────────────────────────────────────
 
-  async listResources(): Promise<void> {
+  async listResources(): Promise<ResourceRead[]> {
     try {
       const resp: any = await lastValueFrom(
         this.http.get(`${this.base}/mes/resources/`)
       );
       const data = resp?.data ?? resp;
-      this.resourceList.set(Array.isArray(data) ? data : []);
+      const list: ResourceRead[] = Array.isArray(data) ? data : [];
+      this.resourceList.set(list);
+      return list;
     } catch {
       this.resourceList.set([]);
+      return [];
     }
   }
 
@@ -129,5 +136,55 @@ export class ResourceService {
     this.activeWO.set(null);
     this.plannedWOs.set([]);
     this.error.set(null);
+  }
+
+  // ── Mutation methods (Phase 156-B) ─────────────────────────────────────────
+
+  async createResource(body: ResourceCreate): Promise<ResourceRead> {
+    const resp: any = await lastValueFrom(
+      this.http.post(`${this.base}/mes/resources/`, body)
+    );
+    return resp?.data ?? resp;
+  }
+
+  async updateResource(code: string, body: ResourceUpdate): Promise<ResourceRead> {
+    const resp: any = await lastValueFrom(
+      this.http.patch(`${this.base}/mes/resources/${encodeURIComponent(code)}`, body)
+    );
+    return resp?.data ?? resp;
+  }
+
+  async bulkCreateResources(rows: ResourceCreate[]): Promise<{ created: number; skipped: number; errors: any[] }> {
+    const resp: any = await lastValueFrom(
+      this.http.post(`${this.base}/mes/resources/bulk`, rows)
+    );
+    return resp?.data ?? resp;
+  }
+
+  // ── Config lists ───────────────────────────────────────────────────────────
+
+  async listFacilities(): Promise<FacilityRead[]> {
+    try {
+      const resp: any = await lastValueFrom(
+        this.http.get(`${this.base}/mes/resources/facilities`)
+      );
+      const data = resp?.data ?? resp;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async listProductionAreas(facilityId?: string): Promise<ProductionAreaRead[]> {
+    try {
+      const params = facilityId ? `?facility_id=${facilityId}` : '';
+      const resp: any = await lastValueFrom(
+        this.http.get(`${this.base}/mes/resources/production-areas${params}`)
+      );
+      const data = resp?.data ?? resp;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   }
 }

@@ -161,6 +161,23 @@ export const routes: Routes = [
             canActivate: [permissionGuard],
             data: { requiredPermission: ['master_data:write', 'admin.user.manage'] },
             loadComponent: () => import('./modules/production/item-config/mes-item-config.component').then(m => m.MesItemConfigComponent)
+          },
+          {
+            path: 'config',
+            children: [
+              {
+                path: 'resources',
+                canActivate: [permissionGuard],
+                data: { requiredPermission: ['admin.user.manage', 'master_data:write'] },
+                loadComponent: () => import('./modules/production/config/resource-config.component').then(m => m.ResourceConfigComponent)
+              },
+              {
+                path: 'shifts',
+                canActivate: [permissionGuard],
+                data: { requiredPermission: ['admin.user.manage', 'master_data:write'] },
+                loadComponent: () => import('./modules/production/config/shift-config.component').then(m => m.ShiftConfigComponent)
+              }
+            ]
           }
         ]
       },

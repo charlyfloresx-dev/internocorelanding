@@ -258,6 +258,51 @@ async def create_resource(
     return resource
 
 
+class BulkResourceResult(BaseModel):
+    created: int
+    skipped: int
+    errors: List[dict] = []
+
+
+@router.post("/bulk", response_model=BulkResourceResult, status_code=status.HTTP_200_OK,
+             tags=["Resources"])
+async def bulk_create_resources(
+    body: List[ResourceCreate],
+    db: AsyncSession = Depends(get_db),
+):
+    """Create multiple resources from a list (CSV pre-parsed by frontend).
+    Rows with duplicate codes are skipped, not rejected.
+    """
+    company_id = _company_id()
+    created = skipped = 0
+    errors: List[dict] = []
+
+    for i, item in enumerate(body):
+        try:
+            exists = (await db.execute(
+                select(Resource).where(
+                    Resource.company_id == company_id,
+                    Resource.code == item.code,
+                )
+            )).scalars().first()
+            if exists:
+                skipped += 1
+                continue
+            db.add(Resource(
+                id=uuid.uuid4(),
+                company_id=company_id,
+                tenant_id=company_id,
+                **item.model_dump(),
+            ))
+            created += 1
+        except Exception as exc:
+            errors.append({"row": i + 1, "code": item.code, "message": str(exc)})
+
+    if created > 0:
+        await db.commit()
+    return BulkResourceResult(created=created, skipped=skipped, errors=errors)
+
+
 @router.patch("/{code}", response_model=ResourceRead, tags=["Resources"])
 async def update_resource(
     code: str,
