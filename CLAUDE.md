@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 155 completada (2026-05-28). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 156 completada (2026-05-29). Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---
@@ -430,7 +430,7 @@ python backend/scripts/generate_code_graph.py
 
 ---
 
-## 13. Deuda Técnica Activa (al 2026-05-28)
+## 13. Deuda Técnica Activa (al 2026-05-29)
 
 | Prioridad | Item |
 |---|---|
@@ -456,13 +456,17 @@ python backend/scripts/generate_code_graph.py
 | BAJA | Offline buffer SQLite para mobile en zonas sin conectividad |
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
 | BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar (archivo existe, cuerpo vacío). FK `rout_id` en WorkOrder existe pero es nullable |
-| BAJA | **MES** `Planning` + `Facility` + `ProductionArea` models faltantes (warehouse scheduling, planta física) |
+| ~~BAJA~~ | ~~**MES** `Planning` + `Facility` + `ProductionArea` models faltantes (warehouse scheduling, planta física)~~ — ✅ RESUELTO Phase 154 (Facility/ProductionArea) + Phase 156 (seed de configuración) |
+| ALTA | **MES** `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas en `/production/config/resources` |
+| ALTA | **MES** `ShiftConfigComponent` Angular con ShiftBreak inline en `/production/config/shifts` |
 | BAJA | **MES** `ProductionRunWorkOrder` pivot (many-to-many ProductionRun↔WorkOrder) faltante |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
 | BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |
 | BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count (para calcular GainedHrs/Attainment/Eficiency) |
 | BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |
-| BAJA | **MES** Endpoints faltantes: `GET /resources/{code}/graphic` (algoritmo ~120L), `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
+| ~~BAJA~~ | ~~**MES** Endpoints faltantes: `GET /resources/{code}/graphic` (algoritmo ~120L)~~ — ✅ RESUELTO Phase 154 Parte 2 |
+| BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
+| MEDIA | **MES** `WorkOrderFormComponent` + `DailyPlanningComponent` — UI para crear WO y asignarlas al recurso/turno del día |
 
 ---
 
