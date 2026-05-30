@@ -5,6 +5,26 @@
 
 ---
 
+### [2026-05-30] - Phase 160: StandardTime CRUD + WO Bulk Import + DailyPlanning Gantt ✅
+
+**Backend:**
+- `GET/POST/PATCH/DELETE /mes/standard-times` + `POST /mes/standard-times/bulk` — CRUD completo para tiempos estándar por ítem/operación
+- `POST /mes/orders/bulk` — importación masiva de OTs (array JSON); duplicados por `order_number` se omiten; retorna `{created, skipped, errors}`
+- **Tests:** 10 nuevos en `test_standard_times.py` (model + tenant isolation) — 13/13 GREEN; suite completa 116 passed / 2 pre-existing failures (BOM explosion, no relacionados)
+
+**Frontend Angular:**
+- `StandardTimeService` — signals HTTP (load, create, update, remove, bulkCreate)
+- `StandardTimeFormComponent` — drawer crear/editar (item_code, operation_name, set_time_hours, cycle_time_seconds opcional)
+- `MesItemConfigComponent` — tab "Tiempos Estándar": tabla filtrable por item_code, botones Nuevo/Editar/Eliminar, integración con drawer y refresh$
+- `WorkOrderBulkFormComponent` — CSV template download, parse client-side, POST /bulk, reporte created/skipped/errors
+- `DailyPlanningComponent` — toggle vista **Cards ↔ Gantt**; Gantt: barras CSS proporcionales a `capacity×8h`, colores por progreso/material; botón "Importar OTs" → bulk drawer
+
+**Nota de dominio:** `StandardTime` es por `(item_code, operation_name)` sin orden. La secuencia de operaciones que define la ruta completa requiere `sequence_number` — pendiente en `routing.py` (deuda MEDIA).
+
+**Code Graph:** 0 CRITICALs (mes_service 100% compliant).
+
+---
+
 ### [2026-05-29] - Phase 156-B/C/D: Angular Admin UI + Planning + WO Material Flow ✅
 
 **Phase 156-B — Angular Admin UI:**

@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 159 completo (2026-05-30). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 160 completo (2026-05-30). Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---
@@ -463,10 +463,10 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**HCM** Entidad `BreakGroup` con `capacity_per_slot`~~ — ✅ RESUELTO Phase 157 (2026-05-29): `hcm_break_groups` + `hcm_break_slots`, endpoints CRUD `/hcm/break-groups`, consumo HTTP en `ResourceGraphicService` |
 | ~~ALTA~~ | ~~**MES** `material_status` badge en `ResourceMonitorComponent`~~ — ✅ RESUELTO Phase 157 (2026-05-29): badge ámbar pulsante cuando WO activa tiene `material_status=PENDING_ISSUE` |
 | ALTA | **POS** Validar `POST /api/v1/pos/checkout` end-to-end — script `flow_pos_checkout.py` listo, bloqueado por `auth_service` en modificación activa |
-| ~~MEDIA~~ | ~~**MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`)~~ — ✅ RESUELTO Phase 159 (2026-05-30): endpoints GET/POST/PATCH/DELETE/bulk + tab "Tiempos Estándar" en MesItemConfigComponent |
-| ~~MEDIA~~ | ~~**MES** WO bulk import CSV — `WorkOrderBulkFormComponent`~~ — ✅ RESUELTO Phase 159 (2026-05-30): `POST /mes/orders/bulk` + drawer con CSV template |
-| ~~MEDIA~~ | ~~**MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno~~ — ✅ RESUELTO Phase 159 (2026-05-30): toggle cards/gantt, barras proporcionales a capacity*8h |
-| ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 159 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
+| ~~MEDIA~~ | ~~**MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`)~~ — ✅ RESUELTO Phase 160 (2026-05-30): endpoints GET/POST/PATCH/DELETE/bulk + tab "Tiempos Estándar" en MesItemConfigComponent |
+| ~~MEDIA~~ | ~~**MES** WO bulk import CSV — `WorkOrderBulkFormComponent`~~ — ✅ RESUELTO Phase 160 (2026-05-30): `POST /mes/orders/bulk` + drawer con CSV template |
+| ~~MEDIA~~ | ~~**MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno~~ — ✅ RESUELTO Phase 160 (2026-05-30): toggle cards/gantt, barras proporcionales a capacity*8h |
+| ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 160 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
 | MEDIA | **MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa (orden: CORTE→SOLDADURA→ENSAMBLE→INSPECCIÓN). Actualmente los tiempos son por ítem+operación sin secuencia. |
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HCM, Subscription |

@@ -3,6 +3,88 @@
 Tracking the major milestones, architectural shifts, and technical decisions of the ecosystem.
 
 ---
+
+### [2026-05-30] Phase 160 — MES StandardTime CRUD + WO Bulk Import + DailyPlanning Gantt ✅
+
+**Objetivo:** Completar la cadena MES de configuración de tiempos estándar por operación, carga masiva de OTs desde CSV, y visualización Gantt del plan diario de producción.
+
+**Decisiones arquitectónicas clave:**
+- **StandardTime por (item_code, operation_name)**: Cada registro es una operación discreta con `set_time_hours` y `cycle_time_seconds` opcional. La **secuencia** de operaciones (ruta de fabricación) requiere un futuro `sequence_number` — pendiente en `routing.py` (deuda MEDIA). Dominio: una OT pasa por N operaciones, cada una con su tiempo; completar todas las operaciones cierra la orden.
+- **WO bulk sin transacción atómica total**: `POST /mes/orders/bulk` procesa cada OT individualmente; duplicados (`order_number` existente) se omiten sin error; errores de fila no abortan las demás. Retorna `{created, skipped, errors[]}` — patrón establecido en ResourceBulk.
+- **Gantt CSS sin librería externa**: Barras `width = (planned_qty / capacity*8h) * 100%` con CSS puro. Toggle cards↔gantt preserva estado. Colores semánticos: emerald=completado, amber=material_pending, violet=en progreso.
+- **CSV parse client-side**: `WorkOrderBulkFormComponent` parsea el CSV en el browser (sin upload a servidor). Validaciones de formato antes de enviar JSON al API. Template descargable para guiar al usuario.
+
+**Archivos clave:**
+- `backend/mes_service/mes_app/api/v1/endpoints/standard_times.py` — NUEVO: 5 endpoints + bulk
+- `backend/mes_service/mes_app/api/v1/endpoints/work_order.py` — PATCH: `POST /bulk` añadido
+- `backend/mes_service/mes_app/main.py` — registro de standard_times router
+- `backend/mes_service/tests/test_standard_times.py` — 10 integration tests
+- `frontend/src/app/core/services/standard-time.service.ts`
+- `frontend/src/app/shared/components/standard-time-form.component.ts`
+- `frontend/src/app/shared/components/work-order-bulk-form.component.ts`
+- `frontend/src/app/modules/production/item-config/mes-item-config.component.ts`
+- `frontend/src/app/modules/production/planning/daily-planning.component.ts`
+
+**Ecosystem:** 8/9 servicios OK. `auth_service` caído (modificación activa Phase 159 RTR — NO tocar).
+**Tests:** 13/13 GREEN (suite completa 116 passed). Code Graph: 0 CRITICALs.
+
+---
+
+### [2026-05-29] Phase 159 — Auth Service Refresh Token Rotation (RTR) Stateless — PHASE A ✅
+
+**Objetivo:** Implementar estrategia de rotación de refresh tokens stateless, sin Redis. Manejo de race conditions, RDS failover, y detección de breach por reuse de tokens.
+
+**Decisiones arquitectónicas clave:**
+- **Stateless sin Redis**: Token families persistidas en PostgreSQL con `version_counter` para optimistic locking. Idempotencia failover vía ventana 2-segundos (`last_refresh_jti` + `refresh_window_expires_at`).
+- **Generation-based reuse detection**: Cada refresh incrementa `current_generation` (0→1→2...). Brecha detectada (token gen < family gen - 1) → familia revocada atómicamente (breach).
+- **HMAC-sealed company_id**: `family_salt` + HMAC-SHA256 sella `company_id` en JWT. `company_id` NUNCA viene del cliente. Previene tampering y forging de tokens entre empresas.
+- **Optimistic Locking + Race Condition Grace**: Dos requests simultáneos → `OptimisticLockError` en winner. Loser detecta ganador adelantado, retorna sus tokens (grace). No error cliente.
+- **Append-only Audit**: Tabla `refresh_token_rotation_audit` con flags `concurrent_attempt_detected` y `failover_detected` para forensics. Cero UPDATEs/DELETEs.
+- **Multi-tenancy Iron Wall**: `company_id` FK, `user_id` FK, RLS vía `with_loader_criteria` en `database.py`.
+
+**Archivos clave:**
+- `backend/auth_service/auth_app/domain/value_objects/token_family.py` — TokenFamily, RefreshTokenPayload (immutable, HMAC-sealed)
+- `backend/auth_service/auth_app/domain/exceptions/refresh_token_exceptions.py` — 7 exception types
+- `backend/auth_service/auth_app/models/refresh_token_family.py` — ORM models (MultiTenantBase, indices)
+- `backend/auth_service/alembic/versions/f20a0170fc12_add_refresh_token_families_and_rotation_.py` — Migration (applied)
+- `backend/auth_service/auth_app/models/__init__.py` — Imports updated
+
+**Tablas creadas:**
+- `refresh_token_families` (17 cols, 6 indices, ForeignKeys CASCADE)
+- `refresh_token_rotation_audit` (14 cols, 2 indices, append-only)
+
+**Migration:** f20a0170fc12 (down: c7d4e5f6a8b9, applied ✅)
+
+**NEXT:** FASE B — Repository pattern + CQRS Handler (8 fases lógica).
+
+---
+
+### [2026-05-29] Phase 158 — HCM Org Hierarchy + Department CRUD Full-Stack ✅
+
+**Objetivo:** Completar la gestión de departamentos y jerarquía organizacional en HCM, exponer ambas capacidades en Angular y corregir datos hardcodeados en tickets y navegación.
+
+**Decisiones arquitectónicas clave:**
+- **AUTHORITY_LEVEL como enum en DB**: El catálogo de niveles jerárquicos (Director→Manager→Supervisor→Specialist→Technical→Employee→Assistant, migrado del legacy .NET `Autority.cs`) vive en la tabla `enumerations` de `master_data_db` (type=`AUTHORITY_LEVEL`), no como Python Enum. La columna en `collaborators` es `VARCHAR(20)` que almacena el `key`. Permite extensión por tenant sin deploys.
+- **3-level soft FK hierarchy**: `director_id`, `manager_id`, `supervisor_id` en `Collaborator` son todos soft FKs (sin constraint en DB), consistente con Iron Wall ADR-02.
+- **Department CRUD completo**: POST (201/409), PATCH (partial), DELETE (soft). Autenticación via JWT real T1/T2, no god-mode.
+- **Recursos Humanos en navegación principal**: Ítem propio en la barra lateral izquierda (icono `people_alt`) separado de Administración.
+- **Tickets área dinámica**: El dropdown ÁREA en creación de tickets cargaba opciones hardcodeadas. Ahora usa `DepartmentService` → `GET /api/v1/hcm/departments/?is_active=true`.
+
+**Archivos clave:**
+- `backend/hcm_service/hcm_app/models/collaborator.py` — authority_level, manager_id, director_id
+- `backend/hcm_service/alembic/versions/007_add_hierarchy_levels.py`
+- `backend/hcm_service/hcm_app/api/v1/endpoints/departments.py` — CRUD completo
+- `backend/hcm_service/tests/test_department_crud.py` — 12 integration tests
+- `backend/master_data_service/scripts/seed_enums.py` — AUTHORITY_LEVEL seeded
+- `frontend/src/app/core/services/department.service.ts`
+- `frontend/src/app/shared/components/department-form.component.ts`
+- `frontend/src/app/modules/admin/department-catalog.component.ts`
+- `frontend/src/app/core/services/navigation.service.ts` — HCM nav item
+
+**Tests:** 12 integration tests department CRUD, todos green. Code Graph: 0 CRITICALs.
+
+---
+
 ### [2026-05-29] Phase 156 Completo: MES Cold-Start → Seed + UI Admin + Planificación Diaria ✅
 
 **Objetivo:** Llevar el `ResourceMonitorComponent` de "Sin datos" a datos reales. Configuración completa de planta, gestión de turnos, planificación diaria de OTs y flujo correcto de surtido de material.

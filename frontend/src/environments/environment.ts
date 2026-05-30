@@ -1,5 +1,8 @@
-const BASE_URL = 'http://localhost:8000';
-const API_V1 = `${BASE_URL}/api/v1`;
+// Dev: empty BASE_URL → Angular proxy routes /api/* → localhost:8000
+// This makes the app work both locally and via VS Code dev tunnels (port 4200 only).
+// Production URLs live in environment.prod.ts.
+const BASE_URL = '';
+const API_V1 = `/api/v1`;
 
 export const environment = {
   production: false,
