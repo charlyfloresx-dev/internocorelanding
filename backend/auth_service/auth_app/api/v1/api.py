@@ -1,8 +1,9 @@
 from fastapi import APIRouter
-from auth_app.api.v1.endpoints import auth, users, seed, companies, health, admin, collaborator_auth, social_login, biometric
+from auth_app.api.v1.endpoints import auth, users, seed, companies, health, admin, collaborator_auth, social_login, biometric, refresh_token_rtr
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(refresh_token_rtr.router, prefix="/auth", tags=["Auth — RTR"])
 api_router.include_router(collaborator_auth.router, prefix="/auth", tags=["Auth — Kiosk"])
 api_router.include_router(social_login.router, prefix="/auth", tags=["Auth — Social"])
 api_router.include_router(biometric.router, prefix="/biometric", tags=["Auth — Biometric (WebAuthn)"])
