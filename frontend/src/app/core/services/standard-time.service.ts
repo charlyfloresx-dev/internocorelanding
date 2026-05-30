@@ -7,6 +7,7 @@ export interface StandardTime {
   id: string;
   item_code: string;
   operation_name: string;
+  sequence_number: number;
   set_time_hours: number;
   cycle_time_seconds: number | null;
 }
@@ -14,12 +15,14 @@ export interface StandardTime {
 export interface StandardTimeCreate {
   item_code: string;
   operation_name: string;
+  sequence_number?: number;
   set_time_hours: number;
   cycle_time_seconds: number | null;
 }
 
 export interface StandardTimeUpdate {
   operation_name?: string;
+  sequence_number?: number;
   set_time_hours?: number;
   cycle_time_seconds?: number | null;
 }

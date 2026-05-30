@@ -12,6 +12,10 @@ class StandardTime(MultiTenantBase):
     item_code: Mapped[str] = mapped_column(String(100), index=True)
     operation_name: Mapped[str] = mapped_column(String(100))
 
+    # Position of this operation within the item's manufacturing route.
+    # Use multiples of 10 (10, 20, 30…) to allow inserting steps between existing ones.
+    sequence_number: Mapped[int] = mapped_column(Integer, default=10, server_default='10')
+
     # Machine/operator setup time in hours (legacy: OperationTime.SetTime)
     set_time_hours: Mapped[Decimal] = mapped_column(Numeric(10, 4))
 

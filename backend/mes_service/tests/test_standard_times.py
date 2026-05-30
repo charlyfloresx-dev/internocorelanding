@@ -2,7 +2,7 @@
 UC-MES-ST: StandardTime CRUD — integration tests against real mes_db.
 
 Covers: list, filter by item_code, create, update, delete (soft), duplicate 409,
-bulk create, cross-company isolation.
+bulk create, cross-company isolation, sequence_number ordering.
 """
 import sys
 import os
@@ -45,13 +45,14 @@ async def db():
 
 
 def _st(item_code="ITM-001", operation="WELD", set_hours="1.5000",
-        cycle_sec=45, company_id=None) -> StandardTime:
+        cycle_sec=45, sequence_number=10, company_id=None) -> StandardTime:
     return StandardTime(
         id=uuid.uuid4(),
         company_id=company_id or _COMPANY,
         tenant_id=company_id or _COMPANY,
         item_code=item_code,
         operation_name=operation,
+        sequence_number=sequence_number,
         set_time_hours=Decimal(set_hours),
         cycle_time_seconds=cycle_sec,
     )
@@ -99,7 +100,8 @@ async def test_filter_by_item_code(db):
 
 
 async def test_create_persists_fields(db):
-    st = _st(item_code="FIELD-TEST", operation="PRESS", set_hours="2.2500", cycle_sec=90)
+    st = _st(item_code="FIELD-TEST", operation="PRESS", set_hours="2.2500",
+             cycle_sec=90, sequence_number=30)
     db.add(st)
     await db.flush()
 
@@ -108,6 +110,7 @@ async def test_create_persists_fields(db):
     assert fetched.operation_name == "PRESS"
     assert fetched.set_time_hours == Decimal("2.2500")
     assert fetched.cycle_time_seconds == 90
+    assert fetched.sequence_number == 30
 
 
 async def test_cycle_time_seconds_nullable(db):
@@ -117,6 +120,68 @@ async def test_cycle_time_seconds_nullable(db):
 
     fetched = await db.get(StandardTime, st.id)
     assert fetched.cycle_time_seconds is None
+
+
+# ── SEQUENCE NUMBER ───────────────────────────────────────────────────────────
+
+async def test_sequence_number_defaults_to_10(db):
+    st = StandardTime(
+        id=uuid.uuid4(),
+        company_id=_COMPANY,
+        tenant_id=_COMPANY,
+        item_code="SEQ-DEFAULT",
+        operation_name="CUT",
+        set_time_hours=Decimal("1.0000"),
+    )
+    db.add(st)
+    await db.flush()
+
+    fetched = await db.get(StandardTime, st.id)
+    assert fetched.sequence_number == 10
+
+
+async def test_sequence_number_persists_custom_value(db):
+    st = _st(item_code="SEQ-CUSTOM", sequence_number=50)
+    db.add(st)
+    await db.flush()
+
+    fetched = await db.get(StandardTime, st.id)
+    assert fetched.sequence_number == 50
+
+
+async def test_route_ordered_by_sequence_number(db):
+    """Operations for the same item come back in sequence_number order."""
+    company = uuid.uuid4()
+    item = "ROUTE-ITEM"
+    ops = [
+        _st(item_code=item, operation="ENSAMBLE",  sequence_number=30, company_id=company),
+        _st(item_code=item, operation="CORTE",      sequence_number=10, company_id=company),
+        _st(item_code=item, operation="INSPECCION", sequence_number=40, company_id=company),
+        _st(item_code=item, operation="SOLDADURA",  sequence_number=20, company_id=company),
+    ]
+    db.add_all(ops)
+    await db.flush()
+
+    result = await db.execute(
+        select(StandardTime)
+        .where(StandardTime.company_id == company, StandardTime.item_code == item)
+        .order_by(StandardTime.sequence_number)
+    )
+    rows = result.scalars().all()
+    assert [r.operation_name for r in rows] == ["CORTE", "SOLDADURA", "ENSAMBLE", "INSPECCION"]
+    assert [r.sequence_number for r in rows] == [10, 20, 30, 40]
+
+
+async def test_update_sequence_number(db):
+    st = _st(sequence_number=10)
+    db.add(st)
+    await db.flush()
+
+    st.sequence_number = 25
+    await db.flush()
+
+    fetched = await db.get(StandardTime, st.id)
+    assert fetched.sequence_number == 25
 
 
 # ── UPDATE ────────────────────────────────────────────────────────────────────
@@ -163,7 +228,8 @@ async def test_delete_removes_row(db):
 
 async def test_bulk_create_multiple(db):
     items = [
-        _st(item_code="BULK-A", operation=f"OP-{i}", set_hours=f"{i}.0000")
+        _st(item_code="BULK-A", operation=f"OP-{i}", set_hours=f"{i}.0000",
+            sequence_number=i * 10)
         for i in range(1, 6)
     ]
     db.add_all(items)

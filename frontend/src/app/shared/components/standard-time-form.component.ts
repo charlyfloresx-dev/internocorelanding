@@ -49,19 +49,35 @@ import { NotificationService } from '../../core/services/notification.service';
             }
           </div>
 
-          <!-- Operation Name -->
-          <div class="space-y-2">
-            <label class="text-[9px] font-bold text-surface-text-muted uppercase block">Nombre de Operación *</label>
-            <input
-              type="text"
-              formControlName="operation_name"
-              placeholder="Ej: SOLDADURA, ENSAMBLE, INSPECCIÓN"
-              class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-[11px] font-bold text-surface-text outline-none focus:border-primary transition-all"
-              [class.border-rose-400]="form.get('operation_name')?.invalid && form.get('operation_name')?.touched"
-            >
-            @if (form.get('operation_name')?.invalid && form.get('operation_name')?.touched) {
-              <p class="text-[9px] text-rose-400 font-bold">Nombre de operación requerido</p>
-            }
+          <!-- Operation Name + Sequence -->
+          <div class="flex gap-3">
+            <div class="flex-1 space-y-2">
+              <label class="text-[9px] font-bold text-surface-text-muted uppercase block">Nombre de Operación *</label>
+              <input
+                type="text"
+                formControlName="operation_name"
+                placeholder="Ej: SOLDADURA, ENSAMBLE"
+                class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-[11px] font-bold text-surface-text outline-none focus:border-primary transition-all"
+                [class.border-rose-400]="form.get('operation_name')?.invalid && form.get('operation_name')?.touched"
+              >
+              @if (form.get('operation_name')?.invalid && form.get('operation_name')?.touched) {
+                <p class="text-[9px] text-rose-400 font-bold">Requerido</p>
+              }
+            </div>
+            <div class="w-24 space-y-2">
+              <label class="text-[9px] font-bold text-surface-text-muted uppercase block">
+                Secuencia
+                <span class="text-slate-500 normal-case font-normal">(orden)</span>
+              </label>
+              <input
+                type="number"
+                formControlName="sequence_number"
+                step="10"
+                min="1"
+                placeholder="10"
+                class="w-full bg-surface-card border border-surface-border rounded-xl p-3 text-[11px] font-mono font-bold text-primary outline-none focus:border-primary transition-all"
+              >
+            </div>
           </div>
 
           <!-- Set Time Hours -->
@@ -138,6 +154,7 @@ export class StandardTimeFormComponent implements OnInit {
   form = this.fb.group({
     item_code: ['', [Validators.required, Validators.maxLength(100)]],
     operation_name: ['', [Validators.required, Validators.maxLength(100)]],
+    sequence_number: [10, [Validators.required, Validators.min(1)]],
     set_time_hours: [null as number | null, [Validators.required, Validators.min(0.0001)]],
     cycle_time_seconds: [null as number | null],
   });
@@ -149,6 +166,7 @@ export class StandardTimeFormComponent implements OnInit {
     this.form.patchValue({
       item_code: val.item_code,
       operation_name: val.operation_name,
+      sequence_number: val.sequence_number,
       set_time_hours: val.set_time_hours,
       cycle_time_seconds: val.cycle_time_seconds,
     });
@@ -169,6 +187,7 @@ export class StandardTimeFormComponent implements OnInit {
       if (this.isEdit && this.editId) {
         await this.stSvc.update(this.editId, {
           operation_name: v.operation_name!,
+          sequence_number: v.sequence_number ?? 10,
           set_time_hours: v.set_time_hours!,
           cycle_time_seconds: v.cycle_time_seconds ?? undefined,
         });
@@ -177,6 +196,7 @@ export class StandardTimeFormComponent implements OnInit {
         await this.stSvc.create({
           item_code: v.item_code!.toUpperCase(),
           operation_name: v.operation_name!,
+          sequence_number: v.sequence_number ?? 10,
           set_time_hours: v.set_time_hours!,
           cycle_time_seconds: v.cycle_time_seconds,
         });

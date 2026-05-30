@@ -295,6 +295,7 @@ import { StandardTimeFormComponent } from '../../../shared/components/standard-t
               <table class="w-full text-sm">
                 <thead>
                   <tr class="border-b border-slate-800">
+                    <th class="text-center text-xs font-bold text-slate-500 uppercase tracking-wider pb-3 pr-4 w-16">Seq</th>
                     <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-wider pb-3 pr-4">Ítem</th>
                     <th class="text-left text-xs font-bold text-slate-500 uppercase tracking-wider pb-3 pr-4">Operación</th>
                     <th class="text-right text-xs font-bold text-slate-500 uppercase tracking-wider pb-3 pr-4">Setup (h)</th>
@@ -305,6 +306,11 @@ import { StandardTimeFormComponent } from '../../../shared/components/standard-t
                 <tbody class="divide-y divide-slate-800/50">
                   @for (st of stSvc.items(); track st.id) {
                     <tr class="group hover:bg-slate-800/30 transition-colors">
+                      <td class="py-3 pr-4 text-center">
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[10px] font-black font-mono">
+                          {{ st.sequence_number }}
+                        </span>
+                      </td>
                       <td class="py-3 pr-4 font-mono text-xs text-teal-400 font-bold">{{ st.item_code }}</td>
                       <td class="py-3 pr-4 text-white text-sm">{{ st.operation_name }}</td>
                       <td class="py-3 pr-4 text-right font-mono text-white">{{ st.set_time_hours | number:'1.2-4' }}</td>
@@ -338,7 +344,21 @@ import { StandardTimeFormComponent } from '../../../shared/components/standard-t
                 </tbody>
               </table>
             </div>
-            <p class="text-xs text-slate-600 mt-4">{{ stSvc.items().length }} tiempo(s) estándar</p>
+            <!-- Route chain visualization when filtered by one item -->
+            @if (stSearchInput.trim() && stSvc.items().length > 1) {
+              <div class="mt-4 flex items-center gap-1 flex-wrap">
+                <span class="text-xs text-slate-500 font-bold uppercase mr-1">Ruta:</span>
+                @for (st of stSvc.items(); track st.id; let last = $last) {
+                  <span class="text-xs font-mono font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded">
+                    {{ st.sequence_number }}·{{ st.operation_name }}
+                  </span>
+                  @if (!last) {
+                    <span class="text-slate-600 text-xs">→</span>
+                  }
+                }
+              </div>
+            }
+            <p class="text-xs text-slate-600 mt-2">{{ stSvc.items().length }} tiempo(s) estándar</p>
           }
 
         </div>

@@ -20,6 +20,7 @@ class StandardTimeRead(BaseModel):
     id: uuid.UUID
     item_code: str
     operation_name: str
+    sequence_number: int
     set_time_hours: Decimal
     cycle_time_seconds: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
@@ -28,12 +29,14 @@ class StandardTimeRead(BaseModel):
 class StandardTimeCreate(BaseModel):
     item_code: str = Field(max_length=100)
     operation_name: str = Field(max_length=100)
+    sequence_number: int = Field(10, ge=1, description="Route position (multiples of 10 recommended)")
     set_time_hours: Decimal = Field(gt=0, decimal_places=4)
     cycle_time_seconds: Optional[int] = Field(None, ge=1)
 
 
 class StandardTimeUpdate(BaseModel):
     operation_name: Optional[str] = Field(None, max_length=100)
+    sequence_number: Optional[int] = Field(None, ge=1)
     set_time_hours: Optional[Decimal] = Field(None, gt=0, decimal_places=4)
     cycle_time_seconds: Optional[int] = Field(None, ge=1)
 
@@ -64,7 +67,33 @@ async def list_standard_times(
     q = select(StandardTime).where(StandardTime.company_id == company_id)
     if item_code:
         q = q.where(StandardTime.item_code == item_code)
-    q = q.order_by(StandardTime.item_code, StandardTime.operation_name).limit(limit)
+    q = q.order_by(StandardTime.item_code, StandardTime.sequence_number).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().all()
+
+
+# ── GET /route/{item_code} — manufacturing route for one item ─────────────────
+
+@router.get(
+    "/route/{item_code}",
+    response_model=List[StandardTimeRead],
+    dependencies=[Depends(require_scope(["mes:read"]))],
+    summary="Manufacturing route for an item",
+)
+async def get_item_route(
+    item_code: str,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns all operations for an item ordered by sequence_number (the manufacturing route)."""
+    q = (
+        select(StandardTime)
+        .where(
+            StandardTime.company_id == company_id,
+            StandardTime.item_code == item_code,
+        )
+        .order_by(StandardTime.sequence_number)
+    )
     result = await db.execute(q)
     return result.scalars().all()
 
@@ -88,6 +117,7 @@ async def create_standard_time(
         tenant_id=company_id,
         item_code=payload.item_code,
         operation_name=payload.operation_name,
+        sequence_number=payload.sequence_number,
         set_time_hours=payload.set_time_hours,
         cycle_time_seconds=payload.cycle_time_seconds,
     )
@@ -122,6 +152,7 @@ async def bulk_create_standard_times(
                 tenant_id=company_id,
                 item_code=item.item_code,
                 operation_name=item.operation_name,
+                sequence_number=item.sequence_number,
                 set_time_hours=item.set_time_hours,
                 cycle_time_seconds=item.cycle_time_seconds,
             )
@@ -163,6 +194,8 @@ async def update_standard_time(
 
     if payload.operation_name is not None:
         st.operation_name = payload.operation_name
+    if payload.sequence_number is not None:
+        st.sequence_number = payload.sequence_number
     if payload.set_time_hours is not None:
         st.set_time_hours = payload.set_time_hours
     if payload.cycle_time_seconds is not None:
