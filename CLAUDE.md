@@ -445,7 +445,7 @@ python backend/scripts/generate_code_graph.py
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
 | ~~MEDIA~~ | ~~**MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED~~ — ✅ RESUELTO Phase 151 |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
-| MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
+| ~~MEDIA~~ | ~~`default_tax_rate` Planta US = 0.0~~ — ✅ Ya correcto en DB y seeds. Nunca fue 0.16 en Planta US. |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
 | MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
 | ~~MEDIA~~ | ~~**HCM** CRUD de Departamentos en Angular (configuración de áreas por empresa)~~ — ✅ RESUELTO Phase 158 (2026-05-29): `DepartmentCatalogComponent` + `DepartmentFormComponent` + `DepartmentService`, ruta `/admin/departments`, nav HCM en sidebar |
@@ -472,7 +472,7 @@ python backend/scripts/generate_code_graph.py
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HCM, Subscription |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
 | MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
-| MEDIA | `default_tax_rate` Planta US debería ser 0.0 (actualmente 0.16) |
+| ~~MEDIA~~ | ~~`default_tax_rate` Planta US = 0.0~~ — ✅ Ya correcto en DB y seeds. Nunca fue 0.16 en Planta US. |
 | BAJA | **HCM** `JobPosition` catálogo propio (actualmente solo `job_title: str`) |
 | BAJA | **HCM** `shift_id` en Collaborator → bridge HCM↔MES |
 | ~~BAJA~~ | ~~**HCM** jerarquía 3 niveles: `manager_id` + `director_id` (actualmente solo `supervisor_id`)~~ — ✅ RESUELTO Phase 158 |
