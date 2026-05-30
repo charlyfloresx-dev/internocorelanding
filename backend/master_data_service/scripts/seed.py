@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
+from decimal import Decimal
 
 # Ajuste de path para encontrar 'app' y 'common'
 sys.path.append(os.getcwd())
@@ -35,20 +36,26 @@ from common.models.company import Company
 
 async def seed_companies(session):
     logger.info("  [MD] Cargando compañías base...")
+    # tax column: US uses Sales Tax (0%) — IVA applies only to MX entities.
     companies_to_seed = [
-        {"id": INTERNO_CORP_ID, "name": "Interno Enterprise", "status": "ACTIVE"},
-        {"id": CO_LOGISTICS_MX_ID, "name": "Interno Logistic MX", "status": "ACTIVE"},
-        {"id": CO_LOGISTICS_US_ID, "name": "Interno Logistic US", "status": "ACTIVE"},
-        {"id": GLOBAL_SYSTEM_ID, "name": "System Global Context", "status": "SYSTEM"},
+        {"id": INTERNO_CORP_ID,     "name": "Interno Enterprise",      "status": "ACTIVE", "tax": Decimal("0.16")},
+        {"id": CO_LOGISTICS_MX_ID,  "name": "Interno Logistic MX",     "status": "ACTIVE", "tax": Decimal("0.16")},
+        {"id": CO_LOGISTICS_US_ID,  "name": "Interno Logistic US",     "status": "ACTIVE", "tax": Decimal("0.0")},
+        {"id": GLOBAL_SYSTEM_ID,    "name": "System Global Context",   "status": "SYSTEM", "tax": Decimal("0.0")},
     ]
     for co in companies_to_seed:
         existing = await session.get(Company, co["id"])
         if not existing:
             session.add(Company(
                 id=co["id"], name=co["name"], status=co["status"],
-                is_active=True, version_id=1, created_by=SYSTEM_USER_ID
+                is_active=True, version_id=1, created_by=SYSTEM_USER_ID,
+                default_tax_rate=co["tax"],
             ))
-            logger.info(f"    ➕ Compañía: {co['name']}")
+            logger.info(f"    ➕ Compañía: {co['name']} (tax={co['tax']})")
+        elif Decimal(str(existing.default_tax_rate)) != co["tax"]:
+            old = existing.default_tax_rate
+            existing.default_tax_rate = co["tax"]
+            logger.info(f"    🔧 Corregido default_tax_rate '{co['name']}': {old} → {co['tax']}")
     await session.flush()
 
 async def seed_uoms(session):
