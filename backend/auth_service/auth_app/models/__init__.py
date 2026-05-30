@@ -13,11 +13,13 @@ from .role_permission import RolePermission
 from .user_company_role import UserCompanyRole
 from .invitation import Invitation
 from .refresh_token import RefreshToken
+from .refresh_token_family import RefreshTokenFamily, RefreshTokenRotationAudit
 
 # 4. Exponer todos los modelos para que puedan ser importados desde app.models
 __all__ = [
     "Base", "Company", "BusinessGroup", "Permission", "Role",
-    "User", "UserCredential", 
+    "User", "UserCredential",
     "RolePermission", "UserCompanyRole", "Invitation", "RefreshToken",
+    "RefreshTokenFamily", "RefreshTokenRotationAudit",
     "SecurityAuditLog"
 ]
