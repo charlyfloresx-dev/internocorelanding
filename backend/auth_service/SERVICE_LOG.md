@@ -1,5 +1,21 @@
 # Auth Service - Service Log
 
+## [2026-05-30] Auditoría de Seguridad Phase B — Resultado ❌ REQUIERE CORRECCIÓN (2 bloqueantes)
+
+**Revisión formal del repository, handler y endpoint Phase B RTR:**
+
+**BLOQUEANTES (resolver antes de Phase C):**
+- **B-01 ALTA** — `company_id` ausente en `WHERE` de `get_family()`, `rotate_family_atomically()`, `revoke_family()` en `sqlalchemy_refresh_token_repo.py`. Fix: añadir `company_id` como parámetro en los 3 métodos + actualizar `IRefreshTokenRepository`.
+- **STACK TRACE LEAK ALTA** — `except Exception as e: detail=f"Internal error: {str(e)}"` en `refresh_token_rtr.py:172`. Expone errores SQLAlchemy al cliente. Fix: `detail="An internal error occurred"`.
+
+**Gaps adicionales (post-Phase C):**
+- **B-02 MEDIA** — `StaleDataError` no capturado en `rotate_family_atomically()`. Añadir `except StaleDataError: raise RefreshTokenConcurrentRaceError(...)`.
+- **Domain Purity MEDIA** — `IRefreshTokenRepository.log_rotation_event()` retorna ORM model `RefreshTokenRotationAudit`. Cambiar a `None` o crear `AuditRecord` dataclass en `domain/value_objects/`.
+- **GAP-5 BAJA** — `CompanyIdMismatchError` → 401 vs spec 400. Desviación intencional (401 es más seguro). Documentar decisión.
+- **GAP-6 BAJA** — `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()`.
+
+**Items aprobados Phase B:** Fases 1-8 lógica correcta, `@limiter.limit("20/minute")`, `begin_nested()`, `with_for_update()`, grace pattern perdedor concurrente, idempotency window.
+
 ## [2026-05-30] Auditoría de Seguridad Phase A — Resultado ✅ con gaps documentados
 
 **Revisión formal del domain model Phase A contra checklist de seguridad:**
