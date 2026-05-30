@@ -15,6 +15,7 @@ from common.exceptions import NotFoundException
 from common.responses import ApiResponse
 from common.security.dependencies import require_scope
 from mes_app.core.handlers.work_order_handler import WorkOrderHandler, CreateWorkOrderCommand
+import traceback
 
 router = APIRouter()
 
@@ -210,6 +211,85 @@ async def create_work_order(
     response = await handler.handle_create(cmd)
     await db.commit()
     return response
+
+
+class BulkWorkOrderItem(BaseModel):
+    order_number: str = Field(description="ERP order code — skipped if already exists")
+    item_code: str
+    order_qty: int = Field(ge=1)
+    due_date: datetime
+    alias: Optional[str] = None
+    wo_type: Optional[WOType] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+
+class BulkWorkOrderResponse(BaseModel):
+    created: int
+    skipped: int
+    errors: List[dict] = Field(default_factory=list)
+
+
+@router.post(
+    "/bulk",
+    response_model=BulkWorkOrderResponse,
+    status_code=201,
+    dependencies=[Depends(require_scope(["mes:write"]))],
+    summary="Crear múltiples OTs de una sola llamada (importación CSV)",
+)
+async def bulk_create_work_orders(
+    items: List[BulkWorkOrderItem],
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Acepta un array JSON de OTs. Duplicados (mismo order_number para la empresa)
+    son omitidos sin error. Retorna contadores created/skipped/errors.
+    """
+    created = 0
+    skipped = 0
+    errors: list[dict] = []
+
+    for idx, item in enumerate(items):
+        try:
+            existing = await db.execute(
+                select(WorkOrder.id).where(
+                    WorkOrder.order_number == item.order_number,
+                    WorkOrder.company_id == company_id,
+                )
+            )
+            if existing.scalar_one_or_none():
+                skipped += 1
+                continue
+
+            handler = WorkOrderHandler(db)
+            cmd = CreateWorkOrderCommand(
+                order_number=item.order_number,
+                item_code=item.item_code,
+                order_qty=item.order_qty,
+                due_date=item.due_date,
+                company_id=company_id,
+                alias=item.alias,
+                wo_type=item.wo_type,
+            )
+            await handler.handle_create(cmd)
+            await db.flush()
+            created += 1
+        except Exception as exc:
+            await db.rollback()
+            errors.append({
+                "row": idx,
+                "order_number": item.order_number,
+                "error": str(exc),
+            })
+
+    if created:
+        await db.commit()
+
+    return BulkWorkOrderResponse(created=created, skipped=skipped, errors=errors)
 
 
 @router.post(

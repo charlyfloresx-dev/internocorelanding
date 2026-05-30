@@ -10,6 +10,7 @@ import { ShiftService } from '../../../core/services/shift.service';
 import { SideDrawerService } from '../../../core/services/side-drawer.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { WorkOrderFormComponent } from '../../../shared/components/work-order-form.component';
+import { WorkOrderBulkFormComponent } from '../../../shared/components/work-order-bulk-form.component';
 import { ResourceRead, ShiftRead } from '../../../core/models/mes.types';
 
 interface WorkOrderOption {
@@ -78,6 +79,24 @@ interface PlanningRow {
             <mat-icon class="text-sm text-surface-text-muted">refresh</mat-icon>
           </button>
 
+          <!-- View toggle -->
+          <div class="flex gap-1 bg-surface-bg border border-surface-border rounded-xl p-1">
+            <button (click)="viewMode.set('cards')"
+              [class]="viewMode() === 'cards' ? 'px-3 py-2 rounded-lg bg-surface-card text-primary text-[9px] font-black' : 'px-3 py-2 text-surface-text-muted text-[9px] font-black hover:text-primary transition-colors'">
+              <mat-icon class="text-xs">view_module</mat-icon>
+            </button>
+            <button (click)="viewMode.set('gantt')"
+              [class]="viewMode() === 'gantt' ? 'px-3 py-2 rounded-lg bg-surface-card text-primary text-[9px] font-black' : 'px-3 py-2 text-surface-text-muted text-[9px] font-black hover:text-primary transition-colors'">
+              <mat-icon class="text-xs">view_timeline</mat-icon>
+            </button>
+          </div>
+
+          <button (click)="openBulkImport()"
+            class="flex items-center gap-2 px-5 py-3 bg-surface-bg border border-surface-border hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+            <mat-icon class="text-sm">upload_file</mat-icon>
+            Importar OTs
+          </button>
+
           <button (click)="openNewWorkOrder()"
             class="flex items-center gap-2 px-5 py-3 bg-surface-bg border border-surface-border hover:bg-violet-500/10 hover:border-violet-500/30 text-violet-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
             <mat-icon class="text-sm">assignment_add</mat-icon>
@@ -106,6 +125,51 @@ interface PlanningRow {
         <div class="flex items-center justify-center py-24">
           <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
         </div>
+      } @else if (viewMode() === 'gantt') {
+        <!-- ── GANTT VIEW ────────────────────────────────────────────────── -->
+        <div class="bg-surface-card border border-surface-border rounded-2xl overflow-hidden">
+          <!-- Gantt header row -->
+          <div class="grid grid-cols-[180px_1fr] border-b border-surface-border">
+            <div class="px-4 py-3 text-[9px] font-black text-surface-text-muted uppercase tracking-widest">Recurso</div>
+            <div class="px-4 py-3 flex">
+              @for (h of ganttHours; track h) {
+                <div class="flex-1 text-[9px] text-surface-text-muted font-mono text-center border-l border-surface-border/40">{{ h }}:00</div>
+              }
+            </div>
+          </div>
+          <!-- Gantt rows -->
+          @for (row of planningRows(); track row.resource.id) {
+            <div class="grid grid-cols-[180px_1fr] border-b border-surface-border/30 hover:bg-surface-bg/40 transition-colors min-h-[48px]">
+              <!-- Resource label -->
+              <div class="px-4 py-3 flex items-center gap-2 border-r border-surface-border/40">
+                <mat-icon class="text-xs text-primary">{{ resourceIcon(row.resource.resource_type) }}</mat-icon>
+                <span class="text-[10px] font-black text-primary font-mono truncate">{{ row.resource.code }}</span>
+              </div>
+              <!-- Bars -->
+              <div class="px-2 py-2 flex items-center gap-1 relative">
+                @if (row.runs.length === 0) {
+                  <span class="text-[9px] text-surface-text-muted italic">Sin planificación</span>
+                }
+                @for (run of row.runs; track run.id) {
+                  <div
+                    class="h-8 rounded-lg flex items-center px-2 overflow-hidden flex-shrink-0 cursor-default"
+                    [style.width]="ganttBarWidth(run, row.resource) + '%'"
+                    [class]="ganttBarColor(run)"
+                    [title]="run.order_number + ' · ' + run.item_code + ' · ' + run.actual_quantity + '/' + run.planned_quantity + ' pzas'"
+                  >
+                    <span class="text-[8px] font-black truncate">{{ run.order_number }}</span>
+                    @if (woMaterialPending(run.work_order_id)) {
+                      <mat-icon class="text-[9px] text-amber-400 ml-1 flex-shrink-0">warning</mat-icon>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="py-16 text-center text-surface-text-muted text-sm italic">Sin recursos configurados</div>
+          }
+        </div>
+
       } @else {
         <div class="space-y-4">
           @for (row of planningRows(); track row.resource.id) {
@@ -271,6 +335,10 @@ export class DailyPlanningComponent implements OnInit {
 
   selectedDate = new Date().toISOString().split('T')[0];
   loading    = signal(false);
+  viewMode   = signal<'cards' | 'gantt'>('cards');
+
+  // Gantt: 24-hour columns (0–23)
+  readonly ganttHours = Array.from({ length: 24 }, (_, i) => i);
   assigning  = signal(false);
   issuingId  = signal<string | null>(null);
 
@@ -433,12 +501,38 @@ export class DailyPlanningComponent implements OnInit {
     }
   }
 
+  ganttBarWidth(run: ProductionRunRead, resource: ResourceRead): number {
+    const capacity = resource.capacity ? Number(resource.capacity) : 60;
+    const maxPerDay = capacity * 8;
+    if (!maxPerDay) return 10;
+    return Math.max(5, Math.min(95, Math.round((run.planned_quantity / maxPerDay) * 100)));
+  }
+
+  ganttBarColor(run: ProductionRunRead): string {
+    const pct = run.planned_quantity ? run.actual_quantity / run.planned_quantity : 0;
+    if (this.woMaterialPending(run.work_order_id)) {
+      return 'bg-amber-500/30 text-amber-300 border border-amber-500/40';
+    }
+    if (pct >= 1) return 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40';
+    if (pct >= 0.5) return 'bg-primary/20 text-primary border border-primary/40';
+    return 'bg-violet-500/20 text-violet-300 border border-violet-500/30';
+  }
+
   openNewWorkOrder() {
     this.drawer.open(WorkOrderFormComponent, {
       title: 'Nueva Orden de Trabajo',
       subtitle: 'MES · Fabricación',
       icon: 'assignment_add',
       width: 'w-[480px]',
+    });
+  }
+
+  openBulkImport() {
+    this.drawer.open(WorkOrderBulkFormComponent, {
+      title: 'Importar Órdenes de Trabajo',
+      subtitle: 'Carga masiva CSV',
+      icon: 'upload_file',
+      width: 'w-[560px]',
     });
   }
 }

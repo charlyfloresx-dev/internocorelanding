@@ -1,6 +1,6 @@
 from mes_app.core.config import settings
 from common.security.cors_setup import setup_cors
-from mes_app.api.v1.endpoints import scan, dashboard, labor, downtime, work_order, sync, resource, shift, planning, production
+from mes_app.api.v1.endpoints import scan, dashboard, labor, downtime, work_order, sync, resource, shift, planning, production, standard_times
 from common.middleware import InternoCoreGlobalMiddleware
 from common.error_handlers import domain_exception_handler
 from common.exceptions import DomainException
@@ -29,6 +29,7 @@ app.include_router(resource.router, prefix=f"{settings.API_V1_STR}/mes/resources
 app.include_router(shift.router, prefix=f"{settings.API_V1_STR}/mes/shifts", tags=["MES Shifts"])
 app.include_router(planning.router, prefix=f"{settings.API_V1_STR}/mes/planning", tags=["MES Planning"])
 app.include_router(production.router, prefix=f"{settings.API_V1_STR}/mes/production", tags=["MES Production"])
+app.include_router(standard_times.router, prefix=f"{settings.API_V1_STR}/mes/standard-times", tags=["MES Standard Times"])
 
 # CORS CloudFront/Frontend
 setup_cors(app)
