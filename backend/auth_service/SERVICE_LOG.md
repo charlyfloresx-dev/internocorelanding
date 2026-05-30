@@ -1,5 +1,65 @@
 # Auth Service - Service Log
 
+## [2026-05-30] Auditoría de Seguridad Phase A — Resultado ✅ con gaps documentados
+
+**Revisión formal del domain model Phase A contra checklist de seguridad:**
+
+- **APROBADO** — `@dataclass(frozen=True)` en `TokenFamily` y `RefreshTokenPayload` ✅
+- **APROBADO CRÍTICO** — `hmac.compare_digest()` en `validate_company_binding()` (timing attack mitigation) ✅
+- **APROBADO** — 7/7 excepciones de dominio, sin imports FastAPI ✅
+- **APROBADO** — `company_id` NOT NULL + FK CASCADE, 3 índices en `__table_args__`, `family_salt` UNIQUE VARCHAR(64) ✅
+- **APROBADO (mejorado)** — HMAC ata 4 campos `(family_id||company_id||user_id||family_salt)` vs 2 del spec — más seguro ✅
+
+**Gaps pendientes (todos bloqueados hasta completar Phase 159 RTR):**
+- **GAP-1 MEDIA** — `TokenFamily.family_salt` sin validador regex hex en `__post_init__` — añadir `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)`
+- **GAP-2 MEDIA** — `version_counter` no registrado en `__mapper_args__` del modelo; `version_id` (heredado) es el lock ORM; confirmar en handler cuál se usa y eliminar duplicado
+- **GAP-3 BAJA** — `RefreshTokenRotationAudit` hereda `is_active`/`deleted_at`/`version_id` de `MultiTenantBase`; inapropiado para tabla append-only; añadir SQLAlchemy event listener que bloquee UPDATE/DELETE
+
+## [2026-05-29] Phase 159: Refresh Token Rotation (RTR) Stateless — PHASE B ✅
+- **Repository Pattern**: 
+  * `domain/repositories/refresh_token_repository.py` — IRefreshTokenRepository interface
+  * `infrastructure/repositories/sqlalchemy_refresh_token_repo.py` — SQLAlchemy implementation
+  * Methods: get_family(), create_family(), rotate_family_atomically() (optimistic locking), revoke_family(), log_rotation_event()
+  
+- **CQRS Handler**: `domain/handlers/refresh_token_handler.py` — RefreshTokenHandler (8 phases)
+  * Phase 1: Decode JWT (no DB)
+  * Phase 2: Fetch family
+  * Phase 3: Validate company_id binding (HMAC)
+  * Phase 4: Validate NOT revoked
+  * Phase 5: Idempotency check (RDS failover resilience)
+  * Phase 6: Reuse detection (generation gap)
+  * Phase 7: Atomic rotation (optimistic locking)
+  * Phase 8: Issue token pair + audit
+  
+- **FastAPI Endpoint**: `api/v1/endpoints/refresh_token_rtr.py`
+  * POST /api/v1/auth/refresh
+  * Status codes: 200, 400 (invalid), 401 (expired/revoked/breach), 429 (rate limit)
+  * Error handling: domain exceptions → HTTP status codes
+  * Rate limit: 20/minute per IP
+  
+- **Race Condition Mitigation**:
+  * Concurrent requests: OptimisticLockError → loser returns winner's tokens (grace)
+  * RDS failover: 2-second idempotency window (last_refresh_jti + refresh_window_expires_at)
+  * Reuse detection: Generation gap → family revoked atomically
+  
+- **Integrated**: api/v1/api.py updated to include RTR router
+- **Status**: ✅ COMPLETED — Handler + Repository + Endpoint ready. NEXT: FASE C (Tests).
+
+## [2026-05-29] Phase 159: Refresh Token Rotation (RTR) Stateless — PHASE A ✅
+- **Domain Layer**: `value_objects/token_family.py` — TokenFamily (immutable, HMAC-sealed company_id), RefreshTokenPayload (JWT claims)
+- **Exceptions**: `domain/exceptions/refresh_token_exceptions.py` — RefreshTokenExpiredError, RefreshTokenRevokedError, RefreshTokenReuseDetectedError, CompanyIdMismatchError, RefreshTokenInvalidFamilyError, RefreshTokenInvalidError, RefreshTokenConcurrentRaceError
+- **ORM Models**: `models/refresh_token_family.py` — RefreshTokenFamily (generation-based, optimistic locking, version_counter), RefreshTokenRotationAudit (append-only forensics)
+- **Migration**: `alembic/versions/f20a0170fc12_add_refresh_token_families_and_rotation_.py` — Applied ✅
+  * `refresh_token_families`: 17 cols (family_salt unique, current_generation, version_counter, last_refresh_jti, refresh_window_expires_at for idempotency), 6 indices
+  * `refresh_token_rotation_audit`: 14 cols (action, concurrent_attempt_detected, failover_detected), 2 indices
+- **Architecture**:
+  * Stateless: No Redis. DB-backed family registry with optimistic locking (version_counter incremented atomically).
+  * Race condition mitigation: OptimisticLockError on concurrent refresh → loser detects winner advanced, returns winner's tokens (grace pattern).
+  * RDS failover resilience: 2-second idempotency window (last_refresh_jti + refresh_window_expires_at). Duplicate requests within window return cached tokens.
+  * Reuse detection: Generation gap (token gen < family gen - 1) → breach → family revoked atomically.
+  * Multi-tenancy: company_id HMAC-sealed (never from client). Cryptographic binding prevents tampering.
+- **Status**: ✅ COMPLETED — Domain model, DB schema, migration applied. NEXT: FASE B (Repository + CQRS Handler).
+
 ## [2026-05-28] Phase 153: Kiosk Company Binding + internal_id_pattern ✅
 - **`common/models/company.py`**: Columna `internal_id_pattern VARCHAR(200) NULL` añadida al modelo `Company` (SSOT en el modelo compartido).
 - **`alembic/versions/c7d4e5f6a8b9_add_internal_id_pattern_to_company.py`**: Migración Alembic (down_revision: `99a023377b4d`). Aplica `ALTER TABLE companies ADD COLUMN internal_id_pattern`.

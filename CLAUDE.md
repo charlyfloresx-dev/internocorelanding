@@ -267,6 +267,7 @@ WHERE created_at <= :document_date
 - `collaborator_login_command.py`: login industrial vía RFID/PIN (T1 bypass).
 - `delegate-selection`: genera `selection_token` para QR mobile provisioning.
 - Tokens: `access` (12h), `refresh`, `selection` (short-lived).
+- **RTR (Phase 159 RTR — EN PROGRESO):** `RefreshTokenFamily` + `RefreshTokenRotationAudit` en DB. Value objects `TokenFamily`/`RefreshTokenPayload` inmutables con HMAC-SHA256 binding. Endpoint `/api/v1/auth/refresh` pendiente. Crashlooping intencionalmente durante RTR. **NO TOCAR hasta completar Phase 159.**
 
 ### subscription_service (8002)
 - Planes, entitlements, estado de suscripción. Integración Stripe.
@@ -430,7 +431,7 @@ python backend/scripts/generate_code_graph.py
 
 ---
 
-## 13. Deuda Técnica Activa (al 2026-05-29)
+## 13. Deuda Técnica Activa (al 2026-05-30)
 
 | Prioridad | Item |
 |---|---|
@@ -486,6 +487,11 @@ python backend/scripts/generate_code_graph.py
 | BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
 | BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
+| ~~ALTA~~ | ~~**auth_service** Phase 159 RTR — `refresh_token_handler.py`, `sqlalchemy_refresh_token_repo.py`, endpoint `/api/v1/auth/refresh` RTR stateless~~ — 🔄 EN PROGRESO (Phase 159 RTR activa, no tocar hasta completar) |
+| MEDIA | **auth_service RTR** GAP-1 Audit: `TokenFamily.family_salt` sin validador hex en value object — añadir `__post_init__` con `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)` en `domain/value_objects/token_family.py` — **bloqueado hasta completar Phase 159 RTR** |
+| MEDIA | **auth_service RTR** GAP-2 Audit: `version_counter` no mapeado al ORM locking — `RefreshTokenFamily` tiene `version_id` (ORM) y `version_counter` (manual) — confirmar en handler cuál se usa para optimistic lock y eliminar el duplicado — **bloqueado hasta completar Phase 159 RTR** |
+| BAJA | **auth_service RTR** GAP-3 Audit: `RefreshTokenRotationAudit` hereda `is_active`/`deleted_at`/`version_id` de `MultiTenantBase` — inapropiado para tabla append-only; añadir event listener que bloquee UPDATE/DELETE o crear `AppendOnlyBase` — **bloqueado hasta completar Phase 159 RTR** |
+| BAJA | **auth_service** `scripts/seed.py` crea Planta US con `default_tax_rate` ORM default (0.16) en hard reset — corregir cuando termine Phase 159 RTR |
 
 ---
 

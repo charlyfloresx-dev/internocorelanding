@@ -4,6 +4,53 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-05-30] Auditoría Phase A RTR + Seed Self-Healing ✅
+
+**Objetivo:** Auditar el domain model de auth_service Phase 159 RTR contra checklist de seguridad formal; corregir seed de master_data_service para garantizar `default_tax_rate` correcto en todos los tenants.
+
+**Decisiones arquitectónicas clave:**
+- **Seed self-healing pattern**: `master_data_service/scripts/seed.py` ahora incluye `default_tax_rate` explícito por empresa en `companies_to_seed` y corrección automática (`elif Decimal(str(existing.default_tax_rate)) != co["tax"]`) en cada startup de contenedor. Evita regresión post-hard-reset.
+- **Migración faltante Phase 118**: Descubierto que `internal_id_pattern` fue añadido a `common/models/company.py` en Phase 118 pero nunca se creó la migración en `master_data_service`. Creada `g001_add_company_internal_id_pattern.py`. Seed estaba roto desde Phase 118 en hard reset.
+- **Auditoría Phase A RTR — 3 gaps documentados**: (1) `TokenFamily.family_salt` sin validador regex hex en value object; (2) `version_counter` no mapeado a `__mapper_args__` ORM locking (existe `version_id` heredado en paralelo — posible confusión en handler); (3) `RefreshTokenRotationAudit` hereda soft-delete de `MultiTenantBase` — inapropiado para tabla append-only forense. Todos bloqueados hasta completar Phase 159 RTR.
+- **HMAC implementation más seguro que spec**: La implementación ata 4 campos (`family_id||company_id||user_id||family_salt`) en lugar de los 2 del spec — mejora, no desviación.
+- **`hmac.compare_digest()` verificado**: Timing attack mitigation presente en `validate_company_binding()` — punto crítico de seguridad aprobado.
+
+**Archivos clave:**
+- `backend/master_data_service/scripts/seed.py` — self-healing `default_tax_rate` + `Decimal` comparison fix
+- `backend/master_data_service/alembic/versions/g001_add_company_internal_id_pattern.py` — migración faltante desde Phase 118
+- `CLAUDE.md` — gaps RTR documentados en deuda técnica §13, estado Phase 159 en §8
+
+**Workarounds / Deuda Técnica:**
+- `auth_service/scripts/seed.py` aún crea Planta US con default_tax_rate ORM (0.16) en primer insert — diferido hasta Phase 159 RTR.
+
+**Ecosystem:** auth_service crashlooping intencionalmente (Phase 159 RTR activa). 8/9 servicios OK.
+
+---
+
+### [2026-05-30] Phase 161 — MES StandardTime sequence_number (Manufacturing Route) ✅
+
+**Objetivo:** Añadir `sequence_number` a `StandardTime` para definir el orden de operaciones dentro de una ruta de fabricación por ítem (ej. CORTE=10, SOLDADURA=20, ENSAMBLE=30, INSPECCIÓN=40).
+
+**Decisiones arquitectónicas clave:**
+- **Multiples de 10**: El campo usa pasos de 10 (`server_default='10'`) para permitir insertar operaciones entre pasos existentes sin re-numerar toda la ruta.
+- **Backfill con ROW_NUMBER()**: La migración asigna números iniciales a filas existentes en orden alfabético por `operation_name` dentro de cada `(company_id, item_code)` partition. Determinista y sin gaps post-migración.
+- **Nuevo endpoint `/route/{item_code}`**: Lista todas las operaciones de un ítem ordenadas por `sequence_number` — permite construir la vista de ruta completa sin sort client-side.
+- **Angular route chain visualization**: En `MesItemConfigComponent`, cuando hay búsqueda activa y múltiples items del mismo code, se renderiza la cadena `10·CORTE → 20·SOLDADURA → 30·ENSAMBLE` al pie del tab.
+- **Columna circular teal**: Seq# renderizado como badge circular teal en la tabla de tiempos para distinguirlo visualmente de los campos operacionales.
+
+**Archivos clave:**
+- `backend/mes_service/alembic/versions/011_st_sequence_number.py` — migration con backfill ROW_NUMBER() * 10
+- `backend/mes_service/mes_app/models/standard_time.py` — campo `sequence_number: Mapped[int]`
+- `backend/mes_service/mes_app/api/v1/endpoints/standard_times.py` — schemas + endpoint `/route/{item_code}`
+- `backend/mes_service/tests/test_standard_times.py` — 4 nuevos tests (14 total, todos GREEN)
+- `frontend/src/app/core/services/standard-time.service.ts` — interface actualizada
+- `frontend/src/app/shared/components/standard-time-form.component.ts` — campo sequence_number con layout flex
+- `frontend/src/app/modules/production/item-config/mes-item-config.component.ts` — columna badge + route chain
+
+**Tests:** 14/14 GREEN. Code Graph: 0 CRITICALs.
+
+---
+
 ### [2026-05-30] Phase 160 — MES StandardTime CRUD + WO Bulk Import + DailyPlanning Gantt ✅
 
 **Objetivo:** Completar la cadena MES de configuración de tiempos estándar por operación, carga masiva de OTs desde CSV, y visualización Gantt del plan diario de producción.
