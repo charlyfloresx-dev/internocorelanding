@@ -2,7 +2,7 @@
 
 **Proyecto:** InternoCore (nombre original: NexoSuite)  
 **Arquitecto:** Carlos Flores Montoya  
-**Estado:** Desarrollo activo — Phase 160 completo (2026-05-30). Pendiente despliegue cloud para clientes.  
+**Estado:** Desarrollo activo — Phase 161 completo (2026-05-30). Pendiente despliegue cloud para clientes.  
 **Stack:** FastAPI (Python 3.12+) · SQLAlchemy async · Alembic · PostgreSQL · Redis · Angular 19 · Flutter
 
 ---
@@ -467,7 +467,7 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**MES** WO bulk import CSV — `WorkOrderBulkFormComponent`~~ — ✅ RESUELTO Phase 160 (2026-05-30): `POST /mes/orders/bulk` + drawer con CSV template |
 | ~~MEDIA~~ | ~~**MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno~~ — ✅ RESUELTO Phase 160 (2026-05-30): toggle cards/gantt, barras proporcionales a capacity*8h |
 | ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 160 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
-| MEDIA | **MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa (orden: CORTE→SOLDADURA→ENSAMBLE→INSPECCIÓN). Actualmente los tiempos son por ítem+operación sin secuencia. |
+| ~~MEDIA~~ | ~~**MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa~~ — ✅ RESUELTO Phase 161 (2026-05-30): migration 011, `sequence_number` con backfill ROW_NUMBER(), `GET /route/{item_code}`, visualización ruta en Angular |
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
 | MEDIA | Rate limit por endpoint faltante en WMS, MES, HCM, Subscription |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
