@@ -1,5 +1,15 @@
 # Auth Service - Service Log
 
+## [2026-06-01] Phase 164 — Migration `a9e3b1c0d2f4` aplicada + DB Worker ✅
+
+**`refresh_tokens` table eliminada del esquema.** `alembic_version_auth = a9e3b1c0d2f4` (head).
+
+Root cause del lock: PID 4864 idle-in-transaction con `SAVEPOINT sa_savepoint_1` abierto bloqueaba el `AccessExclusiveLock` del DROP TABLE. Fix: `pg_terminate_backend(4864)`.
+
+`scripts/purge_rtr_families.py` — purga `refresh_token_families` expiradas hace >7d via `text()` SQL nativo (bypasa Event Listeners ORM append-only de `refresh_token_rotation_audit`).
+
+---
+
 ## [2026-06-01] Phase 163 — RTR Frontend Semaphore (Angular + Flutter) ✅
 
 **Angular `multi-tenant.interceptor.ts` — 2 bugs corregidos:**

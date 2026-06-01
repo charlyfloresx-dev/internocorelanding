@@ -4,6 +4,26 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-01] Phase 164 — Rate Limiter Global + RTR DB Worker + Migration drop ✅
+
+**Objetivo:** Cerrar los 3 frentes pendientes MEDIA de la RTR: aplicar la migration de limpieza de la tabla legacy, activar el rate limiter global en los 4 servicios sin cobertura, y crear el script de purga periódica de familias expiradas.
+
+**Decisiones arquitectónicas clave:**
+- **Rate limiter WMS/MES/HCM/Subscription**: Los 4 servicios solo tenían `InternoCoreGlobalMiddleware` pero `app.state.limiter` no estaba registrado → `@limiter.limit()` en endpoints internos no funcionaba y los límites globales (`2000/h · 100/min`) no se aplicaban. Fix: 3 líneas en cada `main.py` (`import limiter`, `app.state.limiter = limiter`, handler `RateLimitExceeded`).
+- **Migration `a9e3b1c0d2f4`**: `DROP TABLE refresh_tokens` bloqueada por PID 4864 — conexión del pool de auth_service en estado idle-in-transaction con `SAVEPOINT sa_savepoint_1` abierto. SQLAlchemy retiene conexiones en el pool hasta que el GC las recicla. Fix: `pg_terminate_backend(4864)` → todas las DROP TABLE encoladas en background ejecutaron en cascada. Lección: antes de un DDL destructivo en producción, terminar conexiones idle-in-transaction del servicio afectado.
+- **DB Worker purge**: `purge_rtr_families.py` usa `text()` SQL nativo para bypasear los Event Listeners ORM que bloquean DELETE en `RefreshTokenRotationAudit`. El cutoff de 7 días protege contra borrado accidental de familias activas durante una ventana de RDS failover. Ejecución recomendada: cron diario 3am.
+
+**Workarounds / Deuda Técnica:**
+- Rate limit global activo pero límites por-endpoint (ej. `@limiter.limit("20/minute")` en mutaciones críticas de MES/HCM) quedan pendientes BAJA.
+- AWS WAF / Observabilidad RTR: pendiente hasta despliegue cloud.
+
+**Archivos clave:**
+- `backend/wms_service/wms_app/main.py`, `mes_service`, `hcm_service`, `subscription_service` — limiter registrado
+- `backend/auth_service/scripts/purge_rtr_families.py` — DB Worker cron
+- DB: `refresh_tokens` eliminada, `alembic_version_auth = a9e3b1c0d2f4`
+
+---
+
 ### [2026-06-01] Phase 163 — RTR Frontend Semaphore (Angular + Flutter) ✅
 
 **Objetivo:** Implementar el patrón semáforo de refresco de tokens en los interceptores de red de Angular y Flutter, evitando ráfagas concurrentes de `/auth/refresh` que dispararían REUSE_DETECTED y cierres de sesión falsos.

@@ -1,5 +1,73 @@
 # Implementation History — 2026-06-01
 
+## Phase 164 — Rate Limiter Global + RTR DB Worker + Migration drop
+
+### Rate Limiter — 4 servicios
+
+Patrón idéntico al de `auth_service`. Tres líneas por `main.py`:
+
+```python
+# 1. imports
+from common.security.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+
+# 2. después de FastAPI()
+app.state.limiter = limiter
+
+# 3. exception handler
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(status_code=429, content={
+        "status": "error",
+        "message": "Límite de solicitudes excedido.",
+        "meta": {"code": "RATE_LIMIT_EXCEEDED"}
+    })
+```
+
+Sin `app.state.limiter`, los `@limiter.limit()` en endpoints internos lanzaban `AttributeError` y los límites globales (`2000/h · 100/min` configurados en `Limiter(default_limits=[...])`) no se aplicaban.
+
+### Migration `a9e3b1c0d2f4` — Lock Postmortem
+
+El `DROP TABLE refresh_tokens` bloqueó porque el auth_service tenía el PID 4864 con una transacción abierta (`SAVEPOINT sa_savepoint_1`) en estado `ClientRead`. SQLAlchemy con `pool_pre_ping=True` y `pool_size` por defecto retiene conexiones en el pool; si una transacción no se commitea/rollbackea antes de devolver la conexión al pool, el PID queda idle-in-transaction indefinidamente.
+
+```sql
+-- Diagnóstico
+SELECT pid, query, state, wait_event FROM pg_stat_activity
+WHERE state != 'idle' AND query NOT LIKE '%refresh_tokens%';
+-- → PID 4864: SAVEPOINT sa_savepoint_1 | state: active | wait_event: ClientRead
+
+-- Fix
+SELECT pg_terminate_backend(4864);
+-- → t (éxito). Todas las DROP TABLE encoladas ejecutaron en cascada.
+```
+
+Resultado: `still_exists = f`, `alembic_version_auth = a9e3b1c0d2f4`.
+
+### DB Worker `purge_rtr_families.py`
+
+Purga en dos pasos con SQL nativo para bypassar Event Listeners ORM:
+
+```python
+# Paso 1: borrar auditoría (Event Listener bloquea DELETE ORM en esta tabla)
+await db.execute(text("""
+    DELETE FROM refresh_token_rotation_audit
+    WHERE family_id IN (
+        SELECT id FROM refresh_token_families
+        WHERE refresh_window_expires_at < :cutoff
+    )
+"""), {"cutoff": cutoff})
+
+# Paso 2: borrar familias
+await db.execute(text("""
+    DELETE FROM refresh_token_families
+    WHERE refresh_window_expires_at < :cutoff
+"""), {"cutoff": cutoff})
+```
+
+`SAFETY_MARGIN_DAYS = 7` previene borrado de familias activas durante failover RDS.
+
+---
+
 ## Phase 163 — RTR Frontend Semaphore
 
 ### Contexto

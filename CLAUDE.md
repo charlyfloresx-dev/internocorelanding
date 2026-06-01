@@ -445,7 +445,7 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**MES** `WorkOrder.manufactured_quantity` nunca se actualiza~~ — ✅ RESUELTO Phase 151 (ScannerService hook + status transitions DRAFT→IN_PROGRESS→COMPLETED) |
 | ALTA | Validar `POST /api/v1/pos/checkout` end-to-end con flows de antigravity |
 | ~~MEDIA~~ | ~~**MES** Transición automática de WO status: DRAFT → IN_PROGRESS → COMPLETED~~ — ✅ RESUELTO Phase 151 |
-| MEDIA | Rate limit por endpoint faltante en WMS, MES, HR, Subscription |
+| ~~MEDIA~~ | ~~Rate limit global faltante en WMS, MES, HR, Subscription~~ — ✅ RESUELTO Phase 164 (2026-06-01): `app.state.limiter` + handler 429 en los 4 servicios. |
 | ~~MEDIA~~ | ~~`default_tax_rate` Planta US = 0.0~~ — ✅ Ya correcto en DB y seeds. Nunca fue 0.16 en Planta US. |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
 | MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
@@ -470,7 +470,7 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 160 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
 | ~~MEDIA~~ | ~~**MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa~~ — ✅ RESUELTO Phase 161 (2026-05-30): migration 011, `sequence_number` con backfill ROW_NUMBER(), `GET /route/{item_code}`, visualización ruta en Angular |
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
-| MEDIA | Rate limit por endpoint faltante en WMS, MES, HCM, Subscription |
+| BAJA | Rate limit por-endpoint específico en WMS, MES, HCM, Subscription (global activo, faltan decoradores `@limiter.limit()` en mutaciones críticas) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
 | MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
 | ~~MEDIA~~ | ~~`default_tax_rate` Planta US = 0.0~~ — ✅ Ya correcto en DB y seeds. Nunca fue 0.16 en Planta US. |
@@ -500,7 +500,7 @@ python backend/scripts/generate_code_graph.py
 | BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional (401 más seguro) — documentar ADR |
 | BAJA | **auth_service RTR Phase B** GAP-6: `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()` |
 | BAJA | **auth_service** `scripts/seed.py` crea Planta US con `default_tax_rate` ORM default (0.16) en hard reset |
-| MEDIA | **auth_service RTR — DB Worker**: Script de purga periódica de familias expiradas. Borrar `RefreshTokenFamily` con `refresh_window_expires_at < NOW() - 7d` + CASCADE en `refresh_token_rotation_audit`. Nota crítica: Event Listeners bloquean DELETE por ORM → usar `db.execute(text("DELETE ..."))` en sesión de mantenimiento privilegiada (bypassa los listeners). Ejecutar como cron diario o worker async. |
+| ~~MEDIA~~ | ~~**auth_service RTR — DB Worker**~~ — ✅ RESUELTO Phase 164 (2026-06-01): `scripts/purge_rtr_families.py` con `text()` SQL nativo. Cron diario recomendado. |
 | ~~ALTA~~ | ~~**auth_service RTR — Frontend Semáforo**~~ — ✅ RESUELTO Phase 163 (2026-06-01): Angular `REFRESH_ABORT` sentinel + `authReq` fix; Flutter `auth_interceptor.dart` nuevo con `Completer<String>` semaphore. Verified en vivo: login → dashboard sin errores. |
 | BAJA | **auth_service RTR — AWS WAF**: Al desplegar en AWS, configurar regla WAF en ALB/CloudFront que bloquee IPs con >20 req/min antes de que lleguen al proceso Python. Revisar también `pool_size` + `max_overflow` en SQLAlchemy para soportar ~1,000 refreshes simultáneos en cambio de turno (cada refresh usa `WITH FOR UPDATE` por 50-100ms). |
 | BAJA | **auth_service RTR — Observabilidad**: Al desplegar en AWS, mapear alerta CloudWatch/Grafana: si string `Security Breach Alert: REUSE_DETECTED` aparece >3 veces en 5min por `company_id` → SNS/PagerDuty. Dashboard CQRS Query: `GET /admin/sessions?company_id=X` → familias activas (`revoked_at IS NULL`) con IP + User-Agent (simula "Dispositivos conectados"). |
