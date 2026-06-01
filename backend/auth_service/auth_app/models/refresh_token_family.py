@@ -7,7 +7,7 @@ Implementa:
 """
 from uuid import UUID, uuid4
 from datetime import datetime, timedelta
-from sqlalchemy import Column, String, Integer, DateTime, UUID as SQL_UUID, Boolean, Text, Index, ForeignKey
+from sqlalchemy import Column, String, Integer, DateTime, UUID as SQL_UUID, Boolean, Text, Index, ForeignKey, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from common.infrastructure.models.base import MultiTenantBase
@@ -25,7 +25,7 @@ class RefreshTokenFamily(MultiTenantBase):
     - version_id: int (optimistic locking built-in)
 
     PATRÓN:
-    - Cada refresh creaSXXXXa nueva generación (0 → 1 → 2 ...)
+    - Cada refresh crea nueva generación (0 → 1 → 2 ...)
     - Reuse detectado (gap en generación) → family revocada
     - Failover resilience: 2-second idempotency window
     """
@@ -69,14 +69,6 @@ class RefreshTokenFamily(MultiTenantBase):
         server_default="0"
     )
     # Incrementa: 0 → 1 → 2 ... con cada refresh exitoso
-
-    version_counter: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        server_default="0"
-    )
-    # Usado para optimistic locking: prevenir race conditions
 
     # Revocation State
     revoked_at: Mapped[datetime | None] = mapped_column(
@@ -134,6 +126,7 @@ class RefreshTokenRotationAudit(MultiTenantBase):
     Append-only audit log para forensics de breach y análisis de race conditions.
 
     INVARIANTE: NUNCA se actualiza ni borra—solo se inserta.
+    Event Listeners bloquean UPDATE/DELETE a nivel ORM.
     Permite investigar:
     - Timelines de breach
     - Patrones de reuse
@@ -214,3 +207,14 @@ class RefreshTokenRotationAudit(MultiTenantBase):
         Index("idx_family_audit_timeline", "family_id", "created_at"),
         Index("idx_reuse_detection", "action", "created_at"),
     )
+
+
+# Event Listeners: bloquear mutación de auditoría append-only
+@event.listens_for(RefreshTokenRotationAudit, "before_update")
+def block_audit_update(mapper, connection, target):
+    raise RuntimeError("RefreshTokenRotationAudit is append-only. UPDATE not allowed.")
+
+
+@event.listens_for(RefreshTokenRotationAudit, "before_delete")
+def block_audit_delete(mapper, connection, target):
+    raise RuntimeError("RefreshTokenRotationAudit is append-only. DELETE not allowed.")

@@ -168,7 +168,10 @@ async def refresh_token_rtr(
         )
     except Exception as e:
         await db.rollback()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Refresh token endpoint error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal error: {str(e)}"
+            detail="An internal error occurred"
         )

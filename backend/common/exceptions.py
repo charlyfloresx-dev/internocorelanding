@@ -56,8 +56,16 @@ class ValidationException(DomainException):
 
 class ConflictException(DomainException):
     """
-    Raised when there is a state conflict 
+    Raised when there is a state conflict
     (e.g., trying to delete a record with active dependencies).
     """
     def __init__(self, message: str, details: dict = None, code: str = "CONFLICT"):
         super().__init__(message, details, status_code=409, code=code)
+
+class OptimisticLockError(ConflictException):
+    """
+    Optimistic locking conflict: another process modified the record.
+    Used in RTR for concurrent refresh token rotation detection.
+    """
+    def __init__(self, message: str, details: dict = None, code: str = "OPTIMISTIC_LOCK_FAILED"):
+        super().__init__(message, details, code=code)

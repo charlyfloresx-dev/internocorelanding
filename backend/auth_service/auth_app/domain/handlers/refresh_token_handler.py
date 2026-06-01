@@ -30,7 +30,7 @@ from auth_app.domain.exceptions.refresh_token_exceptions import (
     RefreshTokenInvalidError,
     RefreshTokenConcurrentRaceError
 )
-from common.infrastructure.exceptions import OptimisticLockError
+from common.exceptions import OptimisticLockError
 from auth_app.core.config import settings
 
 
@@ -96,17 +96,17 @@ class RefreshTokenHandler:
 
         try:
             payload = jwt.decode(cmd.refresh_token, self.secret_key, algorithms=["HS256"])
-            token_payload = RefreshTokenPayload(**payload)
+            token_payload = RefreshTokenPayload.from_jwt_payload(payload)
         except jwt.ExpiredSignatureError:
             raise RefreshTokenExpiredError("Refresh token lifetime exceeded")
-        except (jwt.InvalidTokenError, ValueError) as e:
+        except (jwt.InvalidTokenError, ValueError, TypeError, KeyError) as e:
             raise RefreshTokenInvalidError(f"Token inválido: {str(e)}")
 
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # FASE 2: Obtener familia de DB
+        # FASE 2: Obtener familia de DB (con tenant validation)
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        family = await self.token_repo.get_family(token_payload.family_id)
+        family = await self.token_repo.get_family(token_payload.family_id, token_payload.company_id)
         if not family:
             raise RefreshTokenInvalidFamilyError("Token family not found")
 
@@ -143,7 +143,8 @@ class RefreshTokenHandler:
         # FASE 5: Idempotency check (RDS failover resilience)
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
 
         if (family.last_refresh_jti == token_payload.jti and
             now < family.refresh_window_expires_at):
@@ -183,11 +184,12 @@ class RefreshTokenHandler:
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
         next_generation = family.current_generation + 1
-        old_version = family.version_counter
+        old_version = family.version_id
 
         try:
             updated_family = await self.token_repo.rotate_family_atomically(
                 family_id=family.family_id,
+                company_id=token_payload.company_id,
                 next_generation=next_generation,
                 expected_version=old_version,
                 last_refresh_jti=token_payload.jti,
@@ -195,7 +197,7 @@ class RefreshTokenHandler:
             )
         except OptimisticLockError:
             # Otro request ganó la race → fetch estado actual
-            current_family = await self.token_repo.get_family(family.family_id)
+            current_family = await self.token_repo.get_family(family.family_id, token_payload.company_id)
 
             if current_family and current_family.current_generation > family.current_generation:
                 # El ganador está adelante → grace: retornar sus tokens
@@ -266,7 +268,7 @@ class RefreshTokenHandler:
         ip_address: str
     ) -> None:
         """Revocar familia por breach detectado."""
-        await self.token_repo.revoke_family(family.family_id, reason)
+        await self.token_repo.revoke_family(family.family_id, family.company_id, reason)
 
         await self.token_repo.log_rotation_event(
             family_id=family.family_id,
@@ -283,7 +285,8 @@ class RefreshTokenHandler:
 
     def _issue_refresh_token(self, family: TokenFamily) -> str:
         """Emitir JWT refresh con binding criptográfico."""
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         family_hash = family.compute_family_hash(self.secret_key)
 
         payload = {
@@ -302,7 +305,8 @@ class RefreshTokenHandler:
 
     def _issue_access_token(self, user_id: UUID, company_id: UUID) -> str:
         """Emitir JWT access (standard)."""
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
 
         # TODO: Obtener roles/scopes del usuario desde DB
         payload = {

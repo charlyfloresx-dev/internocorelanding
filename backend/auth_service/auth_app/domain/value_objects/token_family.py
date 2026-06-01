@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 import hmac
 import hashlib
+import re
 
 
 @dataclass(frozen=True)
@@ -22,7 +23,7 @@ class TokenFamily:
     - family_id: UUID único de la familia
     - company_id: Sellado criptográficamente (HMAC-SHA256)
     - generation: Incrementa con cada refresh exitoso
-    - version_counter: Usado para optimistic locking
+    - version_id: Used for optimistic locking (hereda de BaseDomainEntity)
     - revoked_at: NULL = activa, NOT NULL = revocada (breach)
     """
     family_id: UUID
@@ -30,7 +31,7 @@ class TokenFamily:
     user_id: UUID
     family_salt: str                            # 32 bytes hex (64 chars)
     current_generation: int
-    version_counter: int                        # Para optimistic locking
+    version_id: int                             # Optimistic locking (hereda de ORM)
     revoked_at: Optional[datetime] = None
     revocation_reason: Optional[str] = None
     last_refresh_at: Optional[datetime] = None
@@ -38,6 +39,14 @@ class TokenFamily:
     refresh_window_expires_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    def __post_init__(self):
+        """Validar family_salt es exactamente 64 caracteres hexadecimales."""
+        if not re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt):
+            raise ValueError(
+                f"family_salt must be exactly 64 hexadecimal characters (32 bytes). "
+                f"Got: {len(self.family_salt)} chars, valid_hex={bool(re.fullmatch(r'^[0-9a-f]*$', self.family_salt))}"
+            )
 
     def is_active(self) -> bool:
         """Retorna True si la familia NO está revocada."""
@@ -80,6 +89,25 @@ class RefreshTokenPayload:
     issued_at: datetime
     expires_at: datetime
     family_hash: str                            # HMAC binding de company_id
+
+    @classmethod
+    def from_jwt_payload(cls, payload: dict) -> "RefreshTokenPayload":
+        """
+        Factory: mapea claves JWT cortas a los campos del VO.
+
+        JWT usa claves compactas (fam, co, gen, fam_hash) para reducir tamaño del token.
+        Este método normaliza al contrato del dominio.
+        """
+        return cls(
+            jti=UUID(payload["jti"]),
+            family_id=UUID(payload["fam"]),
+            company_id=UUID(payload["co"]),
+            user_id=UUID(payload["sub"]),
+            generation=int(payload["gen"]),
+            issued_at=datetime.fromtimestamp(payload["iat"]),
+            expires_at=datetime.fromtimestamp(payload["exp"]),
+            family_hash=payload["fam_hash"],
+        )
 
     def validate_company_binding(
         self,
