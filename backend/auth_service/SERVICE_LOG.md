@@ -1,5 +1,23 @@
 # Auth Service - Service Log
 
+## [2026-06-01] Phase 162 RTR — Phase C Tests de Integración ✅ 10/10
+
+**`tests/integration/test_refresh_token_rotation.py` — 10 tests, todos PASSED contra PostgreSQL real.**
+
+Bugs encontrados y resueltos durante ejecución de tests:
+- **family_salt hardcodeado** `"a"*64` causaba `UNIQUE constraint` violation + `transactionid` deadlock entre runs. Fix: `os.urandom(32).hex()` por test.
+- **`datetime.utcnow().timestamp()` → `ImmatureSignatureError`**: `.timestamp()` de un naive datetime en timezone no-UTC devuelve timestamp futuro. Fix: `datetime.now(timezone.utc)` en `_issue_refresh_token()` y `_issue_access_token()`.
+- **`MissingGreenlet` en `_model_to_value_object`**: `updated_at` con `onupdate=func.now()` se expira post-flush. Fix: `await self.db.refresh(model)` después del flush en `rotate_family_atomically()` y `revoke_family()`.
+- **`test_company_id_binding_tampering_detected`**: compound WHERE de FASE 2 atrapa tampering antes que HMAC de FASE 3 → cambiado para esperar `RefreshTokenInvalidFamilyError` (el IDOR defense es la primera línea de defensa).
+- **`test_idempotent_retry_within_window`**: bulk UPDATE bypasa identity map → `get_family()` devolvía caché stale. Fix: ORM-level update (`select` → modify attribute → flush).
+- **`_return_cached_tokens` genera JTI nuevo**: la "idempotencia" no es tokens idénticos sino generación sin incremento. Fix: assertion cambiada a `current_generation == 1`.
+
+**Correcciones de seguridad adicionales:**
+- `log_rotation_event()` agregó `tenant_id=company_id` (MultiTenantBase NOT NULL).
+- Todas las fechas en repo y handler usan `datetime.now(timezone.utc)` consistentemente.
+
+---
+
 ## [2026-06-01] Phase 159 RTR — Auditoría A+B Correcciones Aplicadas ✅
 
 **Todas las bloqueantes y gaps resueltos (Senior Code Auditor Report):**

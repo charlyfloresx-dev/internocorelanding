@@ -267,7 +267,7 @@ WHERE created_at <= :document_date
 - `collaborator_login_command.py`: login industrial vía RFID/PIN (T1 bypass).
 - `delegate-selection`: genera `selection_token` para QR mobile provisioning.
 - Tokens: `access` (12h), `refresh`, `selection` (short-lived).
-- **RTR (Phase 159 RTR — Phase C+D pendientes):** Phase A (domain model + migration) ✅. Phase B (repository + handler + endpoint) ✅. Auditorías A+B completadas 2026-06-01 — todos los bloqueantes resueltos (B-01 company_id, stack trace, GAP-1/2/3). Pendiente: Phase C (tests integración) + Phase D (create_family al login). Endpoint `/api/v1/auth/refresh` operativo.
+- **RTR (Phase 159 RTR — Phase D pendiente):** Phase A ✅ Phase B ✅ Phase C ✅ (2026-06-01: 10/10 integration tests passing). Pendiente: Phase D (create_family al login, select-company handler). Endpoint `/api/v1/auth/refresh` operativo.
 
 ### subscription_service (8002)
 - Planes, entitlements, estado de suscripción. Integración Stripe.
@@ -494,7 +494,7 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**auth_service RTR Phase A** GAP-1: `TokenFamily.family_salt` sin validador hex~~ — ✅ RESUELTO (2026-06-01): `__post_init__` con `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)` |
 | ~~MEDIA~~ | ~~**auth_service RTR Phase A** GAP-2: `version_counter` vs `version_id` dualidad~~ — ✅ RESUELTO (2026-06-01): handler usa `version_id` (ORM-managed), `version_counter` eliminado del flujo |
 | ~~BAJA~~ | ~~**auth_service RTR Phase A** GAP-3: `RefreshTokenRotationAudit` hereda soft-delete de `MultiTenantBase`~~ — ✅ RESUELTO (2026-06-01): Event Listeners SQLAlchemy bloquean UPDATE/DELETE con `RuntimeError` |
-| ALTA | **auth_service RTR Phase C** — Tests de integración pendientes: 7 clases × 2 tests contra PostgreSQL real (`test_refresh_token_rotation.py` creado, no ejecutado aún) |
+| ~~ALTA~~ | ~~**auth_service RTR Phase C** — Tests de integración: `test_refresh_token_rotation.py`~~ — ✅ RESUELTO Phase 162 (2026-06-01): 10/10 passing contra PostgreSQL real |
 | ALTA | **auth_service RTR Phase D** — Integración al login handler: `create_family()` al completar `select-company` → emitir refresh token con familia RTR en lugar del token simple actual |
 | MEDIA | **auth_service RTR Phase B** Domain purity: `IRefreshTokenRepository.log_rotation_event()` retorna ORM model `RefreshTokenRotationAudit` — cambiar a `None` o `AuditRecord` dataclass en `domain/value_objects/` |
 | BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional (401 más seguro) — documentar ADR |
