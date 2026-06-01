@@ -6,11 +6,10 @@ Prefijo base: /api/v1
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from asset_app.core.config import settings
 from asset_app.core.database import init_db
 from asset_app.api.v1.router import api_router
+from common.security.cors_setup import setup_cors
 from common.logger import get_logger
 
 logger = get_logger(__name__)
@@ -39,13 +38,7 @@ app = FastAPI(
 )
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS or ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+setup_cors(app)
 
 # ─── Routers ──────────────────────────────────────────────────────────────────
 app.include_router(api_router, prefix=settings.API_V1_STR)

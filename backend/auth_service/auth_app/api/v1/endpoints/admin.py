@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import text
+import hmac
 import uuid
 from typing import List, Optional
 
@@ -28,7 +29,7 @@ async def verify_admin_master_key(x_admin_key: str = Header(..., alias="X-Admin-
     """
     Validador de llave maestra para acceso administrativo directo (God Mode).
     """
-    if not settings or not settings.int_admin_master_key or x_admin_key != settings.int_admin_master_key:
+    if not settings or not settings.int_admin_master_key or not hmac.compare_digest(x_admin_key, settings.int_admin_master_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Acceso Denegado: Admin Master Key inválida o no configurada."
