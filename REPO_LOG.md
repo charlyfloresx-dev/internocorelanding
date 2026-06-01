@@ -4,6 +4,32 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-01] Phase 162 — RTR Phase C (Tests) + Phase D (Login Integration) ✅
+
+**Objetivo:** Completar el ciclo de vida completo del Refresh Token Rotation stateless — tests de integración + conexión al flujo de login real.
+
+**Decisiones arquitectónicas clave:**
+
+- **Phase C — 10/10 integration tests contra PostgreSQL real**: `test_refresh_token_rotation.py` cubre: rotación normal, múltiples rotaciones, concurrencia graceful, failover idempotente, detección de reuse/breach, seguridad HMAC, multi-tenant isolation, audit logging.
+- **Unique salt por test**: `os.urandom(32).hex()` — la constraint UNIQUE en `family_salt` causaba deadlocks entre test runs si se usaba valor hardcodeado.
+- **`datetime.now(timezone.utc)` obligatorio en handlers**: `datetime.utcnow().timestamp()` genera timestamp futuro en sistemas non-UTC → `ImmatureSignatureError`. Corregido en `_issue_refresh_token`, `_issue_access_token`, `rotate_family_atomically`, `revoke_family`.
+- **`await db.refresh(model)` post-flush**: Columnas `onupdate=func.now()` se marcan expired en SQLAlchemy tras flush. Sin `refresh()`, acceso posterior causa `MissingGreenlet`. Corregido en `rotate_family_atomically` y `revoke_family`.
+- **Phase D — RTR al login**: `select_company_command.py` reemplaza `RefreshToken` legacy con `create_family()` + `_issue_refresh_token()`. El login ahora emite refresh tokens RTR (gen=0, HMAC-sealed). Tabla `refresh_tokens` deprecada via migration `a9e3b1c0d2f4`.
+- **Collaborators quedan sin RTR**: `RefreshTokenFamily.user_id FK → users.id` no aplica para colaboradores industriales (HCM-only, sin registro en `users`). Devuelven `refresh_token: null`.
+
+**Workarounds / Deuda Técnica:**
+- Compound WHERE de FASE 2 (`get_family`) atrapa tampering de `company_id` antes que el HMAC de FASE 3. El HMAC binding es defensa en profundidad, no primera línea. Documentado en tests.
+- `_return_cached_tokens` genera nuevo JTI (no bytes idénticos). Idempotencia = misma generación, no token bitwise-equal.
+- Phase D: `refresh_tokens` tabla aún existe hasta que migration `a9e3b1c0d2f4` se aplique en next `migrate_all`.
+
+**Archivos clave:**
+- `backend/auth_service/tests/integration/test_refresh_token_rotation.py` — 10 tests, Phase C
+- `backend/auth_service/auth_app/commands/select_company_command.py` — Phase D: RTR al login
+- `backend/auth_service/alembic/versions/a9e3b1c0d2f4_drop_legacy_refresh_tokens_table.py` — drop refresh_tokens
+- `backend/auth_service/scripts/full_auth_flow.py` — E2E validation con PASO 4 RTR
+
+---
+
 ### [2026-06-01] Phase 159 RTR — Correcciones Auditoría A+B Aplicadas ✅
 
 **Objetivo:** Resolver todos los bloqueantes y gaps identificados en auditorías formales Phase A y Phase B del Refresh Token Rotation stateless de auth_service.

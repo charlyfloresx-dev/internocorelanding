@@ -119,3 +119,31 @@ Cualquier `session.query(RefreshTokenRotationAudit).update(...)` o `.delete(...)
 **Phase C (tests):** `test_refresh_token_rotation.py` con 7 clases / 12+ tests creado. Requiere levantar auth_service + PostgreSQL y ejecutar para confirmar que todos los flujos de los 8 fases del handler funcionan end-to-end.
 
 **Phase D (login integration):** El endpoint `POST /api/v1/auth/refresh` existe y funciona, pero `create_family()` aún no está integrado al flujo `select-company`. Actualmente el login emite tokens sin familia RTR — el endpoint de refresh no tiene familias que rotar. Phase D cierra este gap.
+
+---
+
+## Phase 162 RTR — Phase C (Tests) + Phase D (Login Integration)
+
+### Phase C: Diagnóstico del Hang y Resolución de Tests
+
+**Problema raíz del hang:** `family_salt = "a" * 64` hardcodeado causa bloqueo indefinido por `transactionid` lock en PostgreSQL. La constraint UNIQUE en `family_salt` hace que cada nuevo test intente INSERT con el mismo salt, quedando bloqueado esperando que la transacción anterior (de tests anteriores cuyos procesos Python fueron matados) haga commit o rollback. Los procesos killed no cierran conexiones PostgreSQL — estas quedan en estado `idle in transaction` hasta que PostgreSQL las termine.
+
+**Fix:** `family_salt=os.urandom(32).hex()` — único por test, sin conflicto con runs anteriores.
+
+**Problema de timezones:** `datetime.utcnow().timestamp()` en sistema con timezone local != UTC genera `iat` en el futuro desde la perspectiva del JWT validator (que usa `datetime.now(timezone.utc)`). En México UTC-7, `datetime.utcnow().timestamp()` da un timestamp 7 horas mayor al actual.
+
+**Fix:** `datetime.now(timezone.utc)` en `_issue_refresh_token`, `_issue_access_token`, `rotate_family_atomically`, `revoke_family`.
+
+**MissingGreenlet:** SQLAlchemy marca atributos con `server_default` o `onupdate` como expired tras `flush()`. Acceder a `model.updated_at` sin `await db.refresh(model)` previo causa `MissingGreenlet` — la sesión async intenta un lazy load sincrónico.
+
+**Fix:** `await self.db.refresh(model)` inmediatamente tras `flush()` en `rotate_family_atomically()` y `revoke_family()`.
+
+**tenant_id faltante:** `RefreshTokenRotationAudit` hereda `MultiTenantBase` (tiene `tenant_id NOT NULL`). `log_rotation_event()` no seteaba `tenant_id`. Fix: `tenant_id=company_id`.
+
+### Phase D: Integración al Login
+
+**Punto de inserción:** `SelectCompanyCommandHandler.handle()` — reemplaza patrón `create_refresh_token() + RefreshToken DB record` con `rtr_repo.create_family() + handler._issue_refresh_token(family)`.
+
+**Collaborators excluidos:** `RefreshTokenFamily.user_id FK → users.id`. Los colaboradores industriales tienen UUID propios del HCM que no existen en `users`. Devuelven `refresh_token: None` (acceso por short-lived access tokens únicamente).
+
+**Tabla legacy deprecada:** `refresh_tokens` (modelo `RefreshToken`) — migration `a9e3b1c0d2f4` la elimina. La tabla nunca fue usada por el nuevo endpoint `/auth/refresh` (RTR), solo por `select_company_command.py` que ya migró a RTR families.

@@ -495,7 +495,7 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**auth_service RTR Phase A** GAP-2: `version_counter` vs `version_id` dualidad~~ — ✅ RESUELTO (2026-06-01): handler usa `version_id` (ORM-managed), `version_counter` eliminado del flujo |
 | ~~BAJA~~ | ~~**auth_service RTR Phase A** GAP-3: `RefreshTokenRotationAudit` hereda soft-delete de `MultiTenantBase`~~ — ✅ RESUELTO (2026-06-01): Event Listeners SQLAlchemy bloquean UPDATE/DELETE con `RuntimeError` |
 | ~~ALTA~~ | ~~**auth_service RTR Phase C** — Tests de integración: `test_refresh_token_rotation.py`~~ — ✅ RESUELTO Phase 162 (2026-06-01): 10/10 passing contra PostgreSQL real |
-| ALTA | **auth_service RTR Phase D** — Integración al login handler: `create_family()` al completar `select-company` → emitir refresh token con familia RTR en lugar del token simple actual |
+| ~~ALTA~~ | ~~**auth_service RTR Phase D** — Integración al login handler: `create_family()` al select-company~~ — ✅ RESUELTO Phase 162 (2026-06-01): login emite RTR family gen=0, tabla legacy deprecada |
 | MEDIA | **auth_service RTR Phase B** Domain purity: `IRefreshTokenRepository.log_rotation_event()` retorna ORM model `RefreshTokenRotationAudit` — cambiar a `None` o `AuditRecord` dataclass en `domain/value_objects/` |
 | BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional (401 más seguro) — documentar ADR |
 | BAJA | **auth_service RTR Phase B** GAP-6: `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()` |
