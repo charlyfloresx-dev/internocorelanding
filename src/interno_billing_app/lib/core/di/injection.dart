@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:interno_billing_app/core/database/local_database.dart';
 import 'package:interno_billing_app/core/network/connection_status_provider.dart';
 import 'package:interno_billing_app/core/network/connectivity_service.dart';
+import 'package:interno_billing_app/core/network/auth_interceptor.dart';
 import 'package:interno_billing_app/core/network/multi_tenant_interceptor.dart';
 import 'package:interno_billing_app/core/network/resilience_interceptor.dart';
 import 'package:interno_billing_app/core/services/product_sync_service.dart';
@@ -36,6 +37,7 @@ Future<void> init() async {
     MultiTenantInterceptor(prefs),
     ResilienceInterceptor(dio: dio),
     LogInterceptor(requestBody: true, responseBody: true),
+    AuthInterceptor(dio: dio, prefs: prefs), // LAST = first for onError (Dio LIFO)
   ]);
 
   // ── Offline-First: Local Database (Drift/SQLite) ──────────────────────────

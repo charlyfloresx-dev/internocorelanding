@@ -6,6 +6,10 @@ import { DashboardService } from '../services/dashboard.service';
 import { catchError, throwError, tap, filter, take, switchMap } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 
+// Emitted to refreshTokenSubject when refresh fails — unblocks waiting requests
+// so they don't hang on filter(token !== null) when the primary refresh errors out.
+const REFRESH_ABORT = '__ABORT__';
+
 /**
  * Strict Multi-tenant Interceptor
  * Injects X-Company-ID and handles unauthorized access.
@@ -145,20 +149,29 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
       const isAdminRoute = req.url.toLowerCase().includes('/admin/');
       
       // --- 🔄 TOKEN REFRESH FLOW (RTR) — 401 only ---
+      // Semaphore pattern: only one refresh call fires at a time.
+      // Concurrent 401s queue on refreshTokenSubject and get the new token when ready.
+      // On refresh failure, REFRESH_ABORT is emitted so queued requests don't hang.
       if (error.status === 401 && !isMockSession && !isAuthRoute && !isAdminRoute) {
         if (!url.includes('/auth/refresh')) {
           if (auth.isRefreshing()) {
+            // Queued branch: wait for the ongoing refresh to complete
             return auth.refreshTokenSubject.pipe(
-              filter(token => token !== null),
+              filter(t => t !== null),
               take(1),
-              switchMap(token => {
-                const retryReq = req.clone({
-                  headers: req.headers.set('Authorization', `Bearer ${token}`)
+              switchMap(t => {
+                if (t === REFRESH_ABORT) {
+                  return throwError(() => error);
+                }
+                // FIX: use authReq (has X-Company-ID, X-User-ID) not req
+                const retryReq = authReq.clone({
+                  headers: authReq.headers.set('Authorization', `Bearer ${t}`)
                 });
                 return next(retryReq);
               })
             );
           } else {
+            // Primary branch: start the refresh
             auth.isRefreshing.set(true);
             auth.refreshTokenSubject.next(null);
 
@@ -168,25 +181,29 @@ export const multiTenantInterceptor: HttpInterceptorFn = (req, next) => {
                 if (resp.status === 'success' && resp.data) {
                   auth.setSession(resp.data);
                   auth.refreshTokenSubject.next(resp.data.access_token);
-
-                  const retryReq = req.clone({
-                    headers: req.headers.set('Authorization', `Bearer ${resp.data.access_token}`)
+                  // FIX: use authReq to preserve X-Company-ID and X-User-ID headers
+                  const retryReq = authReq.clone({
+                    headers: authReq.headers.set('Authorization', `Bearer ${resp.data.access_token}`)
                   });
                   return next(retryReq);
                 } else {
+                  // Refresh returned non-success: unblock queue then logout
+                  auth.refreshTokenSubject.next(REFRESH_ABORT);
                   auth.logout();
                   return throwError(() => error);
                 }
               }),
               catchError((refreshErr) => {
                 auth.isRefreshing.set(false);
+                // FIX: emit REFRESH_ABORT so queued requests don't hang indefinitely
+                auth.refreshTokenSubject.next(REFRESH_ABORT);
                 auth.logout();
                 return throwError(() => refreshErr);
               })
             );
           }
         } else {
-          // Refresh token itself expired — full logout
+          // /auth/refresh itself returned 401 — RTR family expired/revoked — full logout
           auth.logout();
         }
       }
