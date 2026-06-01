@@ -1,5 +1,96 @@
 # Implementation History — 2026-06-01
 
+## Phase 163 — RTR Frontend Semaphore
+
+### Contexto
+Con Phase D completa (backend emite RTR refresh_token desde select-company), el siguiente riesgo era del lado del cliente: si el AT expira y N requests concurrentes reciben 401 simultáneamente, sin semáforo todos intentan `/auth/refresh` al mismo tiempo → N rotaciones → REUSE_DETECTED → lockout falso de usuario.
+
+### Angular — Bugs corregidos en `multi-tenant.interceptor.ts`
+
+**Bug 1 — Headers perdidos en retry:**
+```typescript
+// ANTES (bug): req es el request original sin headers inyectados
+const retryReq = req.clone({ headers: req.headers.set('Authorization', `Bearer ${t}`) });
+
+// DESPUÉS: authReq ya tiene X-Company-ID y X-User-ID inyectados por el interceptor
+const retryReq = authReq.clone({ headers: authReq.headers.set('Authorization', `Bearer ${t}`) });
+```
+
+**Bug 2 — Cola colgada en fallo de refresh:**
+```typescript
+// ANTES: catchError solo llamaba logout. refreshTokenSubject quedaba en null.
+// filter(t !== null) nunca pasaba → requests en cola colgaban forever.
+catchError((refreshErr) => {
+  auth.isRefreshing.set(false);
+  auth.logout();
+  return throwError(() => refreshErr);
+})
+
+// DESPUÉS: REFRESH_ABORT desbloquea la cola inmediatamente
+const REFRESH_ABORT = '__ABORT__';
+// En la cola, el switchMap detecta el sentinel:
+switchMap(t => {
+  if (t === REFRESH_ABORT) return throwError(() => error);
+  // ... retry normal
+})
+// En el catchError:
+catchError((refreshErr) => {
+  auth.isRefreshing.set(false);
+  auth.refreshTokenSubject.next(REFRESH_ABORT); // FIX: desbloquea cola
+  auth.logout();
+  return throwError(() => refreshErr);
+})
+```
+
+### Flutter — `auth_interceptor.dart` (nuevo)
+
+Flutter no tenía ningún manejo de 401 ni refresh automático. Patrón elegido: `Completer<String>` (idiomático Dart, single-threaded safe).
+
+```dart
+// Semáforo con Completer
+bool _isRefreshing = false;
+Completer<String>? _refreshCompleter;
+
+// En onError(401):
+if (_isRefreshing) {
+  newToken = await _refreshCompleter!.future; // espera al primary
+} else {
+  final completer = Completer<String>();
+  _refreshCompleter = completer;
+  _isRefreshing = true;
+  try {
+    newToken = await _doRefresh();
+    completer.complete(newToken);   // libera a todos
+  } catch (e) {
+    completer.completeError(e);     // falla a todos
+    rethrow;
+  } finally {
+    _isRefreshing = false;
+    _refreshCompleter = null;
+  }
+}
+// Retry con nuevo token:
+err.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+err.requestOptions.extra['_retried'] = true; // anti-loop
+final response = await _dio.fetch(err.requestOptions);
+handler.resolve(response);
+```
+
+**Por qué `Completer` y no `BehaviorSubject`:** Dart es single-threaded (Isolates), no hay race conditions entre el check `_isRefreshing` y la asignación. Un `Completer` completa exactamente una vez y cualquier `await future` posterior al `complete()` resuelve inmediatamente. Sin necesidad de reinicializar subjects.
+
+**Posición en DI:** ÚLTIMO en `addAll([Multi, Resilience, Log, Auth])` → Dio llama `onError` LIFO → `AuthInterceptor` es el PRIMERO en ver el 401.
+
+**Guards contra loops:**
+- `extra['_retried'] == true` → skip
+- `path.contains('/auth/')` → skip (refresh call no se auto-refresca)
+
+### Verificación en vivo
+- Angular: Login T1 → T2 → `Session persisted with refresh_token` ✅
+- Dashboard carga, Inventory Documents carga, WebSocket conectado ✅
+- Flutter: app corriendo en Moto g04s, departamentos cargando desde API ✅
+
+---
+
 ## Phase 159 RTR — Auditoría A+B: Correcciones de Seguridad
 
 ### Contexto

@@ -1,5 +1,18 @@
 # Auth Service - Service Log
 
+## [2026-06-01] Phase 163 — RTR Frontend Semaphore (Angular + Flutter) ✅
+
+**Angular `multi-tenant.interceptor.ts` — 2 bugs corregidos:**
+- Retries usaban `req.clone()` → headers `X-Company-ID`/`X-User-ID` perdidos. Fix: `authReq.clone()`.
+- Fallo de refresh dejaba cola colgada en `filter(t !== null)`. Fix: `REFRESH_ABORT` sentinel emitido antes de logout.
+
+**Flutter `auth_interceptor.dart` — nuevo:**
+- `Completer<String>` semaphore: primer 401 inicia refresh, concurrentes hacen await en `completer.future`.
+- `complete(token)` / `completeError(e)` libera a todos. Guard `_retried` previene loops.
+- Registrado ÚLTIMO en `injection.dart` → PRIMERO en `onError` (Dio LIFO).
+
+---
+
 ## [2026-06-01] Phase 162 RTR — Phase C Tests de Integración ✅ 10/10
 
 **`tests/integration/test_refresh_token_rotation.py` — 10 tests, todos PASSED contra PostgreSQL real.**

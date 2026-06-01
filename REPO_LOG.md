@@ -4,6 +4,28 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-01] Phase 163 — RTR Frontend Semaphore (Angular + Flutter) ✅
+
+**Objetivo:** Implementar el patrón semáforo de refresco de tokens en los interceptores de red de Angular y Flutter, evitando ráfagas concurrentes de `/auth/refresh` que dispararían REUSE_DETECTED y cierres de sesión falsos.
+
+**Decisiones arquitectónicas clave:**
+- **Angular (`multi-tenant.interceptor.ts`)**: Dos bugs corregidos en el semáforo existente. (1) Los retries usaban `req` en lugar de `authReq`, descartando los headers `X-Company-ID` y `X-User-ID` ya inyectados. (2) En caso de fallo del refresh, `refreshTokenSubject` quedaba en `null` permanente y las peticiones encoladas en `filter(token !== null)` colgaban indefinidamente. Fix: constante `REFRESH_ABORT = '__ABORT__'` emitida al subject en el `catchError`, el `switchMap` de la cola detecta el sentinel y lanza error inmediatamente.
+- **Flutter (`auth_interceptor.dart` — nuevo)**: Angular ya tenía estructura base; Flutter no tenía ninguna lógica de 401/refresh. Patrón `Completer<String>` como semáforo: primer 401 instancia el `Completer` y hace el refresh; los siguientes 401 concurrentes await en `completer.future`. `complete(newToken)` libera a todos. `completeError(e)` falla a todos limpiamente. Flag `_retried = true` en `extra` previene loops infinitos. Guard de URL `/auth/*` previene recursión en el refresh call.
+- **Posición en DI de Flutter**: `AuthInterceptor` registrado ÚLTIMO en `dio.interceptors.addAll(...)` — Dio procesa `onError` en orden LIFO, así `AuthInterceptor` es el PRIMERO en interceptar errores.
+- **Verificado en vivo**: Login → SelectCompany → Dashboard → Inventory Documents sin errores. `refresh_token` RTR recibido por el cliente Angular (log: `Session persisted with refresh_token & permissions`).
+
+**Workarounds / Deuda Técnica:**
+- No existe test automatizado E2E para el escenario de carrera (requeriría token expirado forzado + N requests paralelos).
+- DB Worker de purga de familias expiradas: pendiente MEDIA.
+- AWS WAF + Observabilidad RTR: pendiente BAJA (cloud).
+
+**Archivos clave:**
+- `frontend/src/app/core/interceptors/multi-tenant.interceptor.ts` — REFRESH_ABORT sentinel + authReq fix
+- `src/interno_billing_app/lib/core/network/auth_interceptor.dart` — nuevo, Completer semaphore
+- `src/interno_billing_app/lib/core/di/injection.dart` — AuthInterceptor registrado LAST
+
+---
+
 ### [2026-06-01] Phase 162 — RTR Phase C (Tests) + Phase D (Login Integration) ✅
 
 **Objetivo:** Completar el ciclo de vida completo del Refresh Token Rotation stateless — tests de integración + conexión al flujo de login real.
