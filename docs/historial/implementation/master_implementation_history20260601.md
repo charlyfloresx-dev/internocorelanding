@@ -1,5 +1,47 @@
 # Implementation History — 2026-06-01
 
+## Phase 166 — Auditoría Cross-File + Security Hardening
+
+### Metodología
+Barrido sistemático de 70+ archivos `consolidated_tasks20260305.md` → `consolidated_tasks20260601.md` buscando ítems pendientes que nunca llegaron al CLAUDE.md. Cada ítem verificado contra el código antes de clasificar.
+
+### Hallazgos
+
+**Falsos pendientes** (docs desactualizados, código ya implementado):
+- `internal_id_pattern`: existe desde Phase 118 en `hcm_app/models/tenant_settings.py:16`
+- `audit_logs hcm_db/subscription_db`: migrations `001_add_audit_logs.py` en ambos servicios
+- `material_status WorkOrder`: columna en `mes_service/models/work_order.py:26`
+- Point-in-Time pricing: endpoint completo en `master_data_service/api/v1/endpoints/prices.py:817`
+
+### Corrección CORS wildcard
+
+```python
+# ANTES (kiosk_service y asset_manager_service):
+app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)
+
+# DESPUÉS:
+from common.security.cors_setup import setup_cors
+setup_cors(app)
+```
+
+Ambos servicios heredan de `InternoSettings` via sus `KioskSettings`/`AssetSettings`, así que `setup_cors` lee `settings.int_backend_cors_origins` correctamente.
+
+### Corrección God Mode timing attack
+
+```python
+# ANTES (admin.py:31) — timing attack: string comparison leaks key length/content timing
+if x_admin_key != settings.int_admin_master_key:
+
+# DESPUÉS — constant-time comparison
+import hmac
+if not hmac.compare_digest(x_admin_key, settings.int_admin_master_key):
+```
+
+### Agentes renombrados
+`sed -i 's/NexoSuite/InternoCore/g'` en global_rules, Orquestator, Migration, Supervisor. Authentication.agent.md conserva nota histórica ("Este proyecto se llamaba NexoSuite en versiones anteriores").
+
+---
+
 ## Phase 164 — Rate Limiter Global + RTR DB Worker + Migration drop
 
 ### Rate Limiter — 4 servicios

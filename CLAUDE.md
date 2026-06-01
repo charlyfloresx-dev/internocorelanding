@@ -478,6 +478,8 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
 | ~~ALTA~~ | ~~**HARD_FK_CROSS_SERVICE — wms_service**~~ — ✅ RESUELTO Phase 165 (2026-06-01): tablas renombradas a `wms_items`, `wms_warehouses`, `wms_price_agreements`, `wms_product_prices`, `wms_inventory_documents`, `wms_inventory_movements`. FKs internas actualizadas. |
 | ~~ALTA~~ | ~~**HARD_FK_CROSS_SERVICE — inventory_service/item_variant**~~ — ✅ RESUELTO Phase 165: tabla `inventory_item_variants` en `CROSS_DB_SHARED_TABLES` (copia independiente en inventory_db; SSOT en master_data_db es Phase 119 deuda arquitectónica separada). |
+| ~~ALTA~~ | ~~**CORS wildcard kiosk_service + asset_manager_service**~~ — ✅ RESUELTO Phase 166 (2026-06-01): `allow_origins=["*"]` → `setup_cors(app)` en ambos servicios. |
+| ~~ALTA~~ | ~~**God Mode timing attack**: `x_admin_key != master_key` (no constante-time)~~ — ✅ RESUELTO Phase 166 (2026-06-01): `hmac.compare_digest(x_admin_key, master_key)` en `auth_service/admin.py`. |
 | ALTA | **NAIVE_DATETIME_VIOLATION** (8 archivos): `auth_service/commands/*`, `inventory_service/api/endpoints/*`, `inventory_service/repositories/sqlalchemy_*`, `tickets_service/services/ticket_service.py`, `wms_service/repositories/__init__.py`. Fix: `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
 | BAJA | Rate limit por-endpoint específico en WMS, MES, HCM, Subscription (global activo, faltan decoradores `@limiter.limit()` en mutaciones críticas) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
@@ -495,7 +497,7 @@ python backend/scripts/generate_code_graph.py
 | BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |
 | BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
-| BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
+| ~~BAJA~~ | ~~**Agentes** `.github/agents/` con "NexoSuite"~~ — ✅ RESUELTO Phase 166 (2026-06-01): global_rules, Orquestator, Migration, Supervisor actualizados. |
 | ~~ALTA~~ | ~~**auth_service** Phase 159 RTR — `refresh_token_handler.py`, `sqlalchemy_refresh_token_repo.py`, endpoint `/api/v1/auth/refresh` RTR stateless~~ — ✅ Phase A+B COMPLETADO (2026-06-01) |
 | ~~ALTA~~ | ~~**auth_service RTR Phase B** B-01: `company_id` ausente en WHERE de `get_family()`, `rotate_family_atomically()`, `revoke_family()`~~ — ✅ RESUELTO (2026-06-01): compound WHERE `(id == X) & (company_id == Y)` en 3 métodos + `IRefreshTokenRepository` actualizado |
 | ~~ALTA~~ | ~~**auth_service RTR Phase B** Stack trace leak: `detail=f"Internal error: {str(e)}"`~~ — ✅ RESUELTO (2026-06-01): `detail="An internal error occurred"` + logging interno con `exc_info=True` |

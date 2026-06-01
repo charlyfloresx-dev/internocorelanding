@@ -4,6 +4,28 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-01] Phase 166 — Auditoría Cross-File + Seguridad CORS + God Mode + Agentes ✅
+
+**Objetivo:** Auditoría transversal de todos los archivos `consolidated_tasks` (Marzo–Junio 2026) comparados contra el código real para cerrar deuda no documentada en CLAUDE.md.
+
+**Hallazgos y correcciones:**
+
+- **Falsos pendientes resueltos** (aparecían en docs pero ya existían en código): `internal_id_pattern` en `tenant_settings.py` + `collaborator_service.py`; `audit_logs` hcm_db y subscription_db (migrations Phase 118); `material_status` en `WorkOrder`; Point-in-Time pricing endpoint `/products/{product_id}/price-at`.
+
+- **CORS wildcard eliminado**: `kiosk_service` tenía `allow_origins=["*"]` hardcoded (desde el inicio del proyecto). `asset_manager_service` tenía fallback `BACKEND_CORS_ORIGINS or ["*"]` usando nombre de campo incorrecto. Ambos reemplazados con `setup_cors(app)` del módulo `common.security.cors_setup`.
+
+- **God Mode timing attack corregido**: `admin.py` usaba `x_admin_key != settings.int_admin_master_key` (comparación de strings no constante-time). Reemplazado con `hmac.compare_digest(x_admin_key, settings.int_admin_master_key)`.
+
+- **Agentes renombrados**: `global_rules.md`, `Orquestator.agent.md`, `Migration.agent.md`, `Supervisor.agent.md` — "NexoSuite" → "InternoCore". `Authentication.agent.md` conserva nota histórica.
+
+**Deuda MEDIA confirmada (en código, no resuelta):**
+- 8 instancias `datetime.utcnow()` en app logic (auth, inventory, wms, tickets)
+- `GET /api/v1/products?q=` sin `partner_id` context para PriceAgreements en typeahead
+
+**Archivos clave:** `kiosk_service/app/main.py`, `asset_manager_service/asset_app/main.py`, `auth_service/api/v1/endpoints/admin.py`, `.github/agents/*.md`
+
+---
+
 ### [2026-06-01] Phase 164 — Rate Limiter Global + RTR DB Worker + Migration drop ✅
 
 **Objetivo:** Cerrar los 3 frentes pendientes MEDIA de la RTR: aplicar la migration de limpieza de la tabla legacy, activar el rate limiter global en los 4 servicios sin cobertura, y crear el script de purga periódica de familias expiradas.
