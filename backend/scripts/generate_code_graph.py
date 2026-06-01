@@ -19,6 +19,9 @@ class CodeGraphGenerator:
         self.errors_by_ms = {}
         self.inter_service_dependencies = {} # {microservice: set(target_services)}
         self.domain_services_count = {} # {microservice: count}
+        # Rev163 — HARD_FK_CROSS_SERVICE two-pass data
+        self.service_tables: Dict[str, str] = {}   # table_name → microservice
+        self.model_files: List[tuple] = []          # [(file_path, ms)]
         # Microservices to track for report
         self.ms_scanned_files = {} # {microservice: count}
         self.scanned_files_log = [] # Track every file audited
@@ -76,6 +79,40 @@ class CodeGraphGenerator:
                     imports[alias.asname or alias.name] = f"{module}.{alias.name}"
         return imports
 
+    def _check_hard_fk_cross_service(self):
+        """
+        N4. HARD_FK_CROSS_SERVICE (CRITICAL) — two-pass check.
+        Pass 1 (during analyze_file): builds self.service_tables {table_name → microservice}.
+        Pass 2 (here, post-scan): validates that no model defines a DB-level ForeignKey()
+        pointing to a table owned by a different microservice.
+        Cross-service relationships must use soft FKs (UUID field, no DB constraint).
+        """
+        for file_path, ms in self.model_files:
+            rel_path = os.path.relpath(file_path, self.root_dir).replace("\\", "/")
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception:
+                continue
+            # Match ForeignKey("tablename.column") — both quote styles
+            for fk_match in re.finditer(r'ForeignKey\(["\'](\w+)\.\w+["\']', content):
+                ref_table = fk_match.group(1)
+                owner_ms = self.service_tables.get(ref_table)
+                # Skip: unknown table, shared/disputed ownership, common tables, self-reference
+                if not owner_ms or owner_ms in ("__SHARED__", "common") or owner_ms == ms:
+                    continue
+                if owner_ms != ms and owner_ms != "common":
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            f"HARD_FK_CROSS_SERVICE: ForeignKey('{ref_table}.*') in {ms} "
+                            f"references table owned by {owner_ms} — "
+                            f"use a soft FK (UUID field, no DB constraint) per Iron Wall ADR"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
     def _check_circular_dependencies(self):
         visited = set()
         stack = []
@@ -119,6 +156,7 @@ class CodeGraphGenerator:
         
         # Post-scan invariants
         self._check_circular_dependencies()
+        self._check_hard_fk_cross_service()  # N4 Rev163
         if "mes_service" in self.lines_of_code and self.domain_services_count.get("mes_service", 0) == 0:
             self.graph["invariants_errors"].append({
                 "file": "backend/mes_service/mes_app/domain/",
@@ -237,6 +275,129 @@ class CodeGraphGenerator:
                 err = {"file": rel_path, "severity": "CRITICAL", "ms": ms, "error": "PRIMITIVE_FLOAT_VIOLATION: Use of float detected in models/schemas. Use Decimal or Money Value Object (Phase 3 Audit)"}
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # ── Rev163 Common Audit Specs ──────────────────────────────────────────
+
+        # N1. UNIQUE_WITHOUT_COMPANY_ID (CRITICAL)
+        # UniqueConstraints on business fields without company_id scope allow data collision
+        # across tenants (e.g. two companies sharing the same folio / SKU / code).
+        if "/models/" in rel_path and ms not in ("common",) and not is_test:
+            GLOBAL_UNIQUE_WHITELIST = {
+                "email", "token_hash", "family_salt", "stripe_customer_id",
+                "stripe_subscription_id", "slug", "external_id",
+            }
+            for uc_match in re.finditer(r"UniqueConstraint\((.*?)\)", content, re.DOTALL):
+                uc_args = uc_match.group(1)
+                normalized_uc = re.sub(r"\s+", " ", uc_args).strip()
+                if "company_id" in normalized_uc or "tenant_id" in normalized_uc:
+                    continue
+                positional = [
+                    a.strip().strip("\"'")
+                    for a in normalized_uc.split(",")
+                    if not a.strip().startswith(("name=", "schema="))
+                ]
+                positional_clean = [p for p in positional if p]
+                has_id_field = any(f.endswith("_id") for f in positional_clean)
+                all_whitelisted = all(f in GLOBAL_UNIQUE_WHITELIST for f in positional_clean)
+                if not has_id_field and not all_whitelisted and positional_clean:
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            f"UNIQUE_WITHOUT_COMPANY_ID: UniqueConstraint({normalized_uc}) "
+                            f"missing company_id — allows cross-tenant collision on: "
+                            f"{', '.join(positional_clean)}"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N2. TIMING_ATTACK_VIOLATION (CRITICAL)
+        # Comparing HMAC digests with == leaks timing information that allows offline brute-force.
+        # Must use hmac.compare_digest() for constant-time comparison.
+        if not is_test and ("import hmac" in content or "from hmac import" in content):
+            has_hmac_compute = re.search(r"hmac\.(new|digest|HMAC)\(", content)
+            has_compare_digest = "compare_digest" in content
+            if has_hmac_compute and not has_compare_digest:
+                suspicious_eq = re.search(
+                    r'\b(hash|signature|hmac_val|digest|seal|expected_hash|computed)\s*==|'
+                    r'==\s*\b(hash|signature|hmac_val|digest|seal|expected_hash|computed)\b',
+                    content, re.IGNORECASE
+                )
+                if suspicious_eq:
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            "TIMING_ATTACK_VIOLATION: Direct == comparison of HMAC/cryptographic value "
+                            "— use hmac.compare_digest() to prevent timing attacks"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N3. NAIVE_DATETIME_VIOLATION (WARNING)
+        # datetime.utcnow() returns a naive datetime. In non-UTC timezones, .timestamp()
+        # generates a future Unix timestamp → ImmatureSignatureError in JWT iat/exp claims.
+        # Use datetime.now(timezone.utc) instead (Phase 162 fix).
+        is_app_logic = any(p in rel_path for p in [
+            "/services/", "/handlers/", "/commands/",
+            "/repositories/", "/api/", "/endpoints/"
+        ])
+        if not is_test and is_app_logic:
+            content_no_comments = re.sub(r'#[^\n]*', '', content)
+            if re.search(r'datetime\.utcnow\(\)', content_no_comments):
+                err = {
+                    "file": rel_path, "severity": "WARNING", "ms": ms,
+                    "error": (
+                        "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected — "
+                        "use datetime.now(timezone.utc) to prevent ImmatureSignatureError "
+                        "in non-UTC deployments"
+                    )
+                }
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N4. Table collection for HARD_FK_CROSS_SERVICE (post-scan, see _check_hard_fk_cross_service)
+        # "First writer wins" policy: if two services claim the same __tablename__, the second
+        # claimant is the violation — reported immediately. Table marked __SHARED__ so FK checks skip it.
+        if "/models/" in rel_path and ms not in ("common",) and not is_test:
+            for tbl_match in re.finditer(r'__tablename__\s*=\s*["\'](\w+)["\']', content):
+                tbl_name = tbl_match.group(1)
+                existing_owner = self.service_tables.get(tbl_name)
+                if existing_owner is None:
+                    self.service_tables[tbl_name] = ms
+                elif existing_owner != ms and existing_owner != "__SHARED__":
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            f"HARD_FK_CROSS_SERVICE: {ms} declares __tablename__ = '{tbl_name}' "
+                            f"which is already owned by {existing_owner} — "
+                            f"use HTTP or raw SQL text() to access cross-service data (Iron Wall ADR)"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+                    self.service_tables[tbl_name] = "__SHARED__"
+            self.model_files.append((file_path, ms))
+
+        # N5. ENV_GETENV_CROSS_SERVICE (CRITICAL)
+        # Inter-service client files must use settings.int_<svc>_url (injected via BaseSettings)
+        # so configurations work across dev/staging/AWS without code changes.
+        # Direct os.getenv() bypasses environment injection and breaks AWS Secrets Manager loading.
+        is_client_file = "/infrastructure/clients/" in rel_path
+        if is_client_file and not is_test:
+            if re.search(r'os\.getenv\(|os\.environ(\[|\.get\()', content):
+                err = {
+                    "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                    "error": (
+                        "ENV_GETENV_CROSS_SERVICE: Inter-service client uses os.getenv()/os.environ — "
+                        "use settings.int_<service>_url for environment-injectable configuration "
+                        "(Iron Wall ADR)"
+                    )
+                }
+                self.graph["invariants_errors"].append(err)
+                self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # ── End Rev163 ─────────────────────────────────────────────────────────
 
         # 5. RLS / Muro de Hierro Guard (Phase 5)
         if filename == "database.py" and "infrastructure" in rel_path:

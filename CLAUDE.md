@@ -381,7 +381,8 @@ python backend/scripts/generate_code_graph.py --audit-schema
 ```
 
 **Cuándo correr:** siempre en `sync-docs`, y al detectar gaps arquitectónicos durante desarrollo.  
-**Criterio de éxito:** 0 CRITICAL. Exit code 1 si hay CRITICALs.
+**Criterio de éxito:** 0 CRITICAL. Exit code 1 si hay CRITICALs.  
+**Estado actual (Phase 165):** 7 CRITICALs pre-existentes detectados por Rev163 (5 nuevos invariantes). Ver deuda técnica ALTA: Iron Wall violations en wms_service + inventory_service/item_variant. 8 WARNINGs NAIVE_DATETIME activos.
 
 | Invariante | Sev | Detecta |
 |---|---|---|
@@ -399,6 +400,11 @@ python backend/scripts/generate_code_graph.py --audit-schema
 | `MISSING_SCOPE_VALIDATION` | WARNING | endpoint sin require_scope |
 | `MISSING_TENANT_FILTER` | WARNING | query sin company_id |
 | `SUBSCRIPTION_AWARENESS_WARNING` | WARNING | write sin chequeo de estado |
+| `UNIQUE_WITHOUT_COMPANY_ID` | CRITICAL | UniqueConstraint sin company_id en campo de negocio |
+| `TIMING_ATTACK_VIOLATION` | CRITICAL | `==` para comparar digest HMAC (debe ser `hmac.compare_digest`) |
+| `NAIVE_DATETIME_VIOLATION` | WARNING | `datetime.utcnow()` en app logic — usar `datetime.now(timezone.utc)` |
+| `HARD_FK_CROSS_SERVICE` | CRITICAL | ORM model o ForeignKey cruzando fronteras de microservicio |
+| `ENV_GETENV_CROSS_SERVICE` | CRITICAL | `os.getenv()` en `/infrastructure/clients/` — usar `settings.int_<svc>_url` |
 
 ---
 
@@ -470,6 +476,9 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 160 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
 | ~~MEDIA~~ | ~~**MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa~~ — ✅ RESUELTO Phase 161 (2026-05-30): migration 011, `sequence_number` con backfill ROW_NUMBER(), `GET /route/{item_code}`, visualización ruta en Angular |
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
+| ALTA | **HARD_FK_CROSS_SERVICE — wms_service** (7 violaciones): `item.py` (products), `warehouse.py` (warehouses), `price_agreement.py`, `product_price.py`, `inventory_document.py`, `inventory_movement.py` — modelos ORM que mapean tablas de otros servicios. Fix: eliminar mirror models, usar HTTP o `text()`. Bloqueante para despliegue de WMS. |
+| ALTA | **HARD_FK_CROSS_SERVICE — inventory_service**: `models/item_variant.py` mapea `inventory_item_variants` pero la SSOT es `master_data_service` desde Phase 119. Fix: eliminar mirror en inventory_service. |
+| ALTA | **NAIVE_DATETIME_VIOLATION** (8 archivos): `auth_service/commands/*`, `inventory_service/api/endpoints/*`, `inventory_service/repositories/sqlalchemy_*`, `tickets_service/services/ticket_service.py`, `wms_service/repositories/__init__.py`. Fix: `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
 | BAJA | Rate limit por-endpoint específico en WMS, MES, HCM, Subscription (global activo, faltan decoradores `@limiter.limit()` en mutaciones críticas) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
 | MEDIA | **Mobile** Revisar app en AVD (Pixel 7 API 34) — theme dark/light + flujo completo de venta |
