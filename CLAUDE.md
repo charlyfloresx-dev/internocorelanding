@@ -500,6 +500,10 @@ python backend/scripts/generate_code_graph.py
 | BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional (401 más seguro) — documentar ADR |
 | BAJA | **auth_service RTR Phase B** GAP-6: `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()` |
 | BAJA | **auth_service** `scripts/seed.py` crea Planta US con `default_tax_rate` ORM default (0.16) en hard reset |
+| MEDIA | **auth_service RTR — DB Worker**: Script de purga periódica de familias expiradas. Borrar `RefreshTokenFamily` con `refresh_window_expires_at < NOW() - 7d` + CASCADE en `refresh_token_rotation_audit`. Nota crítica: Event Listeners bloquean DELETE por ORM → usar `db.execute(text("DELETE ..."))` en sesión de mantenimiento privilegiada (bypassa los listeners). Ejecutar como cron diario o worker async. |
+| ALTA | **auth_service RTR — Frontend Semáforo**: Angular (`auth.interceptor.ts`) y Flutter (`ResilienceInterceptor`) deben implementar request queueing: si el AT expira y hay N requests simultáneos, solo el primero dispara `POST /auth/refresh`; los demás encolados esperan el nuevo AT. Sin este patrón, N requests concurrentes → N intentos de rotate → REUSE_DETECTED → cierre de sesión falso. Patrón: `BehaviorSubject<boolean>` + `filter(notRefreshing)` en Angular; `Completer<String>` en Flutter. |
+| BAJA | **auth_service RTR — AWS WAF**: Al desplegar en AWS, configurar regla WAF en ALB/CloudFront que bloquee IPs con >20 req/min antes de que lleguen al proceso Python. Revisar también `pool_size` + `max_overflow` en SQLAlchemy para soportar ~1,000 refreshes simultáneos en cambio de turno (cada refresh usa `WITH FOR UPDATE` por 50-100ms). |
+| BAJA | **auth_service RTR — Observabilidad**: Al desplegar en AWS, mapear alerta CloudWatch/Grafana: si string `Security Breach Alert: REUSE_DETECTED` aparece >3 veces en 5min por `company_id` → SNS/PagerDuty. Dashboard CQRS Query: `GET /admin/sessions?company_id=X` → familias activas (`revoked_at IS NULL`) con IP + User-Agent (simula "Dispositivos conectados"). |
 
 ---
 

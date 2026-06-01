@@ -13,11 +13,13 @@
 - conftest.py reescrito sin duplicación, NullPool para evitar conflictos de event loop
 - pytest.ini con `asyncio_mode = auto`
 
-**Phase D — Login integration:**
-- `select_company_command.py`: `RefreshToken` legacy → `create_family()` + `_issue_refresh_token()` (RTR gen=0, HMAC-sealed)
-- Migration `a9e3b1c0d2f4`: `drop_table('refresh_tokens')` — tabla legacy deprecada
-- `full_auth_flow.py`: PASO 4 RTR E2E validation
-- `kiosk_auth_flow.py`: nota sobre colaboradores sin RTR
+**Phase D — Login integration (select-company emite 2 tokens):**
+- `select_company_command.py` líneas 195-257: `RefreshToken` legacy → `create_family()` + `_issue_refresh_token()` (RTR gen=0, HMAC-sealed)
+- Respuesta `select-company`: `{ access_token, refresh_token (RTR gen=0), token_type, user_id, company_id, ... }`
+- Colaboradores industriales: `refresh_token: null` (sin FK `users.id` en HCM, acceso por AT corto-viviente)
+- Migration `a9e3b1c0d2f4`: `drop_table('refresh_tokens')` — tabla legacy deprecada (pendiente ejecutar `alembic upgrade head`)
+- `full_auth_flow.py`: PASO 4 RTR E2E validation (Login → SelectCompany → RTR Refresh gen 0→1)
+- `kiosk_auth_flow.py`: nota Phase D sobre colaboradores sin RTR
 
 ---
 
@@ -29,26 +31,30 @@
 - **GAP-2 RESUELTO** — Handler usa `version_id` (ORM-managed); `version_counter` eliminado del flujo.
 - **GAP-3 RESUELTO** — Event Listeners SQLAlchemy en `RefreshTokenRotationAudit` bloquean UPDATE/DELETE con `RuntimeError`.
 
+---
+
 ## Pendientes activos (por prioridad)
 
 ### ALTA
-- **Phase C RTR**: Ejecutar `test_refresh_token_rotation.py` (12+ tests, 7 clases) contra PostgreSQL real — pendiente validación
-- **Phase D RTR**: Integrar `create_family()` al handler `select-company` → emitir refresh token con familia RTR en flujo de login real
-- **Estabilizar auth_service**: Levantar contenedor, verificar endpoint `POST /api/v1/auth/refresh` operativo
+- **RTR Frontend Semáforo (Angular + Flutter)**: Interceptores deben implementar request queueing para evitar ráfagas concurrentes de `/auth/refresh`. Patrón: `BehaviorSubject<boolean>` + encolado en Angular; `Completer<String>` en Flutter. Sin esto: N requests simultáneos al expirar AT → N rotaciones → REUSE_DETECTED → logout falso.
+- **POS checkout E2E**: Validar `POST /api/v1/pos/checkout` end-to-end — script `flow_pos_checkout.py` listo (desbloqueado ahora que auth_service RTR está completo)
 
 ### MEDIA
+- **RTR DB Worker (auth_service)**: Script de purga periódica. Borrar `RefreshTokenFamily` con `refresh_window_expires_at < NOW() - 7d` + CASCADE en `refresh_token_rotation_audit`. Usar `db.execute(text("DELETE ..."))` — bypassa Event Listeners ORM que bloquean DELETE. Ejecutar como cron diario.
+- **RTR Migration aplicar**: `docker exec interno-auth-dev alembic upgrade head` → drop `refresh_tokens` legacy table
 - Rate limit por endpoint en WMS, MES, HCM, Subscription
 - PriceAgreement context en typeahead `GET /products/?q=`
 - Mobile AVD Pixel 7 API 34 — dark/light theme + flujo de venta
 - Domain purity: `log_rotation_event()` retorna ORM model — cambiar a `None` o `AuditRecord`
 
 ### BAJA
+- **RTR AWS WAF**: Regla rate-limit en ALB/CloudFront antes de proceso Python. Revisar `pool_size`/`max_overflow` para ~1,000 refreshes simultáneos en cambio de turno.
+- **RTR Observabilidad**: Alerta CloudWatch si `REUSE_DETECTED` >3 veces en 5min por company_id → SNS/PagerDuty. Dashboard `GET /admin/sessions` → familias activas (`revoked_at IS NULL`).
 - GAP-5: Documentar `CompanyIdMismatchError → 401` (ADR, desviación intencional)
 - GAP-6: `concurrent_attempt_detected=True` en `_revoke_family_for_breach()`
-- auth seed `default_tax_rate` Planta US
 - HCM `JobPosition`, `shift_id`, WMS deploy, MES `routing.py`
 - Agentes `.github/agents/` — "NexoSuite" → "InternoCore"
 
-## Code Graph Status
-- Esperado tras correcciones: 0 WARNINGs (B-01 corregido elimina MISSING_TENANT_FILTER)
-- Requiere ejecutar `python backend/scripts/generate_code_graph.py` para confirmar
+## Code Graph Status (2026-06-01)
+- 0 CRITICALs confirmados tras sync-docs Phase 162
+- Requiere re-ejecutar si se toca `auth_service` o cualquier servicio con nuevas rutas
