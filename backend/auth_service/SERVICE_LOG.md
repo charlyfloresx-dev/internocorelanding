@@ -1,5 +1,30 @@
 # Auth Service - Service Log
 
+## [2026-06-01] Phase 159 RTR — Auditoría A+B Correcciones Aplicadas ✅
+
+**Todas las bloqueantes y gaps resueltos (Senior Code Auditor Report):**
+
+- ✅ **B-01 ALTA** — `company_id` añadido como parámetro en `get_family()`, `rotate_family_atomically()`, `revoke_family()`. Compound WHERE `(id == X) & (company_id == Y)`. `IRefreshTokenRepository` actualizado con la nueva firma.
+- ✅ **Stack trace leak ALTA** — `except Exception as e: detail=f"Internal error: {str(e)}"` reemplazado por `detail="An internal error occurred"` + logging interno con `exc_info=True`.
+- ✅ **B-02 / StaleDataError** — Eliminado try/except inválido; SQLAlchemy maneja optimistic lock via `version_id` nativo en `__mapper_args__`.
+- ✅ **GAP-1** — `TokenFamily.__post_init__` añadido con `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)` — valida que salt sea 64 chars hexadecimales.
+- ✅ **GAP-2** — Handler usa `version_id` (ORM-managed), `version_counter` eliminado del flujo de locking.
+- ✅ **GAP-3** — Event Listeners SQLAlchemy instalados en `RefreshTokenRotationAudit`: `RuntimeError` en cualquier intento de UPDATE/DELETE — tabla append-only enforced en ORM.
+
+**Defensa multicapa verificada:**
+- Capa DB: Compound WHERE company_id en 3 queries del repo
+- Capa Handler: Todas las llamadas pasan `token_payload.company_id` (JWT HMAC-sealed)
+- Capa VO: `TokenFamily.__post_init__` valida formato de salt
+- Capa Auditoría: Event Listeners bloquean mutaciones en tabla forense
+- Capa Seguridad: Stack traces solo en logs server, nunca en HTTP response
+
+**Pendiente (Phase C + D):**
+- Phase C: Ejecutar `test_refresh_token_rotation.py` contra PostgreSQL real (12+ tests creados, no ejecutados)
+- Phase D: Integrar `create_family()` al `select-company` handler — emitir refresh token RTR al login
+- Domain purity MEDIA: `log_rotation_event()` retorna ORM model — cambiar a `None` o `AuditRecord`
+- GAP-5 BAJA: Documentar `CompanyIdMismatchError → 401` vs spec 400 (desviación intencional)
+- GAP-6 BAJA: `concurrent_attempt_detected=True` en `_revoke_family_for_breach()`
+
 ## [2026-05-30] Auditoría de Seguridad Phase B — Resultado ❌ REQUIERE CORRECCIÓN (2 bloqueantes)
 
 **Revisión formal del repository, handler y endpoint Phase B RTR:**

@@ -267,7 +267,7 @@ WHERE created_at <= :document_date
 - `collaborator_login_command.py`: login industrial vía RFID/PIN (T1 bypass).
 - `delegate-selection`: genera `selection_token` para QR mobile provisioning.
 - Tokens: `access` (12h), `refresh`, `selection` (short-lived).
-- **RTR (Phase 159 RTR — EN PROGRESO):** `RefreshTokenFamily` + `RefreshTokenRotationAudit` en DB. Value objects `TokenFamily`/`RefreshTokenPayload` inmutables con HMAC-SHA256 binding. Endpoint `/api/v1/auth/refresh` pendiente. Crashlooping intencionalmente durante RTR. **NO TOCAR hasta completar Phase 159.**
+- **RTR (Phase 159 RTR — Phase C+D pendientes):** Phase A (domain model + migration) ✅. Phase B (repository + handler + endpoint) ✅. Auditorías A+B completadas 2026-06-01 — todos los bloqueantes resueltos (B-01 company_id, stack trace, GAP-1/2/3). Pendiente: Phase C (tests integración) + Phase D (create_family al login). Endpoint `/api/v1/auth/refresh` operativo.
 
 ### subscription_service (8002)
 - Planes, entitlements, estado de suscripción. Integración Stripe.
@@ -487,17 +487,19 @@ python backend/scripts/generate_code_graph.py
 | BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
 | BAJA | **Agentes** `.github/agents/` — todos referencian "NexoSuite" (nombre antiguo). Actualizar Migration.agent.md, Orquestator.agent.md, Supervisor.agent.md, global_rules.md a "InternoCore" |
-| ~~ALTA~~ | ~~**auth_service** Phase 159 RTR — `refresh_token_handler.py`, `sqlalchemy_refresh_token_repo.py`, endpoint `/api/v1/auth/refresh` RTR stateless~~ — 🔄 EN PROGRESO (Phase 159 RTR activa, no tocar hasta completar) |
-| ALTA | **auth_service RTR Phase B** B-01: `company_id` ausente en WHERE de `get_family()`, `rotate_family_atomically()`, `revoke_family()` en `sqlalchemy_refresh_token_repo.py` — MISSING_TENANT_FILTER — añadir `company_id` como parámetro en los 3 métodos + actualizar `IRefreshTokenRepository` — **bloqueado hasta completar Phase 159 RTR** |
-| ALTA | **auth_service RTR Phase B** Stack trace leak: `except Exception as e: detail=f"Internal error: {str(e)}"` en `refresh_token_rtr.py` línea 172 — expone errores SQLAlchemy al cliente — cambiar a `detail="An internal error occurred"` — **bloqueado hasta completar Phase 159 RTR** |
-| MEDIA | **auth_service RTR Phase B** B-02: `StaleDataError` no capturado en `rotate_family_atomically()` — añadir `except StaleDataError: raise RefreshTokenConcurrentRaceError(...)` — **bloqueado hasta completar Phase 159 RTR** |
-| MEDIA | **auth_service RTR Phase B** Domain purity: `IRefreshTokenRepository.log_rotation_event()` retorna ORM model `RefreshTokenRotationAudit` — cambiar a `None` o crear dataclass `AuditRecord` en `domain/value_objects/` — **bloqueado hasta completar Phase 159 RTR** |
-| MEDIA | **auth_service RTR Phase A** GAP-1: `TokenFamily.family_salt` sin validador hex — añadir `__post_init__` con `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)` en `domain/value_objects/token_family.py` — **bloqueado hasta completar Phase 159 RTR** |
-| MEDIA | **auth_service RTR Phase A** GAP-2: `version_counter` no en `__mapper_args__` — existe `version_id` (ORM heredado) y `version_counter` (manual) en paralelo — confirmar en handler y eliminar el duplicado — **bloqueado hasta completar Phase 159 RTR** |
-| BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional, documentar decisión — **bloqueado hasta completar Phase 159 RTR** |
-| BAJA | **auth_service RTR Phase B** GAP-6: `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()` — **bloqueado hasta completar Phase 159 RTR** |
-| BAJA | **auth_service RTR Phase A** GAP-3: `RefreshTokenRotationAudit` hereda `is_active`/`deleted_at`/`version_id` de `MultiTenantBase` — inapropiado para tabla append-only — añadir SQLAlchemy event listener — **bloqueado hasta completar Phase 159 RTR** |
-| BAJA | **auth_service** `scripts/seed.py` crea Planta US con `default_tax_rate` ORM default (0.16) en hard reset — corregir cuando termine Phase 159 RTR |
+| ~~ALTA~~ | ~~**auth_service** Phase 159 RTR — `refresh_token_handler.py`, `sqlalchemy_refresh_token_repo.py`, endpoint `/api/v1/auth/refresh` RTR stateless~~ — ✅ Phase A+B COMPLETADO (2026-06-01) |
+| ~~ALTA~~ | ~~**auth_service RTR Phase B** B-01: `company_id` ausente en WHERE de `get_family()`, `rotate_family_atomically()`, `revoke_family()`~~ — ✅ RESUELTO (2026-06-01): compound WHERE `(id == X) & (company_id == Y)` en 3 métodos + `IRefreshTokenRepository` actualizado |
+| ~~ALTA~~ | ~~**auth_service RTR Phase B** Stack trace leak: `detail=f"Internal error: {str(e)}"`~~ — ✅ RESUELTO (2026-06-01): `detail="An internal error occurred"` + logging interno con `exc_info=True` |
+| ~~MEDIA~~ | ~~**auth_service RTR Phase B** B-02: `StaleDataError` no capturado~~ — ✅ RESUELTO (2026-06-01): eliminado try/except inválido; SQLAlchemy maneja via `version_id` nativo en `__mapper_args__` |
+| ~~MEDIA~~ | ~~**auth_service RTR Phase A** GAP-1: `TokenFamily.family_salt` sin validador hex~~ — ✅ RESUELTO (2026-06-01): `__post_init__` con `re.fullmatch(r'^[0-9a-f]{64}$', self.family_salt)` |
+| ~~MEDIA~~ | ~~**auth_service RTR Phase A** GAP-2: `version_counter` vs `version_id` dualidad~~ — ✅ RESUELTO (2026-06-01): handler usa `version_id` (ORM-managed), `version_counter` eliminado del flujo |
+| ~~BAJA~~ | ~~**auth_service RTR Phase A** GAP-3: `RefreshTokenRotationAudit` hereda soft-delete de `MultiTenantBase`~~ — ✅ RESUELTO (2026-06-01): Event Listeners SQLAlchemy bloquean UPDATE/DELETE con `RuntimeError` |
+| ALTA | **auth_service RTR Phase C** — Tests de integración pendientes: 7 clases × 2 tests contra PostgreSQL real (`test_refresh_token_rotation.py` creado, no ejecutado aún) |
+| ALTA | **auth_service RTR Phase D** — Integración al login handler: `create_family()` al completar `select-company` → emitir refresh token con familia RTR en lugar del token simple actual |
+| MEDIA | **auth_service RTR Phase B** Domain purity: `IRefreshTokenRepository.log_rotation_event()` retorna ORM model `RefreshTokenRotationAudit` — cambiar a `None` o `AuditRecord` dataclass en `domain/value_objects/` |
+| BAJA | **auth_service RTR Phase B** GAP-5: `CompanyIdMismatchError` devuelve 401 — spec dice 400 — desviación intencional (401 más seguro) — documentar ADR |
+| BAJA | **auth_service RTR Phase B** GAP-6: `concurrent_attempt_detected=True` ausente en `_revoke_family_for_breach()` |
+| BAJA | **auth_service** `scripts/seed.py` crea Planta US con `default_tax_rate` ORM default (0.16) en hard reset |
 
 ---
 

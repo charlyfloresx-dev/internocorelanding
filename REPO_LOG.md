@@ -4,6 +4,31 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-01] Phase 159 RTR — Correcciones Auditoría A+B Aplicadas ✅
+
+**Objetivo:** Resolver todos los bloqueantes y gaps identificados en auditorías formales Phase A y Phase B del Refresh Token Rotation stateless de auth_service.
+
+**Decisiones arquitectónicas clave:**
+- **Defense-in-depth multi-capa**: La corrección B-01 (company_id en repo) se combina con la validación HMAC del handler — dos capas independientes previenen IDOR. Un atacante necesitaría comprometer ambas para acceder a una familia de otro tenant.
+- **Event Listener para append-only**: En lugar de validación manual, se instalaron SQLAlchemy event listeners (`before_bulk_update`, `before_bulk_delete`) en `RefreshTokenRotationAudit` que lanzan `RuntimeError` antes de cualquier UPDATE/DELETE — enforced a nivel ORM, no solo en lógica de negocio.
+- **`version_id` ORM vs `version_counter` manual resuelto**: El handler ahora usa exclusivamente `version_id` (heredado de `BaseDomainEntity` vía `MultiTenantBase`, mapeado en `__mapper_args__`). `version_counter` eliminado del flujo de locking. Optimistic lock es nativo SQLAlchemy.
+- **Stack trace opaco**: Información de errores internos (SQLAlchemy, schema, FK names) nunca llega al cliente. El handler catch-all loguea con `exc_info=True` (visible en Kibana/CloudWatch) pero responde `"An internal error occurred"`.
+
+**Archivos clave:**
+- `backend/auth_service/auth_app/infrastructure/repositories/sqlalchemy_refresh_token_repo.py` — compound WHERE + company_id param
+- `backend/auth_service/auth_app/domain/repositories/refresh_token_repository.py` — interfaz actualizada
+- `backend/auth_service/auth_app/domain/value_objects/token_family.py` — `__post_init__` validador hex
+- `backend/auth_service/auth_app/models/refresh_token_family.py` — Event Listeners append-only
+- `backend/auth_service/auth_app/api/v1/endpoints/refresh_token_rtr.py` — stack trace leak corregido
+
+**Workarounds / Deuda Técnica pendiente:**
+- Phase C (tests): `test_refresh_token_rotation.py` creado, pendiente ejecución y validación contra PostgreSQL
+- Phase D (login): `create_family()` aún no integrado al `select-company` handler — RTR no activo en flujo de login real
+- Domain purity MEDIA: `log_rotation_event()` retorna ORM model
+- GAP-5/6 BAJA: Desviación HTTP code documentar + `concurrent_attempt_detected` en breach
+
+---
+
 ### [2026-05-30] Auditoría Phase A RTR + Seed Self-Healing ✅
 
 **Objetivo:** Auditar el domain model de auth_service Phase 159 RTR contra checklist de seguridad formal; corregir seed de master_data_service para garantizar `default_tax_rate` correcto en todos los tenants.
