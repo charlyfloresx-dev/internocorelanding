@@ -14,6 +14,8 @@ from hcm_app.api.v1.api import api_router
 
 from common.middleware import InternoCoreGlobalMiddleware
 from common.security.cors_setup import setup_cors
+from common.security.limiter import limiter
+from slowapi.errors import RateLimitExceeded
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -78,14 +80,23 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+app.state.limiter = limiter
+
 # ── Phase 50: Security & Governance Middleware ──
-# Decondes JWT and sets request.state.user_token for SubscriptionGuard
 app.add_middleware(InternoCoreGlobalMiddleware)
 
 # CORS setup for frontend communication
 setup_cors(app)
 
 app.include_router(api_router, prefix="/api/v1")
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"status": "error", "message": "Límite de solicitudes excedido. Por favor, espera un momento.", "meta": {"code": "RATE_LIMIT_EXCEEDED"}}
+    )
 
 
 @app.exception_handler(StarletteHTTPException)

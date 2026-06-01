@@ -4,7 +4,10 @@ from mes_app.api.v1.endpoints import scan, dashboard, labor, downtime, work_orde
 from common.middleware import InternoCoreGlobalMiddleware
 from common.error_handlers import domain_exception_handler
 from common.exceptions import DomainException
-from fastapi import FastAPI
+from common.security.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
@@ -12,8 +15,17 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
+app.state.limiter = limiter
+
 # Exception Handlers
 app.add_exception_handler(DomainException, domain_exception_handler)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"status": "error", "message": "Límite de solicitudes excedido. Por favor, espera un momento.", "meta": {"code": "RATE_LIMIT_EXCEEDED"}}
+    )
 
 # Global Middleware (Response Wrapping & Transaction ID)
 app.add_middleware(InternoCoreGlobalMiddleware)

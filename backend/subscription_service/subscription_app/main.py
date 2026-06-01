@@ -1,5 +1,6 @@
 from common.security.cors_setup import setup_cors
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from subscription_app.api.v1.endpoints import internal, admin, billing, wallet
@@ -8,6 +9,8 @@ from common.infrastructure.database import get_db as get_db
 from fastapi.middleware.cors import CORSMiddleware
 from common.config import settings
 from common.middleware import InternoCoreGlobalMiddleware
+from common.security.limiter import limiter
+from slowapi.errors import RateLimitExceeded
 from subscription_app.core.scheduler import start_scheduler
 import stripe
 
@@ -17,8 +20,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configuración de CORS
+app.state.limiter = limiter
 app.add_middleware(InternoCoreGlobalMiddleware)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={"status": "error", "message": "Límite de solicitudes excedido. Por favor, espera un momento.", "meta": {"code": "RATE_LIMIT_EXCEEDED"}}
+    )
 
 # Configuración de CORS
 setup_cors(app)
