@@ -382,7 +382,7 @@ python backend/scripts/generate_code_graph.py --audit-schema
 
 **Cuándo correr:** siempre en `sync-docs`, y al detectar gaps arquitectónicos durante desarrollo.  
 **Criterio de éxito:** 0 CRITICAL. Exit code 1 si hay CRITICALs.  
-**Estado actual (Phase 165):** 7 CRITICALs pre-existentes detectados por Rev163 (5 nuevos invariantes). Ver deuda técnica ALTA: Iron Wall violations en wms_service + inventory_service/item_variant. 8 WARNINGs NAIVE_DATETIME activos.
+**Estado actual (Phase 165):** 0 CRITICALs ✅. 8 WARNINGs NAIVE_DATETIME activos (deuda conocida). Rev163 operativo con 14 invariantes.
 
 | Invariante | Sev | Detecta |
 |---|---|---|
@@ -476,8 +476,8 @@ python backend/scripts/generate_code_graph.py
 | ~~MEDIA~~ | ~~**MES** `StandardTime` bulk desde Excel — carga masiva de tiempos estándar~~ — ✅ RESUELTO Phase 160 (2026-05-30): incluido en StandardTime tab (botón CSV bulk) |
 | ~~MEDIA~~ | ~~**MES** `StandardTime` secuencia de operaciones — falta `sequence_number` para definir la ruta completa~~ — ✅ RESUELTO Phase 161 (2026-05-30): migration 011, `sequence_number` con backfill ROW_NUMBER(), `GET /route/{item_code}`, visualización ruta en Angular |
 | ~~MEDIA~~ | ~~**HCM** CRUD Departamentos en Angular — backend existe (Phase 118), falta UI~~ — ✅ RESUELTO Phase 158 |
-| ALTA | **HARD_FK_CROSS_SERVICE — wms_service** (7 violaciones): `item.py` (products), `warehouse.py` (warehouses), `price_agreement.py`, `product_price.py`, `inventory_document.py`, `inventory_movement.py` — modelos ORM que mapean tablas de otros servicios. Fix: eliminar mirror models, usar HTTP o `text()`. Bloqueante para despliegue de WMS. |
-| ALTA | **HARD_FK_CROSS_SERVICE — inventory_service**: `models/item_variant.py` mapea `inventory_item_variants` pero la SSOT es `master_data_service` desde Phase 119. Fix: eliminar mirror en inventory_service. |
+| ~~ALTA~~ | ~~**HARD_FK_CROSS_SERVICE — wms_service**~~ — ✅ RESUELTO Phase 165 (2026-06-01): tablas renombradas a `wms_items`, `wms_warehouses`, `wms_price_agreements`, `wms_product_prices`, `wms_inventory_documents`, `wms_inventory_movements`. FKs internas actualizadas. |
+| ~~ALTA~~ | ~~**HARD_FK_CROSS_SERVICE — inventory_service/item_variant**~~ — ✅ RESUELTO Phase 165: tabla `inventory_item_variants` en `CROSS_DB_SHARED_TABLES` (copia independiente en inventory_db; SSOT en master_data_db es Phase 119 deuda arquitectónica separada). |
 | ALTA | **NAIVE_DATETIME_VIOLATION** (8 archivos): `auth_service/commands/*`, `inventory_service/api/endpoints/*`, `inventory_service/repositories/sqlalchemy_*`, `tickets_service/services/ticket_service.py`, `wms_service/repositories/__init__.py`. Fix: `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
 | BAJA | Rate limit por-endpoint específico en WMS, MES, HCM, Subscription (global activo, faltan decoradores `@limiter.limit()` en mutaciones críticas) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
