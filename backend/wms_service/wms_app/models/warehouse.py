@@ -29,7 +29,7 @@ class Warehouse(BaseWarehouse):
     Traducido del legacy Warehouse.cs.
     Gestión de bodegas físicas y lógicas.
     """
-    __tablename__ = "warehouses"
+    __tablename__ = "wms_warehouses"
 
     description: Mapped[Optional[str]] = mapped_column(String(500))
     
@@ -61,7 +61,7 @@ class Zone(MultiTenantBase):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255))
     
-    warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=False)
+    warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wms_warehouses.id"), nullable=False)
     
     # Relationships
     warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="zones")

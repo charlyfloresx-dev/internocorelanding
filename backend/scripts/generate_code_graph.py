@@ -359,6 +359,13 @@ class CodeGraphGenerator:
         # N4. Table collection for HARD_FK_CROSS_SERVICE (post-scan, see _check_hard_fk_cross_service)
         # "First writer wins" policy: if two services claim the same __tablename__, the second
         # claimant is the violation — reported immediately. Table marked __SHARED__ so FK checks skip it.
+        #
+        # CROSS_DB_SHARED_TABLES: tables that legitimately exist in MULTIPLE separate databases
+        # (e.g. a table that was migrated to a new service's DB but the old service DB still has a copy).
+        # These are NOT Iron Wall violations — they are independent tables in different database schemas.
+        CROSS_DB_SHARED_TABLES = {
+            "inventory_item_variants",  # Phase 119: SSOT moved to master_data_db; inventory_db still has its own copy
+        }
         if "/models/" in rel_path and ms not in ("common",) and not is_test:
             for tbl_match in re.finditer(r'__tablename__\s*=\s*["\'](\w+)["\']', content):
                 tbl_name = tbl_match.group(1)
@@ -366,6 +373,10 @@ class CodeGraphGenerator:
                 if existing_owner is None:
                     self.service_tables[tbl_name] = ms
                 elif existing_owner != ms and existing_owner != "__SHARED__":
+                    if tbl_name in CROSS_DB_SHARED_TABLES:
+                        # Not a violation — independent copies in separate databases
+                        self.service_tables[tbl_name] = "__SHARED__"
+                        continue
                     err = {
                         "file": rel_path, "severity": "CRITICAL", "ms": ms,
                         "error": (

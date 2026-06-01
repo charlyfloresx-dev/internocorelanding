@@ -20,7 +20,7 @@ class InventoryMovement(MultiTenantBase):
     Líneas de detalle del documento de inventario (Ledger Lines).
     Registra el movimiento físico y financiero de cada SKU.
     """
-    __tablename__ = "inventory_movements"
+    __tablename__ = "wms_inventory_movements"
 
     # --- 🔑 TRIPLE IDENTITY (Line Level) ---
     # 1. id (UUID): Heredado de Base
@@ -34,21 +34,21 @@ class InventoryMovement(MultiTenantBase):
     # --- 🔗 RELACIONES ---
     document_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), 
-        ForeignKey("inventory_documents.id"), 
+        ForeignKey("wms_inventory_documents.id"),
         index=True,
         nullable=False
     )
     
     product_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), 
-        ForeignKey("products.id"), 
+        ForeignKey("wms_items.id"),
         index=True,
         nullable=False
     )
 
     warehouse_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("warehouses.id"),
+        ForeignKey("wms_warehouses.id"),
         index=True,
         nullable=False
     )

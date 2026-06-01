@@ -13,7 +13,7 @@ class LocationType(str, enum.Enum):
 class Location(MultiTenantBase):
     __tablename__ = "locations"
 
-    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("warehouses.id"), nullable=False, index=True)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey("wms_warehouses.id"), nullable=False, index=True)
     parent_location_id = Column(UUID(as_uuid=True), ForeignKey("locations.id"), nullable=True, index=True)
     
     zone_code = Column(String(50), nullable=False)

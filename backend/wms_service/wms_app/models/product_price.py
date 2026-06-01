@@ -24,7 +24,7 @@ class PriceOriginType(str, enum.Enum):
     SEED = "SEED"           # Initial data
 
 class ProductPrice(MultiTenantBase):
-    __tablename__ = "product_prices"
+    __tablename__ = "wms_product_prices"
 
     product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True, nullable=False)
     # VINCULACIÓN CON ACUERDO/CONTRATO

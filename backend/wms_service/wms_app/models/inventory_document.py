@@ -23,7 +23,7 @@ class DocumentStatus(str, enum.Enum):
 
 # Al heredar de MultiTenantBase, ya tienes ID, CreatedAt, UpdatedAt y CompanyId
 class InventoryDocument(MultiTenantBase):
-    __tablename__ = "inventory_documents"
+    __tablename__ = "wms_inventory_documents"
     
     # ... (el resto igual)
 
@@ -42,7 +42,7 @@ class InventoryDocument(MultiTenantBase):
     reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # --- 🔗 RELACIONES ---
-    warehouse_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("warehouses.id"), index=True)
+    warehouse_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("wms_warehouses.id"), index=True)
     concept_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("concepts.id"), index=True)
 
     # --- 🌍 INTER-COMPANY ---

@@ -19,7 +19,7 @@ class PriceAgreement(MultiTenantBase):
     PriceAgreement (Contrato/Acuerdo de Precios)
     Es la entidad raíz que agrupa precios específicos para un cliente o canal.
     """
-    __tablename__ = "price_agreements"
+    __tablename__ = "wms_price_agreements"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

@@ -13,7 +13,7 @@ class Item(BaseProduct):
     Representa un artículo almacenable en WMS.
     Hereda el core (SKU/Name/Status) de Master Data pero añade logística local.
     """
-    __tablename__ = "products"
+    __tablename__ = "wms_items"
 
     # Local logistics metadata
     stock_quantity: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=0.0)

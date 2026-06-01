@@ -16,8 +16,8 @@ class InventorySnapshot(MultiTenantBase):
     """
     __tablename__ = "inventory_snapshots"
 
-    product_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("products.id"), index=True)
-    warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("warehouses.id"), index=True)
+    product_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wms_items.id"), index=True)
+    warehouse_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wms_warehouses.id"), index=True)
     
     quantity_on_hand: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0"))
     average_cost: Mapped[Decimal] = mapped_column(Numeric(18, 4), default=Decimal("0.0"))
