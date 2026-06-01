@@ -1,10 +1,15 @@
 """
-Kiosk Auth Flow — Phase 153
+Kiosk Auth Flow — Phase 162 (updated for RTR Phase D)
 Tests:
   1. Classic RFID flow (no company_id, backward compat)
   2. Classic PIN flow (no company_id, backward compat)
   3. Company-bound kiosk flow: admin provisions a company → kiosk login with company_id
   4. internal_id_pattern validation: set regex, test valid + invalid IDs
+
+Note (Phase D):
+  - Admin login (admin_login_get_company) now receives RTR refresh_token (gen=0) from select-company.
+  - Collaborator kiosk login returns refresh_token=null (collaborators use short-lived access tokens only;
+    RTR family creation requires user_id FK → users table, not applicable for HCM-only collaborators).
 """
 import sys
 import requests

@@ -192,24 +192,21 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
             },
         )
 
-        # 4. Generar Refresh Token (30 días, typ: "refresh", persistido en DB)
-        raw_refresh = create_refresh_token(
-            subject=command.user_id,
-            company_id=command.company_id,
-        )
-        refresh_record = RefreshToken(
+        # 4. RTR: Crear familia de tokens (generación 0, stateless)
+        import secrets
+        from auth_app.infrastructure.repositories.sqlalchemy_refresh_token_repo import SQLAlchemyRefreshTokenRepository
+        from auth_app.domain.handlers.refresh_token_handler import RefreshTokenHandler
+
+        rtr_repo = SQLAlchemyRefreshTokenRepository(self.db)
+        family = await rtr_repo.create_family(
             user_id=command.user_id,
             company_id=command.company_id,
-            tenant_id=command.company_id,
-            token_hash=hash_token(raw_refresh),
-            expires_at=datetime.now(timezone.utc)
-            + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES),
-            revoked=False,
+            family_salt=secrets.token_hex(32),  # 64 hex chars únicos por sesión
         )
-        
-        async with self.db.begin_nested():
-            self.db.add(refresh_record)
+        rtr_handler = RefreshTokenHandler(rtr_repo, settings.SECRET_KEY)
+        raw_refresh = rtr_handler._issue_refresh_token(family)
 
+        async with self.db.begin_nested():
             # 5. Audit logging (Atomic with Transaction)
             await AuditService.log_action(
                 db=self.db,
@@ -217,7 +214,7 @@ class SelectCompanyCommandHandler(ICommandHandler[dict]):
                 action="SELECT_COMPANY",
                 entity_name="CompanyAccess",
                 entity_id=command.company_id,
-                details=f"method: X-Selection-Token, correlation_id: {correlation_id}",
+                details=f"method: X-Selection-Token, rtr_family_id: {family.family_id}, correlation_id: {correlation_id}",
             )
 
         # Fetch user to hydrate email in response
