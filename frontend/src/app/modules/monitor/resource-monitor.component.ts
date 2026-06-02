@@ -737,13 +737,16 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   private async processScan(badgeValue: string): Promise<void> {
+    const cleanValue = badgeValue.trim();
+    if (cleanValue.length < this.MIN_LEN) return;
+
     this.debounceActive.set(true);
     setTimeout(() => this.debounceActive.set(false), this.DEBOUNCE_MS);
 
     try {
       const res = await this.laborSvc.clockInByBadge({
         resource_code: this.resourceCode(),
-        badge_raw_value: badgeValue,
+        badge_raw_value: cleanValue,
         client_timestamp: new Date().toISOString(),
       });
       this.applyFeedback(res);

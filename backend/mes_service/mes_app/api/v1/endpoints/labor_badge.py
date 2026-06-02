@@ -109,9 +109,12 @@ async def clock_in_by_badge(
     now = datetime.now(timezone.utc)
 
     # 1. Resolver credencial física → colaborador
+    # Strip whitespace/newlines — HID scanners and QR decoders may append \n or spaces
+    clean_badge = request.badge_raw_value.strip()
+
     badge = await db.scalar(
         select(CollaboratorBadge).where(
-            CollaboratorBadge.badge_raw_value == request.badge_raw_value,
+            CollaboratorBadge.badge_raw_value == clean_badge,
             CollaboratorBadge.company_id == company_id,
             CollaboratorBadge.is_active == True,
         )
@@ -122,14 +125,14 @@ async def clock_in_by_badge(
     # internal_id (e.g. QR codes printed with internal_id).
     # We call HCM validate-scan and register the badge on first use.
     if not badge:
-        hcm_match = await hcm_client.resolve_by_internal_id(request.badge_raw_value, company_id)
+        hcm_match = await hcm_client.resolve_by_internal_id(clean_badge, company_id)
         if hcm_match and hcm_match.get("collaborator_id"):
             badge = CollaboratorBadge(
                 company_id=company_id,
                 tenant_id=company_id,
                 collaborator_id=uuid.UUID(str(hcm_match["collaborator_id"])),
-                collaborator_name=hcm_match.get("full_name", request.badge_raw_value),
-                badge_raw_value=request.badge_raw_value,
+                collaborator_name=hcm_match.get("full_name", clean_badge),
+                badge_raw_value=clean_badge,
                 badge_type="BARCODE",
                 is_active=True,
             )
