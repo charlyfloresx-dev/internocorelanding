@@ -1,17 +1,29 @@
-from fastapi import Security, APIRouter, Depends, Query, HTTPException, status
+from fastapi import Security, APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
 import uuid
+import logging
 
 from master_app.dependencies import get_db, get_current_user
 from master_app.models.partner import Partner
 from common.models.external_contact import ExternalContact
-from master_app.schemas.partner import PartnerCreate, PartnerUpdate, PartnerResponse
+from master_app.schemas.partner import (
+    PartnerCreate, PartnerUpdate, PartnerResponse,
+    PartnerBulkItem, PartnerBulkResult,
+)
 from master_app.schemas.external_contact import ExternalContactResponse
 from common.security.dependencies import require_scope
 from common.responses import ApiResponse
 from common.domain.entities.user_context import UserContext
+from common.security.limiter import limiter
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
+
+
+class PartnerBulkPayload(BaseModel):
+    partners: List[PartnerBulkItem] = []
 
 router = APIRouter()
 
@@ -200,5 +212,68 @@ async def delete_partner(
     # Soft delete
     p.is_active = False
     await session.commit()
-    
+
     return ApiResponse(status="success", data=True, message="Partner soft-deleted successfully")
+
+
+# --- BULK IMPORT (Onboarding Wizard) ---
+
+@router.post("/bulk", response_model=ApiResponse[PartnerBulkResult], status_code=status.HTTP_200_OK)
+@limiter.limit("20/minute")
+async def bulk_import_partners(
+    request: Request,
+    payload: PartnerBulkPayload,
+    session: AsyncSession = Depends(get_db),
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
+):
+    """
+    Importación masiva de partners (clientes/proveedores) desde el Onboarding Wizard.
+    Idempotente: códigos ya existentes se omiten (no error).
+    Acepta 'rfc' como alias de 'tax_id'. Concatena 'city' a 'address' si no viene address.
+    """
+    company_id = current_user.company_id
+    result = PartnerBulkResult()
+
+    for item in payload.partners:
+        try:
+            # Idempotency — skip if code already exists for this company
+            exists_stmt = select(Partner.id).where(
+                Partner.company_id == company_id,
+                Partner.code == item.code,
+            )
+            if (await session.execute(exists_stmt)).scalar_one_or_none():
+                result.skipped += 1
+                continue
+
+            # Field mapping: rfc → tax_id, city → address
+            resolved_tax_id = item.tax_id or item.rfc
+            resolved_address = item.address or (item.city or None)
+
+            new_partner = Partner(
+                company_id=company_id,
+                tenant_id=company_id,
+                created_by=current_user.user_id,
+                version_id=1,
+                code=item.code,
+                name=item.name,
+                type=item.type,
+                tax_id=resolved_tax_id,
+                email=item.email,
+                phone=item.phone,
+                address=resolved_address,
+                is_active=True,
+            )
+            session.add(new_partner)
+            await session.flush()
+            result.created += 1
+
+        except Exception as exc:
+            logger.warning("bulk_import_partners: %s — %s", item.code, exc)
+            result.errors.append(f"{item.code}: {str(exc)}")
+
+    await session.commit()
+    return ApiResponse(
+        status="success",
+        data=result,
+        message=f"Bulk import: {result.created} created, {result.skipped} skipped, {len(result.errors)} errors.",
+    )

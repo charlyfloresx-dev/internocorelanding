@@ -249,3 +249,29 @@ class CollaboratorMultiVerifyResponse(BaseModel):
     """Container for multiple collaborator identities discovered for a single RFID."""
     matches: list[CollaboratorVerifyResponse]
     count: int
+
+
+# ── Bulk Import (Onboarding Wizard Phase 168) ────────────────────────────────
+
+class CollaboratorBulkRow(BaseModel):
+    internal_id: str = Field(..., max_length=50)
+    first_name: str = Field(..., max_length=100)
+    last_name_paternal: str = Field(..., max_length=50)
+    last_name_maternal: Optional[str] = Field(None, max_length=50)
+    department: Optional[str] = None          # resolved by name to department_id
+    job_title: Optional[str] = Field(None, max_length=100)
+    rfid_tag: Optional[str] = None            # plain value — hashed server-side
+    pin_code: Optional[str] = None            # plain value — bcrypt server-side
+    assigned_plant: Optional[str] = Field(None, max_length=100)
+    shift: Optional[str] = Field(None, max_length=50)
+    is_direct: bool = True
+
+
+class CollaboratorBulkPayload(BaseModel):
+    collaborators: list[CollaboratorBulkRow] = []
+
+
+class CollaboratorBulkResult(BaseModel):
+    created: int = 0
+    updated: int = 0
+    errors: list[str] = []

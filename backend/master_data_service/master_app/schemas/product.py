@@ -91,3 +91,20 @@ class ProductUpdate(BaseModel):
     hts_code: Optional[str] = Field(None, max_length=20)
     is_taxable: Optional[bool] = None
     allow_price_override: Optional[bool] = None
+
+
+# ── Bulk Import (Onboarding Wizard Phase 168) ────────────────────────────────
+
+class ProductBulkItem(BaseModel):
+    sku: str = Field(..., min_length=1, max_length=100)
+    name: str = Field(..., min_length=1, max_length=250)
+    description: Optional[str] = None
+    category_tag: Optional[str] = None
+    uom_code: str = "PZ"
+    unit_price: Optional[Decimal] = None
+    currency: str = Field(default="MXN", max_length=3)
+
+class ProductBulkResult(BaseModel):
+    created: int = 0
+    skipped: int = 0
+    errors: List[str] = []

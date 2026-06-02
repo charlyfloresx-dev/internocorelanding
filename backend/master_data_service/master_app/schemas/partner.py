@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from typing import Optional, List
 import uuid
 from common.enums import PartnerType
 
@@ -32,3 +32,22 @@ class PartnerResponse(PartnerBase):
 
     class Config:
         from_attributes = True
+
+
+# ── Bulk Import (Onboarding Wizard Phase 168) ────────────────────────────────
+
+class PartnerBulkItem(BaseModel):
+    code: str = Field(..., max_length=50)
+    name: str = Field(..., max_length=250)
+    type: PartnerType = PartnerType.BOTH
+    tax_id: Optional[str] = Field(None, max_length=20)
+    rfc: Optional[str] = Field(None, max_length=20)   # alias for tax_id (CSV template uses rfc)
+    email: Optional[str] = None
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=500)
+    city: Optional[str] = None  # appended to address when address is absent
+
+class PartnerBulkResult(BaseModel):
+    created: int = 0
+    skipped: int = 0
+    errors: List[str] = []

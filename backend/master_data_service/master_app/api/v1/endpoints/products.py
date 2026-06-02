@@ -1,17 +1,30 @@
 from fastapi import Security, APIRouter, Depends, status, HTTPException, Header, Query, File, UploadFile, Request
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, or_
 from typing import List, Any, Optional
+from decimal import Decimal
 import uuid
+import logging
 
-from master_app.schemas.product import ProductCreate, ProductRead, ProductReadWithVersions, ProductUpdate
+from master_app.schemas.product import (
+    ProductCreate, ProductRead, ProductReadWithVersions, ProductUpdate,
+    ProductBulkItem, ProductBulkResult,
+)
 from master_app.services.product_service import ProductService
 from common.domain import ProductStatus, VersionStatus
-from master_app.dependencies import get_current_user, get_product_service
+from master_app.dependencies import get_current_user, get_product_service, get_db
 from common.responses import ApiResponse
 from common.exceptions import DomainException, NotFoundException
 from common.domain.entities.user_context import UserContext
 from common.security.dependencies import require_scope
 from common.security.limiter import limiter
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
+
+
+class ProductBulkPayload(BaseModel):
+    products: List[ProductBulkItem] = []
 
 router = APIRouter()
 
@@ -125,3 +138,105 @@ async def get_product_internal(
         return ApiResponse(status="success", data=product)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- BULK IMPORT (Onboarding Wizard) ---
+
+@router.post("/bulk", response_model=ApiResponse[ProductBulkResult], status_code=status.HTTP_200_OK)
+@limiter.limit("20/minute")
+async def bulk_import_products(
+    request: Request,
+    payload: ProductBulkPayload,
+    current_user: UserContext = Security(require_scope(["master_data:write"])),
+    service: ProductService = Depends(get_product_service),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Importación masiva de productos desde el Onboarding Wizard.
+    Idempotente: SKUs ya existentes se omiten (no error).
+    La resolución de categoría y UOM es por nombre/código — no requiere UUIDs.
+    """
+    from master_app.models.product_category import ProductCategory
+    from master_app.models.uom import UOM
+    from master_app.models.product import Product
+    from master_app.models.product_price import ProductPrice
+    from common.domain import ProductType
+
+    company_id = current_user.company_id
+    result = ProductBulkResult()
+
+    for item in payload.products:
+        try:
+            # Idempotency — skip if SKU already exists for this company
+            exists_stmt = select(Product.id).where(
+                Product.company_id == company_id,
+                Product.sku == item.sku,
+                Product.is_active == True,
+            )
+            if (await db.execute(exists_stmt)).scalar_one_or_none():
+                result.skipped += 1
+                continue
+
+            # Resolve UOM by code (global or company-scoped)
+            uom_stmt = select(UOM).where(
+                UOM.code == item.uom_code.upper(),
+                or_(UOM.company_id == company_id, UOM.company_id.is_(None)),
+            ).limit(1)
+            uom = (await db.execute(uom_stmt)).scalar_one_or_none()
+            if not uom:
+                result.errors.append(f"{item.sku}: UOM '{item.uom_code}' not found — using PZ default")
+                uom_stmt2 = select(UOM).where(
+                    UOM.code == "PZ",
+                    or_(UOM.company_id == company_id, UOM.company_id.is_(None)),
+                ).limit(1)
+                uom = (await db.execute(uom_stmt2)).scalar_one_or_none()
+                if not uom:
+                    result.errors.append(f"{item.sku}: fallback UOM PZ also missing — skipped")
+                    continue
+
+            # Resolve category by name (ILIKE, global or company-scoped)
+            category_id = None
+            if item.category_tag:
+                cat_stmt = select(ProductCategory).where(
+                    ProductCategory.name.ilike(item.category_tag),
+                    or_(ProductCategory.company_id == company_id, ProductCategory.company_id.is_(None)),
+                ).limit(1)
+                cat = (await db.execute(cat_stmt)).scalar_one_or_none()
+                if cat:
+                    category_id = cat.id
+
+            product_in = ProductCreate(
+                sku=item.sku,
+                name=item.name,
+                description=item.description,
+                product_type=ProductType.GOODS,
+                uom_id=uom.id,
+                category_id=category_id,
+            )
+            product = await service.create_product(product_in)
+
+            # Seed initial price if provided (Soft-Close pattern: single INSERT, valid_until=NULL)
+            if item.unit_price is not None and item.unit_price > 0:
+                price_rec = ProductPrice(
+                    company_id=company_id,
+                    tenant_id=company_id,
+                    product_id=product.id,
+                    price_list_index=1,
+                    _amount=item.unit_price,
+                    _currency=item.currency.upper(),
+                )
+                db.add(price_rec)
+                await db.flush()
+
+            result.created += 1
+
+        except Exception as exc:
+            logger.warning("bulk_import_products: %s — %s", item.sku, exc)
+            result.errors.append(f"{item.sku}: {str(exc)}")
+
+    await db.commit()
+    return ApiResponse(
+        status="success",
+        data=result,
+        message=f"Bulk import: {result.created} created, {result.skipped} skipped, {len(result.errors)} errors.",
+    )

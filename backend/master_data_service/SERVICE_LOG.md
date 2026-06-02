@@ -1,4 +1,13 @@
-### [2026-06-02] Phase 168 — PENDIENTE: Endpoints Bulk Import para Onboarding Wizard ⏳
+### [2026-06-02] Phase 168 — Endpoints Bulk Import para Onboarding Wizard ✅
+
+- **`schemas/product.py`**: `ProductBulkItem` + `ProductBulkResult` añadidos.
+- **`api/v1/endpoints/products.py`**: `POST /products/bulk` — resuelve UOM por code y categoría por nombre ILIKE, idempotente por `(company_id, sku)`, siembra `ProductPrice` lista-1 si `unit_price` presente. Rate limit 20/min. Scope `master_data:write`.
+- **`schemas/partner.py`**: `PartnerBulkItem` (con `rfc` como alias de `tax_id`, `city` fallback para `address`) + `PartnerBulkResult`.
+- **`api/v1/endpoints/partners.py`**: `POST /partners/bulk` — idempotente por `(company_id, code)`. Rate limit 20/min. Scope `master_data:write`.
+
+---
+
+### [2026-06-02] Phase 168 — PENDIENTE (pre-implementación): Contratos de API ⚠️
 
 > **Contexto:** El Onboarding Wizard Angular (Phase 167, `frontend/src/app/modules/auth/onboarding.component.ts`) llama a dos endpoints de este servicio que aún **no existen**. Los contratos abajo son el contrato definitivo acordado para implementación.
 

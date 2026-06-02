@@ -23,6 +23,8 @@ from hcm_app.schemas.collaborator import (
     CollaboratorUpdate,
     EligibilityResponse,
     EligibilityDetail,
+    CollaboratorBulkPayload,
+    CollaboratorBulkResult,
 )
 from common.services.audit_service import AuditService
 
@@ -348,4 +350,111 @@ def _calculate_eligibility(collaborator: Collaborator, eligibility_type: str, th
         reason="Operador activo.",
         collaborator_id=collaborator.id,
         full_name=full_name,
+    )
+
+
+# ── BULK CREATE (Onboarding Wizard — Phase 168) ───────────────────────────────
+
+@router.post("/bulk", response_model=ApiResponse[CollaboratorBulkResult], status_code=status.HTTP_200_OK)
+async def bulk_create_collaborators(
+    payload: CollaboratorBulkPayload,
+    db: AsyncSession = Depends(get_db),
+    token: TokenPayload = Depends(SubscriptionGuard(module_code="INVENTORY_CORE")),
+):
+    """
+    Importación masiva de colaboradores desde el Onboarding Wizard (JSON body).
+    - department: resuelto por nombre (ILIKE) dentro de la empresa.
+    - rfid_tag: hasheado con SHA-256 + RFID_STATIC_SALT antes de persistir.
+    - pin_code: hasheado con bcrypt (work_factor=12) antes de persistir.
+    - Idempotente: internal_id ya existente → update (no duplicado).
+    """
+    from sqlalchemy import or_
+    from hcm_app.models.department import Department
+    from hcm_app.core.security import hash_rfid, hash_pin
+
+    company_id = token.company_id
+    result = CollaboratorBulkResult()
+
+    for row in payload.collaborators:
+        try:
+            # Resolve department by name
+            dept_id = None
+            if row.department:
+                dept_stmt = select(Department).where(
+                    Department.company_id == company_id,
+                    Department.name.ilike(row.department),
+                )
+                dept = (await db.execute(dept_stmt)).scalar_one_or_none()
+                if dept:
+                    dept_id = dept.id
+                # No error if department not found — dept_id stays None
+
+            # Hash credentials server-side
+            rfid_hash = hash_rfid(row.rfid_tag) if row.rfid_tag else None
+            pin_hash = hash_pin(row.pin_code) if row.pin_code else None
+
+            # Idempotency — update if internal_id already exists for this company
+            existing_stmt = select(Collaborator).where(
+                Collaborator.internal_id == row.internal_id,
+                Collaborator.company_id == company_id,
+            )
+            existing = (await db.execute(existing_stmt)).scalar_one_or_none()
+
+            if existing:
+                existing.first_name = row.first_name
+                existing.last_name_paternal = row.last_name_paternal
+                existing.last_name_maternal = row.last_name_maternal
+                existing.department_id = dept_id or existing.department_id
+                existing.job_title = row.job_title or existing.job_title
+                existing.assigned_plant = row.assigned_plant or existing.assigned_plant
+                existing.shift = row.shift or existing.shift
+                existing.is_direct = row.is_direct
+                if rfid_hash:
+                    existing.rfid_tag = rfid_hash
+                if pin_hash:
+                    existing.pin_code = pin_hash
+                result.updated += 1
+            else:
+                new_collab = Collaborator(
+                    company_id=company_id,
+                    tenant_id=company_id,
+                    internal_id=row.internal_id,
+                    first_name=row.first_name,
+                    last_name_paternal=row.last_name_paternal,
+                    last_name_maternal=row.last_name_maternal,
+                    department_id=dept_id,
+                    job_title=row.job_title,
+                    assigned_plant=row.assigned_plant,
+                    shift=row.shift,
+                    is_direct=row.is_direct,
+                    is_active=True,
+                    rfid_tag=rfid_hash,
+                    pin_code=pin_hash,
+                )
+                db.add(new_collab)
+                await db.flush()
+                result.created += 1
+
+        except Exception as exc:
+            logger.exception("bulk_create_collaborators: %s", row.internal_id)
+            result.errors.append(f"{row.internal_id}: {str(exc)}")
+
+    await db.commit()
+
+    await AuditService.log_action(
+        db=db,
+        user_id=token.sub,
+        action="COLLABORATOR_BULK_IMPORT",
+        entity_name="collaborators",
+        entity_id=None,
+        company_id=company_id,
+        details=f"Bulk import: {result.created} created, {result.updated} updated, {len(result.errors)} errors",
+        new_value={"created": result.created, "updated": result.updated},
+    )
+    await db.commit()
+
+    return ApiResponse(
+        status="success",
+        data=result,
+        message=f"Bulk import: {result.created} created, {result.updated} updated, {len(result.errors)} errors.",
     )

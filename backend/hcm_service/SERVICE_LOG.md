@@ -2,7 +2,14 @@
 
 > **Service:** HCM Service — Human Capital Management (Port 8004)
 
-### [2026-06-02] Phase 168 — PENDIENTE: Endpoint JSON Bulk Collaborators para Onboarding ⏳
+### [2026-06-02] Phase 168 — Endpoint JSON Bulk Collaborators para Onboarding ✅
+
+- **`schemas/collaborator.py`**: `CollaboratorBulkRow` + `CollaboratorBulkPayload` + `CollaboratorBulkResult` añadidos.
+- **`api/v1/endpoints/collaborators.py`**: `POST /collaborators/bulk` — JSON body (distinto del CSV `/bulk-upload`). Resuelve departamento por nombre ILIKE. Hashea RFID (SHA-256 + salt) y PIN (bcrypt) antes de persistir. Idempotente: `internal_id` ya existente → update, no duplicado. Audit log `COLLABORATOR_BULK_IMPORT`. Scope `SubscriptionGuard(INVENTORY_CORE)`.
+
+---
+
+### [2026-06-02] Phase 168 — PENDIENTE (pre-implementación): Contratos de API ⚠️
 
 > **Contexto:** El Onboarding Wizard Angular (Phase 167) llama a `POST /api/v1/hcm/collaborators/bulk` con JSON body. El servicio tiene `POST /collaborators/bulk-upload` (CSV multipart). Hay **dos gaps** que deben resolverse antes de activar el paso 6 del wizard.
 
