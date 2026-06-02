@@ -12,6 +12,7 @@ from .downtime import DowntimeReason, Downtime
 from .downtime_event import DowntimeEvent
 from .labor import LaborType, Labor
 from .labor_allocation import LaborAllocation
+from .collaborator_badge import CollaboratorBadge
 from .production_snapshot import HourlyProductionSnapshot
 from .hourly_labor_snapshot import HourlyLaborSnapshot
 from .run_metrics_snapshot import RunMetricsSnapshot
@@ -35,6 +36,7 @@ __all__ = [
     "LaborType",
     "Labor",
     "LaborAllocation",
+    "CollaboratorBadge",
     "HourlyProductionSnapshot",
     "HourlyLaborSnapshot",
     "RunMetricsSnapshot",

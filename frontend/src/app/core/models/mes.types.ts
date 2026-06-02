@@ -153,3 +153,86 @@ export interface ShiftBreakCreate {
   end_time: string;
   duration_minutes: number;
 }
+
+// ── Phase 170: Headcount Tracking & Shop Floor Badge Auth ──────────────────
+
+export type LaborStatus = 'ACTIVE' | 'ON_PERMIT' | 'TRANSFERRED_IN';
+
+export interface CollaboratorOnFloor {
+  id: string | null;
+  name: string;
+  status: LaborStatus;
+  clock_in: string;   // "HH:MM"
+  is_deviation: boolean;
+}
+
+export interface HeadcountSummary {
+  active: number;
+  on_permit: number;
+  transferred_in: number;
+  total_rostered: number;
+}
+
+export interface HeadcountResponse {
+  resource_id: string;
+  snapshot_time: string;
+  headcount: HeadcountSummary;
+  collaborators: CollaboratorOnFloor[];
+}
+
+export interface HourlyLaborPoint {
+  hour: number;
+  label: string;
+  active: number;
+  on_permit: number;
+  transferred_in: number;
+  transferred_out: number;
+  total: number;
+  total_labor_minutes: number;
+  paid_hrs: number;
+}
+
+export interface HeadcountHistoryResponse {
+  resource_id: string;
+  date: string;
+  series: HourlyLaborPoint[];
+}
+
+export interface BadgeClockInRequest {
+  resource_code: string;
+  production_run_id: string;
+  badge_raw_value: string;
+  client_timestamp: string;
+}
+
+export type BadgeAction = 'CLOCK_IN' | 'TRANSFER' | 'ALREADY_CLOCKED_IN';
+
+export interface BadgeClockInResponse {
+  status: 'SUCCESS' | 'ERROR';
+  action: BadgeAction;
+  collaborator: {
+    employee_number: number | null;
+    full_name: string;
+    collaborator_id: string;
+    category_assigned: string;
+  };
+  timestamp: string;
+}
+
+export interface CollaboratorBadgeRead {
+  id: string;
+  collaborator_id: string;
+  collaborator_name: string;
+  employee_number: number | null;
+  badge_raw_value: string;
+  badge_type: 'BARCODE' | 'QR' | 'RFID';
+  is_active: boolean;
+  expires_at: string | null;
+}
+
+export interface CollaboratorBadgeCreate {
+  collaborator_id: string;
+  badge_raw_value: string;
+  badge_type: 'BARCODE' | 'QR' | 'RFID';
+  expires_at?: string | null;
+}

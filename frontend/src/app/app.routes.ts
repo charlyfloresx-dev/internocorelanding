@@ -157,6 +157,10 @@ export const routes: Routes = [
             loadComponent: () => import('./modules/production/dashboard/production-dashboard.component').then(m => m.ProductionDashboardComponent)
           },
           {
+            path: 'floor/:resourceId',
+            loadComponent: () => import('./modules/production/floor/shop-floor.component').then(m => m.ShopFloorComponent)
+          },
+          {
             path: 'item-config',
             canActivate: [permissionGuard],
             data: { requiredPermission: ['master_data:write', 'admin.user.manage'] },

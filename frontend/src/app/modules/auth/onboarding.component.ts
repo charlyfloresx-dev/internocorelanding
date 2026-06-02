@@ -218,7 +218,7 @@ const STEP_META = [
                   }
                   <div>
                     <p class="font-black text-surface-text text-sm uppercase tracking-tight">{{ plan.name }}</p>
-                    <p class="text-2xl font-black text-primary mt-1">${{ plan.price }}<span class="text-xs text-surface-text-muted font-normal"> USD/mes</span></p>
+                    <p class="text-2xl font-black text-primary mt-1">&#36;{{ plan.price }}<span class="text-xs text-surface-text-muted font-normal"> USD/mes</span></p>
                   </div>
                   <ul class="space-y-1.5">
                     @for (f of plan.features; track f) {
@@ -597,7 +597,7 @@ const STEP_META = [
                   @for (row of rows | slice:0:5; track $index) {
                     <tr class="border-b border-surface-border/40 hover:bg-surface-card/30">
                       @for (col of cols; track col) {
-                        <td class="px-3 py-1.5 text-surface-text-muted whitespace-nowrap max-w-[120px] truncate">{{ row[col] || '—' }}</td>
+                        <td class="px-3 py-1.5 text-surface-text-muted whitespace-nowrap max-w-[120px] truncate">{{ $any(row)[col] || '—' }}</td>
                       }
                     </tr>
                   }
