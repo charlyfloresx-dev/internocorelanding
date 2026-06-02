@@ -95,6 +95,7 @@ async def clock_in_by_badge(
     company_id: uuid.UUID = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
     density_svc: LaborDensityService = Depends(get_labor_density_service),
+    hcm_client: HCMClient = Depends(get_hcm_client),
 ):
     """
     Autenticación express en piso de manufactura.
@@ -115,8 +116,27 @@ async def clock_in_by_badge(
             CollaboratorBadge.is_active == True,
         )
     )
+
+    # ── Fallback: resolve by internal_id via HCM + auto-register badge ──────
+    # If no badge record exists, the raw value might be the collaborator's
+    # internal_id (e.g. QR codes printed with internal_id).
+    # We call HCM validate-scan and register the badge on first use.
     if not badge:
-        raise HTTPException(status_code=404, detail="Credencial no registrada o inactiva")
+        hcm_match = await hcm_client.resolve_by_internal_id(request.badge_raw_value, company_id)
+        if hcm_match and hcm_match.get("collaborator_id"):
+            badge = CollaboratorBadge(
+                company_id=company_id,
+                tenant_id=company_id,
+                collaborator_id=uuid.UUID(str(hcm_match["collaborator_id"])),
+                collaborator_name=hcm_match.get("full_name", request.badge_raw_value),
+                badge_raw_value=request.badge_raw_value,
+                badge_type="BARCODE",
+                is_active=True,
+            )
+            db.add(badge)
+            await db.flush()   # get id without committing yet
+        else:
+            raise HTTPException(status_code=404, detail="Credencial no registrada o inactiva")
 
     # Validar expiración
     if badge.expires_at and badge.expires_at.replace(tzinfo=timezone.utc) < now:

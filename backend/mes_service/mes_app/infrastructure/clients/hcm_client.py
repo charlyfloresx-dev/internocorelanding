@@ -29,6 +29,31 @@ class HCMClient:
             pass
         return headers
 
+    async def resolve_by_internal_id(
+        self, internal_id: str, company_id: uuid.UUID
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Lookup collaborator by internal_id (gafete/badge number) using the
+        validate-scan endpoint in hcm_service.
+        Used as fallback in clock-in-by-badge when no CollaboratorBadge record exists.
+        Returns minimal dict: {collaborator_id, full_name} or None.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                url = f"{self._base_url}/collaborators/validate-scan/{internal_id}"
+                response = await client.get(url, headers=self._headers(company_id))
+                if response.status_code == 200:
+                    body = response.json()
+                    data = body.get("data") or body
+                    if data.get("collaborator_id"):
+                        return {
+                            "collaborator_id": data["collaborator_id"],
+                            "full_name": data.get("full_name") or data.get("fullName") or internal_id,
+                        }
+        except Exception as exc:
+            logger.error("HCMClient error resolving internal_id %s: %s", internal_id, exc)
+        return None
+
     async def get_collaborator(
         self, collaborator_id: uuid.UUID, company_id: uuid.UUID
     ) -> Optional[Dict[str, Any]]:
