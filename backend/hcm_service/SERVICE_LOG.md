@@ -1,8 +1,76 @@
 # HCM Service (ex HR Service) — SERVICE LOG
 
 > **Service:** HCM Service — Human Capital Management (Port 8004)
+
+### [2026-06-02] Phase 168 — PENDIENTE: Endpoint JSON Bulk Collaborators para Onboarding ⏳
+
+> **Contexto:** El Onboarding Wizard Angular (Phase 167) llama a `POST /api/v1/hcm/collaborators/bulk` con JSON body. El servicio tiene `POST /collaborators/bulk-upload` (CSV multipart). Hay **dos gaps** que deben resolverse antes de activar el paso 6 del wizard.
+
+#### GAP 1: Path mismatch
+- Wizard llama: `POST /api/v1/hcm/collaborators/bulk`
+- Backend expone: `POST /api/v1/hcm/collaborators/bulk-upload`
+
+#### GAP 2: Content-type mismatch
+- Wizard envía: JSON `{ collaborators: [...] }` (body de Angular `HttpClient.post`)
+- Backend espera: `multipart/form-data` con un `UploadFile` CSV
+
+#### Solución recomendada — Nuevo endpoint JSON
+
+Agregar `POST /collaborators/bulk` (separado del CSV `/bulk-upload`) que acepte el payload JSON del wizard:
+
+```json
+{
+  "collaborators": [
+    {
+      "internal_id": "EMP001",
+      "first_name": "Juan",
+      "last_name_paternal": "García",
+      "last_name_maternal": "López",
+      "department": "Producción",
+      "job_title": "Operador",
+      "rfid_tag": "A1B2C3D4",
+      "pin_code": "1234",
+      "email": "jgarcia@empresa.com"
+    }
+  ]
+}
+```
+
+**Mapeo CSV template → ORM `Collaborator`:**
+| Campo CSV (onboarding template) | Campo ORM | Notas |
+|---|---|---|
+| `internal_id` | `internal_id` | Unique per `(company_id)` |
+| `name` | `first_name` | Template usa columna simple; split en handler |
+| `last_name` | `last_name_paternal` | |
+| `department` | `department_id` | Resolver por nombre: `SELECT id FROM departments WHERE name ILIKE :name AND company_id = :cid`. Si no existe → warning, `department_id=NULL` |
+| `job_title` | `job_title` | |
+| `rfid_code` | `rfid_tag` | Hash SHA-256 + `CORE_HCM_RFID_SALT` ANTES de persistir (igual que el endpoint single) |
+| `pin` | `pin_code` | Hash bcrypt (work_factor=12) ANTES de persistir |
+| `email` | — | No existe en modelo ORM. Guardar en `emergency_contact.email` o ignorar (campo de contacto, no de identidad) |
+
+**Notas de implementación:**
+- `company_id` del JWT. Nunca del payload.
+- Idempotencia por `(internal_id, company_id)` — upsert si ya existe.
+- RFID y PIN deben hashearse igual que en `POST /` single (mismo salt, misma función).
+- Audit log: `COLLABORATOR_BULK_IMPORT` con `{ created: N, updated: M, errors: [...] }`.
+- Scope: `SubscriptionGuard(module_code="INVENTORY_CORE")` igual que los demás endpoints del servicio.
+- Rate limit: `10/minute` (operación cara, típicamente usada solo en onboarding).
+
+**Integración MES (is_deviation flag):**
+Los colaboradores creados via bulk deben tener `assigned_plant` poblado para que `mes_service/labor.py` pueda calcular `is_deviation` (cruce planta asignada vs planta física del WO). El template CSV tiene columna `assigned_plant` opcional — incluirla en el payload.
+
+---
 > **Status:** Operational / Industrial Identity Source of Truth
 > **Compliance:** Multi-tenant Isolation Verified
+
+### [2026-05-29] - Phase 158: Org Hierarchy + Department CRUD ✅
+- **Migration 007** (`007_add_hierarchy_levels.py`): Añade `authority_level VARCHAR(20)`, `manager_id UUID`, `director_id UUID` a `collaborators`. Todos soft FKs (sin DB constraint, Iron Wall ADR-02). Índices en los 3 campos.
+- **AUTHORITY_LEVEL catalog**: 7 niveles (DIRECTOR→ASSISTANT) seeded en `master_data_db.enumerations` (type=`AUTHORITY_LEVEL`), migrado de legacy .NET `Autority.cs`. La columna almacena el key como string; los valores son configurables por tenant vía enumerations API.
+- **Department CRUD completo** (`api/v1/endpoints/departments.py`): GET (ya existía), POST 201/409, PATCH partial, DELETE soft. Autenticación JWT T1/T2 real. `code` forzado a uppercase en POST/PATCH. Conflict 409 si `(company_id, code)` duplicado.
+- **Integration tests** (`tests/test_department_crud.py`): 12 tests contra `hcm_db` real — create, uppercase enforcement, duplicate 409, cross-company isolation, update, soft-delete, reactivation. Fixture usa `AsyncSession` con rollback completo.
+- **Schemas** (`schemas/collaborator.py`): `authority_level: Optional[str]`, `manager_id`, `director_id` expuestos en Read/Create/Update.
+
+---
 
 ### [2026-05-28] - Phase 155: Industrial Identity & Cross-Border Eligibility Hardening ✅
 - **DB Migration (`005_add_plant_shift_global_entry.py`)**: Añadido soporte para los campos `assigned_plant` (VARCHAR(100)), `shift` (VARCHAR(50)) y `global_entry_id` (VARCHAR(100)) en la tabla `collaborators` de `hcm_db`.

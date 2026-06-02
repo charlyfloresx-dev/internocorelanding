@@ -1,3 +1,86 @@
+### [2026-06-02] Phase 168 — PENDIENTE: Endpoints Bulk Import para Onboarding Wizard ⏳
+
+> **Contexto:** El Onboarding Wizard Angular (Phase 167, `frontend/src/app/modules/auth/onboarding.component.ts`) llama a dos endpoints de este servicio que aún **no existen**. Los contratos abajo son el contrato definitivo acordado para implementación.
+
+#### A. `POST /api/v1/products/bulk` — FALTA IMPLEMENTAR
+
+**Propósito:** Importación masiva de productos desde CSV en el paso 3 del wizard de onboarding.
+
+**Contrato JSON esperado:**
+```json
+{
+  "products": [
+    {
+      "sku": "SKF-6205",
+      "name": "Cojinete SKF 6205",
+      "description": "Cojinete radial estándar",
+      "category_tag": "Mantenimiento",
+      "uom_code": "PZ",
+      "base_price": { "amount": 45.00, "currency": "MXN" },
+      "warehouse_assignments": [
+        {
+          "warehouse_code": "WH-MAIN-01",
+          "custom_price": { "amount": 45.00, "currency": "MXN" },
+          "initial_stock": 150
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Notas de implementación:**
+- `company_id` siempre del JWT (nunca del payload — previene IDOR).
+- Cada ítem usa `ProductCreate` schema internamente. Idempotencia por `(company_id, sku)` — upsert si ya existe.
+- `warehouse_assignments.initial_stock > 0` → disparar `POST /api/v1/inventory/bulk-load` con `X-Internal-Secret` header en inventory_service (bypass rate-limit). Es HTTP inter-servicio, NO FK cruzada.
+- Errores por ítem se acumulan en `results.errors[]` — el bulk NO se aborta por fallas individuales (UX deliberada: onboarding ≠ data migration crítica).
+- Scope: `master_data:write`. Rate limit: `20/minute` (operación cara).
+- **Alineación con onboarding.service.ts**: el service actualmente envía `{ items: rows }`. Al implementar el endpoint, o bien el endpoint acepta ambas claves (`products` ó `items`) o se actualiza el service a `{ products: rows }`.
+
+**Ruta de registro en `main.py`:** incluir en el router de `products` existente como sub-ruta.
+
+---
+
+#### B. `POST /api/v1/partners/bulk` — FALTA IMPLEMENTAR
+
+**Propósito:** Importación masiva de clientes/proveedores desde CSV en el paso 4 del wizard.
+
+**Contrato JSON esperado:**
+```json
+{
+  "partners": [
+    {
+      "code": "PROV-001",
+      "name": "Maquiladora ACME S.A. de C.V.",
+      "type": "SUPPLIER",
+      "tax_id": "ACM900101AB1",
+      "email": "ventas@acme.com.mx",
+      "phone": "664-123-4567",
+      "address": "Av. Producción 1024, Tijuana, BC, MX 22000"
+    }
+  ]
+}
+```
+
+**Mapeo CSV → Modelo `Partner`:**
+| Campo CSV (onboarding template) | Campo ORM `Partner` | Notas |
+|---|---|---|
+| `code` | `code` | Unique per `company_id` |
+| `name` | `name` | |
+| `type` | `type` (`PartnerType` enum) | `SUPPLIER` / `CUSTOMER` / `BOTH` |
+| `rfc` | `tax_id` | El template llama al campo `rfc` pero el ORM usa `tax_id` |
+| `email` | `email` | |
+| `phone` | `phone` | |
+| `city` | concatenar en `address` | El modelo tiene `address: String(500)` flat, no objeto anidado |
+
+**Notas de implementación:**
+- Idempotencia por `(company_id, code)` — skip duplicados con warning, no error.
+- Validación binacional: si `tax_id` tiene formato RFC mexicano (13 chars) → ok. Si es EIN/Tax ID US → aceptar como string libre.
+- Scope: `master_data:write`.
+- **Alineación con onboarding.service.ts**: el service envía `{ items: rows }`. Al implementar, aceptar `partners` o `items` como clave raíz, o actualizar el service.
+
+---
+
 ### [2026-05-28] Phase 152: Scan Pattern Validation per Item ✅
 - **`models/product_scan_pattern.py`**: Nuevo modelo `ProductScanPattern` (tabla `master_product_scan_patterns`). Campos: `item_code`, `pattern_name`, `regex`, `error_message`, `priority`, `is_active` (heredado). UniqueConstraint por `(company_id, item_code, pattern_name)`. Índice compuesto `(company_id, item_code, is_active)`.
 - **`schemas/product_scan_pattern.py`**: `ScanPatternRead`, `ScanPatternCreate`, `ScanPatternUpdate`.

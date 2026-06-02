@@ -72,18 +72,25 @@ export class OnboardingService {
     return firstValueFrom(this.http.post(`${this.base}/categories`, data));
   }
 
+  // TODO Phase 168: endpoint /products/bulk aún no existe en master_data_service.
+  // Payload correcto: { products: rows } (no "items"). Contrato completo en master_data_service/SERVICE_LOG.md
   bulkImportProducts(rows: OnboardingProductRow[]): Promise<any> {
-    return firstValueFrom(this.http.post(`${this.base}/products/bulk`, { items: rows }));
+    return firstValueFrom(this.http.post(`${this.base}/products/bulk`, { products: rows }));
   }
 
+  // TODO Phase 168: endpoint /partners/bulk aún no existe en master_data_service.
+  // Mapeo CSV→ORM: rfc→tax_id, city concatenar en address. Contrato en master_data_service/SERVICE_LOG.md
   bulkImportPartners(rows: OnboardingPartnerRow[]): Promise<any> {
-    return firstValueFrom(this.http.post(`${this.base}/partners/bulk`, { items: rows }));
+    return firstValueFrom(this.http.post(`${this.base}/partners/bulk`, { partners: rows }));
   }
 
   createWarehouse(data: OnboardingWarehouse): Promise<any> {
     return firstValueFrom(this.http.post(`${this.base}/catalog/warehouses`, data));
   }
 
+  // TODO Phase 168: existe /bulk-upload (CSV multipart) pero NO /bulk (JSON).
+  // Pendiente: agregar POST /collaborators/bulk en hcm_service. Contrato en hcm_service/SERVICE_LOG.md.
+  // rfid_tag y pin_code se hashean en el backend (SHA-256+salt y bcrypt respectivamente).
   bulkImportCollaborators(rows: OnboardingCollaboratorRow[]): Promise<any> {
     return firstValueFrom(this.http.post(`${this.base}/hcm/collaborators/bulk`, { collaborators: rows }));
   }

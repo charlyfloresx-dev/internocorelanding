@@ -5,6 +5,46 @@
 
 ---
 
+### [2026-06-02] - Phase 168 — PENDIENTE: Integración HCM→MES para is_deviation y Degraded Mode ⏳
+
+> **Contexto:** El mapa mental del sistema (audit 2026-06-02) identificó la integración HCM↔MES como un área con deuda documentada pero sin contrato explícito. Este entry recoge los invariantes arquitectónicos acordados.
+
+#### hcm_client.py — Degraded Mode Pattern
+
+El cliente HTTP `mes_app/infrastructure/clients/hcm_client.py` consume `GET /api/v1/hcm/collaborators/{id}` para enriquecer la identidad del operador al asignar labor.
+
+**Regla de Degraded Mode:**
+- Si el HCM service responde con timeout o 5xx → el cliente retorna `None`.
+- El handler de asignación (`labor_assignment.py`) asigna `collaborator_name = "Unknown Collaborator"` y `is_deviation = False` en ese caso.
+- **Motivación:** El piso de producción NO se detiene porque el servicio de RRHH esté caído. La asignación se registra; la discrepancia se audita post-turno.
+- El campo `assigned_plant` del colaborador (HCM) se compara contra la `facility.code` de la Orden de Trabajo activa para derivar `is_deviation = True` si difieren.
+
+**is_deviation flag — lógica:**
+```python
+# en labor.py (o labor_assignment_command.py)
+is_deviation = (
+    collaborator is not None
+    and collaborator.assigned_plant is not None
+    and collaborator.assigned_plant != work_order.facility_code
+)
+```
+El flag se persiste en `labor_assignments.is_deviation` y se expone en el endpoint de la OT para que el supervisor vea desvíos en tiempo real.
+
+#### work_order.py — Lifecycle States
+El ciclo de vida estándar de una OT es:
+```
+DRAFT → RELEASED → IN_PROGRESS → COMPLETED → CLOSED
+```
+- `DRAFT → RELEASED`: Manual por supervisor (o bulk load).
+- `RELEASED → IN_PROGRESS`: Automático al primer scan del `ScannerService`.
+- `IN_PROGRESS → COMPLETED`: Automático cuando `manufactured_quantity >= planned_quantity`.
+- `COMPLETED → CLOSED`: Manual por calidad (sign-off), o automático post-turno.
+- `CLOSED` es inmutable — no se puede reabrir sin un nuevo documento.
+
+**Pendiente (deuda BAJA):** `CANCELLED` state + handler cuando el material no llega (`MATERIAL_INPUT` lines pendientes después de N minutos).
+
+---
+
 ### [2026-06-02] - Phase 161: MES Labor Assignment E2E & Code Graph Audit Compliance ✅
 
 **Backend:**
