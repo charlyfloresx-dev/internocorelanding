@@ -1,3 +1,40 @@
+# Implementation History — 2026-06-02 (Phases 161 + 167–171)
+
+---
+
+## Phases 169–171 — Headcount Tracking, Badge Auth & Unified Monitor
+
+### Resumen ejecutivo
+Implementación completa del ciclo de tracking de personal en piso de manufactura. El supervisor puede abrir `/monitor/resources/CELDA-58D`, cambiar al tab "Personal", escanear un QR con la cámara del dispositivo y el colaborador queda registrado en tiempo real con su nombre en la lista "En Línea Ahora".
+
+### Arquitectura implementada
+
+#### LaborDensityService (roll-over fix)
+El servicio recalcula todas las horas afectadas por un intervalo de labor. Un Labor 06:15–09:30 genera actualizaciones en horas 6, 7, 8, 9 usando:
+```
+effective_start = max(labor.clock_in, H:00:00)
+effective_end   = min(labor.clock_out or now, H:59:59)
+contribution    = effective_end - effective_start
+```
+
+#### Register-on-first-scan
+Si el badge no existe en `mes_collaborator_badges`, el endpoint llama `GET /hcm/api/v1/staff/validate-scan/{internal_id}`. Si HCM devuelve un colaborador, se auto-crea el badge con `type=BARCODE`. En scans posteriores, el lookup es directo O(1) sin llamada HTTP.
+
+#### Unified resource monitor
+`resource-monitor.component.ts` con top-level tabs. El scanner HID listener (`document.addEventListener('keydown')`) solo procesa cuando `mainTab() === 'personal'`. El `#reader-monitor` div para html5-qrcode está siempre en el DOM (controlado por `maxHeight CSS`) para evitar timing issues con `ChangeDetectionStrategy.OnPush`.
+
+### Bugs encontrados y corregidos en debugging
+1. Migraciones 013/014 omitieron columnas `MultiTenantBase` → Migración 015
+2. `updated_at NOT NULL` en migración pero `nullable=True` en ORM → `DROP NOT NULL`
+3. HCM router usa `/staff/` no `/collaborators/` → corregido en HCMClient
+4. `CORE_HCM_SERVICE_URL` no configurada → docker-compose.dev.yml
+5. `production_run_id=request.production_run_id` (None) en Labor → `dest_run.id`
+6. `logger` undefined → `import logging` faltante
+7. QR decoder añade `\n` → `.trim()` frontend + `.strip()` backend
+8. `@if (cameraActive())` destruye DOM antes de html5-qrcode → `maxHeight: 0` CSS
+
+---
+
 # Implementation History — 2026-06-02 (Phase 161 + Phase 167 + Phase 168 + Phase 169)
 
 ---

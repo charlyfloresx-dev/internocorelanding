@@ -1,3 +1,28 @@
+# Tareas Consolidadas — 2026-06-02 (Phases 161 + 167–171)
+
+---
+
+## Phase 171 — Unified Resource Monitor + Bug Fixes ✅
+
+| # | Tarea | Resultado |
+|---|---|---|
+| 1 | Unified resource-monitor: tabs Producción / Personal en una sola pantalla | ✅ |
+| 2 | production_run_id optional en badge endpoint — auto-resolve por resource_code | ✅ |
+| 3 | `GET /mes/orders/types` movido antes de `/{order_number}` (FastAPI route ordering 404 fix) | ✅ |
+| 4 | Migración 013+014 aplicada al DB corriendo (employees_qty, group_id columns) | ✅ |
+| 5 | Eliminados hardcodes `hcm-service:8000`, `inventory-service:8000`, `localhost:8000` → `settings.int_*` | ✅ |
+| 6 | `CORE_HCM_SERVICE_URL=http://interno-hcm-dev:8000` en docker-compose.dev.yml | ✅ |
+| 7 | HCMClient paths corregidos: `/collaborators/*` → `/staff/*` | ✅ |
+| 8 | `import logging; logger` añadido a labor_badge.py (NameError silencioso) | ✅ |
+| 9 | `production_run_id=dest_run.id` en Labor creation (era request.production_run_id = None) | ✅ |
+| 10 | `ALTER COLUMN updated_at DROP NOT NULL` en mes_collaborator_badges + mes_hourly_labor_snapshots | ✅ |
+| 11 | `.trim()` en processScan() frontend + `.strip()` en backend para `\n` del QR decoder | ✅ |
+| 12 | html5-qrcode: mover `#reader-monitor` fuera de `@if` → siempre en DOM (race condition fix con OnPush) | ✅ |
+| 13 | Migración 015: añadir columnas MultiTenantBase faltantes (group_id, updated_by, deleted_at, transaction_id) | ✅ |
+| 14 | **E2E verificado**: Carlos Ramírez `003709A` → 200 SUCCESS action=TRANSFER, 53ms latency | ✅ |
+
+---
+
 # Tareas Consolidadas — 2026-06-02 (Phase 161 + Phase 167 + Phase 168 + Phase 169)
 
 ---

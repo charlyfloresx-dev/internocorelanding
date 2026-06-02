@@ -4,6 +4,29 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-02] Phases 169–171 — Headcount Tracking, Shop Floor Badge Auth & Unified Monitor ✅
+
+**Objetivo:** Implementar el ciclo completo de tracking de personal en piso de manufactura: desde la densidad horaria de colaboradores hasta la autenticación física por QR/RFID/Barcode directamente en la pantalla del recurso.
+
+**Decisiones Arquitectónicas:**
+- `HourlyLaborSnapshot` como read model CQRS — O(1) para consultas del dashboard de supervisor.
+- `LaborDensityService.materialize_range()` con **roll-over fix**: un Labor 06:15–09:30 recalcula snapshots de las horas 6, 7, 8 y 9 (no solo la hora actual).
+- `CollaboratorBadge` con **soft FK** a `hcm_collaborators` (Iron Wall ADR) — badge vive en `mes_db`, no cruza fronteras de servicio con FK de DB.
+- **Register-on-first-scan**: si el QR/RFID no tiene badge registrado en `mes_collaborator_badges`, el endpoint llama a HCM `validate-scan/{internal_id}` y auto-crea el registro. Cero configuración previa.
+- **Unified resource monitor** (`/monitor/resources/:code`): dos tabs `Producción` + `Personal` en una sola pantalla. Scanner HID listener activo solo en tab Personal para evitar scans accidentales.
+- `html5-qrcode` integrado con `#reader-monitor` **siempre en el DOM** (no en `@if`) para evitar race condition con `ChangeDetectionStrategy.OnPush`.
+
+**Workarounds / Deuda Técnica:**
+- Migración 015: columnas `group_id/updated_by/deleted_at/transaction_id` faltaban en tablas 013/014 (omitidas de `MultiTenantBase`). Fix: `ALTER COLUMN updated_at DROP NOT NULL` también necesario.
+- HCM rutas: router usa `/staff/*` no `/collaborators/*` — hardcoded corregido y URLs movidas a env vars.
+- `_HCM_BASE` y `_INVENTORY_BASE` hardcodeados en `graphic_service.py` y `work_order_handler.py` → movidos a `settings.int_*_service_url`.
+- `CORE_HCM_SERVICE_URL` añadido a docker-compose.dev.yml para MES (default `interno-hcm-dev:8000`).
+- Deuda: `audit_logs.correlation_id` no existe en `mes_db` — el AuditService del middleware falla silenciosamente al loggear errores críticos.
+
+**Archivos clave:** `backend/mes_service/alembic/versions/013-015_*.py`, `mes_app/models/labor.py`, `mes_app/models/hourly_labor_snapshot.py`, `mes_app/models/collaborator_badge.py`, `mes_app/services/labor_density_service.py`, `mes_app/api/v1/endpoints/labor.py`, `mes_app/api/v1/endpoints/labor_badge.py`, `mes_app/infrastructure/clients/hcm_client.py`, `mes_app/core/config.py`, `frontend/src/app/modules/monitor/resource-monitor.component.ts`, `frontend/src/app/core/services/labor.service.ts`
+
+---
+
 ### [2026-06-02] Phase 167 — Landing v2 + Onboarding Wizard 8-Step (Angular) ✅
 
 **Objetivo:** Rediseñar completamente la landing page pública con `motion.js` (vanilla framer-motion engine) y construir el flujo de onboarding `/onboarding` en Angular 19 con 8 pasos y bulk import CSV individual por entidad.
