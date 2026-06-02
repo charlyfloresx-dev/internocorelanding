@@ -2,6 +2,21 @@
 
 ---
 
+## Phase 170 — Shop Floor Badge Auth & Headcount UI ✅
+
+| # | Tarea | Archivo | Resultado |
+|---|---|---|---|
+| 1 | `CollaboratorBadge` model — soft FK, badge_raw_value indexado, degraded mode name | `models/collaborator_badge.py` | ✅ |
+| 2 | `POST /clock-in-by-badge` — CLOCK_IN/TRANSFER auto/ALREADY_CLOCKED_IN | `api/v1/endpoints/labor_badge.py` | ✅ |
+| 3 | Badge CRUD admin (GET/POST/PATCH/DELETE /badges) | `api/v1/endpoints/labor_badge.py` | ✅ |
+| 4 | Migración `014_collaborator_badges.py` | `alembic/versions/` | ✅ |
+| 5 | `LaborService` Angular con signals (headcount + clockInByBadge + badgeCRUD) | `core/services/labor.service.ts` | ✅ |
+| 6 | `ShopFloorComponent` — HID scanner listener, debounce 1.5s, offline queue, headcount panel, gráfica horaria | `modules/production/floor/` | ✅ |
+| 7 | Ruta `/production/floor/:resourceId` | `app.routes.ts` | ✅ |
+| 8 | Fix `onboarding.component.ts` — `${{ }}` template literal + `row[col]` unknown | frontend | ✅ |
+
+---
+
 ## Phase 169 — Headcount Tracking & Labor Density ✅
 
 | # | Tarea | Archivo | Resultado |

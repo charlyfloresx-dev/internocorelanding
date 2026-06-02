@@ -5,6 +5,21 @@
 
 ---
 
+### [2026-06-02] - Phase 170 — Shop Floor Badge Auth & Headcount UI ✅
+
+**Backend:**
+- **`models/collaborator_badge.py`** (NUEVO): `CollaboratorBadge` — tabla `mes_collaborator_badges`. Soft FK a `hcm_collaborators` (no DB constraint, Iron Wall ADR). `badge_raw_value` indexado. `badge_type`: BARCODE|QR|RFID. `collaborator_name` denormalizado para degraded mode.
+- **`api/v1/endpoints/labor_badge.py`** (NUEVO): `POST /clock-in-by-badge` — 3 acciones: `CLOCK_IN` / `TRANSFER` (auto-traslado si ya activo en otro run) / `ALREADY_CLOCKED_IN` (idempotente). Valida expiración del badge. Llama `LaborDensityService`. CRUD de badges: `GET/POST/PATCH/DELETE /badges`.
+- **`alembic/versions/014_collaborator_badges.py`**: DDL tabla + índices.
+
+**Frontend:**
+- **`core/services/labor.service.ts`** (NUEVO): `LaborService` con signals. Métodos: `loadHeadcount`, `loadHeadcountHistory`, `clockInByBadge`, `loadBadges`, `createBadge`, `deactivateBadge`.
+- **`modules/production/floor/shop-floor.component.ts`** (NUEVO): Pantalla `/production/floor/:resourceId`. Global keyboard HID listener (captura RFID/QR/Barcode sin foco manual). Debounce 1.5s (bloquea lecturas repetidas de antena RFID). Cola offline con retry al reconectar. Panel de headcount subdividido (active/on_permit/transferred_in). Gráfica de densidad horaria (barras apiladas verde+ámbar). Auto-refresh cada 30s.
+- **`app.routes.ts`**: Ruta `/production/floor/:resourceId` añadida.
+- **Fix**: `onboarding.component.ts` — `${{ plan.price }}` → `&#36;{{ plan.price }}` (TS template literal conflict) + `row[col]` → `$any(row)[col]` (unknown type).
+
+---
+
 ### [2026-06-02] - Phase 169 — Headcount Tracking & Labor Density ✅
 
 - **`models/labor.py`**: `LaborCategory` enum añadido (ACTIVE/TRANSFER/PERMIT/BREAK/OVERTIME). `LaborType.category` columna nueva.
