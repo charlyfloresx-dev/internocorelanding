@@ -22,6 +22,26 @@ class MESSettings(InternoSettings):
         validation_alias=AliasChoices("CORE_SECRET_KEY", "SECRET_KEY")
     )
 
+    int_hcm_service_url: str = Field(
+        default="http://interno-hcm-dev:8000",
+        validation_alias=AliasChoices("CORE_HCM_SERVICE_URL", "HCM_SERVICE_URL")
+    )
+
+    int_inventory_service_url: str = Field(
+        default="http://interno-inventory-dev:8000",
+        validation_alias=AliasChoices("CORE_INVENTORY_SERVICE_URL", "INVENTORY_SERVICE_URL")
+    )
+
+    int_gateway_url: str = Field(
+        default="http://interno-gateway-dev:8000",
+        validation_alias=AliasChoices("CORE_GATEWAY_URL", "GATEWAY_URL")
+    )
+
+    int_tickets_service_url: str = Field(
+        default="http://interno-tickets-dev:8000",
+        validation_alias=AliasChoices("CORE_TICKETS_SERVICE_URL", "TICKETS_SERVICE_URL")
+    )
+
     @property
     def ASYNC_DATABASE_URL(self) -> str:
         if self.DATABASE_URL.startswith("postgresql://"):

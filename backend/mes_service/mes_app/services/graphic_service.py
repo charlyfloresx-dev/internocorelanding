@@ -40,7 +40,7 @@ from mes_app.models.standard_time import StandardTime
 from mes_app.core.config import settings
 
 logger = logging.getLogger(__name__)
-_HCM_BASE = "http://hcm-service:8000"
+_HCM_BASE = settings.int_hcm_service_url
 
 
 @dataclass

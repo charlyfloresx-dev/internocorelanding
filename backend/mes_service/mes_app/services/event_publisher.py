@@ -47,12 +47,7 @@ class EventPublisher:
             hashlib.sha256
         ).hexdigest()
 
-        # URL del servicio (usando localhost en el monolito unificado)
-        base_url = "http://localhost:8000" 
-        
-        # Si estamos en microservicios separados (Docker DNS)
-        if settings.int_environment == "production" and not settings.is_monolith:
-             base_url = "http://tickets-service:8000"
+        base_url = getattr(settings, "int_tickets_service_url", settings.int_gateway_url)
 
         try:
             async with httpx.AsyncClient() as client:

@@ -14,7 +14,7 @@ from mes_app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-_INVENTORY_BASE = "http://inventory-service:8000"
+_INVENTORY_BASE = settings.int_inventory_service_url
 
 MATERIAL_STATUS_PENDING = "PENDING_ISSUE"
 MATERIAL_STATUS_ISSUED  = "ISSUED"
