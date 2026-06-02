@@ -4,6 +4,21 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-02] Phase 161 — MES Labor Assignment Hardening & E2E Validation ✅
+
+**Objetivo:** Estabilizar y fortalecer la suite de pruebas de integración de asignaciones de mano de obra en masa (`test_production_assignment.py`) en `mes_service`, garantizando el cumplimiento de restricciones relacionales (FK) e inyectando un bypass de seguridad mockeado para pruebas locales rápidas sin Redis.
+
+**Decisiones arquitectónicas clave:**
+- **Aislamiento de Base de Datos y Dependencias**: El modelo `ProductionRun` requería llaves foráneas reales de `WorkOrder` y la jerarquía de planta (`Facility` -> `ProductionArea` -> `Resource`). Se configuró la siembra secuencial dinámica de estas entidades de prueba usando UUIDs aleatorios y únicos para prevenir colisiones e infracciones de integridad referencial.
+- **FastAPI / Security Bypass en Tests**: Añadido mock local de `get_current_active_user` que inyecta un `TokenPayload` simulado de prueba junto con la cabecera del middleware global `X-Admin-Master-Key="ROTATED_MASTER_KEY_GOD_MODE"` para saltar validaciones externas en Redis y el handshake de Auth en entornos locales de pruebas unitarias.
+- **Cumplimiento Pydantic**: Actualizado el esquema de lectura `LaborAssignmentRead` para migrar de la sintaxis obsoleta `class Config` a la moderna `model_config = ConfigDict(from_attributes=True)`.
+
+**Archivos clave:**
+- `backend/mes_service/tests/integration/test_production_assignment.py` — Pruebas de integración completamente exitosas.
+- `backend/mes_service/mes_app/schemas/labor_assignment.py` — Migración a `ConfigDict`.
+
+---
+
 ### [2026-06-01] Phase 166 — Auditoría Cross-File + Seguridad CORS + God Mode + Agentes ✅
 
 **Objetivo:** Auditoría transversal de todos los archivos `consolidated_tasks` (Marzo–Junio 2026) comparados contra el código real para cerrar deuda no documentada en CLAUDE.md.

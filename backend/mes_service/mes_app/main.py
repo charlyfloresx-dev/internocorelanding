@@ -1,6 +1,9 @@
 from mes_app.core.config import settings
 from common.security.cors_setup import setup_cors
-from mes_app.api.v1.endpoints import scan, dashboard, labor, downtime, work_order, sync, resource, shift, planning, production, standard_times
+from mes_app.api.v1.endpoints import (
+    scan, dashboard, labor, downtime, work_order, sync, resource,
+    shift, planning, production, standard_times, labor_assignment
+)
 from common.middleware import InternoCoreGlobalMiddleware
 from common.error_handlers import domain_exception_handler
 from common.exceptions import DomainException
@@ -34,6 +37,7 @@ app.add_middleware(InternoCoreGlobalMiddleware)
 app.include_router(scan.router, prefix=f"{settings.API_V1_STR}/mes", tags=["MES Scan"])
 app.include_router(dashboard.router, prefix=f"{settings.API_V1_STR}/mes/dashboard", tags=["MES Dashboard"])
 app.include_router(labor.router, prefix=f"{settings.API_V1_STR}/mes/labor", tags=["MES Labor"])
+app.include_router(labor_assignment.router, prefix=f"{settings.API_V1_STR}/mes/labor", tags=["MES Labor Assignments"])
 app.include_router(downtime.router, prefix=f"{settings.API_V1_STR}/mes/downtime", tags=["MES Downtime"])
 app.include_router(work_order.router, prefix=f"{settings.API_V1_STR}/mes/orders", tags=["MES Work Orders"])
 app.include_router(sync.router, prefix=f"{settings.API_V1_STR}/mes", tags=["MES Sync"])

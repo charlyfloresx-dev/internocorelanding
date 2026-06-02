@@ -22,8 +22,11 @@ class ProductionRun(MultiTenantBase):
     shift_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     
     date: Mapped[date] = mapped_column(Date, nullable=False)
-    leader_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    supervisor_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    leader_collaborator_id: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    supervisor_collaborator_id: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    leader_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    supervisor_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="SCHEDULED")
     planned_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     actual_quantity: Mapped[int] = mapped_column(Integer, default=0)
 

@@ -9,6 +9,7 @@ from mes_app.domain.repositories.interfaces import (
     IProductionRunRepository, IManufacturingLedgerRepository,
     IDowntimeRepository, ILaborRepository, IGoalRepository,
     IShiftRepository, IResourceRepository, IWMSClient, IWorkOrderRepository,
+    ILaborAllocationRepository,
 )
 from mes_app.domain.repositories.event_interfaces import (
     IProductionEventRepository, IProductionSessionRepository
@@ -19,12 +20,14 @@ from mes_app.infrastructure.repositories.sqlalchemy_repositories import (
     SQLAlchemyProductionRunRepository, SQLAlchemyManufacturingLedgerRepository,
     SQLAlchemyDowntimeRepository, SQLAlchemyLaborRepository, SQLAlchemyGoalRepository,
     SQLAlchemyShiftRepository, SQLAlchemyResourceRepository, SQLAlchemyWorkOrderRepository,
+    SQLAlchemyLaborAllocationRepository,
 )
 from mes_app.infrastructure.repositories.event_repositories import (
     SQLAlchemyProductionEventRepository, SQLAlchemyProductionSessionRepository
 )
 from mes_app.infrastructure.clients.wms_adapter import SQLAlchemyWMSClient
 from mes_app.infrastructure.clients.master_data_client import MasterDataClient
+from mes_app.infrastructure.clients.hcm_client import HCMClient
 
 async def get_current_company() -> uuid.UUID:
     ctx = request_context.get()
@@ -71,3 +74,9 @@ def get_work_order_repo(db: AsyncSession = Depends(get_db)) -> IWorkOrderReposit
 
 def get_master_data_client() -> MasterDataClient:
     return MasterDataClient()
+
+def get_hcm_client() -> HCMClient:
+    return HCMClient()
+
+def get_labor_allocation_repo(db: AsyncSession = Depends(get_db)) -> ILaborAllocationRepository:
+    return SQLAlchemyLaborAllocationRepository(db)

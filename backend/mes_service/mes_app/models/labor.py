@@ -26,6 +26,11 @@ class Labor(MultiTenantBase):
     clock_in: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     clock_out: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active_labor: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    collaborator_id: Mapped[Optional[uuid.UUID]] = mapped_column(nullable=True)
+    collaborator_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    assigned_plant: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_deviation: Mapped[bool] = mapped_column(Boolean, default=False)
     
     type_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("mes_labor_types.id"), nullable=True)
     labor_type: Mapped[Optional["LaborType"]] = relationship()
@@ -37,3 +42,11 @@ class Labor(MultiTenantBase):
     def transcurred_minutes(self) -> float:
         end = self.clock_out or datetime.now()
         return (end - self.clock_in).total_seconds() / 60
+
+    @property
+    def resource_result_id(self) -> uuid.UUID:
+        return self.production_run_id
+
+    @resource_result_id.setter
+    def resource_result_id(self, value: uuid.UUID) -> None:
+        self.production_run_id = value

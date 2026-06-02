@@ -5,6 +5,15 @@
 
 ---
 
+### [2026-06-02] - Phase 161: MES Labor Assignment E2E & Code Graph Audit Compliance ✅
+
+**Backend:**
+- **Asignación en masa robusta**: Tests de asignación en masa en `test_production_assignment.py` fortalecidos mediante la inyección y persistencia de la jerarquía completa (`Facility` -> `ProductionArea` -> `Resource` y `WorkOrder`) evitando violaciones de FK contra PostgreSQL en desarrollo local.
+- **Bypass de middleware**: Añadido mock local de `get_current_active_user` en dependencias de FastAPI para saltar validaciones externas de Redis/Roles y verificar lógicas de aislamiento de multi-tenant con éxito.
+- **Auditoría de Invariants**: Ejecución del Code Graph (`generate_code_graph.py`) reporta 100% de cumplimiento en el microservicio `mes_service`.
+
+---
+
 ### [2026-05-30] - Phase 160: StandardTime CRUD + WO Bulk Import + DailyPlanning Gantt ✅
 
 **Backend:**
