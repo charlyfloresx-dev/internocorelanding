@@ -5,6 +5,21 @@
 
 ---
 
+### [2026-06-02] - Phase 169 — Headcount Tracking & Labor Density ✅
+
+- **`models/labor.py`**: `LaborCategory` enum añadido (ACTIVE/TRANSFER/PERMIT/BREAK/OVERTIME). `LaborType.category` columna nueva.
+- **`models/hourly_labor_snapshot.py`** (NUEVO): `HourlyLaborSnapshot` — read model CQRS para densidad horaria O(1). `UniqueConstraint(resource_id, date, hour, company_id)`. Estado subdividido: `headcount_active`, `headcount_on_permit`, `headcount_transferred_in`, `headcount_transferred_out`, `total_labor_minutes`, `paid_hrs`, `gained_hrs`.
+- **`models/production_snapshot.py`**: Extendido con `employees_qty`, `paid_hrs_total`, `gained_hrs_total` para dashboard single-query.
+- **`services/labor_density_service.py`** (NUEVO): `LaborDensityService.materialize_range()` — roll-over fix: recalcula todas las horas afectadas por un intervalo de labor (p.ej. 06:15–09:30 → snapshots de horas 6, 7, 8, 9). `gained_hrs` NO se modifica aquí; es responsabilidad de eventos de producción.
+- **`api/v1/endpoints/labor.py`**: Integrado `LaborDensityService` en clock_in/clock_out. Endpoints nuevos:
+  - `POST /mes/labor/transfer` — traslado atómico: valida destino ANTES de mutar origen (Orphan Transfer rule), cierra Labor origen, abre Labor destino con `category=TRANSFER`, materializa snapshots de ambos recursos.
+  - `GET /mes/labor/headcount/{resource_id}` — foto actual con estado subdividido + lista de colaboradores por categoría.
+  - `GET /mes/labor/headcount-history/{resource_id}?date=` — serie temporal horaria desde `mes_hourly_labor_snapshots` (O(1)).
+- **`alembic/versions/013_labor_headcount.py`**: DDL para los 3 cambios anteriores.
+- **Invariantes respetados**: `company_id` del JWT; `MultiTenantBase` con UniqueConstraint incluyendo `company_id`; `datetime.now(timezone.utc)` (NAIVE_DATETIME fix).
+
+---
+
 ### [2026-06-02] - Phase 168 — PENDIENTE: Integración HCM→MES para is_deviation y Degraded Mode ⏳
 
 > **Contexto:** El mapa mental del sistema (audit 2026-06-02) identificó la integración HCM↔MES como un área con deuda documentada pero sin contrato explícito. Este entry recoge los invariantes arquitectónicos acordados.

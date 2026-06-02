@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from enum import Enum
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,12 +9,23 @@ from common.infrastructure.models.base import MultiTenantBase
 if TYPE_CHECKING:
     from .production_run import ProductionRun
 
+
+class LaborCategory(str, Enum):
+    """Macro-categoría de un registro de labor para time-slicing de headcount."""
+    ACTIVE   = "ACTIVE"    # Productivo — suma capacidad al recurso
+    TRANSFER = "TRANSFER"  # Trasladado — suma al recurso DESTINO, cierra en origen
+    PERMIT   = "PERMIT"    # Permiso autorizado — visible en desglose, no suma capacidad
+    BREAK    = "BREAK"     # Descanso programado — sub-estado temporal
+    OVERTIME = "OVERTIME"  # Tiempo extra — después del fin de turno
+
+
 class LaborType(MultiTenantBase):
     """Tipos de registros de labor (ej. Directo, Indirecto, Calidad)."""
     __tablename__ = "mes_labor_types"
 
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(250), nullable=True)
+    category: Mapped[str] = mapped_column(String(20), default=LaborCategory.ACTIVE.value, nullable=False)
 
 class Labor(MultiTenantBase):
     """Rastreo de personal en línea (Labor Tracking)."""

@@ -5,6 +5,9 @@ from sqlalchemy import Integer, ForeignKey, Date, Numeric, UniqueConstraint, Str
 from sqlalchemy.orm import Mapped, mapped_column
 from common.infrastructure.models.base import MultiTenantBase
 
+# Decimal default requires explicit instance, not a literal
+_ZERO = Decimal("0")
+
 class HourlyProductionSnapshot(MultiTenantBase):
     """Read Model: Event-driven hourly snapshot of production vs. goal."""
     __tablename__ = "mes_hourly_production_snapshots"
@@ -24,6 +27,11 @@ class HourlyProductionSnapshot(MultiTenantBase):
     
     # Pre-calculated efficiency (Actual / Goal)
     efficiency_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0.0)
-    
+
     # Store the item code for easy filtering on the dashboard without joins
     item_code: Mapped[str] = mapped_column(String(100), index=True)
+
+    # Labor fields — mirrored from HourlyLaborSnapshot for single-query dashboard
+    employees_qty: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    paid_hrs_total: Mapped[Decimal] = mapped_column(Numeric(8, 4), default=_ZERO, nullable=False)
+    gained_hrs_total: Mapped[Decimal] = mapped_column(Numeric(8, 4), default=_ZERO, nullable=False)

@@ -80,3 +80,7 @@ def get_hcm_client() -> HCMClient:
 
 def get_labor_allocation_repo(db: AsyncSession = Depends(get_db)) -> ILaborAllocationRepository:
     return SQLAlchemyLaborAllocationRepository(db)
+
+def get_labor_density_service() -> "LaborDensityService":
+    from mes_app.services.labor_density_service import LaborDensityService
+    return LaborDensityService()

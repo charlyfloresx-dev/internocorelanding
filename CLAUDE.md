@@ -482,6 +482,7 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**HARD_FK_CROSS_SERVICE — inventory_service/item_variant**~~ — ✅ RESUELTO Phase 165: tabla `inventory_item_variants` en `CROSS_DB_SHARED_TABLES` (copia independiente en inventory_db; SSOT en master_data_db es Phase 119 deuda arquitectónica separada). |
 | ~~ALTA~~ | ~~**CORS wildcard kiosk_service + asset_manager_service**~~ — ✅ RESUELTO Phase 166 (2026-06-01): `allow_origins=["*"]` → `setup_cors(app)` en ambos servicios. |
 | ~~ALTA~~ | ~~**God Mode timing attack**: `x_admin_key != master_key` (no constante-time)~~ — ✅ RESUELTO Phase 166 (2026-06-01): `hmac.compare_digest(x_admin_key, master_key)` en `auth_service/admin.py`. |
+| ~~ALTA~~ | ~~**MES** Headcount Tracking — `LaborCategory`, `HourlyLaborSnapshot`, `LaborDensityService`, endpoints headcount/transfer~~ — ✅ RESUELTO Phase 169 (2026-06-02): `013_labor_headcount.py`, roll-over fix, O(1) read model, estado subdividido, `POST /transfer` con Orphan Transfer rule. |
 | ALTA | **NAIVE_DATETIME_VIOLATION** (8 archivos): `auth_service/commands/*`, `inventory_service/api/endpoints/*`, `inventory_service/repositories/sqlalchemy_*`, `tickets_service/services/ticket_service.py`, `wms_service/repositories/__init__.py`. Fix: `datetime.utcnow()` → `datetime.now(timezone.utc)`. |
 | BAJA | Rate limit por-endpoint específico en WMS, MES, HCM, Subscription (global activo, faltan decoradores `@limiter.limit()` en mutaciones críticas) |
 | MEDIA | Precio según partner seleccionado en typeahead (PriceAgreement context en `GET /products/?q=`) |
@@ -495,7 +496,7 @@ python backend/scripts/generate_code_graph.py
 | BAJA | Self-Service Stripe Checkout para tenants UNPAID |
 | BAJA | **MES** `routing.py` vacío — `Rout` model sin implementar. FK `rout_id` en WorkOrder existe pero nullable |
 | BAJA | **MES** `RunMetricsSnapshot` incompleto — faltan: OE, TEP, FirstPassYield, OverTime, Improvement |
-| BAJA | **MES** `HourlyProductionSnapshot` incompleto — faltan: std_time_seconds, paid_hours, employees_qty, issues_count |
+| ~~BAJA~~ | ~~**MES** `HourlyProductionSnapshot` incompleto — faltan: paid_hours, employees_qty~~ — ✅ RESUELTO Phase 169: `employees_qty`, `paid_hrs_total`, `gained_hrs_total` añadidos. |
 | BAJA | **MES** `Tracking` incompleto — faltan: alias, target, comment, start/close/reject user_ids, reject_time |
 | BAJA | **MES** Endpoints faltantes: `GET /dashboard` OEE, bulk Excel (WO, Planning, StandardTimes) |
 | BAJA | **MES** Enums `WOType`/`ProdIssueType`/`IssueType` son PostgreSQL nativos — migrar a seeds en `master_data` tabla `enumerations` para hacerlos configurables por tenant |
