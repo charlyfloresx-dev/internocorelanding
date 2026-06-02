@@ -1,3 +1,35 @@
+# Tareas Consolidadas — 2026-06-02 (Phase 161 + Phase 167 + Phase 168 + Phase 169)
+
+---
+
+## Phase 169 — Headcount Tracking & Labor Density ✅
+
+| # | Tarea | Archivo | Resultado |
+|---|---|---|---|
+| 1 | `LaborCategory` enum (ACTIVE/TRANSFER/PERMIT/BREAK/OVERTIME) + `LaborType.category` | `models/labor.py` | ✅ |
+| 2 | `HourlyLaborSnapshot` read model CQRS con estado subdividido | `models/hourly_labor_snapshot.py` | ✅ |
+| 3 | Extender `HourlyProductionSnapshot` con `employees_qty`, `paid_hrs_total`, `gained_hrs_total` | `models/production_snapshot.py` | ✅ |
+| 4 | `LaborDensityService.materialize_range()` con roll-over fix (recalcula todas las horas del intervalo) | `services/labor_density_service.py` | ✅ |
+| 5 | Integrar `LaborDensityService` en `clock_in` y `clock_out` | `api/v1/endpoints/labor.py` | ✅ |
+| 6 | `POST /mes/labor/transfer` — atómico con Orphan Transfer rule (valida destino antes de mutar) | `api/v1/endpoints/labor.py` | ✅ |
+| 7 | `GET /mes/labor/headcount/{resource_id}` — foto actual subdividida | `api/v1/endpoints/labor.py` | ✅ |
+| 8 | `GET /mes/labor/headcount-history/{resource_id}?date=` — serie horaria O(1) | `api/v1/endpoints/labor.py` | ✅ |
+| 9 | Migración DDL `013_labor_headcount.py` | `alembic/versions/` | ✅ |
+| 10 | Registro `HourlyLaborSnapshot` en `models/__init__.py` + `get_labor_density_service` en `dependencies.py` | infra | ✅ |
+
+---
+
+## Phase 168 — Bulk Import Onboarding Wizard ✅
+
+| # | Tarea | Servicio | Resultado |
+|---|---|---|---|
+| 1 | `POST /api/v1/products/bulk` — UOM/categoría ILIKE, idempotente por SKU, siembra ProductPrice lista-1 | master_data | ✅ |
+| 2 | `POST /api/v1/partners/bulk` — mapeo rfc→tax_id, city→address, idempotente por code | master_data | ✅ |
+| 3 | `POST /api/v1/hcm/collaborators/bulk` — JSON (vs CSV /bulk-upload), resuelve depto ILIKE, hash RFID+PIN, upsert por internal_id | hcm_service | ✅ |
+| 4 | `onboarding.service.ts` — payload keys corregidas (products/partners/collaborators) | frontend | ✅ |
+
+---
+
 # Tareas Consolidadas — 2026-06-02 (Phase 161 + Phase 167)
 
 ## Completadas
