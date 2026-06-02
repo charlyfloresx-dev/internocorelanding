@@ -474,20 +474,23 @@ interface ScanFeedback {
               </div>
             }
 
-            <!-- Camera viewer (html5-qrcode mounts here) -->
-            @if (cameraActive()) {
-              <div class="mt-4 relative">
-                <div
-                  id="reader-monitor"
-                  class="w-full rounded-2xl overflow-hidden bg-black"
-                  style="aspect-ratio:1/1;max-height:280px"
-                ></div>
-                <!-- Scan line overlay -->
+            <!-- Camera viewer — always in DOM so html5-qrcode can mount without timing issues.
+                 Height collapses to 0 when not active (width stays 100% for correct measuring). -->
+            <div class="mt-4 relative overflow-hidden transition-all duration-300"
+                 [style.maxHeight]="cameraActive() ? '300px' : '0'"
+                 [style.marginTop]="cameraActive() ? '1rem' : '0'">
+              <div
+                id="reader-monitor"
+                class="w-full rounded-2xl overflow-hidden bg-black"
+                style="aspect-ratio:1/1"
+              ></div>
+              <!-- Scan line overlay -->
+              @if (cameraActive()) {
                 <div class="absolute inset-0 pointer-events-none border-2 border-primary rounded-2xl overflow-hidden">
                   <div class="absolute top-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_15px_rgba(0,229,255,0.8)] animate-scan-line"></div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           </div>
 
           <!-- Hourly density chart -->
@@ -778,9 +781,8 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   private async startCamera(): Promise<void> {
+    // reader-monitor is always in the DOM (not inside @if) so no render delay needed
     this.cameraActive.set(true);
-    // Let Angular render #reader-monitor before attaching html5-qrcode
-    await new Promise(r => setTimeout(r, 80));
     try {
       this.qrCode = new Html5Qrcode('reader-monitor');
       await this.qrCode.start(
