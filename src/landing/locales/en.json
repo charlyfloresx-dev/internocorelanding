@@ -11,18 +11,18 @@
     "stat_visibility": "Real Information"
   },
   "architect": {
-    "badge": "Technical Leadership",
-    "name": "Carlos Flores Montoya",
-    "bio": "Industrial process specialist with a track record at **SMK** and **Zodiac Aerospace**. My focus is on eliminating the lack of control that drains money from companies.",
-    "milestone_success_title": "Real Savings: -$4.8M in Materials",
-    "milestone_success_desc": "We managed to reduce material loss from $4.8 million to just $40k in two months through strict control of every part and quality process.",
-    "milestone_philosophy_title": "Work Philosophy",
-    "milestone_philosophy_desc": "We create fast and reliable tools that don't stop, ensuring that plant personnel don't waste time in the system.",
-    "skills_title": "Floor Experience",
-    "skill_mes": "Production Control and Downtime",
-    "skill_wms": "Inventory Management and Smart Fulfillment",
-    "skill_metrics": "Real Efficiency and Goal Compliance",
-    "skill_integration": "Machinery Connection and Industrial Screens"
+    "badge": "Senior MES Architect",
+    "name": "Carlos Javier Flores Montoya",
+    "bio": "Senior MES &amp; Digital Transformation Consultant specialized in <strong>medical and aerospace manufacturing plants with complex routing and full traceability</strong>. Proven track record at <strong>Safran Aerospace</strong>, <strong>DJO / Enovis</strong>, <strong>Outset Medical</strong> and <strong>SMK Electronics</strong> — AS9100, FDA Class II/III and ISO 9001 environments. Zero PowerPoint consultants; results measured in millions recovered.",
+    "milestone_safran_title": "Safran Aerospace — AS9100 Routing, 3 plants, 60+ stations",
+    "milestone_safran_desc": "Built the full MES from scratch (PHP + AngularJS + MS SQL) with step-by-step validated production routes, serial/lot/box traceability, Pull System with flexible cells, Andon on Raspberry Pi, and 80%+ reduction in sorting errors. WIP $4.8M → $40K in 60 days.",
+    "milestone_outset_title": "Medical Manufacturing — DJO/Enovis + Outset Medical (FDA)",
+    "milestone_outset_desc": "DJO/Enovis: sub-assembly mini-MES with per-station route validation, TaktTime/OEE dashboards in Power BI — eliminated stock-outs and overproduction. Outset Medical (Class III): Tulip + Python ETL rollout, operator efficiency analytics (300% vs 10% performers) and standard time recalibration.",
+    "skills_title": "Stack & Field",
+    "skill_mes": "MES with complex routing — Safran · DJO/Enovis · Outset Medical · .NET Core / Python",
+    "skill_trace": "FDA/AS9100 Traceability — Serial · Lot · Box · Per-station validation",
+    "skill_metrics": "OEE · TaktTime · WIP Analytics — Power BI + Python ETL",
+    "skill_andon": "Andon & IoT — Raspberry Pi · sensors · SMS alerts · 95%+ operator adoption"
   },
   "features": {
     "title": "Power for Your Business",
@@ -85,6 +85,7 @@
   },
   "footer": {
     "copy": "&copy; 2026 InternoCore Project. Designed by Carlos Flores Montoya.",
+    "home": "Home",
     "privacy": "Privacy",
     "terms": "Terms",
     "docs": "Help Center"
@@ -92,7 +93,12 @@
   "plans_page": {
     "badge": "Technical Comparison",
     "title": "Plans Architecture",
-    "desc": "From SME optimization to the technological sovereignty of large holdings. All prices in <strong>USD</strong>."
+    "desc": "From SME optimization to the technological sovereignty of large holdings. All prices in <strong>USD</strong>.",
+    "cta_badge": "Ready to start?",
+    "cta_title": "Digitize your plant. Measure the impact in weeks.",
+    "cta_desc": "Built by engineers with track records at Safran, DJO/Enovis and Outset Medical. Results measured in millions recovered.",
+    "cta_btn_primary": "Start Now",
+    "cta_btn_secondary": "Talk to the Architect"
   },
   "plans_table": {
     "feature": "Feature",
@@ -127,6 +133,12 @@
     "bk_daily": "Daily",
     "bk_freq": "Every 6 hours",
     "bk_realtime": "Real-time",
+    "traceability": "Traceability",
+    "trace_serial": "Serial / Lot",
+    "trace_full": "Serial · Lot · Box · Full Route",
+    "routing": "Route Validation",
+    "routing_basic": "Simple Routes",
+    "routing_full": "Complex Routes AS9100 / FDA",
     "evidence": "Ticket Evidence",
     "ev_none": "Text Only (No files)",
     "ev_multi": "Photos & Videos",

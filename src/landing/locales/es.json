@@ -11,18 +11,18 @@
     "stat_visibility": "Información Real"
   },
   "architect": {
-    "badge": "Liderazgo Técnico",
-    "name": "Carlos Flores Montoya",
-    "bio": "Especialista en procesos industriales con trayectoria en **SMK** y **Zodiac Aerospace**. Mi enfoque es eliminar la falta de control que drena el dinero de las empresas.",
-    "milestone_success_title": "Ahorro Real: -$4.8M en Materiales",
-    "milestone_success_desc": "Logramos reducir la pérdida de material de $4.8 millones a solo $40k en dos meses mediante un control estricto de cada pieza y proceso de calidad.",
-    "milestone_philosophy_title": "Filosofía de Trabajo",
-    "milestone_philosophy_desc": "Creamos herramientas rápidas y confiables que no se detienen, garantizando que el personal de planta no pierda tiempo en el sistema.",
-    "skills_title": "Experiencia en el Piso",
-    "skill_mes": "Control de Producción y Tiempos Muertos",
-    "skill_wms": "Gestión de Almacenes y Surtido Inteligente",
-    "skill_metrics": "Eficiencia Real y Cumplimiento de Metas",
-    "skill_integration": "Conexión de Maquinaria y Pantallas Industriales"
+    "badge": "Senior MES Architect",
+    "name": "Carlos Javier Flores Montoya",
+    "bio": "Senior MES &amp; Digital Transformation Consultant especializado en <strong>plantas de manufactura médica y aeroespacial con rutas complejas y trazabilidad total</strong>. Trayectoria comprobada en <strong>Safran Aerospace</strong>, <strong>DJO / Enovis</strong>, <strong>Outset Medical</strong> y <strong>SMK Electronics</strong> — entornos AS9100, FDA Clase II/III e ISO 9001. Cero consultores de PowerPoint; solo resultados medidos en millones recuperados.",
+    "milestone_safran_title": "Safran Aerospace — Rutas AS9100, 3 plantas, 60+ estaciones",
+    "milestone_safran_desc": "MES desde cero (PHP + AngularJS + MS SQL) con rutas de producción validadas paso a paso, trazabilidad serial/lote/caja, Pull System con celdas flexibles, Andon con Raspberry Pi y reducción del 80%+ en errores de sorting. WIP $4.8M → $40K en 60 días.",
+    "milestone_outset_title": "Manufactura Médica — DJO/Enovis + Outset Medical (FDA)",
+    "milestone_outset_desc": "DJO/Enovis: mini-MES de sub-ensamble con validación por estación, dashboards de TaktTime/OEE en Power BI — eliminó stock-outs y sobreproducción. Outset Medical (Clase III): rollout de Tulip + ETL Python, analytics de eficiencia por operador (300% vs 10% rendimiento) y recalibración de tiempos estándar.",
+    "skills_title": "Stack & Campo",
+    "skill_mes": "MES con rutas complejas — Safran · DJO/Enovis · Outset Medical · .NET Core / Python",
+    "skill_trace": "Trazabilidad FDA/AS9100 — Serial · Lote · Caja · Validación por estación",
+    "skill_metrics": "OEE · TaktTime · WIP Analytics — Power BI + Python ETL",
+    "skill_andon": "Andon & IoT — Raspberry Pi · sensores · alertas SMS · 95%+ adopción de operadores"
   },
   "features": {
     "title": "Potencia para tu Negocio",
@@ -85,6 +85,7 @@
   },
   "footer": {
     "copy": "&copy; 2026 InternoCore Project. Diseñado por Carlos Flores Montoya.",
+    "home": "Inicio",
     "privacy": "Privacidad",
     "terms": "Términos",
     "docs": "Centro de Ayuda"
@@ -92,7 +93,12 @@
   "plans_page": {
     "badge": "Comparativa Técnica",
     "title": "Arquitectura de Planes",
-    "desc": "Desde la optimización de pymes hasta la soberanía tecnológica de grandes holdings. Todos los precios en <strong>USD</strong>."
+    "desc": "Desde la optimización de pymes hasta la soberanía tecnológica de grandes holdings. Todos los precios en <strong>USD</strong>.",
+    "cta_badge": "¿Listo para empezar?",
+    "cta_title": "Digitaliza tu planta. Mide el impacto en semanas.",
+    "cta_desc": "Construido por ingenieros con trayectoria en Safran, DJO/Enovis y Outset Medical. Resultados medidos en millones recuperados.",
+    "cta_btn_primary": "Comenzar Ahora",
+    "cta_btn_secondary": "Hablar con el Arquitecto"
   },
   "plans_table": {
     "feature": "Característica",
@@ -127,6 +133,12 @@
     "bk_daily": "Diarios",
     "bk_freq": "Cada 6 horas",
     "bk_realtime": "Tiempo Real",
+    "traceability": "Trazabilidad",
+    "trace_serial": "Serial / Lote",
+    "trace_full": "Serial · Lote · Caja · Ruta Completa",
+    "routing": "Validación de Rutas",
+    "routing_basic": "Rutas Simples",
+    "routing_full": "Rutas Complejas AS9100 / FDA",
     "evidence": "Evidencias en Tickets",
     "ev_none": "Solo Texto (Sin archivos)",
     "ev_multi": "Fotos y Videos",

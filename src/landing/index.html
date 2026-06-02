@@ -11,16 +11,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
+    <div id="scroll-progress"></div>
+
+    <nav class="navbar" id="navbar">
         <div class="container">
             <a href="#" class="logo">
-                <svg viewBox="0 0 100 100" class="logo-icon" style="width: 40px; height: 40px;">
+                <svg viewBox="0 0 100 100" class="logo-icon">
                     <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="currentColor" stroke-width="8"/>
                     <path d="M40 40 L60 40 L60 60 L40 60 Z" fill="currentColor"/>
                 </svg>
                 <span>Interno<span>Core</span></span>
             </a>
-            <div class="nav-links">
+            <div class="nav-links" id="navLinks">
                 <a href="#features" data-i18n="features.title">Módulos</a>
                 <a href="#architect" data-i18n="architect.name">Arquitecto</a>
                 <a href="#pricing" data-i18n="pricing.title">Precios</a>
@@ -28,30 +30,38 @@
                     <button class="lang-btn" data-lang="es" onclick="switchLanguage('es')">ES</button>
                     <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">EN</button>
                 </div>
-                <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Explorar Demo</a>
+                <a href="http://localhost:4200" class="btn-primary nav-cta" data-i18n="hero.btn_demo">Explorar Demo</a>
             </div>
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
 
+    <!-- ═══════════════════ HERO ═══════════════════ -->
     <header class="hero">
+        <div class="hero-bg-grid"></div>
         <div class="container">
             <div class="hero-content">
                 <div class="badge" data-i18n="hero.badge">Engineered by Charly Flores</div>
-                <h1><span data-i18n="hero.title">De la Planta al Código: </span><span class="gradient-text" data-i18n="hero.title_gradient">Backbone Industrial</span></h1>
+                <h1>
+                    <span data-i18n="hero.title">De la Planta al Código: </span>
+                    <span class="gradient-text" data-i18n="hero.title_gradient">Backbone Industrial</span>
+                </h1>
                 <p class="lead" data-i18n="hero.lead">
                     Construido por ingenieros que han gestionado millones en materiales. InternoCore no es solo software; es la consolidación de 3+ años resolviendo el caos operativo en industrias de alto volumen y aeroespacial.
                 </p>
                 <div class="hero-btns">
-                    <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Explorar Demo</a>
+                    <a href="http://localhost:4200" class="btn-primary shimmer-btn" data-i18n="hero.btn_demo">Explorar Demo</a>
                     <a href="#architect" class="btn-secondary" data-i18n="hero.btn_architect">Conocer al Arquitecto</a>
                 </div>
                 <div class="hero-stats">
                     <div class="stat-item">
-                        <strong>-$4.76M</strong>
+                        <strong class="counter" data-from="0" data-to="4.76" data-prefix="-$" data-suffix="M">-$4.76M</strong>
                         <span data-i18n="hero.stat_reduction">Reducción de Merma</span>
                     </div>
                     <div class="stat-item">
-                        <strong>100%</strong>
+                        <strong class="counter" data-from="0" data-to="100" data-suffix="%">100%</strong>
                         <span data-i18n="hero.stat_traceability">Trazabilidad Serial</span>
                     </div>
                     <div class="stat-item">
@@ -60,50 +70,132 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Dashboard Mockup -->
             <div class="hero-visual">
-                <div class="glass-card">
-                    <img src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=1200" alt="Carlos Flores Industrial Design">
+                <div class="dashboard-mockup">
+                    <div class="db-header">
+                        <div class="db-dots"><span></span><span></span><span></span></div>
+                        <span class="db-title">InternoCore · Producción</span>
+                        <span class="db-live"><i class="fas fa-circle"></i> LIVE</span>
+                    </div>
+                    <div class="db-body">
+                        <div class="db-kpis">
+                            <div class="kpi-card">
+                                <span class="kpi-val" id="kpi-oee">87.3%</span>
+                                <span class="kpi-label">OEE Score</span>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-val" id="kpi-wip">1,247</span>
+                                <span class="kpi-label">WIP Activo</span>
+                            </div>
+                            <div class="kpi-card kpi-accent">
+                                <span class="kpi-val green">-$4.76M</span>
+                                <span class="kpi-label">Merma Prevenida</span>
+                            </div>
+                        </div>
+                        <div class="db-bars">
+                            <div class="db-bar-row">
+                                <span class="bar-label">Línea 1</span>
+                                <div class="db-bar-track"><div class="db-bar-fill" style="--w:92%"></div></div>
+                                <span class="bar-pct">92%</span>
+                            </div>
+                            <div class="db-bar-row">
+                                <span class="bar-label">Línea 3</span>
+                                <div class="db-bar-track"><div class="db-bar-fill" style="--w:78%"></div></div>
+                                <span class="bar-pct">78%</span>
+                            </div>
+                            <div class="db-bar-row">
+                                <span class="bar-label">Ensamble</span>
+                                <div class="db-bar-track"><div class="db-bar-fill alert-bar" style="--w:45%"></div></div>
+                                <span class="bar-pct red">45%</span>
+                            </div>
+                        </div>
+                        <div class="db-feed" id="heroFeed">
+                            <div class="feed-line ok"><i class="fas fa-check-circle"></i> RFID · Charly Flores · Línea 4</div>
+                            <div class="feed-line"><i class="fas fa-sync-alt fa-spin"></i> WO-2026-1891 · PROCESANDO</div>
+                            <div class="feed-line alert"><i class="fas fa-exclamation-triangle"></i> ANDON · Tiempo muerto · 00:03</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </header>
 
+    <!-- ═══════════════════ TECH STACK BAR ═══════════════════ -->
+    <section class="tech-bar">
+        <div class="container">
+            <span class="tech-label">Powered by</span>
+            <div class="tech-logos">
+                <div class="tech-item"><i class="fab fa-python"></i><span>FastAPI</span></div>
+                <span class="tech-sep">·</span>
+                <div class="tech-item"><i class="fab fa-angular"></i><span>Angular 19</span></div>
+                <span class="tech-sep">·</span>
+                <div class="tech-item"><i class="fas fa-database"></i><span>PostgreSQL</span></div>
+                <span class="tech-sep">·</span>
+                <div class="tech-item"><i class="fab fa-docker"></i><span>Docker</span></div>
+                <span class="tech-sep">·</span>
+                <div class="tech-item"><i class="fas fa-mobile-alt"></i><span>Flutter</span></div>
+                <span class="tech-sep">·</span>
+                <div class="tech-item"><i class="fas fa-bolt"></i><span>Redis</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ ARCHITECT ═══════════════════ -->
     <section id="architect" class="architect-section">
         <div class="container">
             <div class="architect-grid">
                 <div class="architect-info">
-                    <div class="badge" data-i18n="architect.badge">Master Architect</div>
-                    <h2 data-i18n="architect.name">Carlos Flores Montoya</h2>
+                    <div class="badge" data-i18n="architect.badge">Senior MES Architect</div>
+                    <h2 data-i18n="architect.name">Carlos Javier Flores Montoya</h2>
                     <p class="bio" data-i18n="architect.bio">
-                        Especialista en Sistemas de Información Industrial con un historial probado en **SMK** y **Zodiac Aerospace**. Mi misión es erradicar la incoherencia de datos que drena la rentabilidad de las plantas.
+                        Senior MES &amp; Digital Transformation Consultant especializado en <strong>plantas de manufactura médica y aeroespacial con rutas complejas y trazabilidad total</strong>. Trayectoria en <strong>Safran Aerospace</strong>, <strong>DJO / Enovis</strong>, <strong>Outset Medical</strong> y <strong>SMK Electronics</strong> — AS9100, FDA Clase II/III e ISO 9001.
                     </p>
                     <div class="milestones">
                         <div class="milestone">
-                            <h4 data-i18n="architect.milestone_success_title">Caso de Éxito: -$4.8M en Materiales</h4>
-                            <p data-i18n="architect.milestone_success_desc">Desarrollé un sistema MES de trazabilidad serial que redujo la pérdida de material de $4.8 millones a solo $40k en dos meses mediante el control estricto de WIP y rutas de calidad.</p>
+                            <h4 data-i18n="architect.milestone_safran_title">Safran Aerospace — Rutas AS9100, 3 plantas, 60+ estaciones</h4>
+                            <p data-i18n="architect.milestone_safran_desc">MES desde cero con rutas de producción validadas paso a paso, trazabilidad serial/lote/caja, Pull System, Andon con Raspberry Pi y 80%+ reducción en errores de sorting. WIP $4.8M → $40K en 60 días.</p>
                         </div>
                         <div class="milestone">
-                            <h4 data-i18n="architect.milestone_philosophy_title">Filosofía de Desarrollo</h4>
-                            <p data-i18n="architect.milestone_philosophy_desc">Arquitecturas eficientes (.NET Core / Python) que corren al nivel del Kernel para garantizar latencia cero en escaneos masivos de RFID/PIN.</p>
+                            <h4 data-i18n="architect.milestone_outset_title">Manufactura Médica — DJO/Enovis + Outset Medical (FDA)</h4>
+                            <p data-i18n="architect.milestone_outset_desc">DJO/Enovis: mini-MES con validación por estación, dashboards TaktTime/OEE — eliminó stock-outs. Outset Medical Clase III: Tulip + ETL Python, analytics de eficiencia por operador (300% vs 10%) y recalibración de tiempos estándar.</p>
                         </div>
+                    </div>
+                    <div class="architect-links">
+                        <a href="https://www.linkedin.com/in/cjfloresmontoya" target="_blank" rel="noopener" class="arch-link">
+                            <i class="fab fa-linkedin"></i> linkedin.com/in/cjfloresmontoya
+                        </a>
+                        <a href="mailto:flores.montoya.carlos@gmail.com" class="arch-link">
+                            <i class="fas fa-envelope"></i> flores.montoya.carlos@gmail.com
+                        </a>
                     </div>
                 </div>
                 <div class="architect-skills">
-                    <h3 data-i18n="architect.skills_title">Experiencia de Campo</h3>
+                    <h3 data-i18n="architect.skills_title">Stack &amp; Campo</h3>
                     <ul class="skill-list">
-                        <li><i class="fas fa-microchip"></i> <span data-i18n="architect.skill_mes">Sistemas MES (Conteo, Tiempo Muerto, Labor)</span></li>
-                        <li><i class="fas fa-boxes-packing"></i> <span data-i18n="architect.skill_wms">WMS & Pull Systems (Supermercados, FIFO)</span></li>
-                        <li><i class="fas fa-chart-line"></i> <span data-i18n="architect.skill_metrics">Métricas OEE, TakTimes y FirstPastYield</span></li>
-                        <li><i class="fas fa-network-wired"></i> <span data-i18n="architect.skill_integration">Integración PLC, ANDON & Raspberry PI</span></li>
+                        <li><i class="fas fa-microchip"></i> <span data-i18n="architect.skill_mes">MES desde cero — Safran · Outset (Tulip) · Enovis · .NET Core / Python</span></li>
+                        <li><i class="fas fa-fingerprint"></i> <span data-i18n="architect.skill_trace">Trazabilidad Serial/Lote/Caja — FDA Clase III · AS9100 · ISO 9001</span></li>
+                        <li><i class="fas fa-chart-line"></i> <span data-i18n="architect.skill_metrics">OEE · TaktTime · WIP Analytics — Power BI + Python ETL</span></li>
+                        <li><i class="fas fa-broadcast-tower"></i> <span data-i18n="architect.skill_andon">Andon &amp; IoT — Raspberry Pi · sensores · alertas SMS en tiempo real</span></li>
                     </ul>
+                    <div class="cert-row">
+                        <span class="cert-badge">Tulip Certified</span>
+                        <span class="cert-badge">Lean Six Sigma</span>
+                        <span class="cert-badge">AS9100</span>
+                        <span class="cert-badge">ISO 9001</span>
+                        <span class="cert-badge">ITT Ciencias Computacionales</span>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- ═══════════════════ FEATURES ═══════════════════ -->
     <section id="features" class="features">
         <div class="container">
             <div class="section-header">
+                <div class="badge">Módulos</div>
                 <h2 data-i18n="features.title">Potencia Operativa</h2>
                 <p data-i18n="features.subtitle">Módulos diseñados bajo fuego real para orquestar cada átomo de tu empresa.</p>
             </div>
@@ -111,74 +203,93 @@
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-microchip"></i></div>
                     <h3 data-i18n="features.mes_title">MES Engine</h3>
-                    <p data-i18n="features.mes_desc">Control de piso en tiempo real, gestión de órdenes de trabajo (ABC) y monitoreo de eficiencia OEE heredado de sistemas aeroespaciales.</p>
+                    <p data-i18n="features.mes_desc">Control de piso en tiempo real, gestión de órdenes de trabajo y monitoreo OEE heredado de sistemas aeroespaciales.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-boxes-stacked"></i></div>
                     <h3 data-i18n="features.wms_title">WMS Logistics</h3>
-                    <p data-i18n="features.wms_desc">Gestión de almacenes con precisión milimétrica, control de densidad (Density Guard) y Pull System automatizado.</p>
+                    <p data-i18n="features.wms_desc">Gestión de almacenes con precisión milimétrica, Density Guard y Pull System automatizado.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-tools"></i></div>
                     <h3 data-i18n="features.cmms_title">CMMS Assets</h3>
-                    <p data-i18n="features.cmms_desc">Mantenimiento preventivo, gestión de herramientas (ToolCrips) y ciclo de vida de activos con trazabilidad forense.</p>
+                    <p data-i18n="features.cmms_desc">Mantenimiento preventivo y ciclo de vida de activos con trazabilidad forense completa.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-id-card-clip"></i></div>
                     <h3 data-i18n="features.hcm_title">HCM Identity</h3>
-                    <p data-i18n="features.hcm_desc">Vínculo SSOT entre identidades administrativas y colaboradores de planta con autenticación física PIN/RFID sincronizada con sistemas TRESS.</p>
+                    <p data-i18n="features.hcm_desc">Vínculo SSOT entre identidades administrativas y colaboradores de planta con autenticación física PIN/RFID.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-shield-halved"></i></div>
                     <h3 data-i18n="features.auth_title">Auth & Security</h3>
-                    <p data-i18n="features.auth_desc">Gestión de accesos Zero-Trust, RBAC avanzado y rotación de tokens (RTR) con validaciones de entrenamiento operativo.</p>
+                    <p data-i18n="features.auth_desc">Zero-Trust, RBAC avanzado y rotación de tokens RTR con validaciones de entrenamiento operativo.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-database"></i></div>
                     <h3 data-i18n="features.master_title">Master Data</h3>
-                    <p data-i18n="features.master_desc">Fuente única de verdad (SSOT) para catálogos globales, eliminando la duplicidad de información entre múltiples plantas.</p>
+                    <p data-i18n="features.master_desc">Fuente única de verdad SSOT para catálogos globales, eliminando duplicidad entre múltiples plantas.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-credit-card"></i></div>
                     <h3 data-i18n="features.sub_title">Subscription</h3>
-                    <p data-i18n="features.sub_desc">Motor de billing SaaS sincronizado con Stripe, protegiendo la rentabilidad del sistema con bloqueos reactivos de seguridad L7.</p>
+                    <p data-i18n="features.sub_desc">Motor de billing SaaS con Stripe y bloqueos reactivos de seguridad L7.</p>
                 </div>
                 <div class="feature-card">
                     <div class="icon"><i class="fas fa-bell"></i></div>
                     <h3 data-i18n="features.notif_title">Notifications</h3>
-                    <p data-i18n="features.notif_desc">Sistemas ANDON modernos vía WhatsApp Business, SMS y pantallas industriales para escalación de tiempos muertos.</p>
+                    <p data-i18n="features.notif_desc">ANDON moderno vía WhatsApp Business, SMS y pantallas industriales para escalación de tiempos muertos.</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- ═══════════════════ SECURITY ═══════════════════ -->
     <section id="security" class="security">
         <div class="container">
             <div class="security-split">
                 <div class="security-text">
                     <div class="badge" data-i18n="security.badge">Cero Brechas</div>
                     <h2 data-i18n="security.title">Muro de Hierro: Trazabilidad Forense</h2>
-                    <p data-i18n="security.desc">Cada acción en InternoCore deja una huella inmutable. Aplicamos validaciones de "Hoja de Ruta" (Routing) para evitar que una pieza se procese si el paso anterior no fue validado.</p>
+                    <p data-i18n="security.desc">Cada acción en InternoCore deja una huella inmutable. Aplicamos validaciones de Routing para evitar que una pieza se procese si el paso anterior no fue validado.</p>
                     <ul class="security-list">
                         <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_audit">Auditoría de Transacciones en O(1)</span></li>
-                        <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_routing">Bloqueo de Rutas Invalidas (Routing Control)</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_routing">Bloqueo de Rutas Inválidas (Routing Control)</span></li>
                         <li><i class="fas fa-check-circle"></i> <span data-i18n="security.list_auth">Autenticación Binacional RFID/PIN</span></li>
                     </ul>
                 </div>
                 <div class="security-visual">
-                    <div class="audit-stream">
-                        <div class="audit-line"><span>2026-05-05 12:45</span> <span>ROUTING_VALID</span> <span>STEP_WELDING</span></div>
-                        <div class="audit-line alert"><span>2026-05-05 12:47</span> <span>AUTH_REJECTED</span> <span>BAD_TRAINING</span></div>
-                        <div class="audit-line"><span>2026-05-05 12:50</span> <span>INVENTORY_MUTATED</span> <span>SKU_450</span></div>
+                    <div class="terminal-header">
+                        <div class="db-dots"><span></span><span></span><span></span></div>
+                        <span>audit.log — InternoCore</span>
+                    </div>
+                    <div class="audit-stream" id="auditStream">
+                        <div class="audit-line">
+                            <span class="audit-time">12:45:01</span>
+                            <span class="audit-tag ok">ROUTING_VALID</span>
+                            <span class="audit-ref">STEP_WELDING</span>
+                        </div>
+                        <div class="audit-line">
+                            <span class="audit-time">12:47:03</span>
+                            <span class="audit-tag alert-tag">AUTH_REJECTED</span>
+                            <span class="audit-ref">BAD_TRAINING</span>
+                        </div>
+                        <div class="audit-line">
+                            <span class="audit-time">12:50:18</span>
+                            <span class="audit-tag ok">INVENTORY_MUTATED</span>
+                            <span class="audit-ref">SKU_450</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- ═══════════════════ PRICING ═══════════════════ -->
     <section id="pricing" class="pricing">
         <div class="container">
             <div class="section-header">
+                <div class="badge">Pricing</div>
                 <h2 data-i18n="pricing.title">Escala tu Operación</h2>
                 <p data-i18n="pricing.subtitle">Planes diseñados por ingenieros industriales para ingenieros industriales.</p>
             </div>
@@ -236,6 +347,8 @@
         </div>
     </footer>
 
+    <!-- motion@latest — vanilla JS engine (framer-motion para HTML puro) -->
+    <script src="https://cdn.jsdelivr.net/npm/motion@latest/dist/motion.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

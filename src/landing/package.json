@@ -1,0 +1,13 @@
+{
+  "name": "internocore-landing",
+  "version": "2.0.0",
+  "description": "InternoCore Landing Page — Industrial SaaS",
+  "scripts": {
+    "dev": "npx live-server --port=3100 --open=index.html",
+    "start": "python -m http.server 3100"
+  },
+  "dependencies": {
+    "motion": "^11.0.0"
+  },
+  "notes": "motion loaded via CDN (cdn.jsdelivr.net/npm/motion@latest/dist/motion.js) — no build step required. framer-motion requires React; 'motion' is the vanilla-JS engine by the same Framer team."
+}

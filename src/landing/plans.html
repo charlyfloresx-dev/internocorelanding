@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalles de Planes | InternoCore Industrial</title>
+    <title>Planes | InternoCore Industrial</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
-<body class="plans-page">
-    <nav class="navbar">
+<body>
+    <div id="scroll-progress"></div>
+
+    <nav class="navbar" id="navbar">
         <div class="container">
             <a href="index.html" class="logo">
                 <svg viewBox="0 0 100 100" class="logo-icon">
@@ -18,40 +22,57 @@
                 </svg>
                 <span>Interno<span>Core</span></span>
             </a>
-            <div class="nav-links">
+            <div class="nav-links" id="navLinks">
                 <a href="index.html" data-i18n="footer.home">Inicio</a>
                 <a href="index.html#features" data-i18n="features.title">Módulos</a>
                 <a href="index.html#pricing" data-i18n="pricing.title">Precios</a>
                 <div class="lang-switcher">
-                    <button class="lang-btn active" data-lang="es">ES</button>
-                    <button class="lang-btn" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="es" onclick="switchLanguage('es')">ES</button>
+                    <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">EN</button>
                 </div>
-                <a href="http://localhost:4200" class="btn-primary" data-i18n="hero.btn_demo">Ir al Sistema</a>
+                <a href="http://localhost:4200" class="btn-primary nav-cta" data-i18n="hero.btn_demo">Ver Sistema</a>
             </div>
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
 
+    <!-- ═══════════════════ HEADER ═══════════════════ -->
     <header class="plans-header">
-        <div class="container">
+        <div class="hero-bg-grid" style="position:absolute;inset:0;pointer-events:none;"></div>
+        <div class="container" style="position:relative;z-index:1;">
             <div class="badge" data-i18n="plans_page.badge">Comparativa Técnica</div>
             <h1 data-i18n="plans_page.title">Arquitectura de Planes <span class="gradient-text">InternoCore</span></h1>
-            <p data-i18n="plans_page.desc">Desde la optimización de pymes hasta la soberanía tecnológica de grandes holdings. Todos los precios expresados en <strong>USD</strong>.</p>
+            <p data-i18n="plans_page.desc">Desde la optimización de pymes hasta la soberanía tecnológica de grandes holdings. Todos los precios en <strong>USD</strong>.</p>
         </div>
     </header>
 
-    <section class="plan-comparison">
+    <!-- ═══════════════════ TABLA COMPARATIVA ═══════════════════ -->
+    <section class="plan-comparison" style="padding: 4rem 0 6rem;">
         <div class="container">
             <div class="comparison-table-wrapper">
                 <table class="comparison-table">
                     <thead>
                         <tr>
                             <th data-i18n="plans_table.feature">Característica</th>
-                            <th data-i18n="pricing.plan_op_title">Plan Operativo</th>
-                            <th data-i18n="pricing.plan_ind_title">Plan Industrial</th>
-                            <th data-i18n="pricing.plan_ent_title">Full Enterprise</th>
+                            <th>
+                                <div data-i18n="pricing.plan_op_title">Plan Operativo</div>
+                                <div style="font-size:1.6rem;font-weight:800;margin-top:0.4rem;color:#fff;">$45<span style="font-size:0.85rem;font-weight:400;color:#8ea5bf;"> USD/mes</span></div>
+                            </th>
+                            <th style="background:rgba(0,229,255,0.04);">
+                                <div data-i18n="pricing.plan_ind_title">Plan Industrial</div>
+                                <div style="font-size:1.6rem;font-weight:800;margin-top:0.4rem;color:#fff;">$350<span style="font-size:0.85rem;font-weight:400;color:#8ea5bf;"> USD/mes</span></div>
+                                <div style="font-size:0.65rem;background:var(--primary);color:#000;padding:2px 8px;border-radius:50px;display:inline-block;margin-top:0.4rem;font-weight:800;letter-spacing:1px;" data-i18n="pricing.plan_ind_rec">Recomendado</div>
+                            </th>
+                            <th>
+                                <div data-i18n="pricing.plan_ent_title">Full Enterprise</div>
+                                <div style="font-size:1.6rem;font-weight:800;margin-top:0.4rem;color:#fff;">$550+<span style="font-size:0.85rem;font-weight:400;color:#8ea5bf;"> USD/mes</span></div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- Núcleo e Identidad -->
                         <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_core">Núcleo & Identidad</td></tr>
                         <tr>
                             <td data-i18n="plans_table.isolation">Aislamiento de Datos</td>
@@ -61,11 +82,18 @@
                         </tr>
                         <tr>
                             <td data-i18n="plans_table.auth">Acceso Seguro</td>
-                            <td>Usuario / Password</td>
-                            <td>+ Gafete RFID/PIN</td>
+                            <td>Usuario / Contraseña</td>
+                            <td>+ Gafete RFID / PIN</td>
                             <td>SSO / Corporativo</td>
                         </tr>
-                        
+                        <tr>
+                            <td data-i18n="plans_table.traceability">Trazabilidad</td>
+                            <td>—</td>
+                            <td data-i18n="plans_table.trace_serial">Serial / Lote</td>
+                            <td data-i18n="plans_table.trace_full">Serial · Lote · Caja · Ruta Completa</td>
+                        </tr>
+
+                        <!-- Inventarios & Almacén -->
                         <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_inv">Inventarios & Almacén</td></tr>
                         <tr>
                             <td data-i18n="plans_table.inv_control">Control de Inventarios</td>
@@ -86,12 +114,19 @@
                             <td data-i18n="plans_table.auto">Automatización Total</td>
                         </tr>
 
+                        <!-- Producción & Activos -->
                         <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_mfg">Producción & Activos</td></tr>
                         <tr>
                             <td data-i18n="plans_table.work_orders">Órdenes de Trabajo</td>
                             <td><i class="fas fa-times"></i></td>
                             <td data-i18n="plans_table.wo_mes">MES / Eficiencia OEE</td>
-                            <td data-i18n="plans_table.wo_global">Control Global</td>
+                            <td data-i18n="plans_table.wo_global">Control Global + Rutas</td>
+                        </tr>
+                        <tr>
+                            <td data-i18n="plans_table.routing">Validación de Rutas</td>
+                            <td><i class="fas fa-times"></i></td>
+                            <td data-i18n="plans_table.routing_basic">Rutas Simples</td>
+                            <td data-i18n="plans_table.routing_full">Rutas Complejas AS9100 / FDA</td>
                         </tr>
                         <tr>
                             <td data-i18n="plans_table.cmms">Mantenimiento (CMMS)</td>
@@ -100,12 +135,13 @@
                             <td data-i18n="plans_table.maint_ai">Predictivo Inteligente</td>
                         </tr>
 
+                        <!-- Soporte & Respuesta -->
                         <tr class="category-row"><td colspan="4" data-i18n="plans_table.cat_support">Soporte & Respuesta</td></tr>
                         <tr>
                             <td data-i18n="plans_table.resp_time">Tiempo de Respuesta</td>
-                            <td>24-48h</td>
-                            <td>< 4h (Prioritario)</td>
-                            <td>< 1h (VIP)</td>
+                            <td>24–48 h</td>
+                            <td>&lt; 4 h (Prioritario)</td>
+                            <td>&lt; 1 h (VIP)</td>
                         </tr>
                         <tr>
                             <td data-i18n="plans_table.backups">Respaldo de Datos</td>
@@ -115,7 +151,7 @@
                         </tr>
                         <tr>
                             <td data-i18n="plans_table.evidence">Evidencias en Tickets</td>
-                            <td data-i18n="plans_table.ev_none">Solo Texto (No multimedia)</td>
+                            <td data-i18n="plans_table.ev_none">Solo Texto</td>
                             <td data-i18n="plans_table.ev_multi">Fotos y Videos</td>
                             <td data-i18n="plans_table.ev_full">Multimedia + Archivos</td>
                         </tr>
@@ -125,13 +161,17 @@
         </div>
     </section>
 
+    <!-- ═══════════════════ CTA ═══════════════════ -->
     <section class="cta-section">
         <div class="container">
-            <h2>¿Listo para digitalizar tu planta?</h2>
-            <p>Únete a la nueva era de la manufactura inteligente construida por ingenieros de campo.</p>
+            <div class="badge" data-i18n="plans_page.cta_badge">¿Listo para empezar?</div>
+            <h2 data-i18n="plans_page.cta_title">Digitaliza tu planta. Mide el impacto en semanas.</h2>
+            <p style="color:var(--text-dim);max-width:560px;margin:0 auto 2rem;" data-i18n="plans_page.cta_desc">
+                Construido por ingenieros con trayectoria en Safran, DJO/Enovis y Outset Medical. Resultados medidos en millones recuperados.
+            </p>
             <div class="cta-btns">
-                <a href="http://localhost:4200/onboarding" class="btn-primary">Comenzar Ahora</a>
-                <a href="index.html#architect" class="btn-secondary">Hablar con Ingeniería</a>
+                <a href="http://localhost:4200/onboarding" class="btn-primary shimmer-btn" data-i18n="plans_page.cta_btn_primary">Comenzar Ahora</a>
+                <a href="index.html#architect" class="btn-secondary" data-i18n="plans_page.cta_btn_secondary">Hablar con el Arquitecto</a>
             </div>
         </div>
     </section>
@@ -142,11 +182,14 @@
                 <p data-i18n="footer.copy">&copy; 2026 InternoCore Project. Diseñado por Carlos Flores Montoya.</p>
                 <div class="footer-links">
                     <a href="index.html" data-i18n="footer.home">Inicio</a>
-                    <a href="../docs/DOCS_INTERNOCORE.html" data-i18n="footer.docs">Centro de Ayuda</a>
+                    <a href="#" data-i18n="footer.privacy">Privacidad</a>
+                    <a href="../docs/DOCS_INTERNOCORE.html" data-i18n="footer.docs">Documentación</a>
                 </div>
             </div>
         </div>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/motion@latest/dist/motion.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

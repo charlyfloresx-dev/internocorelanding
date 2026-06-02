@@ -1,4 +1,4 @@
-# Tareas — 2026-06-02 (Phase 161)
+# Tareas Consolidadas — 2026-06-02 (Phase 161 + Phase 167)
 
 ## Completadas
 
@@ -11,13 +11,51 @@
 | 5 | Ejecutar suite completa de integración de asignaciones (`test_production_assignment.py`) con 100% de éxito | mes_service | ✅ |
 | 6 | Sincronización de documentación y verificación del estado de cumplimiento del Code Graph del repositorio | docs | ✅ |
 
-## Pendientes carryover
+---
+
+## Phase 167 — Landing v2 + Onboarding Wizard ✅
+
+### Landing Page (`src/landing/`)
+- `index.html`: motion@latest CDN, dashboard mockup animado (KPIs live, barras OEE, feed RFID), tech stack bar (FastAPI/Angular/PostgreSQL/Docker/Flutter/Redis), mobile hamburger menu, scroll progress bar
+- `style.css`: grid bg hero, glassmorphism, shimmer CTA, terminal audit stream mejorado, responsive mobile nav, `.cert-badge`, `.arch-link`, `.dashboard-mockup`
+- `app.js`: Motion inView stagger (feature-cards, pricing, skills), counters animados (-$4.76M, 100%), live KPI ticker, typewriter audit stream (9 logs rotativos)
+- **Sección Architect**: datos reales del CV — Safran Aerospace, DJO/Enovis, Outset Medical, SMK Electronics. Énfasis en manufactura médica/aeroespacial con rutas complejas, trazabilidad FDA Clase II/III, AS9100, ISO 9001. LinkedIn + email reales.
+- `plans.html`: tabla con filas Trazabilidad + Validación Rutas AS9100/FDA, precios en headers de columna, mobile menu, motion CDN, CTA con i18n
+- `ticket-access.html`: eliminados `alert()`/`prompt()` → toast animado + formulario comentario inline con spinner; `escapeHtml()` XSS; grid bg; branding footer
+- `locales/es.json` + `en.json`: `footer.home`, `plans_page.cta_*`, `plans_table.traceability/routing`, `architect.*` con DJO/Enovis y énfasis médico/aeroespacial
+- `package.json`: documenta `motion@latest` como CDN dependency
+
+### Onboarding Angular (`frontend/`)
+- `onboarding.service.ts` (nuevo): API methods por paso + `downloadCsv` (UTF-8 BOM) + `parseCsv` robusto (maneja comillas)
+- `onboarding.component.ts` (reescrito completo): 8 pasos con Signals Angular 19
+  | Step | Contenido |
+  |---|---|
+  | 1 Empresa | nombre, RFC, sector, país, moneda, timezone, IVA, norma |
+  | 2 Plan | tarjetas Operativo $45 / Industrial $350 / Enterprise $550+ |
+  | 3 Catálogo | tags categorías + drag-drop CSV productos con preview 5 filas |
+  | 4 Partners | drag-drop CSV clientes/proveedores con preview |
+  | 5 Almacén | nombre, código, tipo (PHYSICAL/VIRTUAL/TRANSIT), dirección |
+  | 6 Personal | drag-drop CSV colaboradores con RFID/PIN con preview |
+  | 7 MES/Planta | facility + toggle Omitir + lista auto-creados (3 turnos, áreas) |
+  | 8 Alertas | email, IN-APP, WhatsApp/Twilio creds + toggle Omitir |
+- CSV templates inline con datos reales (Cojinete SKF 6205, maquiladora ACME, EMP001 Producción)
+- `CLAUDE.md`: deuda ALTA "Landing Onboarding" agregada
+
+## Pendientes activos
 
 | Prioridad | Item |
 |---|---|
-| ALTA | Resolver las 8 advertencias de `NAIVE_DATETIME_VIOLATION` en `auth_service`, `inventory_service`, `tickets_service` y `wms_service` detectadas por el Code Graph |
-| ALTA | **Phase 156 B.1**: `ResourceConfigComponent` Angular — CRUD visual de celdas/máquinas |
-| ALTA | **Phase 156 B.2**: `ShiftConfigComponent` Angular con ShiftBreak inline |
-| MEDIA | **Phase 156 D.1**: `WorkOrderFormComponent` + `DailyPlanningComponent` |
-| MEDIA | `Rout` model MES — BOM + Rutas de Producción |
-| MEDIA | Rate limit por endpoint en WMS, MES, HCM, Subscription |
+| ALTA | Landing Onboarding: validar wizard contra stack real + endpoints bulk backend (products/bulk, partners/bulk, hcm/collaborators/bulk) |
+| ALTA | POS checkout E2E: `flow_pos_checkout.py` listo, nunca ejecutado |
+| MEDIA | NAIVE_DATETIME 8 archivos (auth/inventory/tickets/wms) |
+| MEDIA | PriceAgreement typeahead `GET /products?q=` sin partner_id |
+| MEDIA | Mobile AVD Pixel 7 API 34 |
+| MEDIA | Domain purity RTR: `log_rotation_event()` retorna ORM model |
+| BAJA | @limiter.limit() por-endpoint WMS/MES/HCM/Subscription |
+| BAJA | RTR AWS WAF + observabilidad, GAP-5 ADR, GAP-6 |
+| BAJA | HCM JobPosition catálogo, WMS no desplegado, MES routing.py vacío |
+
+## Code Graph — 2026-06-02 Phase 167
+- **0 CRITICALs** ✅
+- 8 WARNINGs NAIVE_DATETIME (deuda conocida, sin impacto en prod actual)
+- Endpoints internos: tickets 400 (no 200) ✅ · subscription 403 ✅

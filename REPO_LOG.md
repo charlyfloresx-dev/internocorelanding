@@ -4,6 +4,31 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-02] Phase 167 — Landing v2 + Onboarding Wizard 8-Step (Angular) ✅
+
+**Objetivo:** Rediseñar completamente la landing page pública con `motion.js` (vanilla framer-motion engine) y construir el flujo de onboarding `/onboarding` en Angular 19 con 8 pasos y bulk import CSV individual por entidad.
+
+**Decisiones arquitectónicas clave:**
+- **motion@latest CDN**: `framer-motion` requiere React; se usa `motion` (mismo engine, Framer team) vía CDN que expone `window.Motion` — compatible con vanilla HTML sin build step.
+- **Dashboard Mockup animado**: El hero visual reemplaza el stock photo de Unsplash por un dashboard CSS/HTML animado (KPIs live, barras OEE, feed RFID) — más relevante y sin dependencia externa de imagen.
+- **CV real del arquitecto**: Sección Architect actualizada con datos reales del CV (Safran Aerospace, DJO/Enovis, Outset Medical, SMK Electronics). Énfasis en manufactura médica+aeroespacial con rutas complejas y trazabilidad FDA/AS9100.
+- **Onboarding 8 pasos con CSV**: Wizard secuencial (Auth→Subscription→Master Data→Inventory→HCM→MES→Notifications) con 3 pasos de bulk import CSV individual (productos, partners, colaboradores). CSV templates inline con datos industriales reales (SKF, maquiladora, etc.). Parser CSV robusto con soporte de campos entre comillas.
+- **ticket-access.html**: Eliminados `alert()`/`prompt()` — reemplazados por toast animado y formulario de comentario inline con estado de carga. Sanitización XSS via `escapeHtml()`.
+- **plans.html**: Tabla comparativa expandida con filas de Trazabilidad y Validación de Rutas AS9100/FDA. Precios visibles en headers de columna.
+- **Landing Onboarding** agregada a deuda técnica ALTA en CLAUDE.md.
+
+**Archivos clave:**
+- `src/landing/index.html`, `style.css`, `app.js` — Landing v2 con motion.js
+- `src/landing/plans.html`, `ticket-access.html` — Pages secundarias rediseñadas
+- `src/landing/locales/es.json`, `en.json` — i18n completo + nuevas claves
+- `src/landing/package.json` — Documenta dependencia motion@latest
+- `frontend/src/app/modules/auth/onboarding.component.ts` — Wizard 8 pasos completo
+- `frontend/src/app/core/services/onboarding.service.ts` — Nuevo servicio de onboarding
+
+**Code Graph:** 0 CRITICALs ✅ · 8 WARNINGs NAIVE_DATETIME (deuda preexistente)
+
+---
+
 ### [2026-06-02] Phase 161 — MES Labor Assignment Hardening & E2E Validation ✅
 
 **Objetivo:** Estabilizar y fortalecer la suite de pruebas de integración de asignaciones de mano de obra en masa (`test_production_assignment.py`) en `mes_service`, garantizando el cumplimiento de restricciones relacionales (FK) e inyectando un bypass de seguridad mockeado para pruebas locales rápidas sin Redis.

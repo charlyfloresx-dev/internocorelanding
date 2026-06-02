@@ -470,6 +470,7 @@ python backend/scripts/generate_code_graph.py
 | ~~ALTA~~ | ~~**HCM** Entidad `BreakGroup` con `capacity_per_slot`~~ — ✅ RESUELTO Phase 157 (2026-05-29): `hcm_break_groups` + `hcm_break_slots`, endpoints CRUD `/hcm/break-groups`, consumo HTTP en `ResourceGraphicService` |
 | ~~ALTA~~ | ~~**MES** `material_status` badge en `ResourceMonitorComponent`~~ — ✅ RESUELTO Phase 157 (2026-05-29): badge ámbar pulsante cuando WO activa tiene `material_status=PENDING_ISSUE` |
 | ALTA | **POS** Validar `POST /api/v1/pos/checkout` end-to-end — script `flow_pos_checkout.py` listo, bloqueado por `auth_service` en modificación activa |
+| ALTA | **Landing Onboarding** Completar flujo `http://localhost:4200/onboarding` — registro de nuevo tenant: selección de plan, datos de empresa, primer admin, Stripe checkout. Enlazado desde `plans.html` y `index.html#pricing`. |
 | ~~MEDIA~~ | ~~**MES** `StandardTime` CRUD endpoints + `StandardTimeFormComponent` (drawer en `/production/item-config`)~~ — ✅ RESUELTO Phase 160 (2026-05-30): endpoints GET/POST/PATCH/DELETE/bulk + tab "Tiempos Estándar" en MesItemConfigComponent |
 | ~~MEDIA~~ | ~~**MES** WO bulk import CSV — `WorkOrderBulkFormComponent`~~ — ✅ RESUELTO Phase 160 (2026-05-30): `POST /mes/orders/bulk` + drawer con CSV template |
 | ~~MEDIA~~ | ~~**MES** DailyPlanning mini Gantt — visualización Gantt horizontal por recurso/turno~~ — ✅ RESUELTO Phase 160 (2026-05-30): toggle cards/gantt, barras proporcionales a capacity*8h |

@@ -3,388 +3,647 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso a Ticket - InternoCore Portal de Proveedores</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>Acceso a Ticket | InternoCore Portal Proveedores</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --ic-surface-glass: rgba(15, 23, 42, 0.7);
-            --ic-border-glass: rgba(255, 255, 255, 0.1);
+            --primary:     #00e5ff;
+            --primary-dim: rgba(0,229,255,0.12);
+            --green:       #00ff88;
+            --red:         #ff5555;
+            --yellow:      #fbbf24;
+            --bg-dark:     #050b14;
+            --bg-card:     #091524;
+            --text-white:  #f0f6ff;
+            --text-dim:    #8ea5bf;
+            --glass-border: rgba(0,229,255,0.1);
         }
 
-        .access-container {
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-white);
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        .ticket-card {
-            background: var(--ic-surface-glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--ic-border-glass);
-            border-radius: 24px;
-            width: 100%;
-            max-width: 800px;
-            padding: 3rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        /* Grid bg */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+            background-size: 64px 64px;
+            pointer-events: none;
+            -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent);
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black, transparent);
         }
 
-        .ticket-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid var(--ic-border-glass);
-            padding-bottom: 1.5rem;
-        }
-
-        .ticket-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 99px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .badge-sla-ok { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-        .badge-sla-warning { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
-        .badge-sla-expired { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-
-        .ticket-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2rem;
-            color: white;
-            margin-bottom: 0.5rem;
-        }
-
-        .ticket-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .meta-label {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .meta-value {
-            color: white;
-            font-weight: 600;
-        }
-
-        .ticket-description {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1.5rem;
-            border-radius: 12px;
-            color: #cbd5e1;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-
-        .comment-section {
-            margin-top: 3rem;
-        }
-
-        .comment-item {
-            margin-bottom: 1.5rem;
-            padding-left: 1rem;
-            border-left: 2px solid var(--ic-cyan);
-        }
-
-        .comment-author {
-            font-weight: 700;
-            color: var(--ic-cyan);
-            font-size: 0.9rem;
-        }
-
-        .comment-date {
-            font-size: 0.8rem;
-            color: #64748b;
-            margin-left: 0.5rem;
-        }
-
-        .comment-body {
-            color: white;
-            margin-top: 0.25rem;
-        }
-
-        .action-area {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-        }
-
-        .btn-provider {
-            flex: 1;
-            padding: 1rem;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-decoration: none;
-        }
-
-        .btn-primary-ic {
-            background: var(--ic-cyan);
-            color: #0f172a;
-            border: none;
-        }
-
-        .btn-outline-ic {
-            background: transparent;
-            border: 1px solid var(--ic-border-glass);
-            color: white;
-        }
-
-        .btn-provider:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
-        }
-
+        /* ── Loading overlay ────────────── */
         #loading-overlay {
             position: fixed;
             inset: 0;
-            background: #0f172a;
+            background: var(--bg-dark);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 100;
             flex-direction: column;
             gap: 1.5rem;
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(34, 211, 238, 0.1);
-            border-top: 3px solid var(--ic-cyan);
+            width: 44px;
+            height: 44px;
+            border: 2px solid rgba(0,229,255,0.1);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.9s linear infinite;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .error-state {
-            text-align: center;
-            padding: 2rem;
+        .loading-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            text-transform: uppercase;
         }
 
-        .error-icon {
-            font-size: 4rem;
-            color: #f87171;
-            margin-bottom: 1.5rem;
+        /* ── Ticket card ────────────────── */
+        .ticket-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 820px;
+            padding: 2.5rem;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 60px rgba(0,229,255,0.05), 0 40px 80px rgba(0,0,0,0.6);
         }
+
+        /* ── Header ─────────────────────── */
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .ticket-ref {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+            margin-bottom: 0.35rem;
+        }
+
+        .ticket-title-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-white);
+            letter-spacing: -0.02em;
+        }
+
+        /* SLA badges */
+        .sla-badge {
+            padding: 0.35rem 1rem;
+            border-radius: 50px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .sla-ok       { background: rgba(0,255,136,0.1);  color: var(--green);  border: 1px solid rgba(0,255,136,0.25); }
+        .sla-warning  { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+        .sla-critical { background: rgba(255,85,85,0.12);  color: var(--red);    border: 1px solid rgba(255,85,85,0.3);  animation: pulse-red 2s infinite; }
+
+        @keyframes pulse-red { 0%,100%{ opacity:.9; } 50%{ opacity:1; filter:brightness(1.2); } }
+
+        /* ── Meta grid ──────────────────── */
+        .ticket-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .meta-item { display: flex; flex-direction: column; gap: 0.25rem; }
+
+        .meta-label {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+        }
+
+        .meta-value {
+            color: var(--text-white);
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        /* ── Description ────────────────── */
+        .ticket-description {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 1.25rem;
+            border-radius: 12px;
+            color: #cbd5e1;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+            font-size: 0.93rem;
+        }
+
+        /* ── Comments ───────────────────── */
+        .comment-section { margin-top: 2rem; }
+
+        .comment-section-title {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+        }
+
+        .comment-item {
+            margin-bottom: 1.2rem;
+            padding: 1rem 1.2rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            border-left: 2px solid var(--primary);
+        }
+
+        .comment-item-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .comment-author { font-weight: 700; color: var(--primary); font-size: 0.85rem; }
+        .comment-date   { font-size: 0.75rem; color: var(--text-dim); }
+        .comment-body   { color: #cbd5e1; font-size: 0.88rem; line-height: 1.6; }
+
+        /* ── Actions ────────────────────── */
+        .action-area {
+            display: flex;
+            gap: 0.9rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            flex: 1;
+            min-width: 160px;
+            padding: 0.85rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary-action {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .btn-primary-action:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,229,255,0.3); }
+
+        .btn-outline-action {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: var(--text-white);
+        }
+
+        .btn-outline-action:hover { background: rgba(255,255,255,0.08); border-color: var(--primary) !important; color: var(--primary); }
+
+        /* ── Comment form (inline) ──────── */
+        .comment-form {
+            display: none;
+            margin-top: 1.5rem;
+            background: rgba(0,229,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            animation: slide-down 0.25s ease-out;
+        }
+
+        @keyframes slide-down { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+        .comment-form.open { display: block; }
+
+        .comment-form textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+            color: var(--text-white);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.2s;
+        }
+
+        .comment-form textarea:focus {
+            outline: none;
+            border-color: rgba(0,229,255,0.3);
+        }
+
+        .comment-form textarea::placeholder { color: var(--text-dim); }
+
+        .comment-form-actions {
+            display: flex;
+            gap: 0.7rem;
+            margin-top: 0.9rem;
+        }
+
+        /* ── Toast notifications ────────── */
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 0.85rem 1.5rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            z-index: 200;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            white-space: nowrap;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+        }
+
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.success i { color: var(--green); }
+        #toast.error   i { color: var(--red); }
+
+        /* ── Error / branding ───────────── */
+        .error-state { text-align: center; padding: 2rem 1rem; }
+
+        .error-icon { font-size: 3.5rem; color: var(--red); margin-bottom: 1.5rem; }
+
+        .error-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            color: var(--red);
+            margin-bottom: 0.75rem;
+        }
+
+        .error-body { color: var(--text-dim); margin-bottom: 2rem; line-height: 1.7; font-size: 0.95rem; }
+
+        .branding-footer {
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .branding-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+        }
+
+        .branding-logo svg { width: 20px; height: 20px; color: var(--primary); }
+
+        .branding-logo strong { color: var(--text-white); font-family: 'Outfit', sans-serif; }
+
+        .branding-secure {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .branding-secure i { color: var(--primary); font-size: 0.65rem; }
     </style>
 </head>
 <body>
+
+    <!-- Loading overlay -->
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <p style="color: white; font-family: 'Inter', sans-serif; letter-spacing: 2px;">VERIFICANDO IDENTIDAD INDUSTRIAL...</p>
+        <p class="loading-label">Verificando identidad industrial...</p>
     </div>
 
-    <div class="access-container">
-        <!-- Ticket View (Hidden by default) -->
-        <div id="ticket-view" class="ticket-card" style="display: none;">
-            <div class="ticket-header">
-                <div>
-                    <h1 id="ticket-ref" class="meta-label" style="font-size: 1rem; color: var(--ic-cyan);">TICKET #...</h1>
-                    <h2 id="ticket-title" class="ticket-title">Cargando Título...</h2>
-                </div>
-                <div id="sla-badge" class="ticket-badge badge-sla-ok">
-                    SLA ACTIVO
-                </div>
-            </div>
+    <!-- Toast -->
+    <div id="toast"><i class="fas fa-check-circle"></i> <span id="toast-msg">OK</span></div>
 
-            <div class="ticket-meta">
-                <div class="meta-item">
-                    <span class="meta-label">Prioridad</span>
-                    <span id="ticket-priority" class="meta-value">---</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Tipo</span>
-                    <span id="ticket-type" class="meta-value">---</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Asignado el</span>
-                    <span id="ticket-assigned-at" class="meta-value">---</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">Vence en</span>
-                    <span id="ticket-expires-in" class="meta-value">---</span>
-                </div>
+    <!-- ── Ticket View ── -->
+    <div id="ticket-view" class="ticket-card" style="display:none;">
+        <div class="ticket-header">
+            <div>
+                <div id="ticket-ref" class="ticket-ref">TICKET #—</div>
+                <div id="ticket-title" class="ticket-title-text">Cargando…</div>
             </div>
+            <div id="sla-badge" class="sla-badge sla-ok">SLA ACTIVO</div>
+        </div>
 
-            <div class="meta-label" style="margin-bottom: 0.5rem;">Descripción del Problema</div>
-            <div id="ticket-description" class="ticket-description">
-                ...
+        <div class="ticket-meta">
+            <div class="meta-item">
+                <span class="meta-label">Prioridad</span>
+                <span id="ticket-priority" class="meta-value">—</span>
             </div>
-
-            <div class="comment-section">
-                <h3 class="meta-label" style="margin-bottom: 1.5rem;">Historial de Intervención</h3>
-                <div id="comments-container">
-                    <!-- Comments will be injected here -->
-                </div>
+            <div class="meta-item">
+                <span class="meta-label">Tipo</span>
+                <span id="ticket-type" class="meta-value">—</span>
             </div>
-
-            <div class="action-area">
-                <button class="btn-provider btn-primary-ic" onclick="openEvidenceModal()">
-                    <i class="fas fa-camera"></i> Subir Evidencia
-                </button>
-                <button class="btn-provider btn-outline-ic" onclick="addCommentPrompt()">
-                    <i class="fas fa-comment"></i> Agregar Nota
-                </button>
+            <div class="meta-item">
+                <span class="meta-label">Asignado</span>
+                <span id="ticket-assigned-at" class="meta-value">—</span>
             </div>
-            
-            <div style="margin-top: 2rem; text-align: center; color: #64748b; font-size: 0.8rem;">
-                <i class="fas fa-shield-alt"></i> Conexión Encriptada Industrial SSL-AES256
+            <div class="meta-item">
+                <span class="meta-label">Vence en</span>
+                <span id="ticket-expires-in" class="meta-value">—</span>
             </div>
         </div>
 
-        <!-- Error View (Hidden by default) -->
-        <div id="error-view" class="ticket-card error-state" style="display: none;">
-            <i class="fas fa-exclamation-triangle error-icon"></i>
-            <h2 id="error-title" class="ticket-title" style="color: #f87171;">Acceso Denegado</h2>
-            <p id="error-message" style="color: #94a3b8; margin: 1.5rem 0; line-height: 1.6;">
-                El token de acceso industrial ha expirado o no es válido. Los accesos para proveedores tienen una vigencia estricta de 72 horas por seguridad forense.
-            </p>
-            <a href="index.html" class="btn-provider btn-outline-ic" style="display: inline-flex; width: auto; padding: 1rem 2rem;">
-                Regresar al Portal
+        <div class="meta-label" style="margin-bottom:0.6rem;">Descripción del Problema</div>
+        <div id="ticket-description" class="ticket-description">—</div>
+
+        <div class="comment-section">
+            <div class="comment-section-title">Historial de Intervención</div>
+            <div id="comments-container"></div>
+        </div>
+
+        <!-- Inline comment form -->
+        <div id="comment-form" class="comment-form">
+            <textarea id="comment-input" placeholder="Ingrese su nota de servicio o actualización técnica…"></textarea>
+            <div class="comment-form-actions">
+                <button class="btn-action btn-primary-action" id="submit-comment-btn" onclick="submitComment()">
+                    <i class="fas fa-paper-plane"></i> Enviar Nota
+                </button>
+                <button class="btn-action btn-outline-action" onclick="toggleCommentForm(false)">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <button class="btn-action btn-primary-action" onclick="openEvidenceUpload()">
+                <i class="fas fa-camera"></i> Subir Evidencia
+            </button>
+            <button class="btn-action btn-outline-action" id="comment-toggle-btn" onclick="toggleCommentForm(true)">
+                <i class="fas fa-comment-dots"></i> Agregar Nota
+            </button>
+        </div>
+
+        <div class="branding-footer">
+            <a href="index.html" class="branding-logo">
+                <svg viewBox="0 0 100 100">
+                    <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="currentColor" stroke-width="8"/>
+                    <path d="M40 40 L60 40 L60 60 L40 60 Z" fill="currentColor"/>
+                </svg>
+                <strong>InternoCore</strong> Portal de Proveedores
             </a>
+            <span class="branding-secure">
+                <i class="fas fa-lock"></i> SSL-AES256 · Acceso Industrial Encriptado
+            </span>
+        </div>
+    </div>
+
+    <!-- ── Error View ── -->
+    <div id="error-view" class="ticket-card error-state" style="display:none;">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div id="error-title" class="error-title">Acceso Denegado</div>
+        <p id="error-message" class="error-body">
+            El token de acceso industrial ha expirado o no es válido.<br>
+            Los accesos para proveedores tienen vigencia estricta de 72 horas por seguridad forense.
+        </p>
+        <a href="index.html" class="btn-action btn-outline-action" style="display:inline-flex;max-width:240px;margin:0 auto;">
+            <i class="fas fa-arrow-left"></i> Regresar al Portal
+        </a>
+        <div class="branding-footer">
+            <a href="index.html" class="branding-logo">
+                <svg viewBox="0 0 100 100">
+                    <path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="currentColor" stroke-width="8"/>
+                    <path d="M40 40 L60 40 L60 60 L40 60 Z" fill="currentColor"/>
+                </svg>
+                <strong>InternoCore</strong>
+            </a>
+            <span class="branding-secure"><i class="fas fa-lock"></i> Acceso Industrial</span>
         </div>
     </div>
 
     <script>
         const API_BASE = 'http://localhost:8000/api/v1';
+        let currentToken = null;
 
+        // ── Toast ─────────────────────────────────────────────────────
+        let toastTimer = null;
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon  = toast.querySelector('i');
+            document.getElementById('toast-msg').textContent = msg;
+            icon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            toast.className = `show ${type}`;
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { toast.className = ''; }, 3500);
+        }
+
+        // ── Init ──────────────────────────────────────────────────────
         async function init() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
+            const params = new URLSearchParams(window.location.search);
+            currentToken = params.get('token');
 
-            if (!token) {
-                showError('Token Faltante', 'Se requiere un token de acceso industrial para visualizar este ticket.');
+            if (!currentToken) {
+                showError('Token Faltante', 'Se requiere un token de acceso industrial para visualizar este ticket. Verifique el enlace enviado por el sistema.');
                 return;
             }
 
             try {
-                // Simulamos el fetch al endpoint de acceso público
-                // En un escenario real: GET /api/v1/tickets/access/:token
-                const response = await fetch(`${API_BASE}/tickets/public/access?token=${token}`);
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    showError('Acceso Invalido', error.detail || 'El token ha expirado o no existe en el sistema de triaje.');
+                const res = await fetch(`${API_BASE}/tickets/public/access?token=${currentToken}`);
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    showError('Acceso Inválido', err.detail || 'El token ha expirado o no existe en el sistema de triaje industrial.');
                     return;
                 }
 
-                const data = await response.json();
+                const data = await res.json();
                 renderTicket(data);
-            } catch (err) {
-                console.error(err);
-                showError('Error de Conexión', 'No se pudo establecer conexión con el servidor industrial InternoCore.');
+
+            } catch (e) {
+                console.error(e);
+                showError('Error de Conexión', 'No se pudo establecer conexión con el servidor InternoCore. Verifique su red e intente nuevamente.');
             } finally {
                 document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
+        // ── Render ────────────────────────────────────────────────────
         function renderTicket(ticket) {
             document.getElementById('ticket-view').style.display = 'block';
-            document.getElementById('ticket-ref').innerText = `TICKET #${ticket.reference_code}`;
-            document.getElementById('ticket-title').innerText = ticket.title;
-            document.getElementById('ticket-description').innerText = ticket.description;
-            document.getElementById('ticket-priority').innerText = ticket.priority;
-            document.getElementById('ticket-type').innerText = ticket.ticket_type;
-            
+            document.getElementById('ticket-ref').textContent   = `TICKET #${ticket.reference_code}`;
+            document.getElementById('ticket-title').textContent = ticket.title;
+            document.getElementById('ticket-description').textContent = ticket.description;
+            document.getElementById('ticket-priority').textContent  = ticket.priority;
+            document.getElementById('ticket-type').textContent      = ticket.ticket_type;
+
             const assignedAt = new Date(ticket.external_assigned_at);
-            document.getElementById('ticket-assigned-at').innerText = assignedAt.toLocaleString();
-            
-            // Lógica de SLA
-            const now = new Date();
-            const diffMs = now - assignedAt;
-            const diffHours = diffMs / (1000 * 60 * 60);
+            document.getElementById('ticket-assigned-at').textContent = assignedAt.toLocaleString('es-MX');
+
+            const diffHours     = (Date.now() - assignedAt) / 3_600_000;
             const remainingHours = Math.max(0, 72 - diffHours);
-            
-            document.getElementById('ticket-expires-in').innerText = `${remainingHours.toFixed(1)} Horas`;
-            
+
+            document.getElementById('ticket-expires-in').textContent =
+                remainingHours > 1
+                    ? `${remainingHours.toFixed(1)} horas`
+                    : remainingHours > 0
+                        ? `${Math.round(remainingHours * 60)} minutos`
+                        : 'Expirado';
+
             const badge = document.getElementById('sla-badge');
-            if (remainingHours <= 12) {
-                badge.className = 'ticket-badge badge-sla-expired';
-                badge.innerText = 'SLA CRÍTICO';
+            if (remainingHours <= 0) {
+                badge.className = 'sla-badge sla-critical';
+                badge.textContent = 'SLA EXPIRADO';
+            } else if (remainingHours <= 12) {
+                badge.className = 'sla-badge sla-critical';
+                badge.textContent = 'SLA CRÍTICO';
             } else if (remainingHours <= 24) {
-                badge.className = 'ticket-badge badge-sla-warning';
-                badge.innerText = 'SLA PRÓXIMO A VENCER';
+                badge.className = 'sla-badge sla-warning';
+                badge.textContent = 'SLA PRÓXIMO';
             }
 
-            // Render Comments
+            renderComments(ticket.comments || []);
+        }
+
+        function renderComments(comments) {
             const container = document.getElementById('comments-container');
-            container.innerHTML = ticket.comments.map(c => `
+            if (!comments.length) {
+                container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem;padding:0.5rem 0;">Sin intervenciones registradas aún.</p>';
+                return;
+            }
+            container.innerHTML = comments.map(c => `
                 <div class="comment-item">
-                    <span class="comment-author">${c.author_name || 'Sistema'}</span>
-                    <span class="comment-date">${new Date(c.created_at).toLocaleString()}</span>
-                    <p class="comment-body">${c.content}</p>
+                    <div class="comment-item-header">
+                        <span class="comment-author">${escapeHtml(c.author_name || 'Sistema')}</span>
+                        <span class="comment-date">${new Date(c.created_at).toLocaleString('es-MX')}</span>
+                    </div>
+                    <p class="comment-body">${escapeHtml(c.content)}</p>
                 </div>
             `).join('');
         }
 
-        function showError(title, message) {
-            document.getElementById('error-view').style.display = 'block';
-            document.getElementById('error-title').innerText = title;
-            document.getElementById('error-message').innerText = message;
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-
-        function openEvidenceModal() {
-            alert('Módulo de Evidencia Industrial: En producción.');
-        }
-
-        async function addCommentPrompt() {
-            const content = prompt("Ingrese su nota de servicio o actualización:");
-            if (!content || content.trim() === "") return;
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-
-            try {
-                const response = await fetch(`${API_BASE}/tickets/public/comments?token=${token}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ content: content })
-                });
-
-                if (response.ok) {
-                    alert('Nota agregada exitosamente.');
-                    // Recargar ticket para ver el comentario
-                    init();
-                } else {
-                    alert('Error al agregar la nota. Verifique su conexión.');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error crítico de comunicación.');
+        // ── Comment form (inline — no prompt()) ──────────────────────
+        function toggleCommentForm(open) {
+            const form = document.getElementById('comment-form');
+            const btn  = document.getElementById('comment-toggle-btn');
+            form.classList.toggle('open', open);
+            if (open) {
+                document.getElementById('comment-input').focus();
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+                document.getElementById('comment-input').value = '';
             }
         }
 
-        window.onload = init;
+        async function submitComment() {
+            const content = document.getElementById('comment-input').value.trim();
+            if (!content) {
+                showToast('Escribe una nota antes de enviar.', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-comment-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando…';
+
+            try {
+                const res = await fetch(`${API_BASE}/tickets/public/comments?token=${currentToken}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content }),
+                });
+
+                if (res.ok) {
+                    showToast('Nota agregada exitosamente.', 'success');
+                    toggleCommentForm(false);
+                    init(); // reload ticket to show new comment
+                } else {
+                    showToast('Error al enviar la nota. Intente nuevamente.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Error de conexión al enviar la nota.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Nota';
+            }
+        }
+
+        // ── Evidence upload (placeholder) ────────────────────────────
+        function openEvidenceUpload() {
+            showToast('Módulo de evidencia disponible en producción.', 'success');
+        }
+
+        // ── Error state ───────────────────────────────────────────────
+        function showError(title, message) {
+            document.getElementById('error-view').style.display = 'block';
+            document.getElementById('error-title').textContent   = title;
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+
+        // ── XSS guard ─────────────────────────────────────────────────
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        window.addEventListener('load', init);
     </script>
 </body>
 </html>
