@@ -200,7 +200,7 @@ export interface HeadcountHistoryResponse {
 
 export interface BadgeClockInRequest {
   resource_code: string;
-  production_run_id: string;
+  production_run_id?: string;   // optional — auto-resolved server-side from resource_code
   badge_raw_value: string;
   client_timestamp: string;
 }

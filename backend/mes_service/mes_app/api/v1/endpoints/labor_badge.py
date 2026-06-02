@@ -29,6 +29,7 @@ from mes_app.dependencies import get_current_company, get_hcm_client, get_labor_
 from mes_app.models.collaborator_badge import CollaboratorBadge
 from mes_app.models.labor import Labor, LaborType, LaborCategory
 from mes_app.models.production_run import ProductionRun
+from mes_app.models.resource import Resource
 from mes_app.services.labor_density_service import LaborDensityService
 from mes_app.infrastructure.clients.hcm_client import HCMClient
 
@@ -39,7 +40,7 @@ router = APIRouter()
 
 class BadgeClockInRequest(BaseModel):
     resource_code: str
-    production_run_id: uuid.UUID
+    production_run_id: Optional[uuid.UUID] = None  # auto-resolved from resource_code if omitted
     badge_raw_value: str
     client_timestamp: Optional[datetime] = None
 
@@ -130,9 +131,34 @@ async def clock_in_by_badge(
         )
     )
 
-    dest_run = await db.get(ProductionRun, request.production_run_id)
-    if not dest_run or dest_run.company_id != company_id:
-        raise HTTPException(status_code=422, detail="Production run de destino no encontrado")
+    # Resolver production_run: explícito o auto-detect por resource_code + hoy
+    if request.production_run_id:
+        dest_run = await db.get(ProductionRun, request.production_run_id)
+        if not dest_run or dest_run.company_id != company_id:
+            raise HTTPException(status_code=422, detail="Production run de destino no encontrado")
+    else:
+        resource = await db.scalar(
+            select(Resource).where(
+                Resource.code == request.resource_code,
+                Resource.company_id == company_id,
+            )
+        )
+        if not resource:
+            raise HTTPException(status_code=404, detail=f"Recurso '{request.resource_code}' no encontrado")
+        today = now.date()
+        dest_run = await db.scalar(
+            select(ProductionRun).where(
+                ProductionRun.resource_id == resource.id,
+                ProductionRun.date == today,
+                ProductionRun.company_id == company_id,
+                ProductionRun.status != "COMPLETED",
+            ).order_by(ProductionRun.created_at.desc())
+        )
+        if not dest_run:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Sin producción activa para '{request.resource_code}' hoy",
+            )
 
     collaborator_info = {
         "employee_number": badge.employee_number,

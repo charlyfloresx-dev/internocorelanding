@@ -94,14 +94,46 @@ class CommandResponse(BaseModel):
     dependencies=[Depends(require_scope(["mes:read"]))],
 )
 async def get_work_orders(
+    status: Optional[str] = None,
+    wo_type: Optional[WOType] = None,
+    item_code: Optional[str] = None,
     company_id: uuid.UUID = Depends(get_current_company),
     db: AsyncSession = Depends(get_db),
 ):
-    """Lista órdenes activas de la compañía."""
-    result = await db.execute(
-        select(WorkOrder).where(WorkOrder.company_id == company_id)
-    )
+    """Lista órdenes activas de la compañía con filtros opcionales."""
+    query = select(WorkOrder).where(WorkOrder.company_id == company_id)
+    if status:
+        query = query.where(WorkOrder.status == status)
+    if wo_type:
+        query = query.where(WorkOrder.wo_type == wo_type)
+    if item_code:
+        query = query.where(WorkOrder.item_code == item_code)
+    
+    result = await db.execute(query)
     return result.scalars().all()
+
+
+@router.get(
+    "/types",
+    response_model=List[dict],
+    dependencies=[Depends(require_scope(["mes:read"]))],
+    summary="Lista los tipos de OT disponibles",
+)
+async def get_work_order_types():
+    """Returns configurable WO type catalog from server enum — not hardcoded on client."""
+    labels = {
+        "STANDARD":          "Estándar",
+        "NON_STANDARD":      "No Estándar",
+        "REPAIR":            "Reparación",
+        "REWORK":            "Retrabajo",
+        "TEST":              "Prototipo / Prueba",
+        "TOOLING":           "Herramental",
+        "SCRAP_REPLACEMENT": "Reposición por Scrap",
+    }
+    return [
+        {"value": t.value, "label": labels.get(t.value, t.value)}
+        for t in WOType
+    ]
 
 
 @router.get(
@@ -157,29 +189,6 @@ async def get_work_order_lines(
         .order_by(WorkOrderLine.line_number)
     )
     return lines_result.scalars().all()
-
-
-@router.get(
-    "/types",
-    response_model=List[dict],
-    dependencies=[Depends(require_scope(["mes:read"]))],
-    summary="Lista los tipos de OT disponibles",
-)
-async def get_work_order_types():
-    """Returns configurable WO type catalog from server enum — not hardcoded on client."""
-    labels = {
-        "STANDARD":         "Estándar",
-        "NON_STANDARD":     "No Estándar",
-        "REPAIR":           "Reparación",
-        "REWORK":           "Retrabajo",
-        "TEST":             "Prototipo / Prueba",
-        "TOOLING":          "Herramental",
-        "SCRAP_REPLACEMENT":"Reposición por Scrap",
-    }
-    return [
-        {"value": t.value, "label": labels.get(t.value, t.value)}
-        for t in WOType
-    ]
 
 
 @router.post(
@@ -309,3 +318,116 @@ async def issue_material(
     """
     handler = WorkOrderHandler(db)
     return await handler.handle_issue_material(order_number, company_id)
+
+
+class WorkOrderUpdate(BaseModel):
+    alias: Optional[str] = None
+    request_date: Optional[datetime] = None
+    wo_type: Optional[WOType] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
+
+@router.put(
+    "/{order_number}",
+    response_model=WorkOrderRead,
+    dependencies=[Depends(require_scope(["mes:write"]))],
+)
+async def update_work_order(
+    order_number: str,
+    request: WorkOrderUpdate,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Actualiza campos editables de la Orden de Trabajo."""
+    result = await db.execute(
+        select(WorkOrder).where(
+            WorkOrder.order_number == order_number,
+            WorkOrder.company_id == company_id,
+        )
+    )
+    wo = result.scalar_one_or_none()
+    if not wo:
+        raise NotFoundException("WorkOrder not found")
+
+    if request.alias is not None:
+        wo.alias = request.alias
+    if request.request_date is not None:
+        wo.request_date = request.request_date
+    if request.wo_type is not None:
+        wo.wo_type = request.wo_type
+
+    await db.commit()
+    await db.refresh(wo)
+    return wo
+
+
+@router.patch(
+    "/{order_number}/release",
+    response_model=WorkOrderRead,
+    dependencies=[Depends(require_scope(["mes:write"]))],
+)
+async def release_work_order(
+    order_number: str,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Libera una Orden de Trabajo (Transición DRAFT -> RELEASED)."""
+    result = await db.execute(
+        select(WorkOrder).where(
+            WorkOrder.order_number == order_number,
+            WorkOrder.company_id == company_id,
+        )
+    )
+    wo = result.scalar_one_or_none()
+    if not wo:
+        raise NotFoundException("WorkOrder not found")
+
+    if wo.status != "DRAFT":
+        from common.exceptions import BusinessRuleException
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot release work order in {wo.status} status. Must be DRAFT."
+        )
+
+    wo.status = "RELEASED"
+    wo.release_date = datetime.now()
+    await db.commit()
+    await db.refresh(wo)
+    return wo
+
+
+@router.patch(
+    "/{order_number}/close",
+    response_model=WorkOrderRead,
+    dependencies=[Depends(require_scope(["mes:write"]))],
+)
+async def close_work_order(
+    order_number: str,
+    company_id: uuid.UUID = Depends(get_current_company),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cierra administrativamente una Orden de Trabajo (Transición COMPLETED -> CLOSED)."""
+    result = await db.execute(
+        select(WorkOrder).where(
+            WorkOrder.order_number == order_number,
+            WorkOrder.company_id == company_id,
+        )
+    )
+    wo = result.scalar_one_or_none()
+    if not wo:
+        raise NotFoundException("WorkOrder not found")
+
+    if wo.status != "COMPLETED":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot close work order in {wo.status} status. Must be COMPLETED."
+        )
+
+    wo.status = "CLOSED"
+    await db.commit()
+    await db.refresh(wo)
+    return wo
