@@ -4,6 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { Html5Qrcode } from 'html5-qrcode';
 import { ResourceService } from '../../core/services/resource.service';
 import { LaborService } from '../../core/services/labor.service';
 import { BadgeClockInResponse } from '../../core/models/mes.types';
@@ -412,7 +413,7 @@ interface ScanFeedback {
                     <span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500"></span>
                   }
                 </div>
-                <div>
+                <div class="flex-1">
                   <p class="text-sm font-black text-surface-text">
                     {{ debounceActive() ? 'Procesando...' : 'Listo para escanear' }}
                   </p>
@@ -420,6 +421,20 @@ interface ScanFeedback {
                     Acerque tarjeta RFID, QR o código de barras al lector
                   </p>
                 </div>
+                <!-- Camera toggle button -->
+                <button
+                  (click)="toggleCamera()"
+                  class="flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0"
+                  [class.bg-primary/10]="!cameraActive()"
+                  [class.border-primary/30]="!cameraActive()"
+                  [class.text-primary]="!cameraActive()"
+                  [class.bg-red-500/10]="cameraActive()"
+                  [class.border-red-500/30]="cameraActive()"
+                  [class.text-red-400]="cameraActive()"
+                >
+                  <mat-icon class="!text-sm !w-4 !h-4">{{ cameraActive() ? 'videocam_off' : 'qr_code_scanner' }}</mat-icon>
+                  {{ cameraActive() ? 'Cerrar' : 'Cámara' }}
+                </button>
               </div>
             } @else {
               <!-- Feedback -->
@@ -456,6 +471,21 @@ interface ScanFeedback {
                     <div class="h-full bg-surface-text-muted rounded-full animate-[shrink_1.5s_linear_forwards]"></div>
                   </div>
                 }
+              </div>
+            }
+
+            <!-- Camera viewer (html5-qrcode mounts here) -->
+            @if (cameraActive()) {
+              <div class="mt-4 relative">
+                <div
+                  id="reader-monitor"
+                  class="w-full rounded-2xl overflow-hidden bg-black"
+                  style="aspect-ratio:1/1;max-height:280px"
+                ></div>
+                <!-- Scan line overlay -->
+                <div class="absolute inset-0 pointer-events-none border-2 border-primary rounded-2xl overflow-hidden">
+                  <div class="absolute top-0 left-0 w-full h-0.5 bg-primary shadow-[0_0_15px_rgba(0,229,255,0.8)] animate-scan-line"></div>
+                </div>
               </div>
             }
           </div>
@@ -597,6 +627,8 @@ interface ScanFeedback {
     @keyframes pulse-slow { 0%,100%{opacity:1} 50%{opacity:.7} }
     .animate-pulse-slow { animation: pulse-slow 2.5s ease-in-out infinite; }
     @keyframes shrink { from { width:100% } to { width:0% } }
+    @keyframes scan-line { 0%{top:0} 50%{top:calc(100% - 2px)} 100%{top:0} }
+    .animate-scan-line { animation: scan-line 2s linear infinite; }
     .custom-scrollbar::-webkit-scrollbar { width: 3px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -629,11 +661,13 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   // Scanner state
   readonly debounceActive = signal(false);
   readonly scanFeedback   = signal<ScanFeedback | null>(null);
+  readonly cameraActive   = signal(false);
 
   // Internal
   private scanBuffer = '';
   private personnelInterval?: ReturnType<typeof setInterval>;
   private feedbackTimeout?: ReturnType<typeof setTimeout>;
+  private qrCode: Html5Qrcode | null = null;
   private readonly DEBOUNCE_MS  = 1500;
   private readonly MIN_LEN      = 3;
   private readonly keydownFn    = this.onKeydown.bind(this);
@@ -650,6 +684,7 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
     document.removeEventListener('keydown', this.keydownFn);
     clearInterval(this.personnelInterval);
     clearTimeout(this.feedbackTimeout);
+    void this.stopCamera();
     this.svc.reset();
   }
 
@@ -730,6 +765,48 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
     clearTimeout(this.feedbackTimeout);
     this.scanFeedback.set(fb);
     this.feedbackTimeout = setTimeout(() => this.scanFeedback.set(null), 4000);
+  }
+
+  // ── Camera QR scanner (same pattern as login) ────────────────────────
+
+  async toggleCamera(): Promise<void> {
+    if (this.cameraActive()) {
+      await this.stopCamera();
+    } else {
+      await this.startCamera();
+    }
+  }
+
+  private async startCamera(): Promise<void> {
+    this.cameraActive.set(true);
+    // Let Angular render #reader-monitor before attaching html5-qrcode
+    await new Promise(r => setTimeout(r, 80));
+    try {
+      this.qrCode = new Html5Qrcode('reader-monitor');
+      await this.qrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (decodedText: string) => {
+          void this.processScan(decodedText);
+          void this.stopCamera();
+        },
+        () => { /* scan errors silenciosos */ }
+      );
+    } catch (err) {
+      console.error('[Monitor] Camera start failed:', err);
+      this.cameraActive.set(false);
+    }
+  }
+
+  private async stopCamera(): Promise<void> {
+    if (this.qrCode) {
+      try {
+        if (this.qrCode.isScanning) await this.qrCode.stop();
+        this.qrCode.clear();
+      } catch { /* ignore stop errors */ }
+      this.qrCode = null;
+    }
+    this.cameraActive.set(false);
   }
 
   // ── Navigation ───────────────────────────────────────────────────────
