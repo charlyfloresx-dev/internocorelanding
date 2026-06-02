@@ -40,7 +40,7 @@ class HCMClient:
         """
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
-                url = f"{self._base_url}/collaborators/validate-scan/{internal_id}"
+                url = f"{self._base_url}/staff/validate-scan/{internal_id}"
                 response = await client.get(url, headers=self._headers(company_id))
                 if response.status_code == 200:
                     body = response.json()
@@ -63,7 +63,7 @@ class HCMClient:
         """
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
-                url = f"{self._base_url}/collaborators/{collaborator_id}"
+                url = f"{self._base_url}/staff/{collaborator_id}"
                 response = await client.get(
                     url,
                     headers=self._headers(company_id),

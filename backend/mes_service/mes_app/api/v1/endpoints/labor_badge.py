@@ -11,11 +11,14 @@ GET/POST/PATCH/DELETE /mes/labor/badges  — Admin CRUD for badge registration
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 from sqlalchemy import select
@@ -125,7 +128,9 @@ async def clock_in_by_badge(
     # internal_id (e.g. QR codes printed with internal_id).
     # We call HCM validate-scan and register the badge on first use.
     if not badge:
+        logger.info("clock-in-by-badge: no badge record for '%s', trying HCM fallback", clean_badge)
         hcm_match = await hcm_client.resolve_by_internal_id(clean_badge, company_id)
+        logger.info("clock-in-by-badge: HCM resolve result = %s", hcm_match)
         if hcm_match and hcm_match.get("collaborator_id"):
             badge = CollaboratorBadge(
                 company_id=company_id,
@@ -137,7 +142,7 @@ async def clock_in_by_badge(
                 is_active=True,
             )
             db.add(badge)
-            await db.flush()   # get id without committing yet
+            await db.flush()
         else:
             raise HTTPException(status_code=404, detail="Credencial no registrada o inactiva")
 
@@ -225,7 +230,7 @@ async def clock_in_by_badge(
             )
         )
         new_labor = Labor(
-            production_run_id=request.production_run_id,
+            production_run_id=dest_run.id,
             user_id=badge.collaborator_id,
             company_id=company_id,
             collaborator_id=badge.collaborator_id,
@@ -259,7 +264,7 @@ async def clock_in_by_badge(
 
     # Clock-In regular
     new_labor = Labor(
-        production_run_id=request.production_run_id,
+        production_run_id=dest_run.id,
         user_id=badge.collaborator_id,
         company_id=company_id,
         collaborator_id=badge.collaborator_id,
