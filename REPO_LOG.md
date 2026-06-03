@@ -4,6 +4,53 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-03] RTR Hardening Phase D — Security Findings Remediation ✅
+
+**Objetivo:** Remediación de 3 hallazgos de seguridad identificados en auditoría OWASP Top 10 de RTR Phase D antes de despliegue cloud.
+
+**Decisiones Arquitectónicas:**
+- **Finding 1 (CRITICAL):** Sanitización de mensajes de error en `/refresh` endpoint — reemplazar detalles de excepción con "Invalid token" genérico para cliente (detalles internos logueados).
+- **Finding 2 (MEDIUM):** Sistema de alertas de breach — implementar `NotificationClient` con patrón fire-and-forget HTTP a `notification_service`. Fallos de notificación NUNCA bloquean revocación de token.
+- **Finding 3 (LOW):** Rate limiting por-usuario — crear `BodyCacheMiddleware` para extraer `user_id` de JWT en body; layer límites: 10/min por-usuario + 20/min global.
+
+**Cambios Concretos:**
+1. `backend/auth_service/auth_app/api/v1/endpoints/refresh_token_rtr.py` 
+   - Reemplazo de 5 handlers de excepción con mensajes genéricos
+   - Agregado `get_user_rate_limit_key()` para extracción de user_id
+   - Doble decorador `@limiter.limit()` (per-user + global)
+
+2. `backend/auth_service/auth_app/infrastructure/clients/notification_client.py` (NEW)
+   - Clase `NotificationClient` con método `send_breach_alert()`
+   - HTTP POST a `notification_service /events` con event_type="RTRBreachDetected"
+   - Timeout 3s, no exponential backoff (fire-and-forget)
+
+3. `backend/auth_service/auth_app/core/middleware.py`
+   - Nuevo `BodyCacheMiddleware` almacena request.body en scope._body
+   - Permite que key_func acceda al JSON sin consumir request
+
+4. `backend/auth_service/auth_app/core/config.py`
+   - Agregado `NOTIFICATION_SERVICE_URL` configuration
+
+**Test Coverage:**
+- Notification client: 10/10 tests (success, timeout, 5xx, network errors, fire-and-forget)
+- Rate limiting: 8/8 tests (user_id extraction, IP fallback, multi-user scenarios)
+- Code graph audit: 0 CRITICAL, 100% compliance ✅
+
+**Commits:**
+- `7d8236f` — Error message sanitization (Finding 1)
+- `bc99094` — Breach alert system (Finding 2)
+- `0eb200b` — Per-user rate limiting (Finding 3)
+
+**Security Properties Verified:**
+✅ Information disclosure eliminated (Finding 1)
+✅ Incident detection with immediate alerts (Finding 2)
+✅ Attacker throttling with per-user limits (Finding 3)
+✅ No regressions in existing RTR validation
+
+**Estado:** ✅ COMPLETED — All 3 findings remediated, tested, and deployed. RTR production-ready.
+
+---
+
 ### [2026-06-03] Phase 159 RTR Phase D — Integration Validation & Completion ✅
 
 **Objetivo:** Validar que RTR Phase D (Refresh Token Rotation) está completamente integrado y operacional en el handler de login.

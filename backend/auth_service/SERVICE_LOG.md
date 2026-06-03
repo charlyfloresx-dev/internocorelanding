@@ -1,5 +1,42 @@
 # Auth Service - Service Log
 
+## [2026-06-03] RTR Security Hardening — Finding 1, 2, 3 Remediation ✅ COMPLETED
+
+**Three security findings from OWASP Top 10 audit of RTR Phase D fully remediated and tested.**
+
+**Finding 1 (CRITICAL): Error Message Sanitization**
+- File: `api/v1/endpoints/refresh_token_rtr.py`
+- Change: 5 exception handlers now return generic "Invalid token" instead of internal details
+- Impact: Eliminates information disclosure that revealed system capabilities (REUSE_DETECTED reason, USER_LOGOUT status)
+- Internal details logged at INFO/WARNING level for audit trail
+- Commit: `7d8236f`
+
+**Finding 2 (MEDIUM): Security Breach Alert System**
+- File: `infrastructure/clients/notification_client.py` (NEW)
+- Implementation: Fire-and-forget HTTP client to `notification_service /events`
+- Event: `RTRBreachDetected` with company_id, user_id, reason, ip_address, timestamp
+- Integration: `domain/handlers/refresh_token_handler.py._revoke_family_for_breach()` 
+- Pattern: try/except wrapper that never blocks token revocation (alert failures are best-effort)
+- Tests: 10/10 passing (success, timeout, 5xx, network errors, fire-and-forget pattern)
+- Commit: `bc99094`
+
+**Finding 3 (LOW): Per-User Rate Limiting**
+- File: `core/middleware.py` (NEW `BodyCacheMiddleware`)
+- File: `api/v1/endpoints/refresh_token_rtr.py` (rate limit key extraction)
+- Implementation: Layer two rate limits
+  - Per-user: 10/minute (extracted from JWT's "sub" claim)
+  - Global: 20/minute (all users combined)
+- Fallback: IP address if JWT extraction fails
+- Middleware caches request body to allow key_func access without consuming request
+- Tests: 8/8 passing (user_id extraction, IP fallback, multi-user scenarios)
+- Commit: `0eb200b`
+
+**Code Graph Audit:** 0 CRITICAL, 100% compliance across all microservices
+
+**Status:** ✅ COMPLETED — RTR production-ready with security hardening applied.
+
+---
+
 ## [2026-06-03] Phase 159 RTR Phase D — Integration Validation ✅ COMPLETED
 
 **RTR Phase D fully integrated and validated. Refresh Token Rotation is 100% operational in production.**
