@@ -182,35 +182,32 @@ Exit code: 0 (seguro para producción)
 **Commit:**
 - `fix(phase-177): replace datetime.utcnow() with datetime.now(timezone.utc)` (3a40fd2)
 
-### Phase 176b — Bulk Import CSV para Tickets ✅ COMPLETADO (2026-06-03)
+### Phase 176b — Discard CSV Bulk Import ✅ DESCARTADO (2026-06-03)
 **Prioridad:** BAJA  
-**Estado:** ✅ COMPLETADO
+**Estado:** ✅ DESCARTADO (decisión arquitectónica)
 
-**Subtareas:**
-- [x] Backend endpoint `POST /api/v1/tickets/bulk-import` con validación CSV
-  - Validación: file type (CSV), size (max 5MB), headers (title, description)
-  - Enum validation: ticket_type, priority
-  - Row-by-row error handling con detalles específicos (row number, error message)
-  - Station-scoped WebSocket events para tickets creados
-  
-- [x] Frontend `TicketBulkImportComponent` con drag-drop
-  - Drag-drop zone + file picker button
-  - Template downloader con datos de ejemplo (3 filas)
-  - Progress bar + estadísticas (total, exitosos, fallidos)
-  - Error details panel mostrando errores por fila
-  
-- [x] Integración en `ResourceMonitorComponent`
-  - Botón "Importar CSV" en tab Soporte
-  - Auto-refresh stationTickets signal post-import
+**Rationale de Descarte:**
+- Bulk imports (Phase 168) son para datos **configuracionales** (products, partners, collaborators).
+- Tickets son datos **operacionales/dinámicos** — creados continuamente.
+- No existe caso de uso real para bulk import de tickets.
+- Alternativas operacionales ya existen:
+  - Manual: Phase 176 (NewTicketDialogComponent form)
+  - Automático: Outbox pattern desde eventos
+  - Asignación: Phase 173 (/assign endpoint)
 
-- [x] Compilación y validación
-  - ✅ Frontend build: 0 TypeScript errors
-  - ✅ Backend: Python syntax validation passed
+**Acciones Ejecutadas:**
+- [x] Implementación inicial completada (feat commit: eab880a)
+- [x] Evaluación arquitectónica realizada
+- [x] Decisión de descarte tomada (cleanup commit: 8176ec4)
+- [x] Código eliminado completamente (0 deuda técnica)
+- [x] Compilación validada: 0 TypeScript errors, Python syntax OK
 
-**TODOs/Deuda:**
-- Validez operativa cuestionable — bulk import de tickets no es configuracional como Phase 168 (products, partners, collaborators). Candidato a descarte.
+**Archivos Eliminados:**
+- `ticket_bulk_import.component.ts` (frontend)
+- `TicketBulkCreateRow`, `TicketBulkImportResponse` schemas (backend)
+- `/bulk-import` endpoint (backend)
 
-**Commit:** `feat(phase-176b): CSV bulk import for tickets`
+**Commit:** `refactor(phase-176b): discard ticket CSV bulk import`
 
 ### Phase 177 — NAIVE_DATETIME Fixes
 **Prioridad:** ALTA (Cloud deployment readiness)  

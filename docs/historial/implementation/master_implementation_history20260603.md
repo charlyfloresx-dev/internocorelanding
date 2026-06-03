@@ -323,31 +323,35 @@ Dialog para creación manual de tickets desde ResourceMonitor tab Soporte. Inter
 
 ---
 
-## Phase 176b — CSV Bulk Import for Tickets
+## Phase 176b — Discard CSV Bulk Import (Architectural Decision)
 
 ### Contexto
-Carga masiva de tickets vía CSV (drag-drop UI). **Nota**: Validez operativa cuestionable — bulk import es patrón de onboarding (data configuracional), no de operaciones dinámicas como tickets.
+Bulk import de tickets **DESCARTADO** tras evaluación arquitectónica.
 
-### Decisiones Técnicas
-- **Backend**: `POST /api/v1/tickets/bulk-import` con multipart CSV
-- **Validación**: Headers (title, description), tamaño max 5MB, enums (ticket_type, priority)
-- **Error Handling**: Row-by-row processing con detalles específicos (row_number, error_message)
-- **Frontend**: Drag-drop component con template downloader, progress bar, error panel
-- **Integration**: Botón "Importar CSV" en ResourceMonitor, auto-refresh post-import
+### Rationale
+- **Patrón**: Bulk imports (Phase 168) aplican a datos configuracionales (products, partners, collaborators).
+- **Tickets**: Datos operacionales/dinámicos — creados por formularios, eventos del sistema, o asignaciones.
+- **No hay caso de uso real**: Alternativas suficientes ya existen para todas las vías de creación de tickets.
 
-### Archivos Modificados
+### Decisión Ejecutada
+1. Implementación inicial completada (exploratoria)
+2. Evaluación concluye: **no es operativamente justificable**
+3. Eliminación completa: 0 código muerto
+
+### Archivos Eliminados
 | Acción | Archivo |
 |---|---|
-| CREAR | `components/ticket-bulk-import.component.ts` |
-| EDITAR | `schemas/ticket_dto.py` (+TicketBulkCreateRow, +TicketBulkImportResponse) |
-| EDITAR | `routers/ticket_routes.py` (+/bulk-import endpoint) |
-| EDITAR | `resource-monitor.component.ts` (+openBulkImport, +button) |
+| BORRAR | `components/ticket-bulk-import.component.ts` |
+| BORRAR | `TicketBulkCreateRow` schema |
+| BORRAR | `TicketBulkImportResponse` schema |
+| BORRAR | `POST /api/v1/tickets/bulk-import` endpoint |
+| EDITAR | `resource-monitor.component.ts` (remove openBulkImport, remove button) |
 
 ### Resultado
-✅ Endpoint funcional con validación row-level  
-✅ Frontend: drag-drop, template download, error reporting  
-✅ Build: 0 TypeScript errors  
-⚠️ TODO: Evaluar si descartado (operativamente cuestionable)
+✅ Sistema limpio — sin código exploratorio muerto  
+✅ Build: 0 TypeScript errors (post-cleanup)  
+✅ Backend: Python syntax valid  
+✅ Decisión arquitectónica documentada
 
 ---
 

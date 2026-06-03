@@ -27,26 +27,32 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
-### [2026-06-03] Phase 176b — CSV Bulk Import for Tickets (Experimental) ✅
+### [2026-06-03] Phase 176b — Discard CSV Bulk Import for Tickets ✅
 
-**Objetivo:** Implementar carga masiva de tickets vía CSV (drag-drop, validación por fila, error reporting detallado).
+**Decisión Arquitectónica:** Descartar completamente — **sin caso de uso operativo real**.
 
-**Decisiones Arquitectónicas:**
-- **Backend**: `POST /api/v1/tickets/bulk-import` con multipart form-data (CSV file), validación de headers, tamaño máx 5MB.
-- **CSV Parsing**: `csv.DictReader` + row-by-row validation. Enum validation para `ticket_type` y `priority`.
-- **Error Handling**: Captura error por fila, retorna `TicketBulkImportResponse` con detalles (row_number, ticket_id, error_message).
-- **Frontend**: `TicketBulkImportComponent` (drag-drop zone, template downloader, progress bar, error panel).
-- **Integration**: Botón "Importar CSV" en ResourceMonitorComponent tab Soporte. Auto-refresh `stationTickets` post-import.
+**Rationale:**
+- **Bulk imports = configuracionales** (Phase 168): products, partners, collaborators — datos ONE-TIME de onboarding.
+- **Tickets = operacionales**: Creados continuamente por eventos del sistema, formularios manuales, o asignaciones automáticas.
+- **Alternativas existentes & suficientes**:
+  - Manual: `Phase 176` (NewTicketDialogComponent) — dialog interactivo con validación.
+  - Auto-creación: Outbox pattern desde eventos (inventory_service, mes_service, etc.).
+  - Asignación: `Phase 173` (`POST /{id}/assign` endpoint).
 
-**Workarounds / Deuda Técnica:**
-- **Validez operativa cuestionable**: Bulk import tiene sentido para datos configuracionales (onboarding — Phase 168). Tickets son dinámicos. Candidato a descarte post-evaluación.
-- Mock collaborator data en NewTicketDialogComponent aún pendiente de HCM API.
+**Archivos Eliminados:**
+- Backend: `TicketBulkCreateRow`, `TicketBulkImportResponse` schemas de `schemas/ticket_dto.py`
+- Backend: `POST /api/v1/tickets/bulk-import` endpoint de `routers/ticket_routes.py`
+- Frontend: `ticket-bulk-import.component.ts` (drag-drop CSV uploader)
+- Frontend: "Importar CSV" button de `resource-monitor.component.ts`
 
-**Archivos clave:**
-- Backend: `schemas/ticket_dto.py` (TicketBulkCreateRow, TicketBulkImportResponse) + `routers/ticket_routes.py` (/bulk-import endpoint)
-- Frontend: `components/ticket-bulk-import.component.ts` (NEW) + integración en `resource-monitor.component.ts`
+**Resultado:**
+✅ Frontend: 0 TypeScript errors (post-cleanup)  
+✅ Backend: Python syntax valid  
+✅ Sistema más limpio — sin código muerto operacionales
 
-**Compilación:** ✅ Frontend: 0 TypeScript errors. Backend: Python syntax valid.
+**Commits:**
+- `eab880a` — feat(phase-176b): CSV bulk import (original implementación exploratoria)
+- `8176ec4` — refactor(phase-176b): discard ticket CSV bulk import (decisión arquitectónica)
 
 ---
 
