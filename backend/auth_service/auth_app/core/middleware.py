@@ -1,3 +1,4 @@
+import json
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -79,4 +80,21 @@ class TenantSecurityMiddleware(BaseHTTPMiddleware):
 class BlacklistMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Implementación placeholder para Blacklist
+        return await call_next(request)
+
+
+class BodyCacheMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to cache request body in scope for rate limiting key extraction.
+
+    This allows per-user rate limiting on /refresh endpoint by extracting the JWT
+    from the request body without consuming it (Starlette handles re-reading).
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        # Only cache body for POST requests to /refresh endpoint
+        if request.method == "POST" and "/refresh" in request.url.path:
+            body = await request.body()
+            request.scope["_body"] = body
+
         return await call_next(request)

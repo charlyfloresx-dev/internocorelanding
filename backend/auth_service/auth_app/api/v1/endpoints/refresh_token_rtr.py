@@ -2,7 +2,13 @@
 Refresh Token Rotation Endpoint — FastAPI Router.
 
 POST /api/v1/auth/refresh — Stateless RTR con mitigación de race conditions.
+
+Rate Limiting:
+  Per-User: 10/minute (prevents single attacker monopolizing quota)
+  Global: 20/minute (prevents service-level DDoS)
 """
+import jwt
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
@@ -29,7 +35,59 @@ from auth_app.dependencies import get_db
 from common.responses import ApiResponse
 from common.security.limiter import limiter
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+def get_user_rate_limit_key(request: Request) -> str:
+    """
+    Extract user ID from refresh_token JWT for per-user rate limiting.
+
+    If JWT is not decodable (malformed), falls back to IP address.
+
+    This key is used to rate-limit per-user at 10/minute, preventing a single
+    attacker from monopolizing the quota and affecting legitimate users.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        rate limit key: "user:<user_id>" or "ip:<client_ip>"
+    """
+    try:
+        # Try to extract body from scope (stored by middleware during request)
+        raw_body = request.scope.get("_body")
+        if not raw_body:
+            # Fallback to IP if body not available
+            client_ip = request.client.host if request.client else "0.0.0.0"
+            return f"ip:{client_ip}"
+
+        import json
+        body = json.loads(raw_body)
+        token_str = body.get("refresh_token", "")
+
+        if not token_str:
+            client_ip = request.client.host if request.client else "0.0.0.0"
+            return f"ip:{client_ip}"
+
+        # Decode without verification (just to extract sub claim)
+        # Signature will be verified later in the handler
+        payload = jwt.decode(
+            token_str,
+            options={"verify_signature": False}
+        )
+
+        user_id = payload.get("sub")
+        if user_id:
+            return f"user:{user_id}"
+
+    except Exception as e:
+        logger.debug(f"Failed to extract user_id from token for rate limiting: {e}")
+
+    # Fallback to IP address if JWT extraction fails
+    client_ip = request.client.host if request.client else "0.0.0.0"
+    return f"ip:{client_ip}"
 
 
 class RefreshTokenRequest(BaseModel):
@@ -50,7 +108,8 @@ class RefreshTokenResponseDto(BaseModel):
     response_model=ApiResponse[RefreshTokenResponseDto],
     summary="Rotar refresh token — Stateless RTR con race condition mitigation"
 )
-@limiter.limit("20/minute")
+@limiter.limit("10/minute", key_func=get_user_rate_limit_key)  # Per-user limit
+@limiter.limit("20/minute")  # Global fallback limit
 async def refresh_token_rtr(
     request_body: RefreshTokenRequest,
     request: Request,

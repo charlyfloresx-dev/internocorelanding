@@ -55,7 +55,11 @@ from auth_app.api.v2.api import api_router as v2_api_router
 
 # Middlewares
 from common.middleware import InternoCoreGlobalMiddleware
-from auth_app.core.middleware import TenantSecurityMiddleware, BlacklistMiddleware
+from auth_app.core.middleware import (
+    TenantSecurityMiddleware,
+    BlacklistMiddleware,
+    BodyCacheMiddleware,
+)
 
 async def wait_for_db_connection(engine, max_tries=10, wait_seconds=3):
     for i in range(1, max_tries + 1):
@@ -97,6 +101,10 @@ app = FastAPI(
 app.state.limiter = limiter
 
 # --- MIDDLEWARES (Orden: El último añadido es el primero en ejecutarse) ---
+
+# 4. Body Cache Middleware (cache body for rate limiting key extraction)
+#    Must be registered before limiter accesses scope._body
+app.add_middleware(BodyCacheMiddleware)
 
 # 4. Global Middleware (Formateo, Tracing y Seguridad de Tenant Unificada)
 app.add_middleware(InternoCoreGlobalMiddleware)
