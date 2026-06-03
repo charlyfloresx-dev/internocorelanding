@@ -4,7 +4,8 @@
   "description": "InternoCore Landing Page — Industrial SaaS",
   "scripts": {
     "dev": "npx live-server --port=3100 --open=index.html",
-    "start": "python -m http.server 3100"
+    "start": "python -m http.server 3100",
+    "build": "echo 'No build step required — static files only'"
   },
   "dependencies": {
     "motion": "^11.0.0"
