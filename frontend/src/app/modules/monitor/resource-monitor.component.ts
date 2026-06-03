@@ -16,6 +16,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { TicketAssignModalComponent } from './tickets/components/ticket-assign-modal.component';
 import { TicketCommentsDrawerComponent } from './tickets/components/ticket-comments-drawer.component';
 import { NewTicketDialogComponent } from './tickets/components/new-ticket-dialog.component';
+import { TicketBulkImportComponent } from './tickets/components/ticket-bulk-import.component';
 
 type MainTab = 'produccion' | 'personal' | 'soporte';
 type WOTab   = 'scan' | 'planned';
@@ -459,6 +460,15 @@ interface ScanFeedback {
           >
             <mat-icon class="text-sm">add_circle</mat-icon>
             Nuevo Ticket
+          </button>
+
+          <!-- Importar tickets CSV -->
+          <button
+            (click)="openBulkImport()"
+            class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 text-violet-400 text-[10px] font-black uppercase tracking-widest hover:bg-violet-500/15 transition-all"
+          >
+            <mat-icon class="text-sm">upload_file</mat-icon>
+            Importar CSV
           </button>
         </div>
 
@@ -950,6 +960,17 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
           // Auto-refresh tickets after creation
           this.loadSoporte();
         }
+      }
+    );
+  }
+
+  openBulkImport(): void {
+    this.drawerSvc.open(
+      TicketBulkImportComponent,
+      { title: 'Importar Tickets CSV', width: '800px' },
+      () => {
+        // Auto-refresh tickets after bulk import
+        this.loadSoporte();
       }
     );
   }

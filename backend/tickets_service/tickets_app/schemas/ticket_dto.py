@@ -213,6 +213,39 @@ class TicketAssigneeRead(BaseModel):
         from_attributes = True
 
 
+class TicketBulkCreateRow(BaseModel):
+    """Schema for a single row in CSV bulk import"""
+    title: str = Field(..., min_length=5, max_length=100)
+    description: str = Field(..., min_length=10, max_length=2000)
+    ticket_type: str = "SUPPORT"  # Will validate against TicketType enum
+    priority: str = "MEDIA"  # Will validate against TicketPriority enum
+    area: Optional[str] = None
+    module_origin: Optional[str] = None
+
+
+class TicketBulkCreateRequest(BaseModel):
+    """Request payload for CSV bulk import"""
+    rows: List[TicketBulkCreateRow]
+
+
+class TicketBulkCreateResult(BaseModel):
+    """Result of a single ticket creation in bulk"""
+    row_number: int
+    success: bool
+    ticket_id: Optional[UUID] = None
+    reference_code: Optional[str] = None
+    error: Optional[str] = None
+
+
+class TicketBulkImportResponse(BaseModel):
+    """Response for bulk import operation"""
+    total_rows: int
+    successful: int
+    failed: int
+    results: List[TicketBulkCreateResult]
+    created_at: datetime
+
+
 class ApiResponse(BaseModel):
     status: str = "success"
     data: Optional[Any] = None
