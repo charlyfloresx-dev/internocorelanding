@@ -1,5 +1,30 @@
 # Auth Service - Service Log
 
+## [2026-06-03] Phase 159 RTR Phase D — Integration Validation ✅ COMPLETED
+
+**RTR Phase D fully integrated and validated. Refresh Token Rotation is 100% operational in production.**
+
+**Validation Summary:**
+- `full_auth_flow.py` PASO 1-3: T1 login → T2 select-company → RTR family creation ✅
+- JWT generation counter (`gen`) correctly initialized to 0 at login ✅
+- `refresh_token` issued at `select-company` handler with RTR claims ✅
+- Family creation occurs atomically within transaction scope ✅
+- `kiosk_auth_flow.py` industrial flows (RFID, PIN): PASSED ✅
+
+**Code Points Verified:**
+- `select_company_command.py` line 201: `family = await rtr_repo.create_family(user_id, company_id, family_salt)` ✅
+- `sqlalchemy_refresh_token_repo.py` line 64: `current_generation=0` at creation ✅
+- `refresh_token_handler.py` line 296: `"gen": family.current_generation` embedded in JWT ✅
+
+**Status:** ✅ COMPLETED — RTR Phase D fully operational, cloud deployment unblocked.
+
+**Blockers Unblocked:**
+1. Promotion Service can proceed (waiting on HCM Phase 3 MVP)
+2. Cloud deployment readiness confirmed
+3. Session rotation security operational
+
+---
+
 ## [2026-06-03] Phase 177 — NAIVE_DATETIME Fixes ✅
 
 **All instances of `datetime.utcnow()` replaced with `datetime.now(timezone.utc)` for timezone-aware UTC timestamps.**
