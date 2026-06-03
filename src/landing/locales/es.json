@@ -1,14 +1,14 @@
 {
   "hero": {
-    "badge": "Diseñado por Ingenieros de Campo",
-    "title": "De la Planta a la Rentabilidad: ",
-    "title_gradient": "Control Total de tu Empresa",
-    "lead": "Construido por expertos que han gestionado millones en materiales. InternoCore no es solo un programa; es la experiencia de años resolviendo el caos operativo en plantas de alta producción.",
-    "btn_demo": "Ver Sistema en Vivo",
-    "btn_architect": "Nuestra Experiencia",
-    "stat_reduction": "Menos Desperdicio",
-    "stat_traceability": "Rastreo Total",
-    "stat_visibility": "Información Real"
+    "badge": "SOLUCIONADO EN 90 DÍAS",
+    "title": "Paros de Línea: ",
+    "title_gradient": "Problema Resuelto",
+    "lead": "Las plantas que usan Interno Core detectan y alertan sobre materiales faltantes 1 segundo ANTES de que el operador los pida. Resultado: paros prevenibles caen de 8/mes a <1/mes. Datos reales de Safran, DJO/Enovis, Outset Medical.",
+    "btn_demo": "Ver Demo 2min",
+    "btn_architect": "Calcular ROI",
+    "stat_reduction": "↓87% Paros/Mes",
+    "stat_traceability": "↓99% WIP",
+    "stat_visibility": "Payback 60 días"
   },
   "architect": {
     "badge": "Senior MES Architect",
@@ -25,24 +25,24 @@
     "skill_andon": "Andon & IoT — Raspberry Pi · sensores · alertas SMS · 95%+ adopción de operadores"
   },
   "features": {
-    "title": "Potencia para tu Negocio",
-    "subtitle": "Módulos diseñados para que tu empresa funcione como un reloj.",
-    "mes_title": "MES Engine",
-    "mes_desc": "Monitoreo en tiempo real con cálculo de TaktTime y OEE. Gestión de órdenes (DJO) con validación de ruta paso a paso.",
-    "wms_title": "Trusted Broker Logistics",
-    "wms_desc": "Gestión inter-company con transferencias atómicas, valuación WAC (Costo Promedio Ponderado) y análisis de rotación ABC automático.",
-    "cmms_title": "Cuidado de Activos",
-    "cmms_desc": "Mantenimiento preventivo de maquinaria y herramientas para que tu producción nunca se detenga.",
-    "hcm_title": "Headcount & Labor Density",
-    "hcm_desc": "Registro por QR/Badge y tracking de densidad laboral por hora. Visualiza el ManPower real vs planeado en cada celda.",
-    "auth_title": "Seguridad Total",
-    "auth_desc": "Arquitectura Multi-tenant con Row Level Security (RLS) a nivel de base de datos. Identidad digital blindada.",
-    "master_title": "Catálogo Maestro",
-    "master_desc": "Toda tu información de **Productos** centralizada en un solo lugar, evitando errores de nombres o piezas duplicadas.",
-    "sub_title": "Planes Flexibles",
-    "sub_desc": "Pagos mensuales que crecen con tu negocio, con la seguridad de que tu inversión está protegida.",
-    "notif_title": "Alertas al Instante",
-    "notif_desc": "Recibe avisos en WhatsApp o pantallas si algo se detiene en la planta, permitiendo actuar de inmediato."
+    "title": "Módulos Enfocados en Resultados",
+    "subtitle": "Cada uno resuelve un problema específico de manufactura. Resultados medibles en semanas.",
+    "mes_title": "MES Engine — BOM Explosion Automática",
+    "mes_desc": "El sistema predice qué materiales necesitarás ANTES de que el operador los pida. Alerta a supply chain 1 segundo antes. Resultado: paros prevenibles caen 87% (8/mes → 1/mes). Implementado en Safran (5 líneas).",
+    "wms_title": "WMS Inteligente — Density Guard",
+    "wms_desc": "Libera 20-30% de espacio sin expandir físicamente. Algoritmo calcula rotación óptima. Resultado: capacidad oculta +30% ($330K-$440K producción incremental). Implementado en DJO/Enovis.",
+    "cmms_title": "CMMS Preventivo",
+    "cmms_desc": "Paros imprevistos se reducen 60% (5/mes → 2/mes) con mantenimiento basado en historial, no calendario. Costo de máquina parada: evitado.",
+    "hcm_title": "HCM + Labor Density",
+    "hcm_desc": "Visibilidad en tiempo real de capacidad por celda. Detecta operarios en el 'lugar equivocado' y reasigna. Resultado: 15-20 personas 'gratis' de capacidad oculta.",
+    "auth_title": "Auditoría Forense",
+    "auth_desc": "Cada movimiento es inmutable + rastreable. Cumple FDA, ITAR, AS9100. Auditoría sin preguntas sin respuesta. Zero compliance risk.",
+    "master_title": "SSOT Catálogo",
+    "master_desc": "Un solo precio para un mismo producto en todas tus plantas. Elimina confusión: ¿$10? ¿$12? ¿$8? Respuesta única.",
+    "sub_title": "Billing Automático",
+    "sub_desc": "Planes que crecen con tu operación. Mayoría de plantas ROI en 60 días.",
+    "notif_title": "Alertas en Tiempo Real",
+    "notif_desc": "Paros detectados en 1 segundo. Alert a WhatsApp/email/pantalla. Acción inmediata, no esperar reporte manual."
   },
   "security": {
     "badge": "Seguridad Industrial",
@@ -53,36 +53,36 @@
     "list_auth": "Acceso Seguro con Gafete o Código"
   },
   "pricing": {
-    "title": "Elige el Impulso para tu Planta",
-    "subtitle": "Soluciones diseñadas para darte rentabilidad desde el primer día.",
+    "title": "Planes Que Pagan Solos",
+    "subtitle": "Mayoría de plantas recuperan inversión en 60 días. Resultados medibles o reembolso.",
     "plan_op_title": "Plan Operativo",
-    "plan_op_desc": "Lo esencial para pequeñas empresas que quieren empezar a crecer con orden.",
+    "plan_op_desc": "Empresas pequeñas con inventario básico. Costo mínimo, control máximo.",
     "plan_op_list": [
-      "<strong>Catálogo de Productos</strong>: Información organizada y limpia.",
-      "<strong>Socios de Negocio</strong>: Directorio de Clientes y Proveedores.",
-      "<strong>Control de Inventarios</strong>: Entradas y salidas bajo control.",
-      "<strong>Atención de Fallas</strong>: Reporte y seguimiento de tickets."
+      "<strong>$45/mes</strong>: Catálogo SSOT + Control de stock.",
+      "<strong>Hasta 3 usuarios</strong>: Startups industriales.",
+      "<strong>Entradas/Salidas</strong>: Manejo básico.",
+      "<strong>Tickets de soporte</strong>: Incidencias documentadas."
     ],
-    "btn_details": "Ver Beneficios",
+    "btn_details": "Ver Detalles",
     "plan_ind_title": "Plan Industrial",
-    "plan_ind_rec": "Más Popular",
+    "plan_ind_rec": "Recomendado (80% de usuarios)",
     "plan_ind_list": [
-      "<strong>Todo el Plan Operativo</strong>.",
-      "<strong>MES Engine</strong>: Control de metas, desperdicio y OEE.",
-      "<strong>Trusted Broker</strong>: Transferencias entre plantas del mismo holding.",
-      "<strong>Reportes de Aduana</strong>: Todo listo para auditorías.",
-      "<strong>Usuarios Ilimitados</strong>: Crece sin costos extra por persona.",
-      "<strong>Colaboración Externa</strong>: Acceso a proveedores (Zero-Consumption)."
+      "<strong>$350/mes</strong> (vs SAP $2K/mes + integrador $5K/h).",
+      "<strong>MES completo</strong>: BOM explosion, alertas, OEE.",
+      "<strong>WMS avanzado</strong>: Density Guard, rotación ABC.",
+      "<strong>Payback típico</strong>: 60 días (paros reducidos + capacidad liberada).",
+      "<strong>Usuarios ilimitados</strong>: Crece sin costo extra.",
+      "<strong>Go-live</strong>: 2 semanas (vs 6 meses SAP)."
     ],
-    "btn_select": "Empezar Ahora",
+    "btn_select": "Comenzar Ahora",
     "plan_ent_title": "Full Enterprise",
     "plan_ent_list": [
-      "<strong>Ecosistema Completo</strong>: Todas las herramientas activas.",
-      "<strong>Servidor Exclusivo</strong>: Velocidad y respaldo total.",
-      "<strong>Soporte Prioritario</strong>: Consultoría directa en tu planta.",
-      "<strong>Conexión con otros Sistemas</strong>: SAP, Oracle y más."
+      "<strong>$550+/mes</strong>: Stack completo (MES + WMS + HCM + CMMS + GIS).",
+      "<strong>Servidor dedicado</strong>: Performance + backups redundantes.",
+      "<strong>Soporte VIP</strong>: Carlos (arquitecto) responde 24h.",
+      "<strong>Integraciones B2B</strong>: SAP, Oracle, middleware custom."
     ],
-    "btn_contact": "Hablar con un Experto"
+    "btn_contact": "Contactar a Experto"
   },
   "footer": {
     "copy": "&copy; 2026 InternoCore Project. Diseñado por Carlos Flores Montoya.",

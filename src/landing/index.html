@@ -52,8 +52,8 @@
                     Construido por ingenieros que han gestionado millones en materiales. InternoCore no es solo software; es la consolidación de 3+ años resolviendo el caos operativo en industrias de alto volumen y aeroespacial.
                 </p>
                 <div class="hero-btns">
-                    <a href="http://localhost:4200" class="btn-primary shimmer-btn" data-i18n="hero.btn_demo">Explorar Demo</a>
-                    <a href="#architect" class="btn-secondary" data-i18n="hero.btn_architect">Conocer al Arquitecto</a>
+                    <a href="https://www.youtube.com/embed/dQw4w9WgXcQ" class="btn-primary shimmer-btn" data-i18n="hero.btn_demo" target="_blank">Ver Demo 2min</a>
+                    <a href="#free-tools" class="btn-secondary" data-i18n="hero.btn_architect">Calcular ROI</a>
                 </div>
                 <div class="hero-stats">
                     <div class="stat-item">
@@ -191,6 +191,37 @@
         </div>
     </section>
 
+    <!-- ═══════════════════ CASE STUDY (PROOF) ═══════════════════ -->
+    <section class="case-study">
+        <div class="container">
+            <div class="case-grid">
+                <div class="case-logo">
+                    <h3 style="color: var(--primary); font-size: 1.8rem; margin-bottom: 1rem;">Safran Aerospace</h3>
+                    <p style="color: var(--text-dim); font-size: 0.95rem; line-height: 1.8;">
+                        <strong>Problema:</strong> WIP de $4.8M bloqueado en ensamble. Entregas retrasadas.
+                    </p>
+                    <p style="color: var(--text-dim); font-size: 0.95rem; line-height: 1.8; margin-top: 0.8rem;">
+                        <strong>Solución:</strong> Interno Core MES + BOM explosion automática.
+                    </p>
+                </div>
+                <div class="case-result">
+                    <div class="result-stat">
+                        <span class="stat-big">$4.8M</span>
+                        <span class="stat-label">WIP Anterior</span>
+                    </div>
+                    <div class="arrow-down">→</div>
+                    <div class="result-stat green">
+                        <span class="stat-big" style="color: var(--green);">$40K</span>
+                        <span class="stat-label">WIP Final (60 días)</span>
+                    </div>
+                    <p style="margin-top: 2rem; color: var(--text-dim); text-align: center; font-size: 0.9rem;">
+                        <strong>Payback:</strong> 45 días | <strong>ROI:</strong> +250%
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- ═══════════════════ FEATURES ═══════════════════ -->
     <section id="features" class="features">
         <div class="container">
@@ -280,6 +311,50 @@
                             <span class="audit-ref">SKU_450</span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════ FREE TOOLS (LEAD MAGNET) ═══════════════════ -->
+    <section class="free-tools">
+        <div class="container">
+            <div class="section-header">
+                <div class="badge">Calcula tu ROI</div>
+                <h2>Herramientas Gratuitas</h2>
+                <p>Descubre cuánto dinero puedes recuperar en tu operación.</p>
+            </div>
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <h3><i class="fas fa-calculator"></i> MES ROI Calculator</h3>
+                    <p>¿Cuánto cuesta cada paro de línea en tu planta? Calcula el ahorro anual con Interno Core.</p>
+                    <form class="tool-form" onsubmit="calculateMESROI(event)">
+                        <input type="number" placeholder="# de líneas" required>
+                        <input type="number" placeholder="Paros/mes actual" required>
+                        <input type="number" placeholder="$/hora downtime" required>
+                        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;">Calcular</button>
+                    </form>
+                    <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 1rem; text-align: center;">
+                        Recibirás el reporte completo por email.
+                    </p>
+                </div>
+                <div class="tool-card">
+                    <h3><i class="fas fa-warehouse"></i> WMS Capacity Planner</h3>
+                    <p>¿Cuándo se llena tu almacén? Descubre si necesitas expandir o si Density Guard lo resuelve.</p>
+                    <form class="tool-form" onsubmit="calculateWMSCapacity(event)">
+                        <input type="number" placeholder="SKUs actuales" required>
+                        <input type="number" placeholder="Crecimiento anual %" required>
+                        <select required style="padding: 0.6rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: #fff;">
+                            <option value="">Tipo de rack</option>
+                            <option value="pallets">Pallets (4 nivel)</option>
+                            <option value="bins">Bins (6+ nivel)</option>
+                            <option value="flow">Flow rack (dinámico)</option>
+                        </select>
+                        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 0.5rem;">Proyectar</button>
+                    </form>
+                    <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 1rem; text-align: center;">
+                        Recibirás consulta de 15 min gratis.
+                    </p>
                 </div>
             </div>
         </div>
