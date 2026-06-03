@@ -80,9 +80,11 @@ def set_tenant_on_checkout(dbapi_connection, connection_record, connection_proxy
     cursor = dbapi_connection.cursor()
     try:
         if ctx and ctx.company_id:
-            # Validar UUID estrictamente antes de interpolarlo — previene inyección SQL
+            # Phase 179A P0.5: Use parameterized execution instead of string interpolation
+            # Even with UUID validation, f-string interpolation is anti-pattern.
+            # Use cursor.execute() with %s placeholder (safe against SQL injection).
             tenant_str = str(_uuid.UUID(str(ctx.company_id)))
-            cursor.execute(f"SET LOCAL app.current_tenant = '{tenant_str}';")
+            cursor.execute("SET LOCAL app.current_tenant = %s;", (tenant_str,))
         else:
             # Reseteo de seguridad: evita que una conexión reciclada herede el tenant anterior
             cursor.execute("RESET app.current_tenant;")
