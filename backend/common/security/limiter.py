@@ -30,10 +30,10 @@ def multi_layer_key_func(request: Request) -> str:
     if user_token and hasattr(user_token, "sub") and user_token.sub:
         return f"user:{user_token.sub}"
 
-    # 2. Intentar obtener el ID de la empresa (Capa 2)
-    company_id = request.headers.get("X-Company-ID")
-    if company_id:
-        return f"tenant:{company_id}"
+    # 2. Intentar obtener el ID de la empresa (Capa 2) — Phase 179A P0.2: Use verified JWT claim only
+    # CRITICAL: Do NOT use X-Company-ID header (client-controlled). Extract from verified JWT only.
+    if user_token and hasattr(user_token, "company_id") and user_token.company_id:
+        return f"tenant:{user_token.company_id}"
 
     # 3. Fallback a IP real (respeta X-Real-IP / X-Forwarded-For de Nginx/ALB)
     # request.client.host sería la IP del proxy, no del cliente — usar headers
