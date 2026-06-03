@@ -1138,6 +1138,33 @@ footer {
     color: var(--primary);
 }
 
+/* ── System Showcase Section ───────────────────── */
+.system-showcase {
+    padding: 6rem 0;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 229, 255, 0.02) 100%);
+    border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+}
+
+.system-showcase .section-header {
+    margin-bottom: 3rem;
+}
+
+.showcase-container {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    box-shadow: 0 0 80px rgba(0, 229, 255, 0.08), inset 0 1px 0 rgba(0, 229, 255, 0.1);
+    background: rgba(5, 11, 20, 0.5);
+}
+
+.showcase-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 20px;
+}
+
 /* ── Free Tools Section ────────────────────────── */
 .free-tools {
     padding: 6rem 0;
