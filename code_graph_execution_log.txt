@@ -1,15 +1,15 @@
 ================================================================================
  CODE GRAPH AUDITOR - EXECUTION LOG
  Phase 179A Security Audit
- Generated: 2026-06-03T20:14:03.209135+00:00
+ Generated: 2026-06-03T20:27:20.923253+00:00
 ================================================================================
 
-Total files scanned: 923
+Total files scanned: 925
 Microservices audited: 14
-Critical findings: 6
+Critical findings: 4
 Warning findings: 0
 NAIVE_DATETIME violations: 0
-RTR security findings: 3
+RTR security findings: 1
 
 FILES AUDITED:
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
@@ -207,6 +207,7 @@ AUDITED: backend/common/gis/domain/interfaces/gis_service.py [common]
 AUDITED: backend/common/gis/infrastructure/services/arcgis_tijuana_provider.py [common]
 AUDITED: backend/common/gis/infrastructure/services/tijuana_predial_provider.py [common]
 AUDITED: backend/common/infrastructure/__init__.py [common]
+AUDITED: backend/common/infrastructure/clients/session_store.py [common]
 AUDITED: backend/common/infrastructure/database.py [common]
 AUDITED: backend/common/infrastructure/models/__init__.py [common]
 AUDITED: backend/common/infrastructure/models/base.py [common]
@@ -243,6 +244,7 @@ AUDITED: backend/common/security/guards.py [common]
 AUDITED: backend/common/security/idempotency.py [common]
 AUDITED: backend/common/security/limiter.py [common]
 AUDITED: backend/common/security/require_permission.py [common]
+AUDITED: backend/common/security/scope_validator.py [common]
 AUDITED: backend/common/security/subscription_guard.py [common]
 AUDITED: backend/common/services/__init__.py [common]
 AUDITED: backend/common/services/audit_service.py [common]
