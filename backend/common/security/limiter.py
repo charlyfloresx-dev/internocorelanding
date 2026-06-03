@@ -40,8 +40,8 @@ def multi_layer_key_func(request: Request) -> str:
     for header in ("X-Real-IP", "X-Forwarded-For"):
         value = request.headers.get(header)
         if value:
-            return value.split(",")[0].strip()
-    return get_remote_address(request)
+            return f"ip:{value.split(',')[0].strip()}"
+    return f"ip:{get_remote_address(request)}"
 
 # Configuración del Limiter
 storage_uri = settings.REDIS_URL if settings.REDIS_URL else "memory://"

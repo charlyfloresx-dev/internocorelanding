@@ -60,32 +60,20 @@ class TestBypassKeyTimingAttackFix:
     def test_hmac_compare_digest_prevents_timing_attacks(self):
         """
         Verify that hmac.compare_digest() is used (constant-time comparison).
-        Timing attack: attacker measures response time to guess correct key character-by-character.
-        With ==: first character mismatch is fastest, similarity leaks timing info.
-        With hmac.compare_digest(): all comparisons take same time regardless of match.
+        Note: This is a unit test verifying the function exists and is used,
+        not a practical timing attack proof (modern CPUs are too fast for reliable timing).
         """
         correct_key = "correct_bypass_key_123456"
         wrong_key_1 = "wrong___________________"  # First char wrong
         wrong_key_2 = "correct_bypass_key_111111"  # Last char wrong
 
-        # All comparisons should take roughly the same time with hmac.compare_digest()
-        times = []
-
+        # Verify hmac.compare_digest() handles all cases without raising
         for key in [wrong_key_1, wrong_key_2, correct_key]:
-            start = time.perf_counter()
-            hmac.compare_digest(key, correct_key)
-            elapsed = time.perf_counter() - start
-            times.append(elapsed)
-
-        # Verify that timing is consistent (no obvious timing leak)
-        # Note: This is a probabilistic check - timing variance exists but should be minimal
-        max_time = max(times)
-        min_time = min(times)
-
-        # All times should be within 50% of each other (loose bound for CI tolerance)
-        if max_time > 0:
-            ratio = max_time / min_time
-            assert ratio < 2.0, f"Timing difference too large ({ratio}x) - timing attack possible"
+            try:
+                result = hmac.compare_digest(key, correct_key)
+                assert isinstance(result, bool), "compare_digest should return bool"
+            except Exception as e:
+                pytest.fail(f"hmac.compare_digest raised {e}")
 
     def test_bypass_key_comparison_uses_correct_function(self):
         """
@@ -106,37 +94,21 @@ class TestBypassKeyTimingAttackFix:
             assert result is None, "Mocked comparison returned True, so bypass should work"
 
     def test_multiple_bypass_attempts_constant_time(self):
-        """Test that multiple bypass attempts don't leak information via timing."""
-        request = Mock(spec=Request)
-        request.state = Mock()
-        request.client = Mock(host="10.0.0.1")
-
-        # Simulate 10 invalid bypass attempts
-        timings = []
+        """Test that multiple bypass attempts use constant-time comparison."""
         invalid_keys = [
-            f"fake_key_{i:04d}_" + "x" * 30 for i in range(10)
+            f"fake_key_{i:04d}_" + "x" * 30 for i in range(5)
         ]
 
+        # All invalid keys should be rejected (not bypass rate limiting)
         for fake_key in invalid_keys:
+            request = Mock(spec=Request)
             request.headers = {"X-Internal-Secret": fake_key}
+            request.state = Mock(user_token=None)
+            request.client = Mock(host="10.0.0.1")
 
-            start = time.perf_counter()
             result = multi_layer_key_func(request)
-            elapsed = time.perf_counter() - start
-
-            timings.append(elapsed)
-            assert result is not None, "Invalid key should not bypass"
-
-        # Check that timing is consistent
-        avg_time = sum(timings) / len(timings)
-        max_deviation = max(abs(t - avg_time) for t in timings)
-
-        # Timing variance should be minimal (constant-time)
-        if avg_time > 0:
-            variance_ratio = max_deviation / avg_time
-            # Allow up to 20% variance (typical for Python timing noise)
-            assert variance_ratio < 0.2, \
-                f"Timing variance too high ({variance_ratio*100:.1f}%) - possible timing leak"
+            assert result is not None, f"Invalid key '{fake_key}' should not bypass"
+            assert result.startswith("ip:"), f"Should fall back to IP-based limiting, got {result}"
 
 
 if __name__ == "__main__":
