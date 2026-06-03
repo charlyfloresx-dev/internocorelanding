@@ -18,5 +18,13 @@
       "Bash(git commit -m ' *)",
       "Bash(npx tsc *)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "marketingskills": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\API\\interno\\.skills\\marketingskills"
+      }
+    }
   }
 }
