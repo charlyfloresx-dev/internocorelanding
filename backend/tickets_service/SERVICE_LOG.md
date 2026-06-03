@@ -16,6 +16,37 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-06-03] Phase 175: Real-Time WebSocket Notifications ✅
+- **StationWebSocketManager** (`infrastructure/station_websocket_manager.py`): Nueva clase para manejar WebSocket connections por station_id
+  - Métodos: `connect()`, `disconnect()`, `broadcast_to_station()`, `emit_ticket_event()`
+  - Automatic cleanup de conexiones muertas en próximo broadcast
+  - Global singleton `station_manager` para uso en endpoints
+
+- **WebSocket Endpoint** (`/tickets/realtime/{station_id}`):
+  - Nueva ruta WebSocket en `ticket_routes.py`
+  - Acepta conexiones desde clientes frontend (Resource Monitor)
+  - Mantiene conexión abierta para broadcasts server→client
+  - Graceful disconnection handling
+
+- **Event Emission Integration**:
+  - `POST /tickets` → `emit ticket.created`
+  - `PATCH /tickets/{id}` → `emit ticket.status_changed` o `ticket.updated`
+  - `POST /tickets/{id}/assign` → `emit ticket.assigned`
+  - Event structure: `{event_type, ticket_id, station_id, priority, status, timestamp}`
+
+- **TicketEvent Schema** (`schemas/ticket_event.py`):
+  - Dataclass para event payload validation
+  - Compatible con frontend expectations
+
+- **Frontend Integration** (ver REPO_LOG.md Phase 175):
+  - `TicketRealtimeService` — WebSocket listener + auto-reconnect
+  - `ResourceMonitorComponent` — connect on init, disconnect on destroy
+  - Visual indicator: green dot (connected) / amber pulsing (disconnected)
+  - Auto-refresh `stationTickets` signal on event arrival
+  - Toast + sound alert for CRITICAL priority tickets
+
+- **Status**: ✅ COMPLETED — WebSocket bidirectional, events flowing, both frontend and backend operational
+
 ### [2026-06-03] Phase 173-174: Backend Handlers + Frontend Interactive Dialogs ✅
 - **Phase 173 Backend:**
   - `POST /tickets/{id}/assign` — Endpoint nuevo para asignar ticket a colaborador/departamento/contacto externo
