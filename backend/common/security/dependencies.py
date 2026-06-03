@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from common.context import request_context
 from common.security.auth_payload import TokenPayload
+from common.security.scope_validator import verify_user_scopes
 
 async def get_current_user() -> TokenPayload:
     """
@@ -122,6 +123,8 @@ def _scope_satisfies(user_scopes: set[str], required_scope: str) -> bool:
 def require_scope(required_scopes: list[str]):
     """
     Dependency factory to enforce scope-based access control.
+    Phase 179A P0.4: SSOT validation — always verify JWT scopes against server-side store.
+
     Supports both exact granular slugs ("master_data.product.read") and
     coarse namespace scopes ("master_data:read") which match any granular
     slug in that namespace.
@@ -131,10 +134,41 @@ def require_scope(required_scopes: list[str]):
     async def _require_scope(
         current_user: TokenPayload = Depends(get_current_active_user)
     ):
-        # Admin / God Mode Bypass
+        # Admin / God Mode Bypass (already validated by god_mode session store)
         if "GOD_MODE_ADMIN" in (current_user.role_names or []) or "*" in (current_user.scopes or []):
             return current_user
 
+        # CRITICAL: Phase 179A P0.4 — Validate JWT scopes against server-side SSOT
+        # Never trust JWT scope claims directly. Verify against cached permissions.
+        try:
+            jwt_scopes = current_user.scopes or []
+            is_valid = await verify_user_scopes(
+                user_id=current_user.sub,
+                company_id=current_user.company_id,
+                jwt_scopes=jwt_scopes
+            )
+
+            if not is_valid:
+                # JWT scopes don't match server-side record — potential elevation attempt
+                logger.warning(
+                    f"Scope validation failed for user {current_user.sub} in {current_user.company_id}: "
+                    f"JWT scopes {jwt_scopes} don't match server-side record"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Scope validation failed. Access denied."
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            # FAIL SECURE: If validation service fails, deny access
+            logger.error(f"Scope validation error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Scope validation error. Access denied."
+            )
+
+        # Now verify required scopes are present
         user_scopes = set(current_user.scopes or [])
 
         missing = [
