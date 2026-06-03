@@ -4,7 +4,7 @@ SQLAlchemy Implementation de Refresh Token Repository.
 Stateless, sin Redis. Usa optimistic locking nativo de SQLAlchemy.
 """
 from uuid import UUID, uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +54,7 @@ class SQLAlchemyRefreshTokenRepository(IRefreshTokenRepository):
         family_salt: str
     ) -> TokenFamily:
         """Crear nueva familia (al login)."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         model = RefreshTokenFamily(
             id=uuid4(),
             company_id=company_id,

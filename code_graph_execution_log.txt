@@ -2,7 +2,7 @@
  CODE GRAPH AUDITOR - EXECUTION LOG
 ================================================================================
 
-Total files scanned: 920
+Total files scanned: 922
 
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
@@ -791,6 +791,7 @@ AUDITED: backend/tickets_service/tickets_app/domain/ports/ticket_repository.py [
 AUDITED: backend/tickets_service/tickets_app/infrastructure/inventory_client.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/infrastructure/repositories/escalation_repository.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/infrastructure/repositories/ticket_repository.py [tickets_service]
+AUDITED: backend/tickets_service/tickets_app/infrastructure/station_websocket_manager.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/main.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/models/__init__.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/models/action.py [tickets_service]
@@ -807,6 +808,7 @@ AUDITED: backend/tickets_service/tickets_app/schemas/escalation_dto.py [tickets_
 AUDITED: backend/tickets_service/tickets_app/schemas/integration_events.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/schemas/internal_ticket.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/schemas/ticket_dto.py [tickets_service]
+AUDITED: backend/tickets_service/tickets_app/schemas/ticket_event.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/services/escalation_service.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/services/ticket_commands.py [tickets_service]
 AUDITED: backend/tickets_service/tickets_app/services/ticket_service.py [tickets_service]

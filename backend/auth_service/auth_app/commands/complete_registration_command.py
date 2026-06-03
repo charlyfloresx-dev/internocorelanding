@@ -2,7 +2,7 @@ import uuid
 from passlib.context import CryptContext
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timezone
 
 from common.cqrs import ICommand, ICommandHandler
 from auth_app.models import User, Invitation, UserCompanyRole
@@ -34,7 +34,7 @@ class CompleteRegistrationCommandHandler(ICommandHandler[dict]):
             if not invitation:
                 raise NotFoundException(message=f"Invitation {command.code} not found")
                 
-            if invitation.expires_at < datetime.utcnow():
+            if invitation.expires_at < datetime.now(timezone.utc):
                 raise UnauthorizedException(message="Invitation code has expired")
 
             # 2. Buscar usuario asociado ( stub )

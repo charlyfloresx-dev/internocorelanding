@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +29,7 @@ class ProductPriceRepository(BaseRepository[ProductPrice]):
         
         Todos filtrados por vigencia (start_date <= now <= end_date o end_date IS NULL).
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Filtros base comunes
         base_filters = [
@@ -71,7 +71,7 @@ class ProductPriceRepository(BaseRepository[ProductPrice]):
         """
         Inserta un nuevo precio aplicando la regla de auditoría "Append-Only" por corte de vigencia.
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         from datetime import timedelta
         
         # 1. Buscar colisión (Mismo contexto jerárquico que esté activo)

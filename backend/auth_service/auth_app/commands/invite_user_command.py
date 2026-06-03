@@ -1,7 +1,7 @@
 import uuid
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,7 +78,7 @@ class InviteUserCommandHandler(ICommandHandler[InvitationResponse]):
             code=code,
             role_id=command.role_id,
             company_id=command.company_id,
-            expires_at=datetime.utcnow() + timedelta(days=7)
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7)
         )
         self.db.add(invitation)
         

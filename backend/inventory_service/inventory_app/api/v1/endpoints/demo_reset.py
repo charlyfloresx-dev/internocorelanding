@@ -15,7 +15,7 @@ import uuid
 import asyncio
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Union
 
@@ -76,7 +76,7 @@ async def _run_demo_seed(company_id: uuid.UUID) -> dict:
     Clears and re-seeds demo data for the given company_id.
     All operations are ATOMIC within a single transaction.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     result = {
         "cleared_tables": [],
         "seeded": {
@@ -349,7 +349,7 @@ async def demo_reset(
             "type": "DASHBOARD_RESET",
             "payload": {
                 "message": "Demo data has been reset",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         }
     )

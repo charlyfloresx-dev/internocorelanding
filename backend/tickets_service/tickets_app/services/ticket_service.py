@@ -38,7 +38,7 @@ class TicketService:
             "collaborator_id": cmd.collaborator_id,
             "external_contact_id": cmd.external_contact_id,
             "assigned_department_id": getattr(cmd, "assigned_department_id", None),
-            "external_assigned_at": datetime.utcnow() if cmd.external_contact_id else None,
+            "external_assigned_at": datetime.now(timezone.utc) if cmd.external_contact_id else None,
         }
         
         # Inyectar campos de Fase 5 si existen

@@ -7,7 +7,7 @@ from decimal import Decimal
 from fastapi.responses import StreamingResponse
 import io
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 
 from inventory_app.db.session import get_db as get_session
 
@@ -52,7 +52,7 @@ async def bulk_load_movements(
 
     # 1. Preparación de datos para executemany
     bulk_data = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     
     # Mapeo de strings a Enum para evitar error de tipado en DB
     type_map = {
@@ -163,7 +163,7 @@ async def create_movement(
                 "folio": getattr(movement, 'folio', 'MOV-' + str(movement.id)[:6]),
                 "concept_type": cmd.concept_type,
                 "warehouse_id": str(cmd.warehouse_id),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": "System"
             }
         })
@@ -271,7 +271,7 @@ async def receive_transfer(
                 "folio": "TRF-REC-" + str(movement.id)[:6],
                 "concept_type": "ENTRADA",
                 "warehouse_id": str(cmd.to_warehouse_id),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "created_by": "System"
             }
         })

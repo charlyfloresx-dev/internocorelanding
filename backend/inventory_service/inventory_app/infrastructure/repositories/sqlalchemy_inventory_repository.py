@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Any
 import logging
 import uuid
@@ -1199,7 +1199,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
 
         # 3. Serie Temporal (Hourly Aggregation)
         # Agrupación por hora de los movimientos del último día
-        since_24h = datetime.utcnow() - timedelta(hours=24)
+        since_24h = datetime.now(timezone.utc) - timedelta(hours=24)
         hourly_stmt = select(
             func.date_trunc('hour', Movement.created_at).label('hour'),
             func.coalesce(func.sum(case((Movement.movement_type == 'IN', Movement.quantity), else_=0)), 0).label('entries'),
@@ -1819,7 +1819,7 @@ class SQLAlchemyInventoryRepository(IInventoryRepository):
         result = await self.session.execute(stmt)
         rows = result.all()
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return [
             {
                 "item_id": str(uuid.uuid4()), # Placeholder or real product_id

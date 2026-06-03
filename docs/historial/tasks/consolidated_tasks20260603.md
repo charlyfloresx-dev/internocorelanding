@@ -114,28 +114,67 @@ Exit code: 0 (seguro para producción)
 
 ---
 
+## ✅ Phase 176 — Create Ticket Dialog COMPLETADO (2026-06-03)
+
+**Prioridad:** MEDIA  
+**Estimado:** 1.5h | **Real:** ~1h  
+**Estado:** ✅ COMPLETADO
+
+**Subtareas:**
+- [x] `NewTicketDialogComponent` — MatDialog standalone component
+  - Form fields: title (5-100), description (10-500), priority dropdown, assignee (opcional)
+  - Real-time character counters
+  - Form validation with isFormValid()
+  - Mock collaborators (TODO: HCM API integration Phase 177+)
+  - HTTP POST a `/tickets` endpoint con payload estructurado
+  
+- [x] Integrar en `ResourceMonitorComponent`
+  - Inyectar `ModalService`
+  - Implementar `openNewTicket()` method con station context
+  - Auto-refresh `stationTickets` signal post-éxito vía `loadSoporte()`
+  - Dialog trigger: "Nuevo Ticket" button en tab Soporte
+
+- [x] Compilación y validación
+  - ✅ Build exitoso: 0 TypeScript errors, 17.084s
+  - ✅ No regressions en otros componentes
+
+**TODOs:**
+- `company_id` hardcoded como "TODO: from JWT" — necesita auth context injection
+- Mock collaborators → real HCM API fetch
+- CSV bulk import de tickets (deferred)
+
+**Commits:**
+- `feat(phase-176): create ticket dialog — NewTicketDialogComponent` (70081d0)
+
+---
+
 ## ⏳ Tareas Pendientes (Backlog próximas fases)
 
-### Phase 176 — Bulk Import + Create Ticket Dialog
-**Prioridad:** MEDIA  
-**Estimado:** 3h  
+### Phase 177 — NAIVE_DATETIME Fixes ⚠️ CRÍTICA
+**Prioridad:** ALTA (Cloud deployment blocker)  
+**Estimado:** 1h  
 **Requisitos:**
-- `NewTicketDialogComponent` para crear tickets desde Resource Monitor
-  - Form: station_id, priority, description, assigned_to (opcional)
-  - HTTP POST a `/tickets` endpoint
-  - Auto-open modal con "Nuevo Ticket" button en tab Soporte
-  
-- CSV bulk import de tickets (opcional)
-  - CSV template downloader
-  - Drag-drop upload zone
-  - Batch create via `/tickets/bulk-import` endpoint (si existe)
-  - Progress bar + error summary
+- Fix 8 NAIVE_DATETIME_VIOLATION warnings
+- Replace `datetime.utcnow()` con `datetime.now(timezone.utc)` en:
+  - `backend/auth_service/` (3 files)
+  - `backend/inventory_service/` (3 files)
+  - `backend/tickets_service/` (1 file)
+  - `backend/wms_service/` (1 file)
+- Run code graph audit: confirm 0 WARNINGs
+- Esperado: exit code 0, timezones correctos para AWS deployment
 
-- Validación de campos obligatorios y tipos
+**Archivos a modificar:**
+- auth_service: `commands/`, `services/`
+- inventory_service: `api/endpoints/`, `repositories/`
+- tickets_service: `services/`
+- wms_service: `repositories/`
 
-**Archivos a crear/modificar:**
-- `frontend/.../components/new-ticket-dialog.component.ts` (standalone Modal)
-- `frontend/.../resource-monitor.component.ts` (add newTicket button + binding)
+### Phase 176b (Opcional) — Bulk Import + CSV
+**Prioridad:** BAJA  
+**Requisitos:**
+- CSV bulk import endpoint para tickets
+- Frontend upload UI
+- Progress tracking
 
 ### Phase 177 — NAIVE_DATETIME Fixes
 **Prioridad:** ALTA (Cloud deployment readiness)  
