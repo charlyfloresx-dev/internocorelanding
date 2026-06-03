@@ -13,6 +13,7 @@ from common.context import request_context
 from common.domain.entities.user_context import UserContext
 from common.security.auth_payload import TokenPayload
 from common.config import settings as _settings
+from common.infrastructure.clients.session_store import verify_god_mode
 
 logger = logging.getLogger(__name__)
 
@@ -227,8 +228,18 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                         except:
                             continue
 
+                # Phase 179A P0.3: Verify god_mode against server-side session store (Redis)
+                # CRITICAL: Never trust JWT claim god_mode directly. Always verify against SSOT.
+                god_mode_verified = bypass_tenant  # Fallback to bypass_tenant if no JWT user
+                if user_id and company_uuid:
+                    try:
+                        god_mode_verified = await verify_god_mode(str(user_id), str(company_uuid))
+                    except Exception as e:
+                        logger.warning(f"Failed to verify god_mode, using fallback: {e}")
+                        god_mode_verified = bypass_tenant
+
                 user_ctx = UserContext(
-                    company_id=company_uuid, 
+                    company_id=company_uuid,
                     user_id=str(user_id) if user_id else None,
                     sub=str(user_id) if user_id else None,
                     group_id=group_uuid,
@@ -241,7 +252,7 @@ class InternoCoreGlobalMiddleware(BaseHTTPMiddleware):
                     scopes=getattr(request.state.user_token, "scopes", []) if hasattr(request.state, "user_token") and request.state.user_token else [],
                     status=getattr(request.state.user_token, "status", "ACTIVE") if hasattr(request.state, "user_token") and request.state.user_token else "ACTIVE",
                     jti=getattr(request.state.user_token, "jti", None) if hasattr(request.state, "user_token") and request.state.user_token else None,
-                    god_mode=getattr(request.state.user_token, "god_mode", False) if hasattr(request.state, "user_token") and request.state.user_token else bypass_tenant
+                    god_mode=god_mode_verified
                 )
                 token_ctx = request_context.set(user_ctx)
             except (ValueError, TypeError):
