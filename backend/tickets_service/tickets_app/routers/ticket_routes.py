@@ -2,12 +2,9 @@ from typing import List, Optional
 import uuid
 import hmac
 import hashlib
-import csv
-import io
-from datetime import datetime, timezone
 from tickets_app.core.config import settings
 from common.services.audit_service import AuditService
-from fastapi import APIRouter, Depends, HTTPException, Query, Header, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from tickets_app.dependencies.database import get_db
 from common.security.dependencies import require_scope
@@ -25,9 +22,6 @@ from tickets_app.schemas.ticket_dto import (
     TicketActionRead,
     TicketAssignRequest,
     TicketEscalateRequest,
-    TicketBulkCreateRow,
-    TicketBulkCreateResult,
-    TicketBulkImportResponse,
     ApiResponse
 )
 from tickets_app.core.constants import TicketStatus, TicketPriority
@@ -732,139 +726,6 @@ async def close_ticket_action(
     await db.commit()
     await db.refresh(action)
     return ApiResponse(data=TicketActionRead.model_validate(action), message="Acción cerrada")
-
-
-@router.post("/bulk-import", response_model=ApiResponse)
-async def bulk_import_tickets(
-    file: UploadFile = File(..., description="CSV file with tickets"),
-    db: AsyncSession = Depends(get_db),
-    user: TokenPayload = Depends(require_scope(["ticket:write"]))
-):
-    """
-    Bulk import tickets from CSV file.
-    CSV columns: title, description, ticket_type, priority, area, module_origin
-    Returns summary of created tickets and errors.
-    """
-    company_id = to_uuid(user.company_id)
-    user_id = to_uuid(user.sub)
-
-    # Validate file type
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="File must be a CSV file (.csv)")
-
-    # Validate file size (max 5MB)
-    MAX_FILE_SIZE = 5 * 1024 * 1024
-    contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 5MB)")
-
-    # Parse CSV
-    try:
-        csv_text = contents.decode("utf-8")
-        csv_reader = csv.DictReader(io.StringIO(csv_text))
-        rows = list(csv_reader)
-
-        if not rows:
-            raise HTTPException(status_code=400, detail="CSV file is empty")
-
-        # Validate headers
-        required_columns = {"title", "description"}
-        if not required_columns.issubset(set(csv_reader.fieldnames or [])):
-            raise HTTPException(
-                status_code=400,
-                detail=f"CSV must contain columns: {', '.join(required_columns)}"
-            )
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid UTF-8 encoding in CSV file")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error parsing CSV: {str(e)}")
-
-    # Process rows
-    service = TicketService(SQLAlchemyTicketRepository(db))
-    results: List[TicketBulkCreateResult] = []
-    successful_count = 0
-
-    for row_num, row in enumerate(rows, start=1):
-        try:
-            # Validate and parse row
-            ticket_row = TicketBulkCreateRow(
-                title=row.get("title", "").strip(),
-                description=row.get("description", "").strip(),
-                ticket_type=row.get("ticket_type", "SUPPORT").strip(),
-                priority=row.get("priority", "MEDIA").strip(),
-                area=row.get("area", "").strip() or None,
-                module_origin=row.get("module_origin", "").strip() or None,
-            )
-
-            # Validate ticket_type enum
-            try:
-                from tickets_app.core.constants import TicketType
-                ticket_type_enum = TicketType(ticket_row.ticket_type)
-            except ValueError:
-                raise ValueError(f"Invalid ticket_type: {ticket_row.ticket_type}")
-
-            # Validate priority enum
-            try:
-                priority_enum = TicketPriority(ticket_row.priority)
-            except ValueError:
-                raise ValueError(f"Invalid priority: {ticket_row.priority}")
-
-            # Create ticket
-            create_cmd = TicketCreate(
-                title=ticket_row.title,
-                description=ticket_row.description,
-                ticket_type=ticket_type_enum,
-                priority=priority_enum,
-                company_id=company_id,
-                area=ticket_row.area,
-                module_origin=ticket_row.module_origin,
-                source_service="BULK_IMPORT"
-            )
-
-            ticket = await service.create_ticket(create_cmd, user_id)
-
-            results.append(TicketBulkCreateResult(
-                row_number=row_num,
-                success=True,
-                ticket_id=ticket.id,
-                reference_code=ticket.reference_code,
-                error=None
-            ))
-            successful_count += 1
-
-            # Broadcast created event (station-scoped if station_id present)
-            if ticket.station_id:
-                await station_manager.emit_ticket_event(
-                    event_type="ticket.created",
-                    ticket_id=str(ticket.id),
-                    station_id=str(ticket.station_id),
-                    priority=ticket.priority,
-                    status=ticket.status
-                )
-
-        except Exception as e:
-            results.append(TicketBulkCreateResult(
-                row_number=row_num,
-                success=False,
-                ticket_id=None,
-                reference_code=None,
-                error=str(e)
-            ))
-
-    response = TicketBulkImportResponse(
-        total_rows=len(rows),
-        successful=successful_count,
-        failed=len(rows) - successful_count,
-        results=results,
-        created_at=datetime.now(timezone.utc)
-    )
-
-    await db.commit()
-
-    return ApiResponse(
-        data=response.model_dump(),
-        message=f"Bulk import completed: {successful_count}/{len(rows)} tickets created"
-    )
 
 
 # ── WebSocket Realtime Ticket Updates ─────────────────────────────────────
