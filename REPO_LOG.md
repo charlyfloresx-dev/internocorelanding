@@ -4,6 +4,31 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-03] Phase 174 — Interactive Dialogs for Ticket Actions ✅
+
+**Objetivo:** Implementar diálogos interactivos para acciones rápidas de tickets en el tab Soporte del Resource Monitor: modal de asignación y drawer de comentarios.
+
+**Decisiones Arquitectónicas:**
+- **TicketAssignModalComponent**: Modal MatDialog con selector de colaborador + departamento opcional + notas. Llamada HTTP POST a `/assign` endpoint implementado en Phase 173. Auto-transición de estado NEW→ASSIGNED tras éxito.
+- **TicketCommentsDrawerComponent**: Side drawer con lista de comentarios + input bar. Integración con `SideDrawerService` (signals-based, no RxJS subscriptions innecesarias). Timestamps relativos (hace Xm, Xh, etc.).
+- **Patrón de inyección**: `ModalService` y `SideDrawerService` inyectados en `ResourceMonitorComponent`. Métodos `assignTicket()` y `commentTicket()` abren diálogos con datos del ticket.
+- **Signal reactivity**: Actualización in-place de `stationTickets` signal tras éxito de operación (sin reload de lista).
+- **Separación de concerns**: Componentes modales/drawers standalone (no importados en el template principal). Abren con `modalSvc.open()` / `drawerSvc.open()`.
+
+**Workarounds / Deuda Técnica:**
+- `TicketAssignModalComponent`: Mock data de colaboradores/departamentos (TODO: fetch real desde API HCM en Phase 175).
+- `TicketCommentsDrawerComponent`: Mock comments para demo (TODO: integración real con `ticket.service.getComments()` endpoint).
+- `openNewTicket()`: Stub pendiente (Phase 175 — requiere NewTicketDialogComponent).
+
+**Archivos clave:**
+- `frontend/src/app/modules/monitor/tickets/components/ticket-assign-modal.component.ts` — Nuevo modal dialog
+- `frontend/src/app/modules/monitor/tickets/components/ticket-comments-drawer.component.ts` — Nuevo side drawer
+- `frontend/src/app/modules/monitor/resource-monitor.component.ts` — Integración de diálogos (imports + métodos)
+
+**Compilación:** ✅ Build exitoso (0 TypeScript errors post-fix de signal handling en templates)
+
+---
+
 ### [2026-06-02] Phases 169–171 — Headcount Tracking, Shop Floor Badge Auth & Unified Monitor ✅
 
 **Objetivo:** Implementar el ciclo completo de tracking de personal en piso de manufactura: desde la densidad horaria de colaboradores hasta la autenticación física por QR/RFID/Barcode directamente en la pantalla del recurso.

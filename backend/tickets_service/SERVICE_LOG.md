@@ -16,6 +16,30 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 
 ## 🚀 Log de Cambios y Estabilización
 
+### [2026-06-03] Phase 173-174: Backend Handlers + Frontend Interactive Dialogs ✅
+- **Phase 173 Backend:**
+  - `POST /tickets/{id}/assign` — Endpoint nuevo para asignar ticket a colaborador/departamento/contacto externo
+  - `POST /tickets/{id}/escalate` — Endpoint nuevo para escalar a prioridad CRITICAL con notificación
+  - `TicketAssignRequest` + `TicketEscalateRequest` schemas (Pydantic validation)
+  - Auto-transición de estado: NEW→ASSIGNED al asignar, cualquier estado→CRITICAL al escalar
+  - WebSocket broadcast de eventos `TICKET_ASSIGNED` y `TICKET_ESCALATED` via `manager.broadcast_to_company()`
+  - Outbox pattern para notificaciones async (eventos queued para notification_service)
+  
+- **Phase 174 Frontend:**
+  - `TicketAssignModalComponent` — MatDialog modal para seleccionar colaborador + departamento + notas
+  - `TicketCommentsDrawerComponent` — SideDrawer para listar comentarios + agregar nuevos
+  - Integración en `ResourceMonitorComponent`: métodos `assignTicket()` y `commentTicket()` ahora abren diálogos
+  - Signal-based state management (stationTickets actualizado in-place post-éxito)
+  - Mock data para colaboradores/departamentos/comentarios (TODO: integración real con HCM en Phase 175)
+  
+- **Architecture:**
+  - ✅ Code Graph audit: 0 CRITICAL errors (8 WARNINGs NAIVE_DATETIME conocidos)
+  - ✅ Cumplimiento de Multi-tenancy (company_id siempre del JWT, nunca del cliente)
+  - ✅ Separación de concerns: modal/drawer components standalone, inyectados via servicios
+  - ✅ CQRS pattern: handlers con history tracking + outbox events
+  
+- **Status**: ✅ COMPLETED — Diálogos funcionales, endpoints operativos, build clean (0 TS errors post-fix)
+
 ### [2026-05-27] Phase 145: TicketAction Validation Fix + AI Comment Hardcode Removal ✅
 - **`TicketActionCreate.description` min_length 5→1** (`schemas/ticket_dto.py`): Validación demasiado estricta rechazaba descripciones cortas válidas ("Test", "Done", "OK"). El campo sigue siendo requerido (`...`) — strings vacíos siguen siendo inválidos.
 - **AI Assistant auto-comment** (`services/ticket_service.py` → `_process_support_ai`): Removida la línea `"Asegúrate de estar en el tenant correcto: " + str(ticket.company_id)` que exponía el UUID interno del tenant en el historial de tickets visible al usuario. Reemplazada con `"Verifica que el área y la prioridad del reporte sean correctas."` — orientación genérica sin datos internos.
