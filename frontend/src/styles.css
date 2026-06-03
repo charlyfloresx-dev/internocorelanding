@@ -72,18 +72,54 @@
 }
 
 @layer base {
+  /* Light Mode (default) - Industrial Light Palette */
+  :root {
+    /* Already defined in @theme above, but explicit for clarity */
+    --color-primary: #0284c7;
+    --color-primary-dark: #0369a1;
+    --color-surface-bg: #f1f5f9;
+    --color-surface-card: #ffffff;
+    --color-surface-border: #cbd5e1;
+    --color-surface-text: #0f172a;
+    --color-surface-text-muted: #475569;
+    --color-input-bg: #f8fafc;
+    --color-input-border: #94a3b8;
+    --color-input-text: #0f172a;
+    --color-nav-bar: #ffffff;
+    --color-nav-panel: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Dark Mode - Automatic via OS preference (prefers-color-scheme: dark) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Dark Mode - Futuristic overrides */
+      --color-surface-bg: #050B14;
+      --color-surface-card: #0A1628;
+      --color-surface-border: rgba(0, 229, 255, 0.1);
+      --color-surface-text: #F8FAFC;
+      --color-surface-text-muted: #94A3B8;
+
+      --color-input-bg: rgba(15, 23, 42, 0.6);
+      --color-input-border: rgba(255, 255, 255, 0.05);
+      --color-input-text: #F8FAFC;
+
+      --color-primary: #00E5FF;
+      --color-primary-dark: #00A3FF;
+      --color-nav-bar: #050B14;
+      --color-nav-panel: rgba(10, 22, 40, 0.7);
+    }
+  }
+
+  /* Fallback: .dark class still supported for manual override if needed */
   .dark {
-    /* Dark Mode - Futuristic overrides */
     --color-surface-bg: #050B14;
     --color-surface-card: #0A1628;
     --color-surface-border: rgba(0, 229, 255, 0.1);
     --color-surface-text: #F8FAFC;
     --color-surface-text-muted: #94A3B8;
-    
     --color-input-bg: rgba(15, 23, 42, 0.6);
     --color-input-border: rgba(255, 255, 255, 0.05);
     --color-input-text: #F8FAFC;
-
     --color-primary: #00E5FF;
     --color-primary-dark: #00A3FF;
     --color-nav-bar: #050B14;
@@ -111,9 +147,24 @@
   .industrial-card {
     @apply bg-surface-card border border-surface-border rounded-xl shadow-sm backdrop-blur-md relative transition-all duration-300 hover:shadow-md hover:border-primary/30;
   }
-  
+
+  /* Enhanced shadow in dark mode */
+  @media (prefers-color-scheme: dark) {
+    .industrial-card {
+      @apply shadow-2xl hover:shadow-primary/5;
+    }
+  }
+
   .dark .industrial-card {
     @apply shadow-2xl hover:shadow-primary/5;
+  }
+
+  /* Darken select options in dark mode */
+  @media (prefers-color-scheme: dark) {
+    select option {
+      background-color: #0A1628;
+      color: #F8FAFC;
+    }
   }
 
   .dark select option {
