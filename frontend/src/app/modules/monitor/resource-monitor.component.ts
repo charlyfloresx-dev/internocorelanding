@@ -8,7 +8,11 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { ResourceService } from '../../core/services/resource.service';
 import { LaborService } from '../../core/services/labor.service';
 import { TicketService } from '../../core/services/ticket.service';
+import { ModalService } from '../../core/services/modal.service';
+import { SideDrawerService } from '../../core/services/side-drawer.service';
 import { BadgeClockInResponse } from '../../core/models/mes.types';
+import { TicketAssignModalComponent } from './tickets/components/ticket-assign-modal.component';
+import { TicketCommentsDrawerComponent } from './tickets/components/ticket-comments-drawer.component';
 
 type MainTab = 'produccion' | 'personal' | 'soporte';
 type WOTab   = 'scan' | 'planned';
@@ -787,11 +791,13 @@ interface ScanFeedback {
 export class ResourceMonitorComponent implements OnInit, OnDestroy {
 
   // Services
-  readonly svc       = inject(ResourceService);
-  readonly laborSvc  = inject(LaborService);
-  readonly ticketSvc = inject(TicketService);
-  private route      = inject(ActivatedRoute);
-  private router     = inject(Router);
+  readonly svc           = inject(ResourceService);
+  readonly laborSvc      = inject(LaborService);
+  readonly ticketSvc     = inject(TicketService);
+  private modalSvc       = inject(ModalService);
+  private drawerSvc      = inject(SideDrawerService);
+  private route          = inject(ActivatedRoute);
+  private router         = inject(Router);
 
   // Tab state
   readonly mainTab = signal<MainTab>('produccion');
@@ -906,12 +912,26 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   openNewTicket(): void {
-    // TODO Phase 174: Abrir dialog para crear nuevo ticket
+    // TODO Phase 175: Abrir dialog para crear nuevo ticket (requiere NewTicketDialogComponent)
   }
 
   assignTicket(ticket: any): void {
-    // TODO Phase 174: Abrir modal para seleccionar colaborador y asignar
-    // Por ahora, stub para Phase 173 — requiere dialog interactivo
+    this.modalSvc.open(
+      TicketAssignModalComponent,
+      { ticket },
+      { width: '500px' },
+      (result) => {
+        if (result) {
+          // Actualizar el ticket en la lista
+          const idx = this.ticketSvc.stationTickets().findIndex(t => t.id === ticket.id);
+          if (idx >= 0) {
+            const tickets = [...this.ticketSvc.stationTickets()];
+            tickets[idx] = { ...ticket, status: 'ASSIGNED' };
+            this.ticketSvc.stationTickets.set(tickets);
+          }
+        }
+      }
+    );
   }
 
   resolveTicket(ticket: any): void {
@@ -931,7 +951,16 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   commentTicket(ticket: any): void {
-    // TODO Phase 174: Abrir drawer de comentarios
+    this.drawerSvc.open(
+      TicketCommentsDrawerComponent,
+      {
+        title: 'Comentarios',
+        subtitle: ticket.reference_code,
+        icon: 'chat',
+        width: 'w-96'
+      },
+      ticket
+    );
   }
 
   escalateTicket(ticket: any): void {
