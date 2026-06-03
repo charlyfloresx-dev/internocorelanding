@@ -25,6 +25,10 @@ class AuthSettings(InternoSettings):
         default="http://subscription-service:8000",
         validation_alias=AliasChoices("CORE_SUBSCRIPTION_URL", "SUBSCRIPTION_SERVICE_URL")
     )
+    NOTIFICATION_SERVICE_URL: str = Field(
+        default="http://notification-service:8000",
+        validation_alias=AliasChoices("CORE_NOTIFICATION_URL", "NOTIFICATION_SERVICE_URL")
+    )
     HCM_SERVICE_URL: str = Field(
         default="http://hcm-service:8000",
         validation_alias=AliasChoices("CORE_HCM_URL", "HCM_SERVICE_URL")

@@ -15,8 +15,9 @@ FASES:
 """
 import jwt
 import secrets
+import logging
 from uuid import UUID, uuid4
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from auth_app.domain.repositories.refresh_token_repository import IRefreshTokenRepository
@@ -30,8 +31,11 @@ from auth_app.domain.exceptions.refresh_token_exceptions import (
     RefreshTokenInvalidError,
     RefreshTokenConcurrentRaceError
 )
+from auth_app.infrastructure.clients.notification_client import NotificationClient
 from common.exceptions import OptimisticLockError
 from auth_app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class RefreshTokenCommand:
@@ -143,7 +147,6 @@ class RefreshTokenHandler:
         # FASE 5: Idempotency check (RDS failover resilience)
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        from datetime import timezone
         now = datetime.now(timezone.utc)
 
         if (family.last_refresh_jti == token_payload.jti and
@@ -267,7 +270,11 @@ class RefreshTokenHandler:
         detail: str,
         ip_address: str
     ) -> None:
-        """Revocar familia por breach detectado."""
+        """
+        Revocar familia por breach detectado.
+
+        Atomic revocation + fire-and-forget alert. Alert failures never block revocation.
+        """
         await self.token_repo.revoke_family(family.family_id, family.company_id, reason)
 
         await self.token_repo.log_rotation_event(
@@ -281,11 +288,24 @@ class RefreshTokenHandler:
             user_agent=None
         )
 
-        # TODO: Trigger security alert (email, Slack, pager, etc.)
+        # Send security breach alert (best-effort, never blocks revocation)
+        try:
+            notification_client = NotificationClient()
+            await notification_client.send_breach_alert(
+                company_id=family.company_id,
+                user_id=family.user_id,
+                reason=reason,
+                ip_address=ip_address,
+                timestamp=datetime.now(timezone.utc)
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to send RTR breach alert (continuing anyway): {type(e).__name__}: {e}",
+                exc_info=False
+            )
 
     def _issue_refresh_token(self, family: TokenFamily) -> str:
         """Emitir JWT refresh con binding criptográfico."""
-        from datetime import timezone
         now = datetime.now(timezone.utc)
         family_hash = family.compute_family_hash(self.secret_key)
 
@@ -305,7 +325,6 @@ class RefreshTokenHandler:
 
     def _issue_access_token(self, user_id: UUID, company_id: UUID) -> str:
         """Emitir JWT access (standard)."""
-        from datetime import timezone
         now = datetime.now(timezone.utc)
 
         # TODO: Obtener roles/scopes del usuario desde DB
