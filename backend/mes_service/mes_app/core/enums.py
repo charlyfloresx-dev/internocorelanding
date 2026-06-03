@@ -51,3 +51,25 @@ class WorkOrderLineStatus(str, Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     CANCELLED = "CANCELLED"
+
+
+class ProductionRunStatus(str, Enum):
+    SCHEDULED = "SCHEDULED"
+    ACTIVE = "ACTIVE"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+
+
+class LaborRole(str, Enum):
+    OPERATOR = "OPERATOR"
+    LEADER = "LEADER"
+    INSPECTOR = "INSPECTOR"
+    AUXILIARY = "AUXILIARY"
+
+
+class WorkOrderStatus(str, Enum):
+    DRAFT = "DRAFT"
+    RELEASED = "RELEASED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CLOSED = "CLOSED"

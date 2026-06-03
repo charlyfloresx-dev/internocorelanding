@@ -8,6 +8,7 @@ from mes_app.domain.repositories.interfaces import (
     IProductionRunRepository, IManufacturingLedgerRepository,
     IDowntimeRepository, ILaborRepository, IGoalRepository,
     IShiftRepository, IResourceRepository, IWorkOrderRepository,
+    ILaborAllocationRepository,
 )
 from mes_app.models.production_run import ProductionRun
 from mes_app.models.ledger import ManufacturingLedger
@@ -18,6 +19,7 @@ from mes_app.models.shift import Shift
 from mes_app.models.resource import Resource
 from mes_app.models.work_order import WorkOrder
 from mes_app.models.work_order_line import WorkOrderLine
+from mes_app.models.labor_allocation import LaborAllocation
 from mes_app.core.enums import WorkOrderLineType, WorkOrderLineStatus
 
 class SQLAlchemyProductionRunRepository(IProductionRunRepository):
@@ -29,6 +31,25 @@ class SQLAlchemyProductionRunRepository(IProductionRunRepository):
             query = query.where(ProductionRun.company_id == company_id)
         res = await self.db.execute(query)
         return res.scalars().first()
+
+    async def update_status(self, run_id: uuid.UUID, status: str, company_id: uuid.UUID) -> bool:
+        run = await self.get_by_id(run_id, company_id=company_id)
+        if run:
+            run.status = status
+            await self.db.commit()
+            return True
+        return False
+
+    async def get_by_date_and_resource(self, run_date: Any, resource_id: uuid.UUID, company_id: uuid.UUID) -> List[Any]:
+        query = select(ProductionRun).where(
+            and_(
+                ProductionRun.date == run_date,
+                ProductionRun.resource_id == resource_id,
+                ProductionRun.company_id == company_id
+            )
+        )
+        res = await self.db.execute(query)
+        return list(res.scalars().all())
 
 class SQLAlchemyManufacturingLedgerRepository(IManufacturingLedgerRepository):
     def __init__(self, db: AsyncSession):
@@ -182,3 +203,50 @@ class SQLAlchemyWorkOrderRepository(IWorkOrderRepository):
                 output_line.status = WorkOrderLineStatus.COMPLETED
             elif output_line.actual_quantity > 0:
                 output_line.status = WorkOrderLineStatus.IN_PROGRESS
+
+
+class SQLAlchemyLaborAllocationRepository(ILaborAllocationRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def assign(
+        self,
+        production_run_id: uuid.UUID,
+        collaborator_id: uuid.UUID,
+        role: str,
+        shift_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> Any:
+        allocation = LaborAllocation(
+            production_run_id=production_run_id,
+            collaborator_id=collaborator_id,
+            role=role,
+            shift_id=shift_id,
+            company_id=company_id,
+        )
+        self.db.add(allocation)
+        return allocation
+
+    async def get_by_run(self, run_id: uuid.UUID, company_id: uuid.UUID) -> List[Any]:
+        query = select(LaborAllocation).where(
+            and_(
+                LaborAllocation.production_run_id == run_id,
+                LaborAllocation.company_id == company_id,
+            )
+        )
+        res = await self.db.execute(query)
+        return list(res.scalars().all())
+
+    async def remove(self, allocation_id: uuid.UUID, company_id: uuid.UUID) -> bool:
+        query = select(LaborAllocation).where(
+            and_(
+                LaborAllocation.id == allocation_id,
+                LaborAllocation.company_id == company_id,
+            )
+        )
+        res = await self.db.execute(query)
+        allocation = res.scalars().first()
+        if allocation:
+            await self.db.delete(allocation)
+            return True
+        return False

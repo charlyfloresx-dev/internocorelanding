@@ -9,6 +9,14 @@ class IProductionRunRepository(ABC):
     async def get_by_id(self, run_id: uuid.UUID) -> Any:
         pass
 
+    @abstractmethod
+    async def update_status(self, run_id: uuid.UUID, status: str, company_id: uuid.UUID) -> bool:
+        pass
+
+    @abstractmethod
+    async def get_by_date_and_resource(self, run_date: Any, resource_id: uuid.UUID, company_id: uuid.UUID) -> List[Any]:
+        pass
+
 class IManufacturingLedgerRepository(ABC):
     @abstractmethod
     async def create(self, **kwargs) -> Any:
@@ -82,3 +90,25 @@ class IWorkOrderRepository(ABC):
           IN_PROGRESS → COMPLETED (when manufactured_quantity >= order_quantity)
         """
         pass
+
+
+class ILaborAllocationRepository(ABC):
+    @abstractmethod
+    async def assign(
+        self,
+        production_run_id: uuid.UUID,
+        collaborator_id: uuid.UUID,
+        role: str,
+        shift_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> Any:
+        pass
+
+    @abstractmethod
+    async def get_by_run(self, run_id: uuid.UUID, company_id: uuid.UUID) -> List[Any]:
+        pass
+
+    @abstractmethod
+    async def remove(self, allocation_id: uuid.UUID, company_id: uuid.UUID) -> bool:
+        pass
+

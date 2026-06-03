@@ -1,0 +1,208 @@
+# Phase 156: MES — Órdenes de Producción + Asignación de Colaboradores a Líneas/Turnos
+
+## Análisis del Estado Actual del `mes_service`
+
+### Arquitectura
+
+El microservicio sigue **Clean Architecture** con repository pattern completo:
+
+```
+mes_service/
+├── mes_app/
+│   ├── api/v1/endpoints/     ← 10 routers (scan, dashboard, labor, downtime, work_order, sync, resource, shift, planning, production)
+│   ├── core/
+│   │   ├── enums.py          ← WOType, WorkOrderLineType/Status, ProductionEventType, ProdIssueType
+│   │   ├── handlers/         ← WorkOrderHandler (CQRS Command)
+│   │   └── config.py
+│   ├── domain/repositories/  ← 8 interfaces ABC (IProductionRunRepo, ILedgerRepo, ILaborRepo, etc.)
+│   ├── infrastructure/
+│   │   ├── repositories/     ← SQLAlchemy implementations
+│   │   └── clients/          ← WMS adapter, MasterData client
+│   ├── models/               ← 19 ORM models (MultiTenantBase)
+│   ├── schemas/              ← Pydantic DTOs
+│   └── services/             ← ScannerService, KPIService, ProductionService, ShiftService
+```
+
+### Modelo de Datos Existente (19 tablas)
+
+| Modelo | Tabla | Rol |
+|--------|-------|-----|
+| [WorkOrder](file:///c:/API/interno/backend/mes_service/mes_app/models/work_order.py) | `mes_work_orders` | Cabecera de orden (Document pattern) |
+| [WorkOrderLine](file:///c:/API/interno/backend/mes_service/mes_app/models/work_order_line.py) | `mes_work_order_lines` | Líneas BOM (MATERIAL_INPUT) + pieza terminada (PLANNED_OUTPUT) |
+| [ProductionRun](file:///c:/API/interno/backend/mes_service/mes_app/models/production_run.py) | `mes_production_runs` | Corrida por recurso+turno+fecha (unique constraint) |
+| [Labor](file:///c:/API/interno/backend/mes_service/mes_app/models/labor.py) | `mes_labors` | Clock-in/out de personal en línea |
+| [LaborType](file:///c:/API/interno/backend/mes_service/mes_app/models/labor.py) | `mes_labor_types` | Catálogo (Directo, Indirecto, Calidad) |
+| [LaborAllocation](file:///c:/API/interno/backend/mes_service/mes_app/models/labor_allocation.py) | `mes_labor_allocations` | Contador de operadores por run |
+| [Resource](file:///c:/API/interno/backend/mes_service/mes_app/models/resource.py) | `mes_resources` | Línea/Celda de producción |
+| [Shift](file:///c:/API/interno/backend/mes_service/mes_app/models/shift.py) | `mes_shifts` | Turnos con soporte overnight + break_minutes |
+| [Downtime](file:///c:/API/interno/backend/mes_service/mes_app/models/downtime.py) | `mes_downtimes` | Paros con escalación Andon |
+| [ManufacturingLedger](file:///c:/API/interno/backend/mes_service/mes_app/models/ledger.py) | `mes_manufacturing_ledger` | Libro mayor de piezas (SCAN/ADJ/SCRAP) |
+| [ProductionSession](file:///c:/API/interno/backend/mes_service/mes_app/models/production_session.py) | `production_sessions` | Estado activo de recurso (IDLE/ACTIVE/PAUSED) |
+
+### Flujo Actual de Producción
+
+```mermaid
+flowchart LR
+    A["POST /orders<br/>(Crear WO)"] --> B["POST /planning/bulk-load<br/>(Crear ProductionRun)"]
+    B --> C["POST /labor/clock-in<br/>(Asignar personal)"]
+    C --> D["POST /scan<br/>(Escanear piezas)"]
+    D --> E["GET /dashboard/oee<br/>(KPIs en tiempo real)"]
+    D --> F["manufactured_qty++<br/>WO status transition"]
+```
+
+### Gaps Identificados para la Integración Labor ↔ Colaborador HCM
+
+> [!WARNING]
+> **GAP CRÍTICO — `Labor.user_id` es un UUID opaco**: El modelo `Labor` almacena `user_id: UUID` sin ninguna relación directa al `hcm_service`. No existe una referencia cruzada a `assigned_plant` o `shift` del colaborador HCM. La asignación de personal a líneas es **completamente manual** via el endpoint `POST /labor/clock-in`.
+
+| Gap | Detalle | Impacto |
+|-----|---------|---------|
+| **1. Sin `collaborator_id`** | `Labor.user_id` es el UUID del auth-service (user), no del colaborador HCM | No se puede saber qué _colaborador industrial_ está en qué línea |
+| **2. Sin validación plant/shift** | Clock-in no verifica que el colaborador esté asignado a esa planta/turno | Cualquier usuario puede registrarse en cualquier línea |
+| **3. `leader_id`/`supervisor_id` son strings** | En `ProductionRun`, son `String(100)` en vez de UUIDs referenciando a colaboradores | Sin trazabilidad real al líder/supervisor |
+| **4. Sin endpoint de asignación masiva** | No existe un endpoint que asigne N colaboradores a un ProductionRun pre-turno | Solo clock-in individual reactivo |
+| **5. `LaborAllocation` incompleto** | Solo tiene `operator_count`, no detalle de quiénes | Contador agregado sin nombres |
+| **6. WorkOrder sin `assigned_resource`** | La WO no tiene referencia directa al recurso hasta que se crea el ProductionRun | No se puede ver "esta orden se va a producir en Línea 3" |
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Cross-service communication**: La vinculación Labor ↔ Colaborador requiere decidir si el `mes_service` consultará al `hcm_service` via HTTP (patrón existente con `inventory_service`) o si simplemente almacenará el `collaborator_id` como weak-ref (sin FK cross-DB).
+>
+> **Recomendación**: Usar **weak-ref** (`collaborator_id: UUID` en Labor) + **validación best-effort** via HTTP al `hcm_service` en el momento del clock-in. Idéntico al patrón actual con `bom_id` en WorkOrderLine.
+
+> [!WARNING]  
+> **WorkOrder Lifecycle**: Actualmente solo existen transiciones automáticas DRAFT→IN_PROGRESS→COMPLETED por escaneo. Falta el estado `RELEASED` (orden aprobada para producción) que habilita la creación del ProductionRun. ¿Agregamos este estado intermedio o el flujo actual DRAFT→IN_PROGRESS es suficiente?
+
+## Open Questions
+
+1. **¿Validación de planta/turno en clock-in?** — ¿El sistema debe rechazar el clock-in si el colaborador HCM tiene `assigned_plant="Planta Monterrey"` pero la línea pertenece a `Planta Querétaro`? ¿O solo warning?
+
+2. **¿Pre-asignación vs. Clock-in reactivo?** — ¿Quieres un endpoint de "planificación de personal" (`POST /planning/assign-labor`) que pre-asigne N colaboradores a un ProductionRun antes de que empiece el turno? ¿O solo mantener el clock-in actual?
+
+3. **¿Resolución del `leader_id`/`supervisor_id` en ProductionRun?** — ¿Migrar de `String(100)` a `UUID` referenciando al `collaborator_id` de HCM? Esto impacta la migración.
+
+---
+
+## Proposed Changes
+
+### Componente 1: Modelo de Datos — Vinculación Labor ↔ HCM
+
+#### [MODIFY] [labor.py](file:///c:/API/interno/backend/mes_service/mes_app/models/labor.py)
+- Añadir `collaborator_id: Mapped[Optional[uuid.UUID]]` — weak-ref al ID del colaborador en `hcm_service`
+- Añadir `collaborator_name: Mapped[Optional[str]]` — nombre desnormalizado para consultas sin cross-service call
+- Añadir `assigned_plant: Mapped[Optional[str]]` — snapshot de la planta asignada al momento del clock-in (para trazabilidad)
+
+#### [MODIFY] [production_run.py](file:///c:/API/interno/backend/mes_service/mes_app/models/production_run.py)
+- Cambiar `leader_id: String(100)` → `leader_collaborator_id: UUID, nullable`
+- Cambiar `supervisor_id: String(100)` → `supervisor_collaborator_id: UUID, nullable`
+- Añadir `leader_name: Mapped[Optional[str]]` — nombre desnormalizado
+- Añadir `supervisor_name: Mapped[Optional[str]]` — nombre desnormalizado
+- Añadir `status: Mapped[str]` — (SCHEDULED / ACTIVE / COMPLETED / CANCELLED) — actualmente implícito
+
+#### [MODIFY] [labor_allocation.py](file:///c:/API/interno/backend/mes_service/mes_app/models/labor_allocation.py)
+- Añadir `collaborator_id: Mapped[uuid.UUID]` — el detalle individual de quién está asignado
+- Añadir `role: Mapped[str]` — "OPERATOR" | "LEADER" | "INSPECTOR"
+- Añadir `shift_id: Mapped[uuid.UUID]` — vinculación al turno
+
+#### [NEW] [009_labor_collaborator_link.py](file:///c:/API/interno/backend/mes_service/alembic/versions/009_labor_collaborator_link.py)
+- Migración Alembic para los cambios anteriores
+
+---
+
+### Componente 2: Infraestructura — Cliente HCM + Repositorios
+
+#### [NEW] [hcm_client.py](file:///c:/API/interno/backend/mes_service/mes_app/infrastructure/clients/hcm_client.py)
+- `HCMClient.get_collaborator(collaborator_id, company_id)` — HTTP GET best-effort al `hcm_service`
+- Retorna `{id, full_name, assigned_plant, shift, employee_number}` o `None` si falla
+- Timeout 3s, pattern idéntico a `MasterDataClient`
+
+#### [MODIFY] [interfaces.py](file:///c:/API/interno/backend/mes_service/mes_app/domain/repositories/interfaces.py)
+- Añadir `ILaborAllocationRepository` con métodos `assign`, `get_by_run`, `remove`
+- Extender `IProductionRunRepository` con `get_by_date_and_resource`, `update_status`
+
+#### [MODIFY] [sqlalchemy_repositories.py](file:///c:/API/interno/backend/mes_service/mes_app/infrastructure/repositories/sqlalchemy_repositories.py)
+- Implementar `SQLAlchemyLaborAllocationRepository`
+- Añadir métodos nuevos a `SQLAlchemyProductionRunRepository`
+
+#### [MODIFY] [dependencies.py](file:///c:/API/interno/backend/mes_service/mes_app/dependencies.py)
+- Registrar `get_hcm_client()`, `get_labor_allocation_repo()`
+
+---
+
+### Componente 3: API — Endpoints de Asignación + WorkOrder Lifecycle
+
+#### [MODIFY] [labor.py](file:///c:/API/interno/backend/mes_service/mes_app/api/v1/endpoints/labor.py)
+- **Refactorizar `POST /clock-in`**: Si se provee `collaborator_id`, hacer lookup best-effort al HCM para:
+  - Obtener nombre completo → guardar en `Labor.collaborator_name`
+  - Obtener `assigned_plant` → guardar snapshot + warning si no coincide con recurso
+- Añadir `collaborator_id` y `collaborator_name` a `LaborRead`
+
+#### [NEW] [labor_assignment.py](file:///c:/API/interno/backend/mes_service/mes_app/api/v1/endpoints/labor_assignment.py)
+- `POST /labor/assign` — Pre-asigna un listado de colaboradores a un ProductionRun
+  - Input: `{production_run_id, assignments: [{collaborator_id, role}]}`
+  - Valida que el ProductionRun existe y pertenece a la company
+  - Crea registros en `mes_labor_allocations`
+- `GET /labor/assignments/{production_run_id}` — Lista asignaciones con nombres
+- `DELETE /labor/assignments/{allocation_id}` — Remueve una asignación
+
+#### [MODIFY] [work_order.py](file:///c:/API/interno/backend/mes_service/mes_app/api/v1/endpoints/work_order.py)
+- `PATCH /orders/{order_number}/release` — Transición DRAFT → RELEASED
+- `PATCH /orders/{order_number}/close` — Transición COMPLETED → CLOSED
+- Añadir `PUT /orders/{order_number}` — Actualizar campos editables (alias, request_date, wo_type)
+- Añadir filtros a `GET /orders/`: `?status=`, `?wo_type=`, `?item_code=`
+
+#### [MODIFY] [planning.py](file:///c:/API/interno/backend/mes_service/mes_app/api/v1/endpoints/planning.py)
+- `GET /planning/board` — Vista de tablero: retorna ProductionRuns agrupados por recurso+fecha con:
+  - WorkOrder info (order_number, item_code, status)
+  - Shift info (name, start_time, end_time)
+  - Labor assignments (collaborator_name, role)
+  - KPIs (planned_qty, actual_qty)
+
+#### [MODIFY] [main.py](file:///c:/API/interno/backend/mes_service/mes_app/main.py)
+- Registrar nuevo router `labor_assignment` en `/api/v1/mes/labor`
+
+---
+
+### Componente 4: Enums + Schemas
+
+#### [MODIFY] [enums.py](file:///c:/API/interno/backend/mes_service/mes_app/core/enums.py)
+- Añadir `ProductionRunStatus(str, Enum)`: SCHEDULED, ACTIVE, COMPLETED, CANCELLED
+- Añadir `LaborRole(str, Enum)`: OPERATOR, LEADER, INSPECTOR, AUXILIARY
+- Añadir `WorkOrderStatus` actualizado: DRAFT, RELEASED, IN_PROGRESS, COMPLETED, CLOSED
+
+#### [NEW] [labor_assignment.py](file:///c:/API/interno/backend/mes_service/mes_app/schemas/labor_assignment.py)
+- `LaborAssignmentCreate`, `LaborAssignmentRead`, `BulkAssignRequest`, `BulkAssignResponse`
+
+#### [MODIFY] [planning.py](file:///c:/API/interno/backend/mes_service/mes_app/schemas/planning.py)
+- Añadir `PlanningBoardEntry`, `PlanningBoardResponse` para la vista de tablero
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Unit Tests** (`tests/unit/test_labor_assignment.py`):
+   - Clock-in con `collaborator_id` guarda snapshot correctamente
+   - Asignación masiva crea N registros en `labor_allocations`
+   - WorkOrder status transitions: DRAFT→RELEASED→IN_PROGRESS→COMPLETED→CLOSED
+   - Transiciones inválidas rechazan con 400
+
+2. **Integration Tests** (`tests/integration/test_production_assignment.py`):
+   - Crear WO → Release → Crear ProductionRun → Asignar 3 colaboradores → Clock-in → Scan → Verificar contadores
+   - Multi-tenant isolation: Company A no puede asignar colaboradores al ProductionRun de Company B
+   - Planning board retorna datos correctos agrupados
+
+3. **Comandos**:
+   ```bash
+   cd backend/mes_service
+   python -m pytest tests/ -v --tb=short
+   ```
+
+### Manual Verification
+- Docker compose up del servicio MES
+- Ejecutar seed con datos de prueba incluyendo colaboradores con `assigned_plant` y `shift`
+- Verificar endpoints via Swagger UI (`/docs`)

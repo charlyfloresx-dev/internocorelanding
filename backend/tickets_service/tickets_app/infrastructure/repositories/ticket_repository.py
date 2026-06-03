@@ -105,7 +105,12 @@ class SQLAlchemyTicketRepository(ITicketRepository):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_by_company(self, company_id: UUID) -> list[Ticket]:
+    async def list_by_company(
+        self,
+        company_id: UUID,
+        station_id: Optional[UUID] = None,
+        status: Optional[str] = None,
+    ) -> list[Ticket]:
         stmt = select(Ticket).options(
             selectinload(Ticket.comments),
             selectinload(Ticket.history),
@@ -117,6 +122,10 @@ class SQLAlchemyTicketRepository(ITicketRepository):
             Ticket.company_id == company_id,
             Ticket.is_active == True
         )
+        if station_id:
+            stmt = stmt.where(Ticket.station_id == station_id)
+        if status:
+            stmt = stmt.where(Ticket.status == status)
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 

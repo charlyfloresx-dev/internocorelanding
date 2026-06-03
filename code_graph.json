@@ -1,22 +1,71 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [],
+    "invariants_errors": [
+        {
+            "file": "backend/auth_service/auth_app/commands/complete_registration_command.py",
+            "severity": "WARNING",
+            "ms": "auth_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/auth_service/auth_app/commands/invite_user_command.py",
+            "severity": "WARNING",
+            "ms": "auth_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/auth_service/auth_app/infrastructure/repositories/sqlalchemy_refresh_token_repo.py",
+            "severity": "WARNING",
+            "ms": "auth_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/inventory_service/inventory_app/api/v1/endpoints/demo_reset.py",
+            "severity": "WARNING",
+            "ms": "inventory_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/inventory_service/inventory_app/api/v1/endpoints/inventory.py",
+            "severity": "WARNING",
+            "ms": "inventory_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/inventory_service/inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py",
+            "severity": "WARNING",
+            "ms": "inventory_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/tickets_service/tickets_app/services/ticket_service.py",
+            "severity": "WARNING",
+            "ms": "tickets_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        },
+        {
+            "file": "backend/wms_service/wms_app/infrastructure/repositories/__init__.py",
+            "severity": "WARNING",
+            "ms": "wms_service",
+            "error": "NAIVE_DATETIME_VIOLATION: datetime.utcnow() detected \u2014 use datetime.now(timezone.utc) to prevent ImmatureSignatureError in non-UTC deployments"
+        }
+    ],
     "compliance_report": {
         "asset_manager_service": 100,
-        "auth_service": 100,
+        "auth_service": 70,
         "cmms_service": 100,
         "common": 100,
         "hcm_service": 100,
-        "inventory_service": 100,
+        "inventory_service": 70,
         "kiosk_service": 100,
         "master_data_service": 100,
         "mes_service": 100,
         "notification_service": 100,
         "subscription_service": 100,
-        "tickets_service": 100,
+        "tickets_service": 90,
         "viatra_service": 100,
-        "wms_service": 100
+        "wms_service": 90
     },
     "inter_service_deps": {}
 }

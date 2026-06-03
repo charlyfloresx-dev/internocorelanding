@@ -210,11 +210,22 @@ async def create_ticket(
 
 @router.get("/", response_model=ApiResponse)
 async def list_tickets(
+    station_id: Optional[uuid.UUID] = None,
+    status: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     user: TokenPayload = Depends(require_scope(["ticket:read"]))
 ):
+    """
+    Lista tickets de la empresa. Filtros opcionales:
+    - station_id: filtra por recurso/estación MES (para el tab Soporte del monitor)
+    - status: filtra por estado (NEW, ASSIGNED, IN_PROGRESS, etc.)
+    """
     service = TicketService(SQLAlchemyTicketRepository(db))
-    tickets = await service.get_tickets(to_uuid(user.company_id))
+    tickets = await service.get_tickets(
+        to_uuid(user.company_id),
+        station_id=station_id,
+        status=status,
+    )
     return ApiResponse(data=[TicketRead.model_validate(t) for t in tickets])
 
 @router.get("/mine", response_model=ApiResponse)

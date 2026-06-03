@@ -58,3 +58,11 @@ class Downtime(MultiTenantBase):
         if not self.responded_at:
             return (datetime.now() - self.start_at).total_seconds() / 60
         return (self.responded_at - self.start_at).total_seconds() / 60
+
+    @property
+    def resource_result_id(self) -> uuid.UUID:
+        return self.production_run_id
+
+    @resource_result_id.setter
+    def resource_result_id(self, value: uuid.UUID) -> None:
+        self.production_run_id = value

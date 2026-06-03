@@ -208,3 +208,10 @@ backend/<module>_service/
 - **Marzo 2026 (Phase 33):** Implementación del flujo Inter-Company Transfer (Trusted Broker). Arquitectura de 4 movimientos atómicos de Kardex garantizando integridad de inventario en transferencias cross-tenant. Transfer Price como contrato financiero sellado: `unit_price_at_dispatch` (precio de venta de A = costo de compra de B), `wac_at_dispatch`, `transfer_revenue_a`, `acquisition_cost_b`. 6 endpoints RESTful bajo `/api/v1/inventory/transfers/inter-company`. Seguridad Zero-Trust por capas en recepción.
 - **Marzo 2026 (Phase 32):** Estabilización del Dashboard Mission Control con datos de alta fidelidad y trazabilidad forense. Unificación de `MANIFEST.md`, `REPO_LOG.md` y `GOVERNANCE.MD`. Implementación de la Triada Financiera y el flujo de Excepciones de Negocio (Ticketing automático). Hardening de seguridad en middleware y corrección de bug crítico en ruta `/admin/`.
 - **Febrero 2026:** Implementación del Handshake T1/T2 y consolidación de la capa Common multi-tenant.
+ 
+ Comandos
+ EL15 Explica todo como si 5 anios
+ Pre-mortem finge que el proyecto ya fracaso, posibles fallos del prohyecto
+ Steelman destruye tu idea principal
+ red team ataca plan en todos los angulos
+ Primeros principios contruye con la verdad

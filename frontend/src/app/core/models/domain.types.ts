@@ -387,6 +387,7 @@ export interface Ticket extends AuditBase {
   ticket_type: TicketType;
   priority: TicketPriority;
   status: TicketStatus;
+  station_id?: string;          // Resource/station where issue occurred (MES)
   assigned_to_id?: string;
 }
 

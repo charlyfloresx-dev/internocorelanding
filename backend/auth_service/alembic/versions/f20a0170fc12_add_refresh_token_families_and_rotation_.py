@@ -63,7 +63,6 @@ def upgrade():
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('family_salt', sa.String(length=64), nullable=False),
     sa.Column('current_generation', sa.Integer(), server_default='0', nullable=False),
-    sa.Column('version_counter', sa.Integer(), server_default='0', nullable=False),
     sa.Column('revoked_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('revocation_reason', sa.String(length=255), nullable=True),
     sa.Column('last_refresh_at', sa.DateTime(timezone=True), server_default='now()', nullable=False),
@@ -113,7 +112,6 @@ def upgrade():
     sa.Column('updated_by', sa.UUID(), nullable=True),
     sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('transaction_id', sa.UUID(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('version_id', sa.Integer(), server_default='1', nullable=False),
     sa.ForeignKeyConstraint(['family_id'], ['refresh_token_families.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')

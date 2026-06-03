@@ -7,9 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ResourceService } from '../../core/services/resource.service';
 import { LaborService } from '../../core/services/labor.service';
+import { TicketService } from '../../core/services/ticket.service';
 import { BadgeClockInResponse } from '../../core/models/mes.types';
 
-type MainTab = 'produccion' | 'personal';
+type MainTab = 'produccion' | 'personal' | 'soporte';
 type WOTab   = 'scan' | 'planned';
 
 interface ScanFeedback {
@@ -69,6 +70,21 @@ interface ScanFeedback {
             @if (laborSvc.activeCount() > 0) {
               <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-[8px] font-black text-white flex items-center justify-center shadow">
                 {{ laborSvc.activeCount() }}
+              </span>
+            }
+          </button>
+          <button
+            (click)="setMainTab('soporte')"
+            class="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-l border-surface-border relative"
+            [class.bg-primary/10]="mainTab() === 'soporte'"
+            [class.text-primary]="mainTab() === 'soporte'"
+            [class.text-surface-text-muted]="mainTab() !== 'soporte'"
+          >
+            <mat-icon class="text-sm !w-4 !h-4">support_agent</mat-icon>
+            Soporte
+            @if (ticketSvc.stationTickets().length > 0) {
+              <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center shadow">
+                {{ ticketSvc.stationTickets().length }}
               </span>
             }
           </button>
@@ -386,6 +402,137 @@ interface ScanFeedback {
     }
 
     <!-- ══════════════════════════════════════════════════════════════════
+         TAB: SOPORTE
+    ══════════════════════════════════════════════════════════════════════ -->
+    @if (mainTab() === 'soporte') {
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+        <!-- Col 1: Equipo de soporte del área -->
+        <div class="lg:col-span-1 space-y-4">
+          <div class="industrial-card p-5">
+            <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-violet-500 to-primary rounded-t-2xl"></div>
+            <h3 class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest mb-4 flex items-center gap-2">
+              <mat-icon class="text-sm text-violet-400">support_agent</mat-icon>
+              Equipo de Soporte
+            </h3>
+            <!-- Personal de soporte: por área (un equipo cubre varios recursos del área) -->
+            @if (supportMembers().length === 0) {
+              <p class="text-[10px] text-surface-text-muted uppercase text-center py-6">Sin equipo asignado al área</p>
+            } @else {
+              <div class="space-y-3">
+                @for (m of supportMembers(); track m.collaborator_id) {
+                  <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-text/5 border border-surface-border hover:border-primary/30 transition-all">
+                    <div class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center text-primary font-black text-[10px]">
+                      {{ m.role.slice(0,2).toUpperCase() }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <span class="text-[10px] text-surface-text font-bold block truncate">{{ m.collaborator_id | slice:0:8 }}…</span>
+                      <span class="text-[8px] text-surface-text-muted uppercase font-bold">{{ m.role }}</span>
+                    </div>
+                    <button class="text-primary hover:bg-primary/10 p-1.5 rounded-lg transition-all">
+                      <mat-icon class="text-sm">chat</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Crear ticket rápido -->
+          <button
+            (click)="openNewTicket()"
+            class="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-primary/5 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/15 transition-all"
+          >
+            <mat-icon class="text-sm">add_circle</mat-icon>
+            Nuevo Ticket
+          </button>
+        </div>
+
+        <!-- Col 2-4: Tickets del turno -->
+        <div class="lg:col-span-3 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[10px] font-black text-surface-text-muted uppercase tracking-widest flex items-center gap-2">
+              <mat-icon class="text-sm text-red-400">confirmation_number</mat-icon>
+              Tickets Activos — {{ resourceCode() }}
+            </h3>
+            <button (click)="loadSoporte()" class="p-1 rounded hover:bg-surface-text/5 transition-colors">
+              <mat-icon class="text-sm text-surface-text-muted">refresh</mat-icon>
+            </button>
+          </div>
+
+          @if (ticketSvc.loadingStation()) {
+            <div class="text-center py-12 text-surface-text-muted text-xs">Cargando tickets…</div>
+          } @else if (ticketSvc.stationTickets().length === 0) {
+            <div class="industrial-card p-12 text-center">
+              <mat-icon class="text-4xl text-surface-text-muted mb-3">check_circle</mat-icon>
+              <p class="text-sm font-bold text-surface-text-muted uppercase">Sin tickets activos</p>
+              <p class="text-[10px] text-surface-text-muted mt-1">Este recurso no tiene incidencias abiertas</p>
+            </div>
+          } @else {
+            @for (ticket of ticketSvc.stationTickets(); track ticket.id) {
+              <div class="industrial-card p-4 relative overflow-hidden hover:border-primary/30 transition-all group">
+                <!-- Priority stripe -->
+                <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+                     [ngClass]="getPriorityCss(ticket.priority)"></div>
+                <div class="pl-3">
+                  <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-[9px] font-black font-mono text-surface-text-muted">{{ ticket.reference_code }}</span>
+                        <!-- Status chip -->
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider"
+                              [ngClass]="getStatusCss(ticket.status)">
+                          {{ ticket.status }}
+                        </span>
+                        <!-- Priority chip -->
+                        <span class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase"
+                              [ngClass]="getPriorityChipCss(ticket.priority)">
+                          {{ ticket.priority }}
+                        </span>
+                      </div>
+                      <p class="text-sm font-bold text-surface-text truncate">{{ ticket.title }}</p>
+                      @if (ticket.description) {
+                        <p class="text-[10px] text-surface-text-muted mt-0.5 line-clamp-1">{{ ticket.description }}</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Quick actions -->
+                  <div class="flex items-center gap-2 mt-3 pt-3 border-t border-surface-border/50">
+                    @if (isAssignableStatus(ticket.status)) {
+                      <button (click)="assignTicket(ticket)"
+                              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase hover:bg-blue-500/20 transition-all">
+                        <mat-icon class="!text-sm !w-3 !h-3">assignment_ind</mat-icon>
+                        Asignar
+                      </button>
+                    }
+                    @if (isResolvableStatus(ticket.status)) {
+                      <button (click)="resolveTicket(ticket)"
+                              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase hover:bg-emerald-500/20 transition-all">
+                        <mat-icon class="!text-sm !w-3 !h-3">check</mat-icon>
+                        Resolver
+                      </button>
+                    }
+                    <button (click)="commentTicket(ticket)"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-text/5 border border-surface-border text-surface-text-muted text-[9px] font-black uppercase hover:border-primary/30 hover:text-primary transition-all">
+                      <mat-icon class="!text-sm !w-3 !h-3">comment</mat-icon>
+                      Comentar
+                    </button>
+                    <button (click)="escalateTicket(ticket)"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-text/5 border border-surface-border text-surface-text-muted text-[9px] font-black uppercase hover:border-amber-500/30 hover:text-amber-400 transition-all ml-auto">
+                      <mat-icon class="!text-sm !w-3 !h-3">arrow_upward</mat-icon>
+                      Escalar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════════════════════════════
          TAB: PERSONAL
     ══════════════════════════════════════════════════════════════════════ -->
     @if (mainTab() === 'personal') {
@@ -640,10 +787,11 @@ interface ScanFeedback {
 export class ResourceMonitorComponent implements OnInit, OnDestroy {
 
   // Services
-  readonly svc      = inject(ResourceService);
-  readonly laborSvc = inject(LaborService);
-  private route     = inject(ActivatedRoute);
-  private router    = inject(Router);
+  readonly svc       = inject(ResourceService);
+  readonly laborSvc  = inject(LaborService);
+  readonly ticketSvc = inject(TicketService);
+  private route      = inject(ActivatedRoute);
+  private router     = inject(Router);
 
   // Tab state
   readonly mainTab = signal<MainTab>('produccion');
@@ -696,6 +844,85 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   setMainTab(tab: MainTab): void {
     this.mainTab.set(tab);
     if (tab === 'personal') this.loadPersonnel();
+    if (tab === 'soporte')  this.loadSoporte();
+  }
+
+  loadSoporte(): void {
+    const id = this.svc.resource()?.id;
+    if (id) void this.ticketSvc.loadByStation(id);
+  }
+
+  getPriorityCss(priority: string): string {
+    const map: Record<string, string> = {
+      'Crítica': 'bg-red-500',
+      'Alta': 'bg-amber-500',
+      'Media': 'bg-blue-500',
+      'Baja': 'bg-surface-border',
+      'CRITICAL': 'bg-red-500',
+      'HIGH': 'bg-amber-500',
+      'MEDIUM': 'bg-blue-500',
+      'LOW': 'bg-surface-border'
+    };
+    return map[priority] || 'bg-surface-border';
+  }
+
+  getPriorityChipCss(priority: string): string {
+    const map: Record<string, string> = {
+      'Crítica': 'bg-red-500/10 text-red-300',
+      'Alta': 'bg-amber-500/10 text-amber-300',
+      'Media': 'bg-blue-500/10 text-blue-300',
+      'Baja': 'bg-surface-text/5 text-surface-text',
+      'CRITICAL': 'bg-red-500/10 text-red-300',
+      'HIGH': 'bg-amber-500/10 text-amber-300',
+      'MEDIUM': 'bg-blue-500/10 text-blue-300',
+      'LOW': 'bg-surface-text/5 text-surface-text'
+    };
+    return map[priority] || 'bg-surface-text/5 text-surface-text';
+  }
+
+  isAssignableStatus(status: any): boolean {
+    const s = String(status).toLowerCase();
+    return s.includes('nuevo') || s.includes('pendiente') || s === 'new' || s === 'in_review';
+  }
+
+  isResolvableStatus(status: any): boolean {
+    const s = String(status).toLowerCase();
+    return s.includes('asignado') || s.includes('progreso') || s === 'assigned' || s === 'in_progress';
+  }
+
+  getStatusCss(status: string): string {
+    const map: Record<string, string> = {
+      'Nuevo': 'bg-red-500/15 text-red-400',
+      'Pendiente de Aprobación': 'bg-amber-500/15 text-amber-400',
+      'Asignado': 'bg-blue-500/15 text-blue-400',
+      'En progreso': 'bg-blue-500/15 text-blue-400',
+      'Resuelto': 'bg-emerald-500/15 text-emerald-400',
+      'NEW': 'bg-red-500/15 text-red-400',
+      'ASSIGNED': 'bg-blue-500/15 text-blue-400',
+      'IN_PROGRESS': 'bg-blue-500/15 text-blue-400',
+      'RESOLVED': 'bg-emerald-500/15 text-emerald-400'
+    };
+    return map[status] || 'bg-surface-text/5 text-surface-text';
+  }
+
+  openNewTicket(): void {
+    // TODO Phase 173: Abrir dialog para crear nuevo ticket
+  }
+
+  assignTicket(ticket: any): void {
+    // TODO Phase 173: Abrir modal para asignar colaborador
+  }
+
+  resolveTicket(ticket: any): void {
+    // TODO Phase 173: PATCH ticket.status = RESOLVED
+  }
+
+  commentTicket(ticket: any): void {
+    // TODO Phase 173: Abrir drawer de comentarios
+  }
+
+  escalateTicket(ticket: any): void {
+    // TODO Phase 173: Cambiar priority a CRÍTICA + notificar supervisor
   }
 
   // ── Personnel data ───────────────────────────────────────────────────

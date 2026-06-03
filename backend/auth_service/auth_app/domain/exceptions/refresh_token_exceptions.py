@@ -3,7 +3,7 @@ Excepciones de dominio para Refresh Token Rotation.
 
 Todas heredan de DomainException (del backend/common).
 """
-from common.domain.exceptions import DomainException
+from common.exceptions import DomainException
 
 
 class RefreshTokenExpiredError(DomainException):

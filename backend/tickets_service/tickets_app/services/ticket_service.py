@@ -334,8 +334,13 @@ class TicketService:
             collaborator_id, external_contact_id,
         )
 
-    async def get_tickets(self, company_id: uuid.UUID) -> List["Ticket"]:  # noqa: F821
-        return await self.repo.list_by_company(company_id)
+    async def get_tickets(
+        self,
+        company_id: uuid.UUID,
+        station_id: Optional[uuid.UUID] = None,
+        status: Optional[str] = None,
+    ) -> List["Ticket"]:  # noqa: F821
+        return await self.repo.list_by_company(company_id, station_id=station_id, status=status)
 
     async def triage_ticket(
         self,
