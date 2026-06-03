@@ -4,7 +4,7 @@ import hmac
 import hashlib
 from tickets_app.core.config import settings
 from common.services.audit_service import AuditService
-from fastapi import APIRouter, Depends, HTTPException, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from tickets_app.dependencies.database import get_db
 from common.security.dependencies import require_scope
@@ -34,6 +34,7 @@ from tickets_app.infrastructure.repositories.ticket_repository import SQLAlchemy
 from tickets_app.infrastructure.repositories.escalation_repository import SQLAlchemyEscalationRepository
 from tickets_app.infrastructure.inventory_client import HttpInventoryClient
 from tickets_app.services.escalation_service import EscalationConfigService
+from tickets_app.infrastructure.station_websocket_manager import station_manager
 
 def to_uuid(val) -> Optional[uuid.UUID]:
     if val is None:
@@ -199,7 +200,7 @@ async def create_ticket(
          raise HTTPException(status_code=403, detail="No tienes permiso para crear tickets en esta compañía")
     
     ticket = await service.create_ticket(cmd, to_uuid(user.sub))
-    
+
     # Broadcast en tiempo real
     await manager.broadcast_to_company(
         str(user.company_id),
@@ -208,7 +209,17 @@ async def create_ticket(
             "payload": TicketRead.model_validate(ticket).model_dump()
         }
     )
-    
+
+    # Emit WebSocket event for station realtime listeners
+    if ticket.station_id:
+        await station_manager.emit_ticket_event(
+            event_type="ticket.created",
+            ticket_id=str(ticket.id),
+            station_id=str(ticket.station_id),
+            priority=ticket.priority,
+            status=ticket.status
+        )
+
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket creado exitosamente")
 
 @router.get("/", response_model=ApiResponse)
@@ -319,7 +330,7 @@ async def update_ticket(
     ticket = await service.update_ticket(ticket_id, to_uuid(user.company_id), cmd, to_uuid(user.sub))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
-        
+
     # Broadcast en tiempo real
     await manager.broadcast_to_company(
         str(user.company_id),
@@ -328,7 +339,18 @@ async def update_ticket(
             "payload": TicketRead.model_validate(ticket).model_dump()
         }
     )
-    
+
+    # Emit WebSocket event for station realtime listeners
+    if ticket.station_id:
+        event_type = "ticket.status_changed" if cmd.status else "ticket.updated"
+        await station_manager.emit_ticket_event(
+            event_type=event_type,
+            ticket_id=str(ticket.id),
+            station_id=str(ticket.station_id),
+            priority=ticket.priority,
+            status=ticket.status
+        )
+
     return ApiResponse(data=TicketRead.model_validate(ticket), message="Ticket actualizado")
 
 @router.post("/{ticket_id}/comments", response_model=ApiResponse)
@@ -406,6 +428,16 @@ async def assign_ticket(
             "payload": TicketRead.model_validate(updated_ticket).model_dump()
         }
     )
+
+    # Emit WebSocket event for station realtime listeners
+    if updated_ticket.station_id:
+        await station_manager.emit_ticket_event(
+            event_type="ticket.assigned",
+            ticket_id=str(updated_ticket.id),
+            station_id=str(updated_ticket.station_id),
+            priority=updated_ticket.priority,
+            status=updated_ticket.status
+        )
 
     return ApiResponse(data=TicketRead.model_validate(updated_ticket), message="Ticket asignado exitosamente")
 
@@ -694,3 +726,42 @@ async def close_ticket_action(
     await db.commit()
     await db.refresh(action)
     return ApiResponse(data=TicketActionRead.model_validate(action), message="Acción cerrada")
+
+
+# ── WebSocket Realtime Ticket Updates ─────────────────────────────────────
+
+@router.websocket("/realtime/{station_id}")
+async def websocket_realtime_tickets(websocket: WebSocket, station_id: str):
+    """
+    WebSocket endpoint for real-time ticket updates per MES resource (station).
+
+    Clients connect to /tickets/realtime/{station_id} and receive events:
+    - ticket.created: New ticket assigned to this station
+    - ticket.updated: Status, priority, or other field updated
+    - ticket.assigned: Ticket assigned to someone
+    - ticket.status_changed: Status transitions (DRAFT → IN_PROGRESS → etc.)
+
+    Event payload structure:
+    {
+        "event_type": "ticket.created|updated|assigned|status_changed",
+        "ticket_id": "uuid",
+        "station_id": "uuid",
+        "priority": "CRÍTICA|ALTA|MEDIA|BAJA",
+        "status": "Nuevo|Pendiente...",
+        "timestamp": "2026-06-03T02:59:00Z"
+    }
+
+    The server sends events to all connected clients for the same station_id.
+    Clients implement exponential backoff reconnection if connection drops.
+    """
+    await station_manager.connect(websocket, station_id)
+    try:
+        # Keep connection alive and accept any incoming messages
+        # (in case we want to add client->server messages in the future)
+        while True:
+            data = await websocket.receive_text()
+            # For now, we don't process client messages
+            # Just keep the connection open for server→client broadcasts
+    except WebSocketDisconnect:
+        station_manager.disconnect(websocket, station_id)
+
