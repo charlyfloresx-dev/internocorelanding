@@ -347,6 +347,15 @@ Relacionado con:
 
 **Resultado:** UI completamente funcional, lista para backend handlers
 
+### ✅ INICIADO PHASE 173 (2026-06-02)
+
+**Backend Handlers:**
+- ✅ `POST /tickets/{id}/assign` — asignar a colaborador (new endpoint)
+- ✅ `POST /tickets/{id}/escalate` — escalar a CRITICAL (new endpoint)
+- ✅ Esquemas: `TicketAssignRequest`, `TicketEscalateRequest`
+- ✅ Frontend: Métodos `resolveTicket()`, `escalateTicket()` conectados con HTTP calls
+- ⏳ Frontend: `assignTicket()` requiere modal interactivo (Phase 174)
+
 ---
 
 ## ⏳ FASES PENDIENTES

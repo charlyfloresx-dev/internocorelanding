@@ -76,6 +76,19 @@ class TicketUpdate(BaseModel):
     cost_estimate: Optional[Decimal] = None    # Costo actualizado
     escalation_level: Optional[int] = None
 
+class TicketAssignRequest(BaseModel):
+    """Request para asignar un ticket a un colaborador"""
+    assigned_to_id: Optional[UUID] = None
+    collaborator_id: Optional[UUID] = None
+    external_contact_id: Optional[UUID] = None
+    assigned_department_id: Optional[UUID] = None
+    is_external: bool = False
+
+class TicketEscalateRequest(BaseModel):
+    """Request para escalar un ticket a prioridad CRITICAL"""
+    priority: TicketPriority = TicketPriority.CRITICAL
+    reason: Optional[str] = None  # Razón de escalación (se guarda en history)
+
 class TicketCommentBase(BaseModel):
     content: str
 

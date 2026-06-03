@@ -20,8 +20,11 @@ from tickets_app.schemas.ticket_dto import (
     TicketActionCreate,
     TicketActionClose,
     TicketActionRead,
+    TicketAssignRequest,
+    TicketEscalateRequest,
     ApiResponse
 )
+from tickets_app.core.constants import TicketStatus, TicketPriority
 from tickets_app.schemas.escalation_dto import EscalationRuleRead
 from tickets_app.schemas.internal_ticket import InternalTicketCreate, InternalTicketResolve
 from common.infrastructure.websocket import manager
@@ -359,9 +362,95 @@ async def list_comments(
     ticket = await service.get_ticket(ticket_id, to_uuid(user.company_id))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
-    
+
     # Los comentarios ya vienen en el ticket por el selectinload del repo
     return ApiResponse(data=[TicketCommentRead.model_validate(c) for c in ticket.comments])
+
+@router.post("/{ticket_id}/assign", response_model=ApiResponse)
+async def assign_ticket(
+    ticket_id: uuid.UUID,
+    cmd: TicketAssignRequest,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
+):
+    """
+    Asigna un ticket a un colaborador, usuario externo, o departamento.
+    Transición automática a estado ASSIGNED si es NEW.
+    """
+    service = TicketService(SQLAlchemyTicketRepository(db))
+    company_id = to_uuid(user.company_id)
+
+    # Validar que el ticket existe
+    ticket = await service.get_ticket(ticket_id, company_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    # Construir TicketUpdate con los datos de asignación
+    update_cmd = TicketUpdate(
+        assigned_to_id=cmd.assigned_to_id,
+        collaborator_id=cmd.collaborator_id,
+        external_contact_id=cmd.external_contact_id,
+        assigned_department_id=cmd.assigned_department_id,
+        is_external=cmd.is_external,
+        # Transición automática a ASSIGNED si es NEW
+        status=TicketStatus.ASSIGNED if ticket.status == TicketStatus.NEW else None
+    )
+
+    updated_ticket = await service.update_ticket(ticket_id, company_id, update_cmd, to_uuid(user.sub))
+
+    # Broadcast en tiempo real
+    await manager.broadcast_to_company(
+        str(company_id),
+        {
+            "type": "TICKET_ASSIGNED",
+            "payload": TicketRead.model_validate(updated_ticket).model_dump()
+        }
+    )
+
+    return ApiResponse(data=TicketRead.model_validate(updated_ticket), message="Ticket asignado exitosamente")
+
+@router.post("/{ticket_id}/escalate", response_model=ApiResponse)
+async def escalate_ticket(
+    ticket_id: uuid.UUID,
+    cmd: TicketEscalateRequest,
+    db: AsyncSession = Depends(get_db),
+    user: TokenPayload = Depends(require_scope(["ticket:write"]))
+):
+    """
+    Escala un ticket a prioridad CRITICAL y notifica al supervisor.
+    """
+    service = TicketService(SQLAlchemyTicketRepository(db))
+    company_id = to_uuid(user.company_id)
+
+    # Validar que el ticket existe
+    ticket = await service.get_ticket(ticket_id, company_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    # No escalar si ya es CRITICAL
+    if ticket.priority == TicketPriority.CRITICAL:
+        return ApiResponse(
+            data=TicketRead.model_validate(ticket),
+            message="El ticket ya está escalado a CRITICAL"
+        )
+
+    # Construir TicketUpdate con escalación
+    update_cmd = TicketUpdate(
+        priority=cmd.priority
+    )
+
+    updated_ticket = await service.update_ticket(ticket_id, company_id, update_cmd, to_uuid(user.sub))
+
+    # Broadcast en tiempo real
+    await manager.broadcast_to_company(
+        str(company_id),
+        {
+            "type": "TICKET_ESCALATED",
+            "payload": TicketRead.model_validate(updated_ticket).model_dump()
+        }
+    )
+
+    return ApiResponse(data=TicketRead.model_validate(updated_ticket), message="Ticket escalado a CRITICAL")
 
 @router.post("/{ticket_id}/consume-resources", response_model=ApiResponse)
 async def consume_ticket_resources(

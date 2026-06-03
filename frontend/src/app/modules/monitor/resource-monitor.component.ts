@@ -906,23 +906,48 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   openNewTicket(): void {
-    // TODO Phase 173: Abrir dialog para crear nuevo ticket
+    // TODO Phase 174: Abrir dialog para crear nuevo ticket
   }
 
   assignTicket(ticket: any): void {
-    // TODO Phase 173: Abrir modal para asignar colaborador
+    // TODO Phase 174: Abrir modal para seleccionar colaborador y asignar
+    // Por ahora, stub para Phase 173 — requiere dialog interactivo
   }
 
   resolveTicket(ticket: any): void {
-    // TODO Phase 173: PATCH ticket.status = RESOLVED
+    const ticketId = ticket.id || ticket.reference_code;
+    this.ticketSvc.updateStatus(ticketId, 'Resuelto').subscribe({
+      next: (response: any) => {
+        const updated = response.data || response;
+        const idx = this.ticketSvc.stationTickets().findIndex(t => t.id === ticketId);
+        if (idx >= 0) {
+          const tickets = [...this.ticketSvc.stationTickets()];
+          tickets[idx] = updated;
+          this.ticketSvc.stationTickets.set(tickets);
+        }
+      },
+      error: (err) => console.error('Error resolviendo ticket:', err)
+    });
   }
 
   commentTicket(ticket: any): void {
-    // TODO Phase 173: Abrir drawer de comentarios
+    // TODO Phase 174: Abrir drawer de comentarios
   }
 
   escalateTicket(ticket: any): void {
-    // TODO Phase 173: Cambiar priority a CRÍTICA + notificar supervisor
+    const ticketId = ticket.id || ticket.reference_code;
+    this.ticketSvc.escalateTicket(ticketId, 'CRÍTICA').subscribe({
+      next: (response: any) => {
+        const updated = response.data || response;
+        const idx = this.ticketSvc.stationTickets().findIndex(t => t.id === ticketId);
+        if (idx >= 0) {
+          const tickets = [...this.ticketSvc.stationTickets()];
+          tickets[idx] = updated;
+          this.ticketSvc.stationTickets.set(tickets);
+        }
+      },
+      error: (err) => console.error('Error escalando ticket:', err)
+    });
   }
 
   // ── Personnel data ───────────────────────────────────────────────────

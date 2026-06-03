@@ -64,6 +64,20 @@ export class TicketService {
     return this.http.patch<ApiResponse<Ticket>>(`${this.apiUrl}/${ticketId}`, { status });
   }
 
+  assignTicket(ticketId: string, assignmentData: {
+    assigned_to_id?: string;
+    collaborator_id?: string;
+    external_contact_id?: string;
+    assigned_department_id?: string;
+    is_external?: boolean;
+  }): Observable<ApiResponse<Ticket>> {
+    return this.http.post<ApiResponse<Ticket>>(`${this.apiUrl}/${ticketId}/assign`, assignmentData);
+  }
+
+  escalateTicket(ticketId: string, priority: string = 'CRÍTICA', reason?: string): Observable<ApiResponse<Ticket>> {
+    return this.http.post<ApiResponse<Ticket>>(`${this.apiUrl}/${ticketId}/escalate`, { priority, reason });
+  }
+
   deleteTicket(id: string): Observable<ApiResponse<Ticket>> {
     return this.http.delete<ApiResponse<Ticket>>(`${this.apiUrl}/${id}`);
   }
