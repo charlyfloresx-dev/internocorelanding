@@ -4,6 +4,90 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-03] Phase 177 — NAIVE_DATETIME Fixes (Cloud Deployment Readiness) ✅
+
+**Objetivo:** Eliminar todas las violaciones `NAIVE_DATETIME_VIOLATION` en el auditor estático — migrar de `datetime.utcnow()` a `datetime.now(timezone.utc)` para compatibilidad con AWS ECS/App Runner.
+
+**Decisiones Arquitectónicas:**
+- **Timezone-aware UTC**: Reemplazo sistemático en 10 locaciones (auth_service, inventory_service, tickets_service, wms_service).
+- **Import único**: `from datetime import datetime, timezone` en cada archivo afectado.
+- **Validación**: Code graph audit post-fix → 0 CRITICAL, 0 WARNING. Sistema 100% compliant para cloud.
+
+**Cambios Concretos:**
+- `auth_service/commands/complete_registration_command.py:37` — invitation expiry check
+- `auth_service/commands/invite_user_command.py:81` — invitation creation timestamp
+- `auth_service/infrastructure/repositories/sqlalchemy_refresh_token_repo.py:57` — RTR family generation
+- `inventory_service/api/v1/endpoints/demo_reset.py:79, 352` — demo seed + WebSocket broadcast
+- `inventory_service/api/v1/endpoints/inventory.py:55, 166, 274` — bulk load + movement timestamps
+- `inventory_service/infrastructure/repositories/sqlalchemy_inventory_repository.py:1202, 1822` — 24h telemetry + dashboard
+- `tickets_service/services/ticket_service.py:41` — external assignment timestamp
+- `wms_service/infrastructure/repositories/__init__.py:32, 74` — effective price queries
+
+**Compilación:** ✅ Code graph: 0 CRITICAL, 0 WARNING. Sistema deployment-ready.
+
+---
+
+### [2026-06-03] Phase 176b — CSV Bulk Import for Tickets (Experimental) ✅
+
+**Objetivo:** Implementar carga masiva de tickets vía CSV (drag-drop, validación por fila, error reporting detallado).
+
+**Decisiones Arquitectónicas:**
+- **Backend**: `POST /api/v1/tickets/bulk-import` con multipart form-data (CSV file), validación de headers, tamaño máx 5MB.
+- **CSV Parsing**: `csv.DictReader` + row-by-row validation. Enum validation para `ticket_type` y `priority`.
+- **Error Handling**: Captura error por fila, retorna `TicketBulkImportResponse` con detalles (row_number, ticket_id, error_message).
+- **Frontend**: `TicketBulkImportComponent` (drag-drop zone, template downloader, progress bar, error panel).
+- **Integration**: Botón "Importar CSV" en ResourceMonitorComponent tab Soporte. Auto-refresh `stationTickets` post-import.
+
+**Workarounds / Deuda Técnica:**
+- **Validez operativa cuestionable**: Bulk import tiene sentido para datos configuracionales (onboarding — Phase 168). Tickets son dinámicos. Candidato a descarte post-evaluación.
+- Mock collaborator data en NewTicketDialogComponent aún pendiente de HCM API.
+
+**Archivos clave:**
+- Backend: `schemas/ticket_dto.py` (TicketBulkCreateRow, TicketBulkImportResponse) + `routers/ticket_routes.py` (/bulk-import endpoint)
+- Frontend: `components/ticket-bulk-import.component.ts` (NEW) + integración en `resource-monitor.component.ts`
+
+**Compilación:** ✅ Frontend: 0 TypeScript errors. Backend: Python syntax valid.
+
+---
+
+### [2026-06-03] Phase 175 — Real-Time WebSocket Notifications ✅
+
+**Objetivo:** Implementar actualizaciones en tiempo real para tickets vía WebSocket (exponential backoff reconnection, station-scoped events, alert sound para críticas).
+
+**Decisiones Arquitectónicas:**
+- **TicketRealtimeService**: WebSocket listener con auto-reconnect (max 5 intentos, exponential backoff: 1s → 2s → 4s → 8s → 16s).
+- **Station-scoped broadcast**: `StationWebSocketManager` emite eventos por `station_id` (no company-scoped).
+- **Event types**: `ticket.created`, `ticket.updated`, `ticket.assigned`, `ticket.status_changed`. Payload: event_type, ticket_id, station_id, priority, status, timestamp.
+- **Audio feedback**: Alert sound (sine wave 800Hz) para tickets CRITICAL. Toast notifications para assignment/status change.
+- **Frontend integration**: Connect en `ngOnInit()`, disconnect en `ngOnDestroy()`. Signal `stationTickets` se auto-actualiza on event arrival.
+- **Resilience**: Best-effort — fallos de WebSocket no bloquean operación. Indicador visual (punto verde/ámbar pulsante).
+
+**Archivos clave:**
+- Backend: `services/station_websocket_manager.py` (NEW) + hooks en POST, PATCH, /assign endpoints
+- Frontend: `services/ticket-realtime.service.ts` (NEW) + integración en `resource-monitor.component.ts`
+
+**Compilación:** ✅ Frontend build: 0 errors. WebSocket endpoint operativo.
+
+---
+
+### [2026-06-03] Phase 176 — Create Ticket Dialog ✅
+
+**Objetivo:** Dialog MatDialog standalone para creación manual de tickets con validación de campos.
+
+**Decisiones Arquitectónicas:**
+- **NewTicketDialogComponent**: Form fields (title 5-100 chars, description 10-500 chars, priority dropdown, optional assignee). Real-time character counters.
+- **Form validation**: `isFormValid()` method. Validación Pydantic en backend.
+- **Mock collaborators**: Placeholder — TODO HCM API integration Phase 177+.
+- **HTTP POST**: Payload a `/tickets` endpoint. Auto-refresh stationTickets post-éxito vía `loadSoporte()`.
+- **Integration**: Botón "Nuevo Ticket" en ResourceMonitorComponent tab Soporte. ModalService.open() patrón.
+
+**Archivos clave:**
+- `components/new-ticket-dialog.component.ts` (NEW) + integración en `resource-monitor.component.ts`
+
+**Compilación:** ✅ Build exitoso: 0 TypeScript errors. No regressions en otros componentes.
+
+---
+
 ### [2026-06-03] Phase 174 — Interactive Dialogs for Ticket Actions ✅
 
 **Objetivo:** Implementar diálogos interactivos para acciones rápidas de tickets en el tab Soporte del Resource Monitor: modal de asignación y drawer de comentarios.
