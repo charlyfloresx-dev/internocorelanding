@@ -12,8 +12,10 @@ import { TicketRealtimeService } from '../../core/services/ticket-realtime.servi
 import { ModalService } from '../../core/services/modal.service';
 import { SideDrawerService } from '../../core/services/side-drawer.service';
 import { BadgeClockInResponse } from '../../core/models/mes.types';
+import { ToastService } from '../../core/services/toast.service';
 import { TicketAssignModalComponent } from './tickets/components/ticket-assign-modal.component';
 import { TicketCommentsDrawerComponent } from './tickets/components/ticket-comments-drawer.component';
+import { NewTicketDialogComponent } from './tickets/components/new-ticket-dialog.component';
 
 type MainTab = 'produccion' | 'personal' | 'soporte';
 type WOTab   = 'scan' | 'planned';
@@ -931,7 +933,25 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   }
 
   openNewTicket(): void {
-    // TODO Phase 175: Abrir dialog para crear nuevo ticket (requiere NewTicketDialogComponent)
+    const resource = this.svc.resource();
+    if (!resource?.id) {
+      return;
+    }
+
+    this.modalSvc.open(
+      NewTicketDialogComponent,
+      {
+        stationId: resource.id,
+        stationCode: this.resourceCode()
+      },
+      { width: '600px', maxHeight: '90vh' },
+      (result) => {
+        if (result?.data?.id) {
+          // Auto-refresh tickets after creation
+          this.loadSoporte();
+        }
+      }
+    );
   }
 
   assignTicket(ticket: any): void {
