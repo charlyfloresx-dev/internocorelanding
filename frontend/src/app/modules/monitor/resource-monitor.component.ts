@@ -8,6 +8,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { ResourceService } from '../../core/services/resource.service';
 import { LaborService } from '../../core/services/labor.service';
 import { TicketService } from '../../core/services/ticket.service';
+import { TicketRealtimeService } from '../../core/services/ticket-realtime.service';
 import { ModalService } from '../../core/services/modal.service';
 import { SideDrawerService } from '../../core/services/side-drawer.service';
 import { BadgeClockInResponse } from '../../core/models/mes.types';
@@ -83,14 +84,21 @@ interface ScanFeedback {
             [class.bg-primary/10]="mainTab() === 'soporte'"
             [class.text-primary]="mainTab() === 'soporte'"
             [class.text-surface-text-muted]="mainTab() !== 'soporte'"
+            [title]="realtimeSvc.isConnected() ? 'WebSocket conectado' : 'Conectando...'"
           >
             <mat-icon class="text-sm !w-4 !h-4">support_agent</mat-icon>
             Soporte
             @if (ticketSvc.stationTickets().length > 0) {
-              <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center shadow">
+              <span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center shadow animate-pulse">
                 {{ ticketSvc.stationTickets().length }}
               </span>
             }
+            <span
+              class="absolute bottom-1 right-1 w-2 h-2 rounded-full transition-colors"
+              [class.bg-emerald-400]="realtimeSvc.isConnected()"
+              [class.bg-amber-400]="!realtimeSvc.isConnected()"
+              [class.animate-pulse]="!realtimeSvc.isConnected()"
+            ></span>
           </button>
         </div>
 
@@ -794,6 +802,7 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
   readonly svc           = inject(ResourceService);
   readonly laborSvc      = inject(LaborService);
   readonly ticketSvc     = inject(TicketService);
+  readonly realtimeSvc   = inject(TicketRealtimeService);
   private modalSvc       = inject(ModalService);
   private drawerSvc      = inject(SideDrawerService);
   private route          = inject(ActivatedRoute);
@@ -834,6 +843,15 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
     if (!code) { this.router.navigate(['/monitor/resources']); return; }
     this.resourceCode.set(code);
     this.svc.loadAll(code);
+
+    // Connect WebSocket for real-time ticket updates
+    setTimeout(() => {
+      const resource = this.svc.resource();
+      if (resource?.id) {
+        this.realtimeSvc.connect(resource.id);
+      }
+    }, 500); // Wait for resource to load
+
     document.addEventListener('keydown', this.keydownFn);
   }
 
@@ -842,6 +860,7 @@ export class ResourceMonitorComponent implements OnInit, OnDestroy {
     clearInterval(this.personnelInterval);
     clearTimeout(this.feedbackTimeout);
     void this.stopCamera();
+    this.realtimeSvc.disconnect();
     this.svc.reset();
   }
 
