@@ -131,30 +131,35 @@ async def refresh_token_rtr(
             message="Refresh token rotated successfully"
         )
 
-    except RefreshTokenExpiredError:
+    except RefreshTokenExpiredError as e:
+        logger.info(f"Token refresh denied: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token expired"
+            detail="Invalid token"
         )
     except RefreshTokenRevokedError as e:
+        logger.info(f"Token refresh denied (revoked): {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token family revoked: {str(e)}"
+            detail="Invalid token"
         )
-    except RefreshTokenReuseDetectedError:
+    except RefreshTokenReuseDetectedError as e:
+        logger.warning(f"Security breach detected: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token reuse detected—security lockout (family revoked)"
+            detail="Invalid token"
         )
-    except CompanyIdMismatchError:
+    except CompanyIdMismatchError as e:
+        logger.warning(f"Company binding validation failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token (company binding failed)"
+            detail="Invalid token"
         )
-    except RefreshTokenInvalidFamilyError:
+    except RefreshTokenInvalidFamilyError as e:
+        logger.info(f"Token refresh denied (family not found): {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token family not found"
+            detail="Invalid token"
         )
     except RefreshTokenInvalidError as e:
         raise HTTPException(
