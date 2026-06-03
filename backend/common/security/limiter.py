@@ -1,4 +1,5 @@
 import logging
+import hmac
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from fastapi import Request
@@ -15,12 +16,13 @@ def multi_layer_key_func(request: Request) -> str:
     4. Layer 1 (IP): Fallback a la dirección IP.
     """
     # 0. Lógica de Bypass (Muro de Hierro Bypass)
+    # Phase 179A P0.1: Use hmac.compare_digest() to prevent timing attacks on bypass keys
     internal_secret = request.headers.get("X-Internal-Secret")
-    if internal_secret and internal_secret == settings.INTERNAL_API_KEY:
+    if internal_secret and hmac.compare_digest(internal_secret, settings.INTERNAL_API_KEY):
         return None
-    
+
     admin_key = request.headers.get("X-Admin-Master-Key")
-    if admin_key and admin_key == settings.int_admin_master_key:
+    if admin_key and hmac.compare_digest(admin_key, settings.int_admin_master_key):
         return None
 
     # 1. Intentar obtener el ID del usuario (Capa 3)
