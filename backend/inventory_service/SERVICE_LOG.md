@@ -1,5 +1,20 @@
 # Service Log — Inventory Service
 
+## 🕒 Última Actividad (2026-06-03) — Phase 177: NAIVE_DATETIME Fixes ✅
+
+**All instances of `datetime.utcnow()` replaced with `datetime.now(timezone.utc)` for cloud deployment readiness.**
+
+**Files modified:**
+- `inventory_app/api/v1/endpoints/demo_reset.py` (2 instances: lines 79, 352 — demo seed timestamp)
+- `inventory_app/api/v1/endpoints/inventory.py` (3 instances: lines 166, 274, and bulk-load — movement creation timestamps)
+- `inventory_app/infrastructure/repositories/sqlalchemy_inventory_repository.py` (2 instances: lines 1202, 1822 — 24h telemetry + dashboard timestamps)
+
+**Code Graph audit:** 0 CRITICAL, 0 WARNING. inventory_service now 100% compliant (was 1 warning).
+
+**Status**: ✅ COMPLETED — Timezone-aware UTC timestamps, AWS deployment ready.
+
+---
+
 ## 🕒 Última Actividad (2026-05-27) — Phase 149
 **Phase 149: BOM Model CRITICAL Bug Fix** ✅
 

@@ -5,6 +5,15 @@
  
  ---
 
+ ### [2026-06-03] - Phase 177: NAIVE_DATETIME Fixes ✅
+ - **File modified**: `wms_app/infrastructure/repositories/__init__.py` (ProductPriceRepository)
+ - **Changes**: 2 instances of `datetime.utcnow()` → `datetime.now(timezone.utc)` (lines 32, 74 in get_effective_price() and upsert_with_audit())
+ - **Import**: `timezone` added to datetime imports
+ - **Code Graph audit**: 0 CRITICAL, 0 WARNING. wms_service now 100% compliant.
+ - **Status**: ✅ COMPLETED — Timezone-aware UTC timestamps, cloud deployment ready
+
+ ---
+
  ### [2026-05-12] - Phase 3: Industrial CQRS & UoW Strict Enforcement ✅
 - **Status**: ✅ COMPLETED — **100% CQRS Compliance**
 - **Unit of Work (UoW)**: Enforced `begin_nested()` transactional isolation across all application handlers (`TransferStockHandler`, `ConfirmDocumentHandler`, etc.).

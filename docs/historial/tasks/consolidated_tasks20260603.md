@@ -150,24 +150,37 @@ Exit code: 0 (seguro para producción)
 
 ## ⏳ Tareas Pendientes (Backlog próximas fases)
 
-### Phase 177 — NAIVE_DATETIME Fixes ⚠️ CRÍTICA
+### Phase 177 — NAIVE_DATETIME Fixes ✅ COMPLETADO (2026-06-03)
 **Prioridad:** ALTA (Cloud deployment blocker)  
-**Estimado:** 1h  
-**Requisitos:**
-- Fix 8 NAIVE_DATETIME_VIOLATION warnings
-- Replace `datetime.utcnow()` con `datetime.now(timezone.utc)` en:
-  - `backend/auth_service/` (3 files)
-  - `backend/inventory_service/` (3 files)
-  - `backend/tickets_service/` (1 file)
-  - `backend/wms_service/` (1 file)
-- Run code graph audit: confirm 0 WARNINGs
-- Esperado: exit code 0, timezones correctos para AWS deployment
+**Estimado:** 1h | **Real:** ~1.5h  
+**Estado:** ✅ COMPLETADO
 
-**Archivos a modificar:**
-- auth_service: `commands/`, `services/`
-- inventory_service: `api/endpoints/`, `repositories/`
-- tickets_service: `services/`
-- wms_service: `repositories/`
+**Subtareas:**
+- [x] Fix 8 NAIVE_DATETIME_VIOLATION warnings
+- [x] Replace `datetime.utcnow()` con `datetime.now(timezone.utc)` en:
+  - [x] auth_service (3 files: 2 commands + 1 repo)
+    - `complete_registration_command.py` (1 instance)
+    - `invite_user_command.py` (1 instance)
+    - `sqlalchemy_refresh_token_repo.py` (1 instance)
+  - [x] inventory_service (3 files: 2 endpoints + 1 repo)
+    - `demo_reset.py` (2 instances)
+    - `inventory.py` (3 instances)
+    - `sqlalchemy_inventory_repository.py` (2 instances)
+  - [x] tickets_service (1 file: 1 service)
+    - `ticket_service.py` (1 instance)
+  - [x] wms_service (1 file: 1 repo)
+    - `repositories/__init__.py` (2 instances)
+
+- [x] Run code graph audit: **0 CRITICAL, 0 WARNING** (ALL CLEAN)
+- [x] Verifica exit code 0, timezone-aware UTC timestamps para AWS deployment
+
+**Compilación y validación:**
+- ✅ Code Graph: 0 errors, 100% compliance (14/14 microservices CLEAN)
+- ✅ Python syntax: All imports correct (`from datetime import timezone`)
+- ✅ 10 total replacements: `datetime.utcnow()` → `datetime.now(timezone.utc)`
+
+**Commit:**
+- `fix(phase-177): replace datetime.utcnow() with datetime.now(timezone.utc)` (3a40fd2)
 
 ### Phase 176b (Opcional) — Bulk Import + CSV
 **Prioridad:** BAJA  
@@ -251,25 +264,32 @@ Exit code: 0 (seguro para producción)
 
 ## 🚀 Próximos Pasos Inmediatos
 
-1. **Phase 176 kickoff:** Implementar NewTicketDialogComponent + bulk import (opcional)
-   - Validar que endpoint POST /tickets acepta los campos requeridos
-   - Integrar modal con Resource Monitor "Nuevo Ticket" button
-   - Test en navegador: crear ticket desde UI → WebSocket event arrives → badge updates
+### ✅ Cloud Deployment Readiness (UNBLOCKED)
+- Phase 177 COMPLETADO: 0 NAIVE_DATETIME violations, 0 code graph errors
+- Ready for AWS ECS/App Runner deployment
+- All timezone handling is UTC-aware (`datetime.now(timezone.utc)`)
 
-2. **Phase 177 (High Priority):** Limpiar NAIVE_DATETIME warnings (8 archivos)
-   - Bloquea cloud deployment readiness
-   - Simple mechanical fix: `datetime.utcnow()` → `datetime.now(timezone.utc)`
-   - Rerun code graph audit: esperado 0 WARNINGs
+### Phase 176b (Opcional) — CSV Bulk Import
+- CSV upload endpoint para tickets
+- Frontend drag-drop UI
+- Progress tracking
 
-3. **Integración real de datos:** Reemplazar mocks con llamadas HTTP a HCM/Tickets APIs
-   - TicketAssignModalComponent → real collaborator fetch from HCM
-   - TicketCommentsDrawerComponent → real comments from backend
+### Phase 177b (Opcional) — Real HCM Integration
+- Reemplazar mock collaborators con real HCM API fetch
+- NewTicketDialogComponent → `GET /api/v1/hcm/collaborators`
+- TicketAssignModalComponent → real collaborator data
 
-4. **E2E Testing:** Validar flujo completo WebSocket
-   - Create ticket → WebSocket event arrives in <1s
-   - Auto-refresh stationTickets signal
-   - Badge counter increments
-   - Sound + toast fires for CRITICAL
+### Phase 179 — Mobile E2E Testing
+- Test complete sales flow on Moto g04s (device)
+- Dark/light theme validation
+- WebSocket realtime updates on device
+- Estimated: 2h
+
+### Phase 180 — Cloud Deployment
+- AWS ECS/App Runner configuration
+- Database backup strategy
+- Performance tuning (connection pools, caching)
+- Estimated: 4-6h
 
 ---
 

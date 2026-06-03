@@ -1,5 +1,20 @@
 # Auth Service - Service Log
 
+## [2026-06-03] Phase 177 — NAIVE_DATETIME Fixes ✅
+
+**All instances of `datetime.utcnow()` replaced with `datetime.now(timezone.utc)` for timezone-aware UTC timestamps.**
+
+**Files modified:**
+- `auth_app/commands/complete_registration_command.py` (line 37: expires_at check)
+- `auth_app/commands/invite_user_command.py` (line 81: invitation expires_at creation)
+- `auth_app/infrastructure/repositories/sqlalchemy_refresh_token_repo.py` (line 57: family creation timestamp)
+
+**Code Graph audit:** 0 CRITICAL, 0 WARNING. 100% compliance across all 14 microservices.
+
+**Status**: ✅ COMPLETED — Cloud deployment ready, timezone-aware UTC timestamps.
+
+---
+
 ## [2026-06-01] Phase 164 — Migration `a9e3b1c0d2f4` aplicada + DB Worker ✅
 
 **`refresh_tokens` table eliminada del esquema.** `alembic_version_auth = a9e3b1c0d2f4` (head).

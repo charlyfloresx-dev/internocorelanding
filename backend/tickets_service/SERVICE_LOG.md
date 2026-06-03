@@ -10,11 +10,18 @@ The InternoCore Tickets Service evolved from a generic helpdesk module to the **
 | **Data Models** | 9 (Ticket, Comment, History, Resource, StopLog, OutboxEvent, TicketAction, **TicketAssignee**) |
 | **API Endpoints** | 9 REST |
 | **Migrations** | 006 (ticket_assignees) |
-| **Last Audit** | 2026-05-27 |
+| **Last Audit** | 2026-06-03 |
 
 ---
 
 ## 🚀 Log de Cambios y Estabilización
+
+### [2026-06-03] Phase 177: NAIVE_DATETIME Fixes ✅
+- **File modified**: `tickets_app/services/ticket_service.py` (line 41: external_assigned_at timestamp)
+- **Change**: `datetime.utcnow()` → `datetime.now(timezone.utc)` for timezone-aware UTC timestamps
+- **Import**: `timezone` added to datetime imports
+- **Code Graph audit**: 0 CRITICAL, 0 WARNING. tickets_service now 100% compliant.
+- **Status**: ✅ COMPLETED — Cloud deployment ready, all timestamps UTC-aware
 
 ### [2026-06-03] Phase 175: Real-Time WebSocket Notifications ✅
 - **StationWebSocketManager** (`infrastructure/station_websocket_manager.py`): Nueva clase para manejar WebSocket connections por station_id
