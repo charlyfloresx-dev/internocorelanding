@@ -4,6 +4,39 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-03] Phase 159 RTR Phase D — Integration Validation & Completion ✅
+
+**Objetivo:** Validar que RTR Phase D (Refresh Token Rotation) está completamente integrado y operacional en el handler de login.
+
+**Decisiones Arquitectónicas:**
+- **T1/T2 Handshake + RTR Family Creation**: Atomicidad garantizada — family creada dentro de transacción en `select-company` handler.
+- **Generation Counter Initialization**: `current_generation=0` al crear la familia, embebido en JWT como `"gen"` claim.
+- **Stateless RTR Phase D**: No requiere estadío adicional post-Phase A/B — production-ready.
+- **Cloud Deployment Unblocked**: RTR es prerequisito para session rotation en AWS.
+
+**Validación Ejecutada:**
+- `full_auth_flow.py` PASO 1-3: Login flow complete with family creation ✅
+- JWT includes generation counter (`gen: 0`) at initial login ✅
+- `refresh_token` issued with RTR claims at select-company ✅
+- Industrial kiosk flows (RFID, PIN) validated ✅
+- Code graph audit: 0 CRITICAL, 100% compliance ✅
+
+**Cambios Cero:** Validación únicamente — toda la integración estaba en su lugar desde Phase D planning (Phase 162).
+
+**Bloqueadores Desbloqueados:**
+1. **Promotion Service** — Waiting on HCM Phase 3 MVP (`GET /internal/check-eligibility` endpoint).
+2. **Cloud Deployment** — AWS ECS/App Runner migration can proceed.
+3. **Session Rotation Security** — Production-ready refresh token rotation.
+
+**Evidence Files:**
+- `backend/auth_service/auth_app/commands/select_company_command.py:195-207` — RTR family creation + token issuance
+- `backend/auth_service/auth_app/infrastructure/repositories/sqlalchemy_refresh_token_repo.py:50-71` — `create_family()` with generation=0
+- `backend/auth_service/auth_app/domain/handlers/refresh_token_handler.py:286-304` — JWT generation with gen claim
+
+**Estado:** ✅ COMPLETED — Phase 159 RTR fully operational. All 5 TOP5_BLOQUEADORES validated for next steps.
+
+---
+
 ### [2026-06-03] Phase 177 — NAIVE_DATETIME Fixes (Cloud Deployment Readiness) ✅
 
 **Objetivo:** Eliminar todas las violaciones `NAIVE_DATETIME_VIOLATION` en el auditor estático — migrar de `datetime.utcnow()` a `datetime.now(timezone.utc)` para compatibilidad con AWS ECS/App Runner.
