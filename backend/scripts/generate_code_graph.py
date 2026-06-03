@@ -3,6 +3,7 @@ import ast
 import json
 import re
 from typing import List, Dict, Any, Set
+from datetime import datetime, timezone
 
 class CodeGraphGenerator:
     def __init__(self, root_dir: str):
@@ -12,7 +13,8 @@ class CodeGraphGenerator:
             "edges": [],
             "invariants_errors": [],
             "compliance_report": {},
-            "inter_service_deps": {}
+            "inter_service_deps": {},
+            "audit_metadata": {}
         }
         self.nodes_by_id = {}
         self.lines_of_code = {}
@@ -25,6 +27,9 @@ class CodeGraphGenerator:
         # Microservices to track for report
         self.ms_scanned_files = {} # {microservice: count}
         self.scanned_files_log = [] # Track every file audited
+        # Phase 179A — RTR Security Findings Tracking
+        self.rtr_security_findings = []  # Track RTR-specific issues
+        self.naive_datetime_violations = []  # Track NAIVE_DATETIME instances
         self.MICROSERVICES = self._discover_microservices()
 
     def _discover_microservices(self) -> List[str]:
@@ -32,10 +37,10 @@ class CodeGraphGenerator:
         backend_path = os.path.join(self.root_dir, "backend")
         if not os.path.exists(backend_path):
             return ["common"]
-        
+
         services = ["common"] # Always track common
         exclude = ["scripts", "tests", "archive", "tmp", "docs", ".pytest_cache", "__pycache__", "backend"]
-        
+
         for item in os.listdir(backend_path):
             item_path = os.path.join(backend_path, item)
             if os.path.isdir(item_path) and item not in exclude:
@@ -153,7 +158,7 @@ class CodeGraphGenerator:
                     ms = self._get_ms(file_path)
                     self.ms_scanned_files[ms] = self.ms_scanned_files.get(ms, 0) + 1
                     self.analyze_file(file_path)
-        
+
         # Post-scan invariants
         self._check_circular_dependencies()
         self._check_hard_fk_cross_service()  # N4 Rev163
@@ -168,9 +173,9 @@ class CodeGraphGenerator:
     def analyze_file(self, file_path: str):
         rel_path = os.path.relpath(file_path, self.root_dir).replace("\\", "/")
         ms = self._get_ms(file_path)
-        
+
         self.scanned_files_log.append(f"AUDITED: {rel_path} [{ms}]")
-        
+
         with open(file_path, "r", encoding="utf-8") as f:
             try:
                 content = f.read()
@@ -235,7 +240,7 @@ class CodeGraphGenerator:
                         self.graph["invariants_errors"].append(err)
                         self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
                         break
-            
+
             if "load_aws_secrets" not in content and ms != "common":
                 err = {"file": rel_path, "severity": "WARNING", "ms": ms, "error": "AWS_SECRETS_VIOLATION: Microservice config missing 'load_aws_secrets()' logic for AWS ENV_MODE"}
                 self.graph["invariants_errors"].append(err)
@@ -354,7 +359,106 @@ class CodeGraphGenerator:
                     )
                 }
                 self.graph["invariants_errors"].append(err)
+                self.naive_datetime_violations.append(rel_path)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # ── Phase 179A RTR Security Findings ───────────────────────────────────
+
+        # N6. RTR_BYPASS_KEY_TIMING_ATTACK (CRITICAL) — Phase 179A Finding B.1
+        # God mode or internal keys compared with == leak timing info
+        if not is_test and ("INTERNAL_API_KEY" in content or "ADMIN_MASTER_KEY" in content or "bypass" in content.lower()):
+            if "==" in content and any(k in content for k in ["bypass", "internal", "admin", "master"]):
+                if "hmac.compare_digest" not in content and "secrets.compare_digest" not in content:
+                    # Check if it's validating a secret/key
+                    if re.search(r'(x_internal|bypass|admin|master).+==\s*settings', content):
+                        err = {
+                            "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                            "error": (
+                                "RTR_BYPASS_KEY_TIMING_ATTACK: Bypass/admin key validation uses == "
+                                "instead of hmac.compare_digest() — Phase 179A Finding B.1"
+                            )
+                        }
+                        self.graph["invariants_errors"].append(err)
+                        self.rtr_security_findings.append("TIMING_ATTACK")
+                        self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N7. GOD_MODE_JWT_FALSIFICATION (CRITICAL) — Phase 179A Finding C.1
+        # god_mode claim must never be trusted from JWT without server verification
+        if not is_test and "god_mode" in content.lower():
+            # Check if it's reading god_mode from JWT without verifying
+            if "payload.get(" in content and "god_mode" in content:
+                if "redis" not in content.lower() and "session_store" not in content.lower():
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            "GOD_MODE_JWT_FALSIFICATION: 'god_mode' claim read from JWT "
+                            "without server-side session store verification — Phase 179A Finding C.1"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.rtr_security_findings.append("GOD_MODE_FALSIFICATION")
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N8. RATE_LIMIT_IDOR_VIOLATION (CRITICAL) — Phase 179A Finding C.2
+        # X-Company-ID header should NEVER control rate limiting
+        if "/infrastructure/" in rel_path and ("limiter" in filename or "rate" in filename.lower()):
+            if "X-Company-ID" in content or "X-Tenant-ID" in content:
+                if "rate_limit" in content.lower() or "limiter" in content.lower():
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            "RATE_LIMIT_IDOR_VIOLATION: Rate limit key derived from client header "
+                            "(X-Company-ID) — use verified JWT claims only — Phase 179A Finding C.2"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.rtr_security_findings.append("RATE_LIMIT_IDOR")
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N9. SCOPE_ELEVATION_RISK (CRITICAL) — Phase 179A Finding C.3
+        # Scopes must be validated server-side, not just from JWT
+        if not is_test and ("scopes" in content.lower() or "require_scope" in content):
+            # Check if scope is validated against DB/session store
+            source = ""
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    source = ast.get_source_segment(f.read(), ast.parse(content).body[0]) or content
+            except:
+                source = content
+
+            if "payload.get(" in content and "scope" in content:
+                # If reading from JWT without DB validation
+                if "query(" not in source and "where(" not in source and "database" not in content.lower():
+                    err = {
+                        "file": rel_path, "severity": "CRITICAL", "ms": ms,
+                        "error": (
+                            "SCOPE_ELEVATION_RISK: User scopes read from JWT without "
+                            "server-side DB validation — use SSOT from database — Phase 179A Finding C.3"
+                        )
+                    }
+                    self.graph["invariants_errors"].append(err)
+                    self.rtr_security_findings.append("SCOPE_ELEVATION")
+                    self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # N10. RTR_BREACH_ALERT_MISSING (WARNING) — Phase 179A Finding 2
+        # When token reuse detected, must notify user immediately
+        if "reuse_detected" in content.lower() or "refresh_token" in filename:
+            if "revoke" in content.lower() and "log_rotation_event" in content:
+                # Check if breach alert is implemented
+                if "notification_client" not in content.lower() and "send_alert" not in content.lower():
+                    if "HANDLER" in content or "handler" in filename:
+                        err = {
+                            "file": rel_path, "severity": "WARNING", "ms": ms,
+                            "error": (
+                                "RTR_BREACH_ALERT_MISSING: Token reuse detected but no "
+                                "NotificationClient alert triggered — Phase 179A Finding 2"
+                            )
+                        }
+                        self.graph["invariants_errors"].append(err)
+                        self.rtr_security_findings.append("BREACH_ALERT_MISSING")
+                        self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
+
+        # ── End Phase 179A ─────────────────────────────────────────────────────
 
         # N4. Table collection for HARD_FK_CROSS_SERVICE (post-scan, see _check_hard_fk_cross_service)
         # "First writer wins" policy: if two services claim the same __tablename__, the second
@@ -408,7 +512,7 @@ class CodeGraphGenerator:
                 self.graph["invariants_errors"].append(err)
                 self.errors_by_ms[ms] = self.errors_by_ms.get(ms, 0) + 1
 
-        # ── End Rev163 ─────────────────────────────────────────────────────────
+        # ── End Rev163/179A ────────────────────────────────────────────────────
 
         # 5. RLS / Muro de Hierro Guard (Phase 5)
         if filename == "database.py" and "infrastructure" in rel_path:
@@ -440,7 +544,7 @@ class CodeGraphGenerator:
                     # Match both 'other_service.xxx', 'other_app.xxx', and generic '[prefix]_app' patterns
                     other_app = other_ms.replace("_service", "_app")
                     generic_app = other_ms.split("_")[0] + "_app"
-                    
+
                     if (f"{other_ms}." in imp_module or f"{other_app}." in imp_module or f"{generic_app}." in imp_module) and "common" not in imp_module:
                         # Track for graph
                         deps = self.inter_service_dependencies.get(ms, set())
@@ -465,14 +569,14 @@ class CodeGraphGenerator:
                 self._analyze_class(file_path, node, imports, ms)
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 self._analyze_function(file_path, None, node, ms)
-                
+
             if ("_app/domain/services/" in rel_path or "_app/services/" in rel_path) and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 self.domain_services_count[ms] = self.domain_services_count.get(ms, 0) + 1
 
     def _analyze_class(self, file_path: str, node: ast.ClassDef, imports: Dict[str, str], ms: str):
         rel_path = os.path.relpath(file_path, self.root_dir).replace("\\", "/")
         base_classes = [b.id if isinstance(b, ast.Name) else (b.attr if isinstance(b, ast.Attribute) else "") for b in node.bases]
-        
+
         if "MultiTenantBase" in base_classes and "AuditBase" in base_classes:
             err = {"file": rel_path, "class": node.name, "severity": "LOW", "ms": ms, "error": "Redundant Inheritance: MultiTenantBase already includes AuditBase"}
             self.graph["invariants_errors"].append(err)
@@ -587,23 +691,49 @@ class CodeGraphGenerator:
     def print_report(self):
         critical = [e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"]
         warnings = [e for e in self.graph["invariants_errors"] if e["severity"] == "WARNING"]
-        
+
         print("="*80)
-        print("  Code Knowledge Graph Audit Report")
+        print("  CODE GRAPH AUDIT REPORT — InternoCore Phase 179A")
         print(f"  Scanned from: {self.root_dir}")
+        print(f"  Timestamp: {datetime.now(timezone.utc).isoformat()}")
         print("="*80)
-        
+
         if critical:
             print(f"\n[CRITICAL] ERRORS ({len(critical)}):")
             print("-" * 60)
             for e in critical:
-                print(f"  [!!] {e['file']} -> {e['error']}")
-        
+                print(f"  [!!] {e['file']}")
+                print(f"       => {e['error']}")
+
         if warnings:
             print(f"\n[WARNING] ({len(warnings)}):")
             print("-" * 60)
             for i, e in enumerate(warnings, 1):
-                print(f"  [{i:02d}] {e['file']} -> {e['error']}")
+                print(f"  [{i:02d}] {e['file']}")
+                print(f"       => {e['error']}")
+
+        # NEW: NAIVE_DATETIME Summary (Phase 177 Debt)
+        if self.naive_datetime_violations:
+            print(f"\n[NAIVE_DATETIME DEBT] ({len(self.naive_datetime_violations)} instances — Phase 177 Fix):")
+            print("-" * 60)
+            for vfile in sorted(set(self.naive_datetime_violations)):
+                print(f"  • {vfile}")
+
+        # NEW: RTR Security Findings Summary (Phase 179A)
+        if self.rtr_security_findings:
+            rtr_findings_dedup = list(set(self.rtr_security_findings))
+            print(f"\n[RTR SECURITY] Phase 179A Findings ({len(rtr_findings_dedup)} categories):")
+            print("-" * 60)
+            finding_names = {
+                "TIMING_ATTACK": "B.1 Bypass Key Timing Attack",
+                "GOD_MODE_FALSIFICATION": "C.1 god_mode JWT Falsification",
+                "RATE_LIMIT_IDOR": "C.2 Rate Limit IDOR",
+                "SCOPE_ELEVATION": "C.3 Scope Elevation Risk",
+                "BREACH_ALERT_MISSING": "D.2 Breach Alert Missing",
+            }
+            for finding in rtr_findings_dedup:
+                name = finding_names.get(finding, finding)
+                print(f"  • {name}")
 
         print("\n[SUMMARY] Compliance Report by Microservice:")
         print("-" * 60)
@@ -612,36 +742,128 @@ class CodeGraphGenerator:
                 continue
             err_count = self.errors_by_ms.get(ms, 0)
             score = max(0, 100 - (err_count * 10))
-            status = "CLEAN" if score == 100 else "DEBT"
-            print(f"   {ms:20} : {score:3}% Compliance ({err_count} err) | Status: {status}")
+            status = "[CLEAN]" if score == 100 else "[DEBT]"
+            files_scanned = self.ms_scanned_files.get(ms, 0)
+            print(f"   {ms:20} : {score:3}% Compliance ({err_count:2} err, {files_scanned:3} files) | {status}")
 
         print("\n[INTER-SERVICE DEPENDENCIES]:")
         print("-" * 60)
-        for ms, deps in sorted(self.inter_service_dependencies.items()):
-            print(f"   {ms:20} -> {', '.join(sorted(deps))}")
+        if self.inter_service_dependencies:
+            for ms, deps in sorted(self.inter_service_dependencies.items()):
+                print(f"   {ms:20} -> {', '.join(sorted(deps))}")
+        else:
+            print("   [OK] No cross-service dependencies detected")
 
         print("\n" + "="*80)
-        print(f"  TOTAL ERRORS: {len(self.graph['invariants_errors'])}")
+        print(f"  TOTAL ERRORS: {len(self.graph['invariants_errors'])} (C:{len(critical)} W:{len(warnings)})")
         print("="*80)
 
     def save(self, output_ptr: str):
         # Update graph with final metrics
         self.graph["compliance_report"] = {ms: max(0, 100 - (self.errors_by_ms.get(ms, 0) * 10)) for ms in self.MICROSERVICES}
         self.graph["inter_service_deps"] = {ms: list(deps) for ms, deps in self.inter_service_dependencies.items()}
+
+        # NEW: Audit metadata (Phase 179A)
+        self.graph["audit_metadata"] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "phase": "Phase 179A",
+            "critical_count": len([e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"]),
+            "warning_count": len([e for e in self.graph["invariants_errors"] if e["severity"] == "WARNING"]),
+            "naive_datetime_count": len(self.naive_datetime_violations),
+            "rtr_security_findings": list(set(self.rtr_security_findings)),
+            "total_files_scanned": len(self.scanned_files_log),
+            "microservices_audited": len(self.MICROSERVICES),
+        }
+
         with open(output_ptr, "w", encoding="utf-8") as f:
             json.dump(self.graph, f, indent=4)
-            
+
         # Write detailed execution log
         log_ptr = output_ptr.replace(".json", "_execution_log.txt")
         with open(log_ptr, "w", encoding="utf-8") as f:
             f.write("="*80 + "\n")
             f.write(" CODE GRAPH AUDITOR - EXECUTION LOG\n")
+            f.write(f" Phase 179A Security Audit\n")
+            f.write(f" Generated: {datetime.now(timezone.utc).isoformat()}\n")
             f.write("="*80 + "\n\n")
-            f.write(f"Total files scanned: {len(self.scanned_files_log)}\n\n")
+            f.write(f"Total files scanned: {len(self.scanned_files_log)}\n")
+            f.write(f"Microservices audited: {len(self.MICROSERVICES)}\n")
+            f.write(f"Critical findings: {len([e for e in self.graph['invariants_errors'] if e['severity'] == 'CRITICAL'])}\n")
+            f.write(f"Warning findings: {len([e for e in self.graph['invariants_errors'] if e['severity'] == 'WARNING'])}\n")
+            f.write(f"NAIVE_DATETIME violations: {len(self.naive_datetime_violations)}\n")
+            f.write(f"RTR security findings: {len(set(self.rtr_security_findings))}\n\n")
+            f.write("FILES AUDITED:\n")
             f.write("\n".join(sorted(self.scanned_files_log)))
             f.write("\n\n" + "="*80 + "\n")
             f.write(" AUDIT COMPLETED SUCCESSFULLY\n")
             f.write("="*80 + "\n")
+
+    def export_sarif(self, output_file: str):
+        """Export audit findings in SARIF 2.1.0 format for CI/CD integration."""
+        sarif = {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [{
+                "tool": {
+                    "driver": {
+                        "name": "InternoCore-CodeGraphAuditor",
+                        "version": "Rev163-Phase179A",
+                        "informationUri": "https://github.com/interno-core/auditor",
+                        "rules": [
+                            {
+                                "id": "TIMING_ATTACK_VIOLATION",
+                                "name": "HMAC Timing Attack",
+                                "shortDescription": {"text": "Direct == comparison of HMAC values leaks timing information"},
+                                "fullDescription": {"text": "Use hmac.compare_digest() for constant-time comparison"},
+                                "defaultConfiguration": {"level": "error"}
+                            },
+                            {
+                                "id": "HARD_FK_CROSS_SERVICE",
+                                "name": "Cross-Service Foreign Key",
+                                "shortDescription": {"text": "Database-level FK crossing service boundaries"},
+                                "fullDescription": {"text": "Use soft FKs (UUID field only, no DB constraint) per Iron Wall ADR"},
+                                "defaultConfiguration": {"level": "error"}
+                            },
+                            {
+                                "id": "NAIVE_DATETIME_VIOLATION",
+                                "name": "Naive DateTime Usage",
+                                "shortDescription": {"text": "datetime.utcnow() returns naive datetime"},
+                                "fullDescription": {"text": "Use datetime.now(timezone.utc) for timezone-aware operations"},
+                                "defaultConfiguration": {"level": "warning"}
+                            },
+                        ]
+                    }
+                },
+                "results": [
+                    {
+                        "ruleId": e.get("error", "").split(":")[0] if ":" in e.get("error", "") else "UNKNOWN",
+                        "level": e.get("severity", "warning").lower(),
+                        "message": {"text": e.get("error", "")},
+                        "locations": [{"physicalLocation": {"uri": e.get("file", "")}}],
+                    }
+                    for e in self.graph["invariants_errors"]
+                ]
+            }]
+        }
+        with open(output_file, "w") as f:
+            json.dump(sarif, f, indent=2)
+        print(f"[OK] SARIF report exported to {output_file}")
+
+    def track_phase_progress(self, current_phase: str = "Phase179A") -> Dict[str, Any]:
+        """Track remediation progress across phases."""
+        critical_count = len([e for e in self.graph["invariants_errors"] if e["severity"] == "CRITICAL"])
+        warning_count = len([e for e in self.graph["invariants_errors"] if e["severity"] == "WARNING"])
+
+        return {
+            "current_phase": current_phase,
+            "total_errors": len(self.graph["invariants_errors"]),
+            "critical_errors": critical_count,
+            "warning_errors": warning_count,
+            "errors_by_ms": self.errors_by_ms,
+            "compliance_score": max(0, 100 - (critical_count * 15 + warning_count * 5)),
+            "phase_status": "BLOCKED" if critical_count > 0 else "READY"
+        }
+
 
 class SchemaAuditor:
     """
@@ -673,7 +895,7 @@ class SchemaAuditor:
 
         # Import base to get metadata
         from common.infrastructure.models.base import Base
-        
+
         # Walk all model files to trigger registration
         model_dirs = []
         for svc in os.listdir(self.backend_dir):
@@ -793,11 +1015,27 @@ if __name__ == "__main__":
         issues = auditor.run()
         sys.exit(1 if issues > 0 else 0)
 
+    if "--sarif" in sys.argv:
+        gen = CodeGraphGenerator(root)
+        gen.scan()
+        sarif_file = os.path.join(root, "code_graph_audit.sarif")
+        gen.export_sarif(sarif_file)
+        gen.print_report()
+        gen.save(os.path.join(root, "code_graph.json"))
+        sys.exit(0)
+
+    if "--progress" in sys.argv:
+        gen = CodeGraphGenerator(root)
+        gen.scan()
+        progress = gen.track_phase_progress()
+        print(json.dumps(progress, indent=2))
+        sys.exit(0)
+
     gen = CodeGraphGenerator(root)
     gen.scan()
     gen.print_report()
     gen.save(os.path.join(root, "code_graph.json"))
-    
+
     critical_errors = [e for e in gen.graph["invariants_errors"] if e["severity"] == "CRITICAL"]
     if len(critical_errors) > 0:
         sys.exit(1)

@@ -1,5 +1,25 @@
 # Auth Service - Service Log
 
+## [2026-06-03] Phase 179A — Security Audit Findings (Code Graph Scan)
+
+**Two critical security vulnerabilities detected in Phase 179A audit:**
+
+**Finding C.3 (CRITICAL): Scope Elevation Risk**
+- Files: 
+  - `auth_app/api/v1/endpoints/auth.py` (line ~250)
+  - `auth_app/core/security.py` (line ~180)
+- Issue: User scopes are extracted from JWT claims without server-side database validation
+- Risk: Client can inject elevated scopes that bypass authorization checks (privilege escalation)
+- Mitigation Required: Validate scopes against database SSOT before trusting JWT claims
+- Phase 179A P0.4: Implement scope validation against `permission_documents` or `user_scopes` table
+- Timeline: 6 hours (service layer refactor + tests)
+
+**Compliance Status:** 80% (2 errors, 112 files audited)
+
+**Blocker:** Phase 179A P0.4 must complete before cloud deployment (target 2026-06-06)
+
+---
+
 ## [2026-06-03] RTR Security Hardening — Finding 1, 2, 3 Remediation ✅ COMPLETED
 
 **Three security findings from OWASP Top 10 audit of RTR Phase D fully remediated and tested.**

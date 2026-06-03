@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Interno.Outset")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f7f7e54cc2f9904563251b26f6f14b360cea6061")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+647c30e4a0d3c8b5922b89076ef9e674c0d5df09")]
 [assembly: System.Reflection.AssemblyProductAttribute("Interno.Outset")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Interno.Outset")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

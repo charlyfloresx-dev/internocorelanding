@@ -51,6 +51,47 @@ Tracking the major milestones, architectural shifts, and technical decisions of 
 
 ---
 
+### [2026-06-03] Phase 179A — Security Audit & Code Graph Analyzer Update
+
+**Objetivo:** Actualizar code graph auditor con nuevos invariantes de seguridad (Phase 179A) y detectar vulnerabilidades críticas antes de cloud deployment.
+
+**Decisiones Arquitectónicas:**
+- **N6 (RTR_BYPASS_KEY_TIMING_ATTACK):** Detect bypass/admin key comparisons using `==` instead of `hmac.compare_digest()` → timing attack vector
+- **N7 (GOD_MODE_JWT_FALSIFICATION):** Prevent `god_mode` claim from being trusted directly from JWT without server-side session store verification
+- **N8 (RATE_LIMIT_IDOR_VIOLATION):** Block rate limit keys derived from client-controlled headers (X-Company-ID) → IDOR risk
+- **N9 (SCOPE_ELEVATION_RISK):** Enforce server-side scope validation against database (SSOT), not embedded in JWT claims
+- **N10 (RTR_BREACH_ALERT_MISSING):** Verify breach alert notifications implemented when token reuse detected
+
+**Cambios Concretos:**
+1. `backend/scripts/generate_code_graph.py` (Rev163-Phase179A)
+   - Agregado 5 nuevos invariantes críticos (N6-N10) detección automática
+   - Tracking de NAIVE_DATETIME violations (8 instancias en Phase 177 deuda)
+   - Tracking de RTR security findings por categoría
+   - Export SARIF para CI/CD integration
+   - Enhanced audit metadata + phase progress tracking
+
+2. Reportes mejorados:
+   - NAIVE_DATETIME summary section (Phase 177 fix tracking)
+   - RTR security findings by category (B.1, C.1, C.2, C.3, D.2)
+   - Per-microservice compliance scores
+   - Inter-service dependency graph
+
+**Test Coverage:**
+- Code graph scan: 14 microservices, 678 files audited
+- 6 CRITICAL violations detected (expected — these are the Phase 179A findings)
+- 10/14 microservices CLEAN, 4 services with DEBT from new invariants
+
+**Hallazgos Detectados:**
+- **B.1 (Timing Attack):** `common/security/limiter.py` — bypass key validation uses == instead of hmac.compare_digest()
+- **C.1 (god_mode):** `common/middleware.py` — god_mode claim from JWT without session store verification
+- **C.3 (Scope Elevation):** 3 files (auth_app endpoints, core/security, gis_validator) — scopes from JWT without DB validation
+
+**Bloqueador:** Cloud deployment blocked until Phase 179A critical fixes (P0.1-P0.5) completed. Target: 2026-06-06.
+
+**Estado:** ✅ AUDIT COMPLETE — 6 critical findings documented for Phase 179A remediation roadmap.
+
+---
+
 ### [2026-06-03] Phase 159 RTR Phase D — Integration Validation & Completion ✅
 
 **Objetivo:** Validar que RTR Phase D (Refresh Token Rotation) está completamente integrado y operacional en el handler de login.

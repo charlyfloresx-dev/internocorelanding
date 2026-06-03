@@ -1,9 +1,17 @@
 ================================================================================
  CODE GRAPH AUDITOR - EXECUTION LOG
+ Phase 179A Security Audit
+ Generated: 2026-06-03T20:14:03.209135+00:00
 ================================================================================
 
-Total files scanned: 922
+Total files scanned: 923
+Microservices audited: 14
+Critical findings: 6
+Warning findings: 0
+NAIVE_DATETIME violations: 0
+RTR security findings: 3
 
+FILES AUDITED:
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/gis_service.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/app/modules/investments/infrastructure/rppc_scraper.py [asset_manager_service]
 AUDITED: backend/asset_manager_service/asset_app/__init__.py [asset_manager_service]
@@ -83,6 +91,7 @@ AUDITED: backend/auth_service/auth_app/domain/repositories/user_company_role_rep
 AUDITED: backend/auth_service/auth_app/domain/repositories/user_repository.py [auth_service]
 AUDITED: backend/auth_service/auth_app/domain/value_objects/__init__.py [auth_service]
 AUDITED: backend/auth_service/auth_app/domain/value_objects/token_family.py [auth_service]
+AUDITED: backend/auth_service/auth_app/infrastructure/clients/notification_client.py [auth_service]
 AUDITED: backend/auth_service/auth_app/infrastructure/clients/subscription_client.py [auth_service]
 AUDITED: backend/auth_service/auth_app/infrastructure/repositories/__init__.py [auth_service]
 AUDITED: backend/auth_service/auth_app/infrastructure/repositories/sqlalchemy_permission_repository.py [auth_service]

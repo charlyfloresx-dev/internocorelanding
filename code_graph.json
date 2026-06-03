@@ -1,16 +1,53 @@
 {
     "nodes": [],
     "edges": [],
-    "invariants_errors": [],
+    "invariants_errors": [
+        {
+            "file": "backend/auth_service/auth_app/api/v1/endpoints/auth.py",
+            "severity": "CRITICAL",
+            "ms": "auth_service",
+            "error": "SCOPE_ELEVATION_RISK: User scopes read from JWT without server-side DB validation \u2014 use SSOT from database \u2014 Phase 179A Finding C.3"
+        },
+        {
+            "file": "backend/auth_service/auth_app/core/security.py",
+            "severity": "CRITICAL",
+            "ms": "auth_service",
+            "error": "SCOPE_ELEVATION_RISK: User scopes read from JWT without server-side DB validation \u2014 use SSOT from database \u2014 Phase 179A Finding C.3"
+        },
+        {
+            "file": "backend/common/middleware.py",
+            "severity": "CRITICAL",
+            "ms": "common",
+            "error": "GOD_MODE_JWT_FALSIFICATION: 'god_mode' claim read from JWT without server-side session store verification \u2014 Phase 179A Finding C.1"
+        },
+        {
+            "file": "backend/common/middleware.py",
+            "severity": "CRITICAL",
+            "ms": "common",
+            "error": "SCOPE_ELEVATION_RISK: User scopes read from JWT without server-side DB validation \u2014 use SSOT from database \u2014 Phase 179A Finding C.3"
+        },
+        {
+            "file": "backend/common/security/limiter.py",
+            "severity": "CRITICAL",
+            "ms": "common",
+            "error": "RTR_BYPASS_KEY_TIMING_ATTACK: Bypass/admin key validation uses == instead of hmac.compare_digest() \u2014 Phase 179A Finding B.1"
+        },
+        {
+            "file": "backend/master_data_service/master_app/api/v1/endpoints/gis_validator.py",
+            "severity": "CRITICAL",
+            "ms": "master_data_service",
+            "error": "SCOPE_ELEVATION_RISK: User scopes read from JWT without server-side DB validation \u2014 use SSOT from database \u2014 Phase 179A Finding C.3"
+        }
+    ],
     "compliance_report": {
         "asset_manager_service": 100,
-        "auth_service": 100,
+        "auth_service": 80,
         "cmms_service": 100,
-        "common": 100,
+        "common": 70,
         "hcm_service": 100,
         "inventory_service": 100,
         "kiosk_service": 100,
-        "master_data_service": 100,
+        "master_data_service": 90,
         "mes_service": 100,
         "notification_service": 100,
         "subscription_service": 100,
@@ -18,5 +55,19 @@
         "viatra_service": 100,
         "wms_service": 100
     },
-    "inter_service_deps": {}
+    "inter_service_deps": {},
+    "audit_metadata": {
+        "timestamp": "2026-06-03T20:14:03.206943+00:00",
+        "phase": "Phase 179A",
+        "critical_count": 6,
+        "warning_count": 0,
+        "naive_datetime_count": 0,
+        "rtr_security_findings": [
+            "TIMING_ATTACK",
+            "SCOPE_ELEVATION",
+            "GOD_MODE_FALSIFICATION"
+        ],
+        "total_files_scanned": 923,
+        "microservices_audited": 14
+    }
 }
